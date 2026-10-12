@@ -39,6 +39,9 @@ jobs:
       - name: Bootstrap Go module metadata
         run: |
           go mod tidy
+          echo '---BEGIN GO.MOD---'
+          cat go.mod
+          echo '---END GO.MOD---'
           echo '---BEGIN GO.SUM---'
           cat go.sum
           echo '---END GO.SUM---'
