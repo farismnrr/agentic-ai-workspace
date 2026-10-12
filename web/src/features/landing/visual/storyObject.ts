@@ -13,6 +13,7 @@ export interface StoryParts {
 }
 
 type DisposableMaterial = THREE.Material | THREE.Material[];
+type StoryMesh = THREE.Mesh<THREE.BufferGeometry, DisposableMaterial>;
 
 function cssColor(variable: string, fallback: string): THREE.Color {
   const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -27,9 +28,10 @@ function plate(width: number, height: number, depth: number, radius: number): TH
 }
 
 function makeFrame(): THREE.Mesh {
-  const frame = plate(5.1, 3.25, 0.16, 0.2);
-  frame.material = new THREE.MeshStandardMaterial({ roughness: 0.52, metalness: 0.08 });
-  return frame;
+  return new THREE.Mesh(
+    new RoundedBoxGeometry(5.1, 3.25, 0.16, 5, 0.2),
+    new THREE.MeshStandardMaterial({ roughness: 0.52, metalness: 0.08 }),
+  );
 }
 
 function makeCursor(): THREE.Mesh {
@@ -105,15 +107,21 @@ export function refreshStoryTheme(parts: StoryParts): void {
 
 function disposeMaterial(material: DisposableMaterial): void {
   if (Array.isArray(material)) {
-    material.forEach((item) => item.dispose());
+    material.forEach((item) => {
+      item.dispose();
+    });
     return;
   }
   material.dispose();
 }
 
+function isStoryMesh(object: THREE.Object3D): object is StoryMesh {
+  return object instanceof THREE.Mesh;
+}
+
 export function disposeStory(root: THREE.Object3D): void {
   root.traverse((child) => {
-    if (!(child instanceof THREE.Mesh)) return;
+    if (!isStoryMesh(child)) return;
     child.geometry.dispose();
     disposeMaterial(child.material);
   });
