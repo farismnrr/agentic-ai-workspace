@@ -43,38 +43,39 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   const execute = segment(progress, 0.38, 0.66);
   const verify = segment(progress, 0.7, 0.96);
   const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.0005) * 2 * (1 - verify);
+  const shrink = 1 - progress * 0.28;
   const { parts } = runtime;
 
-  parts.root.position.set(runtime.anchorX * route, -130 + route * 110 + execute * 18 + float, 0);
-  parts.root.scale.setScalar(runtime.rootScale * (0.96 - route * 0.08));
-  parts.root.rotation.set(-0.025 + route * 0.018, -0.035 + execute * 0.06 - verify * 0.025, 0);
+  parts.root.position.set(runtime.anchorX * route, -92 + route * 84 + execute * 20 + float, 0);
+  parts.root.scale.setScalar(runtime.rootScale * shrink);
+  parts.root.rotation.set(-0.018 + route * 0.014, -0.025 + execute * 0.048 - verify * 0.02, 0);
 
-  parts.frame.position.set(0, 0, -54 + verify * 14);
-  parts.orchestrator.position.set(-18 - execute * 175, 24 + execute * 34, 50 + route * 230 - execute * 130 - verify * 35);
-  parts.repo.position.set(-312 - route * 58 + execute * 34, 36, 16 + route * 150 - execute * 76 - verify * 24);
-  parts.context.position.set(-225 - route * 38, -150, 70 + route * 190 - execute * 120);
-  parts.editor.position.set(132 + execute * 28 - verify * 20, 48, 20 + route * 42 + execute * 215 - verify * 95);
-  parts.terminal.position.set(132 + execute * 20, -170, 18 + execute * 228 - verify * 78);
-  parts.preview.position.set(348 - verify * 55, 72, 24 + execute * 46 + verify * 208);
-  parts.status.position.set(308, -178, 90 + verify * 240);
+  parts.frame.position.set(0, 0, -58 + verify * 14);
+  parts.orchestrator.position.set(-30 - execute * 210, 18 + execute * 34, 72 + route * 240 - execute * 118 - verify * 36);
+  parts.repo.position.set(-405 - route * 62 + execute * 36, 30, 22 + route * 158 - execute * 72 - verify * 28);
+  parts.context.position.set(-300 - route * 36, -148, 82 + route * 188 - execute * 116);
+  parts.editor.position.set(120 + execute * 34 - verify * 18, 44, 26 + route * 46 + execute * 220 - verify * 94);
+  parts.terminal.position.set(120 + execute * 24, -166, 24 + execute * 226 - verify * 78);
+  parts.preview.position.set(448 - verify * 70, 58, 30 + execute * 48 + verify * 212);
+  parts.status.position.set(390, -174, 96 + verify * 242);
 
-  parts.orchestrator.rotation.y = -route * 0.035 + execute * 0.055;
-  parts.repo.rotation.y = -route * 0.075;
-  parts.context.rotation.y = -0.04 - route * 0.055;
-  parts.editor.rotation.y = execute * 0.03;
-  parts.terminal.rotation.x = -execute * 0.03;
-  parts.preview.rotation.y = verify * 0.05;
-  parts.status.scale.setScalar(0.86 + verify * 0.14);
+  parts.orchestrator.rotation.y = -route * 0.03 + execute * 0.05;
+  parts.repo.rotation.y = -route * 0.065;
+  parts.context.rotation.y = -0.035 - route * 0.05;
+  parts.editor.rotation.y = execute * 0.028;
+  parts.terminal.rotation.x = -execute * 0.028;
+  parts.preview.rotation.y = verify * 0.045;
+  parts.status.scale.setScalar(0.88 + verify * 0.12);
 
-  setOpacity(parts.orchestrator, 0.22 + route * 0.78 - execute * 0.3 - verify * 0.16);
-  setOpacity(parts.repo, 0.48 + route * 0.52 - execute * 0.22 - verify * 0.2);
+  setOpacity(parts.orchestrator, 0.82 + route * 0.18 - execute * 0.44 - verify * 0.16);
+  setOpacity(parts.repo, 0.94 - execute * 0.34 - verify * 0.2);
   setOpacity(parts.context, route * (1 - execute));
-  setOpacity(parts.editor, 0.34 + execute * 0.66 - verify * 0.12);
-  setOpacity(parts.terminal, 0.12 + execute * 0.88 - verify * 0.08);
-  setOpacity(parts.preview, 0.08 + execute * 0.24 + verify * 0.68);
+  setOpacity(parts.editor, 0.94 + execute * 0.06 - verify * 0.16);
+  setOpacity(parts.terminal, 0.82 + execute * 0.18 - verify * 0.1);
+  setOpacity(parts.preview, 0.6 + execute * 0.12 + verify * 0.28);
   setOpacity(parts.status, verify);
 
-  runtime.camera.position.set(-14 * execute, 3 * route, 1360 - execute * 95 + verify * 24);
+  runtime.camera.position.set(-18 * execute, 3 * route, 1360 - execute * 90 + verify * 20);
 }
 
 function renderRuntime(runtime: StoryRuntime, time: number): void {
@@ -119,8 +120,8 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height);
-  runtime.anchorX = width >= 1180 ? 230 : width >= 760 ? 105 : 0;
-  runtime.rootScale = width >= 1180 ? 0.9 : width >= 760 ? 0.73 : 0.49;
+  runtime.anchorX = width >= 1180 ? 300 : width >= 760 ? 120 : 0;
+  runtime.rootScale = width >= 1180 ? 1.75 : width >= 760 ? 1.2 : 0.62;
   renderRuntime(runtime, performance.now());
 }
 
