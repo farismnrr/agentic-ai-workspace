@@ -74,11 +74,15 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 2. Svelte components with scripts must use `<script lang="ts">`.
 3. TypeScript strictness must not be weakened to hide errors.
 4. Use Svelte and daisyUI as the default UI layer.
-5. UI order: reuse local component -> daisyUI -> Tailwind utilities -> custom CSS only when necessary.
-6. Reusable UI lives in `web/src/shared/ui/`; focused shared logic lives under `web/src/shared/`.
-7. Feature code belongs in `web/src/features/<feature>/`; app composition belongs in `web/src/app/`.
-8. Prefer props and composition over copied markup.
-9. Generated SPA output is not source and must never be manually edited.
+5. Before creating frontend UI or logic, inspect existing `web/src/shared/ui/`, focused shared logic under `web/src/shared/`, feature-local reusable code, and the current daisyUI component set.
+6. Reuse order is mandatory: existing local reusable component or logic -> daisyUI component or pattern -> Tailwind utilities -> custom CSS only when necessary.
+7. Do not recreate generic controls that daisyUI already provides adequately, including buttons, inputs, selects, textareas, cards, badges, alerts, tabs, dropdowns, modals, tooltips, loading states, and similar primitives. Adapt them with semantic classes, composition, props, and the existing theme instead.
+8. Every frontend change must use the existing design-system theme and semantic roles. Do not introduce a parallel palette, one-off theme, or hard-coded brand styling inside a feature.
+9. Reusable UI lives in `web/src/shared/ui/`; focused shared logic lives under `web/src/shared/`.
+10. Keep feature-specific UI and logic local until real reuse exists. When the same project-specific pattern is reused across features or screens, extract one reusable component or focused shared module instead of copying it.
+11. Feature code belongs in `web/src/features/<feature>/`; app composition belongs in `web/src/app/`.
+12. Prefer props, slots/snippets, composition, and existing helpers over copied markup or duplicated behavior.
+13. Generated SPA output is not source and must never be manually edited.
 
 ## Design system rules
 
@@ -88,7 +92,8 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 4. Product terminology calls daisyUI `accent` the tertiary role. Disabled, loading, hover, active, focus, and selected are interaction states, not extra brand colors.
 5. Shared visual changes must work in both `masihawam-light` and `masihawam-dark`.
 6. Keep brand values in the central theme source. Do not scatter hard-coded Masih Awam colors across feature components.
-7. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
+7. Prefer configuring and composing daisyUI with the central theme over introducing custom component styling. Add custom tokens or CSS only for capabilities that daisyUI and Tailwind do not already cover cleanly.
+8. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
 
 ## Size and complexity limits
 
