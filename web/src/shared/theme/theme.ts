@@ -4,7 +4,7 @@ const LIGHT_THEME: Theme = 'masihawam-light';
 const DARK_THEME: Theme = 'masihawam-dark';
 const STORAGE_KEY = 'agentic-ai-workspace-theme';
 
-function isTheme(value: string | null): value is Theme {
+function isTheme(value: string | null | undefined): value is Theme {
   return value === LIGHT_THEME || value === DARK_THEME;
 }
 
@@ -13,7 +13,7 @@ function preferredTheme(): Theme {
 }
 
 function applyTheme(theme: Theme): void {
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset['theme'] = theme;
 }
 
 export function initTheme(): Theme {
@@ -26,7 +26,7 @@ export function initTheme(): Theme {
 }
 
 export function currentTheme(): Theme {
-  const theme = document.documentElement.dataset.theme;
+  const theme = document.documentElement.dataset['theme'];
 
   return isTheme(theme) ? theme : preferredTheme();
 }
