@@ -7,10 +7,10 @@
   import '../visual/storyOrchestrator.css';
 
   const chapters = [
-    { title: 'One goal. One orchestrator.', body: 'Masih Awam turns the outcome into a visible plan.' },
-    { title: 'It routes the work.', body: 'Research, code, browser, and verification get their own lane.' },
-    { title: 'Agents work in the open.', body: 'Context, diffs, commands, and preview stay attached to the task.' },
-    { title: 'Proof closes the loop.', body: 'Checks and changed files decide when the work is done.' },
+    { title: 'One goal. One orchestrator.', body: 'Turn a software task into visible, coordinated work.' },
+    { title: 'It routes the work.', body: 'The right context and tools move to the right agent.' },
+    { title: 'Agents work in the open.', body: 'Code, commands, and the running product stay attached to the task.' },
+    { title: 'Proof closes the loop.', body: 'The work ends when the evidence says it is done.' },
   ] as const;
 
   let host: HTMLElement;
@@ -72,23 +72,29 @@
 
 <section bind:this={host} class="relative h-[360svh] bg-base-200 text-base-content">
   <div class="sticky top-0 h-[100svh] overflow-hidden">
-    <div bind:this={sceneHost} class="absolute inset-x-0 bottom-0 top-[30%] z-0 overflow-hidden sm:top-[28%]" aria-hidden="true"></div>
+    <div
+      bind:this={sceneHost}
+      class="absolute bottom-[-2%] left-1/2 top-[29%] z-0 w-[106vw] -translate-x-1/2 overflow-hidden sm:top-[28%] sm:w-[108vw] lg:top-[27%] lg:w-[112vw]"
+      data-hero-scene
+      aria-hidden="true"
+    ></div>
 
-    <div class="relative z-20 mx-auto flex h-full w-full max-w-[1440px] flex-col px-5 sm:px-8 lg:px-12">
+    <div class="relative z-20 mx-auto flex h-full w-full max-w-[1600px] flex-col px-5 sm:px-8 lg:px-12">
       <LandingNav />
 
       <div class="relative flex-1">
         {#each chapters as chapter, index (chapter.title)}
           <article
-            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[5%] w-[min(92vw,64rem)]' : 'left-0 top-[24%] max-w-[24rem]'}`}
+            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[4%] w-[min(94vw,72rem)]' : 'left-0 top-[23%] max-w-[24rem]'}`}
             style={chapterStyle(index)}
             aria-hidden={activeChapter !== index}
+            data-hero-chapter={index}
           >
             <div class={index === 0 ? '-translate-x-1/2 text-center' : ''}>
-              <h1 class={`${index === 0 ? 'text-5xl sm:text-6xl lg:text-7xl' : 'text-4xl sm:text-5xl lg:text-6xl'} font-semibold leading-[0.96] tracking-[-0.05em]`}>
+              <h1 class={`${index === 0 ? 'text-5xl sm:text-6xl lg:text-7xl xl:text-[5.25rem]' : 'text-4xl sm:text-5xl lg:text-6xl'} font-semibold leading-[0.96] tracking-[-0.05em]`}>
                 {chapter.title}
               </h1>
-              <p class={`mt-4 text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg ${index === 0 ? 'mx-auto max-w-lg' : 'max-w-sm'}`}>
+              <p class={`mt-4 text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg ${index === 0 ? 'mx-auto max-w-xl' : 'max-w-sm'}`}>
                 {chapter.body}
               </p>
               {#if index === 0}
