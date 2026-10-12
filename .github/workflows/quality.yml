@@ -169,31 +169,32 @@ jobs:
         run: |
           set -eu
           asset="release/agentic-ai-workspace-linux-amd64"
+          repo="${GITHUB_REPOSITORY}"
           chmod +x "$asset"
 
-          if gh release view latest --json isImmutable >/dev/null 2>&1; then
-            immutable="$(gh release view latest --json isImmutable --jq '.isImmutable')"
+          if gh release view latest --repo "$repo" --json isImmutable >/dev/null 2>&1; then
+            immutable="$(gh release view latest --repo "$repo" --json isImmutable --jq '.isImmutable')"
             if [ "$immutable" = "true" ]; then
               echo "The rolling latest release cannot be replaced while immutable releases are enabled." >&2
               exit 1
             fi
           fi
 
-          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/latest" >/dev/null 2>&1; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/latest" \
+          if gh api "repos/${repo}/git/ref/tags/latest" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/${repo}/git/refs/tags/latest" \
               -f sha="${GITHUB_SHA}" -F force=true >/dev/null
           else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            gh api --method POST "repos/${repo}/git/refs" \
               -f ref="refs/tags/latest" -f sha="${GITHUB_SHA}" >/dev/null
           fi
 
           printf 'Rolling Linux AMD64 build from main.\n\nCommit: `%s`\n' "$GITHUB_SHA" > release-notes.md
 
-          if gh release view latest >/dev/null 2>&1; then
-            gh release edit latest --target "$GITHUB_SHA" --title "Latest" \
+          if gh release view latest --repo "$repo" >/dev/null 2>&1; then
+            gh release edit latest --repo "$repo" --target "$GITHUB_SHA" --title "Latest" \
               --notes-file release-notes.md --latest
-            gh release upload latest "$asset" --clobber
+            gh release upload latest "$asset" --repo "$repo" --clobber
           else
-            gh release create latest "$asset" --verify-tag --title "Latest" \
+            gh release create latest "$asset" --repo "$repo" --verify-tag --title "Latest" \
               --notes-file release-notes.md --latest
           fi
