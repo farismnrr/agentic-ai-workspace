@@ -95,6 +95,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 7. Keep brand values in the central theme source. Do not scatter hard-coded Masih Awam colors across feature components.
 8. Prefer configuring and composing daisyUI with the central theme over introducing custom component styling. Add custom tokens or CSS only for capabilities that daisyUI and Tailwind do not already cover cleanly.
 9. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
+10. Before reporting landing or marketing UI as complete, compare the final implementation against current public design guidance and explicitly check for generic AI-default patterns such as repeated eyebrow/headline/body stacks, interchangeable hype copy, decorative gradients or glows, repeated equal card grids, excessive mono/uppercase decoration, and unnecessary nested surfaces. Fix unjustified patterns instead of merely noting them.
 
 ## Size and complexity limits
 
