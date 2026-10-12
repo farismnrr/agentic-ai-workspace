@@ -3,35 +3,35 @@
 
   import LandingNav from './LandingNav.svelte';
   import { createStoryScene, type StorySceneController } from '../visual/storyScene';
+  import '../visual/storyWorkspace.css';
 
   const chapters = [
     {
-      eyebrow: 'Masih Awam',
-      title: 'Build it. From here.',
-      body: 'Give one goal to an agentic workspace that can understand the repo, operate the tools, and stay until the result is proven.',
+      eyebrow: 'Agent at work',
+      title: 'Give it a goal.',
+      body: 'A browser-native coding agent that can read the repo, edit the code, run the tools, and keep going until the result is proven.',
     },
     {
       eyebrow: '01 / Understand',
-      title: 'First, it understands.',
-      body: 'Repository rules, architecture, existing abstractions, and relevant files become working context before the first edit.',
+      title: 'It reads before it writes.',
+      body: 'Repository rules, architecture, and relevant files separate into working context before the first change is made.',
     },
     {
-      eyebrow: '02 / Act',
-      title: 'Then it gets to work.',
-      body: 'The workspace opens the code, changes the smallest surface, runs commands, and keeps the execution visible while it moves.',
+      eyebrow: '02 / Execute',
+      title: 'It works across the stack.',
+      body: 'Editor, terminal, and browser preview become one execution surface instead of a pile of disconnected chat instructions.',
     },
     {
       eyebrow: '03 / Verify',
-      title: 'Not done until it works.',
-      body: 'Tests, lint, build, and browser checks turn an AI answer into evidence you can actually ship.',
+      title: 'Done means verified.',
+      body: 'Tests, lint, builds, and browser checks stay visible, so completion is evidence—not confidence.',
     },
   ] as const;
 
   let host: HTMLElement;
-  let canvas: HTMLCanvasElement;
+  let sceneHost: HTMLDivElement;
   let controller: StorySceneController | null = null;
   let progress = $state(0);
-  let supported = $state(true);
   let frame: number | null = null;
 
   const chapterPosition = $derived(progress * (chapters.length - 1));
@@ -40,7 +40,7 @@
   function chapterStyle(index: number): string {
     const delta = index - chapterPosition;
     const opacity = Math.max(0, 1 - Math.abs(delta)).toFixed(3);
-    const translateY = (Math.max(-1, Math.min(1, delta)) * 28).toFixed(2);
+    const translateY = (Math.max(-1, Math.min(1, delta)) * 24).toFixed(2);
     return `opacity:${opacity};transform:translate3d(0,${translateY}px,0)`;
   }
 
@@ -58,30 +58,25 @@
   }
 
   onMount(() => {
-    controller = createStoryScene(canvas);
-    supported = controller !== null;
-    const canvasHost = canvas.parentElement ?? host;
+    controller = createStoryScene(sceneHost);
     const resizeObserver = new ResizeObserver(([entry]) => {
       if (entry === undefined) return;
       controller?.resize(entry.contentRect.width, entry.contentRect.height);
       queueMeasure();
     });
-    const themeObserver = new MutationObserver(() => controller?.refreshTheme());
     const visibilityObserver = new IntersectionObserver(([entry]) => {
       controller?.active(entry?.isIntersecting === true);
     }, { threshold: 0 });
 
-    resizeObserver.observe(canvasHost);
+    resizeObserver.observe(sceneHost);
     visibilityObserver.observe(host);
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    controller?.resize(canvasHost.clientWidth, canvasHost.clientHeight);
+    controller.resize(sceneHost.clientWidth, sceneHost.clientHeight);
     queueMeasure();
 
     return () => {
       if (frame !== null) window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
-      themeObserver.disconnect();
       controller?.destroy();
       controller = null;
     };
@@ -90,16 +85,10 @@
 
 <svelte:window onscroll={queueMeasure} onresize={queueMeasure} />
 
-<section bind:this={host} class="relative h-[420svh] bg-base-200 text-base-content">
-  <div class="sticky top-0 h-[100svh] overflow-hidden will-change-transform">
-    <div class="absolute inset-0">
-      <canvas bind:this={canvas} class="size-full" aria-hidden="true"></canvas>
-      {#if !supported}
-        <div class="absolute left-1/2 top-1/2 h-[38vh] w-[58vw] max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-[2.5rem] border border-base-content/15 bg-base-100 shadow-[var(--brand-shadow)]" aria-hidden="true"></div>
-      {/if}
-    </div>
-
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_28%,var(--color-base-200)_88%)]" aria-hidden="true"></div>
+<section bind:this={host} class="relative h-[440svh] bg-base-200 text-base-content">
+  <div class="sticky top-0 h-[100svh] overflow-hidden">
+    <div bind:this={sceneHost} class="absolute inset-0 z-0" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_72%_44%,var(--brand-ambient-secondary),transparent_28rem)]" aria-hidden="true"></div>
 
     <div class="relative z-20 mx-auto flex h-full w-full max-w-[1440px] flex-col px-5 sm:px-8 lg:px-12">
       <LandingNav />
@@ -107,22 +96,20 @@
       <div class="relative flex-1">
         {#each chapters as chapter, index (chapter.eyebrow)}
           <article
-            class="pointer-events-none absolute inset-x-0 bottom-[8%] will-change-[opacity,transform] lg:bottom-[10%]"
+            class="pointer-events-none absolute left-0 top-[48%] max-w-[32rem] will-change-[opacity,transform] sm:top-[46%]"
             style={chapterStyle(index)}
             aria-hidden={activeChapter !== index}
           >
-            <div class:mx-auto={index === 0} class:text-center={index === 0} class="max-w-4xl">
-              <p class="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-primary">{chapter.eyebrow}</p>
-              <h1 class={`mt-4 max-w-4xl font-semibold leading-[0.92] tracking-[-0.055em] ${index === 0 ? 'text-6xl sm:text-8xl' : 'text-5xl sm:text-7xl'}`}>
-                {chapter.title}
-              </h1>
-              <p class:mx-auto={index === 0} class="mt-5 max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">
-                {chapter.body}
-              </p>
-              {#if index === 0}
-                <p class="mt-7 font-mono text-[0.65rem] uppercase tracking-[0.2em] text-[var(--brand-text-tertiary)]">Scroll to operate ↓</p>
-              {/if}
-            </div>
+            <p class="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-primary">{chapter.eyebrow}</p>
+            <h1 class="mt-4 text-5xl font-semibold leading-[0.92] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+              {chapter.title}
+            </h1>
+            <p class="mt-5 max-w-md text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">
+              {chapter.body}
+            </p>
+            {#if index === 0}
+              <p class="mt-7 font-mono text-[0.65rem] uppercase tracking-[0.2em] text-[var(--brand-text-tertiary)]">Scroll to follow the agent ↓</p>
+            {/if}
           </article>
         {/each}
       </div>
