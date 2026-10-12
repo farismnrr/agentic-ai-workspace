@@ -1,170 +1,157 @@
 # System Design
 
-## Goal
+This project is designed to be easy to run and easy to grow without turning into one large, tangled codebase.
 
-Keep deployment simple while preserving strong boundaries: one executable, one process, one public port, and business logic
-that does not depend on transport or infrastructure frameworks.
+## The simple version
 
-## Runtime architecture
+At runtime there is only one program:
 
 ```text
 Browser
   |
-  | HTTP :PORT
+  | HTTP
   v
 Go binary
   |
-  +-- Fiber API routes
-  |     |
-  |     +-- feature adapters -> application -> domain
+  +-- Fiber handles API requests
   |
-  +-- embedded Svelte SPA
+  +-- Fiber serves the built Svelte app
 ```
 
-The Svelte build is embedded with `go:embed`. Node.js is not part of runtime.
+The Svelte frontend is compiled during the build and embedded inside the Go executable. Node.js is not needed on the server after the binary has been built.
 
-## Build pipeline
+That gives us a few practical benefits:
+
+- one executable to deploy;
+- one process to monitor;
+- one public port to configure;
+- no frontend server to manage separately.
+
+## How a build works
 
 ```text
-Svelte + TypeScript source
-  -> strict type check + ESLint
+Svelte + TypeScript
+  -> type checking and linting
   -> Vite production build
-  -> internal/platform/webassets/dist
-  -> Go tests + strict golangci-lint
-  -> go:embed
-  -> Go build
-  -> bin/agentic-ai-workspace
+  -> frontend files
+  -> embedded into Go
+  -> Go tests and linting
+  -> final executable
 ```
 
-`make build` is the canonical path and runs the complete verification gate first.
+The normal command is:
 
-## Backend structure
+```bash
+make build
+```
+
+The result is:
+
+```text
+bin/agentic-ai-workspace
+```
+
+## Backend layout
 
 ```text
 cmd/workspace/
-  main.go                         process entrypoint only
+  main.go
 
 internal/bootstrap/
-  app.go                          composition root
+  app.go
 
 internal/modules/<feature>/
-  domain/                         entities, value objects, domain rules
-  application/                    use cases and consumer-owned ports
-  adapter/                        HTTP/persistence/external implementations
+  domain/
+  application/
+  adapter/
 
 internal/platform/
-  config/                         environment/runtime configuration
-  httpserver/                     Fiber composition and SPA delivery
-  webassets/                      embedded compiled frontend
+  config/
+  httpserver/
+  webassets/
 ```
 
-Do not create empty architecture layers merely to satisfy the diagram. A feature creates the layers it actually needs while
-preserving the dependency direction.
+### `cmd/workspace`
 
-## Dependency rule
+This is only the program entry point. It starts the application and should stay small.
 
-The central rule is that source dependencies point inward toward higher-level policy.
+### `internal/bootstrap`
+
+This is where the real pieces are connected together. For example, a use case can be connected to its database or HTTP adapter here.
+
+### `internal/modules`
+
+Business features live here. Each feature can have up to three layers:
+
+- `domain`: business rules and important business types;
+- `application`: use cases and the interfaces they need;
+- `adapter`: HTTP, database, or external-service implementations.
+
+A feature should only create the layers it actually needs. Empty folders do not make the architecture better.
+
+### `internal/platform`
+
+This contains technical details shared by the process, such as configuration, the Fiber server, and the embedded frontend.
+
+Business rules do not belong here.
+
+## Why dependencies point inward
+
+The main rule is that business code should not depend on infrastructure details.
 
 ```text
-adapter --------> application --------> domain
-   ^                    ^
-   |                    |
-framework/detail        ports owned by consumer
-
-bootstrap -> may wire concrete dependencies across outer layers
-platform  -> technical details only
+adapter -> application -> domain
 ```
 
-### Domain
+For example, a domain rule should not need to know which HTTP framework or database is being used.
 
-Domain code is framework independent. It must not know Fiber, HTTP DTOs, environment variables, database drivers, platform
-packages, or bootstrap code. Prefer standard-library value types and domain-owned types.
+This makes business behavior easier to test and makes infrastructure easier to replace later.
 
-### Application
-
-Application code coordinates use cases. It depends on domain policy and defines the small ports it needs. It must not know
-which database, HTTP framework, external SDK, or concrete adapter satisfies those ports.
-
-### Adapter
-
-Adapters translate outer-world concerns to application/domain concepts. Fiber handlers, persistence implementations, and
-external-service clients belong here when they are feature-specific.
-
-### Platform
-
-Platform packages are process-wide technical details such as runtime configuration, the Fiber host, and embedded assets.
-They must not become a home for business rules.
-
-### Bootstrap
-
-Bootstrap is the composition root. It chooses concrete implementations and wires them together. `cmd/` calls bootstrap and
-contains no business behavior.
-
-## SOLID interpretation for Go
-
-### Single Responsibility
-
-A package, file, function, component, or service owns one cohesive responsibility and one main reason to change. File-size and
-complexity gates reinforce this rule but do not replace design judgment.
-
-### Open/Closed
-
-Prefer adding a new adapter or strategy behind an existing application-owned port over repeatedly editing a central switch or
-god service. Do not introduce an interface until there is a real boundary or substitution need.
-
-### Liskov Substitution
-
-Concrete implementations must preserve the behavioral contract expected by the consumer. Tests should target the contract
-when multiple implementations exist.
-
-### Interface Segregation
-
-Interfaces are small and consumer-specific. A use case should not receive a broad repository or service interface when it only
-needs one or two operations.
-
-### Dependency Inversion
-
-Inner policy owns the abstraction; outer details implement it. Interfaces belong near the code that consumes them, not beside
-the concrete implementation merely for symmetry.
-
-## Frontend structure
+## Frontend layout
 
 ```text
 web/src/
-  main.ts                         browser bootstrap
-  app/                            app-level composition
+  main.ts
+  app/
   features/<feature>/
-    domain/                       pure TypeScript feature policy when needed
-    application/                  feature orchestration/state when needed
-    ui/                           Svelte feature components
+    domain/
+    application/
+    ui/
   shared/
-    ui/                           reusable Svelte components
-    config/                       reusable typed configuration/constants
+    ui/
+    config/
 ```
 
-Frontend source is TypeScript. JavaScript source under `web/src` is rejected. Any Svelte script block must use
-`<script lang="ts">`.
+The frontend uses strict TypeScript.
 
-UI reuse order is existing shared component, daisyUI composition, Tailwind utilities, then custom CSS only when necessary.
+Reusable UI belongs in `shared/ui`. Feature-specific UI stays with the feature that owns it. daisyUI is the default component layer, with Tailwind utilities used for layout and small adjustments.
 
-## File and complexity budgets
+## Keeping files small
 
-Every human-authored source/config/script/markup/documentation file is capped at 200 lines. Generated build output and lockfiles
-are exempt. Go functions are capped at 60 lines and 40 statements; frontend functions are capped at 60 lines. Complexity is
-also bounded by lint.
+Human-written source, configuration, scripts, markup, and documentation are limited to 200 lines per file.
 
-When a file approaches its limit, split it by responsibility or architectural boundary. Splitting purely to evade the metric is
-a guardrail violation.
+The goal is not to split files randomly. The goal is to notice when a file has accumulated too many responsibilities and separate those responsibilities cleanly.
 
-## Enforcement
+Functions also have size and complexity limits enforced by linting.
 
-`make verify` runs:
+## Quality checks
 
-1. repository guardrail checks, including file size and TypeScript-only frontend rules;
-2. `svelte-check` with warnings treated as failures;
-3. strict type-aware ESLint;
-4. production Vite build;
-5. Go tests;
-6. strict golangci-lint, including formatting, security, complexity, and `depguard` architecture checks.
+`make verify` checks:
 
-A change is not complete until the canonical verification and build paths are green.
+1. repository guardrails;
+2. Svelte and TypeScript correctness;
+3. frontend linting;
+4. production frontend build;
+5. Go module consistency;
+6. Go tests;
+7. strict Go linting and architecture rules.
+
+GitHub Actions runs the same checks on pushes and pull requests.
+
+After a push to `main` passes every check, the verified Linux binary becomes the new rolling **Latest** GitHub release.
+
+## Deployment
+
+For normal use, deployment only needs the Linux binary and any environment variables required by the application.
+
+There is no Node.js runtime, frontend server, or additional application port to deploy.
