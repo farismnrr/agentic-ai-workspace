@@ -1,0 +1,34 @@
+# Runtime configuration
+.env
+.env.*
+!.env.example
+
+# Go build output
+bin/
+*.exe
+*.out
+*.test
+coverage.out
+
+# Frontend dependencies and caches
+web/node_modules/
+web/.vite/
+web/.svelte-kit/
+
+# Generated embedded SPA output
+internal/web/dist/*
+!internal/web/dist/placeholder.txt
+
+# Logs and temporary files
+*.log
+*.tmp
+.tmp/
+tmp/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
