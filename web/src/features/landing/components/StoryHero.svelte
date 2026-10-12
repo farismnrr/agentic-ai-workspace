@@ -34,13 +34,21 @@
   let supported = $state(true);
   let frame: number | null = null;
 
-  const activeChapter = $derived(Math.min(chapters.length - 1, Math.floor(progress * chapters.length)));
+  const chapterPosition = $derived(progress * (chapters.length - 1));
+  const activeChapter = $derived(Math.min(chapters.length - 1, Math.round(chapterPosition)));
+
+  function chapterStyle(index: number): string {
+    const delta = index - chapterPosition;
+    const opacity = Math.max(0, 1 - Math.abs(delta));
+    const translateY = Math.max(-1, Math.min(1, delta)) * 28;
+    return `opacity:${opacity};transform:translate3d(0,${translateY}px,0)`;
+  }
 
   function measure(): void {
     frame = null;
     const rect = host.getBoundingClientRect();
-    const travel = Math.max(1, host.offsetHeight - window.innerHeight);
-    progress = Math.max(0, Math.min(0.999, -rect.top / travel));
+    const travel = Math.max(1, rect.height - window.innerHeight);
+    progress = Math.max(0, Math.min(1, -rect.top / travel));
     controller?.progress(progress);
   }
 
@@ -61,7 +69,7 @@
     const themeObserver = new MutationObserver(() => controller?.refreshTheme());
     const visibilityObserver = new IntersectionObserver(([entry]) => {
       controller?.active(entry?.isIntersecting === true);
-    }, { threshold: 0.02 });
+    }, { threshold: 0 });
 
     resizeObserver.observe(canvasHost);
     visibilityObserver.observe(host);
@@ -83,7 +91,7 @@
 <svelte:window onscroll={queueMeasure} onresize={queueMeasure} />
 
 <section bind:this={host} class="relative h-[420svh] bg-base-200 text-base-content">
-  <div class="sticky top-0 h-[100svh] overflow-hidden">
+  <div class="sticky top-0 h-[100svh] overflow-hidden will-change-transform">
     <div class="absolute inset-0">
       <canvas bind:this={canvas} class="size-full" aria-hidden="true"></canvas>
       {#if !supported}
@@ -99,7 +107,8 @@
       <div class="relative flex-1">
         {#each chapters as chapter, index (chapter.eyebrow)}
           <article
-            class={`pointer-events-none absolute inset-x-0 bottom-[8%] transition-[opacity,transform] duration-700 ease-out lg:bottom-[10%] ${activeChapter === index ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
+            class="pointer-events-none absolute inset-x-0 bottom-[8%] will-change-[opacity,transform] lg:bottom-[10%]"
+            style={chapterStyle(index)}
             aria-hidden={activeChapter !== index}
           >
             <div class:mx-auto={index === 0} class:text-center={index === 0} class="max-w-4xl">
@@ -120,7 +129,7 @@
 
       <div class="absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 md:flex lg:right-12" aria-hidden="true">
         {#each chapters as chapter, index (chapter.title)}
-          <span class={`h-px w-4 origin-right transition-all duration-500 ${activeChapter === index ? 'scale-x-[2.4] bg-primary' : 'bg-base-content/20'}`}></span>
+          <span class={`h-px w-4 origin-right transition-all duration-300 ${activeChapter === index ? 'scale-x-[2.4] bg-primary' : 'bg-base-content/20'}`}></span>
         {/each}
       </div>
     </div>
