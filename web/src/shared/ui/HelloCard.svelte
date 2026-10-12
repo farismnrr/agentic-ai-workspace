@@ -1,5 +1,10 @@
-<script>
-  let { title, message } = $props();
+<script lang="ts">
+  interface Props {
+    title: string;
+    message: string;
+  }
+
+  let { title, message }: Props = $props();
 </script>
 
 <section class="card w-full max-w-lg bg-base-100 shadow-xl">

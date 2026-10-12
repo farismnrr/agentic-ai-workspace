@@ -13,11 +13,11 @@ coverage.out
 # Frontend dependencies and caches
 web/node_modules/
 web/.vite/
-web/.svelte-kit/
+web/.svelte-check/
 
 # Generated embedded SPA output
-internal/web/dist/*
-!internal/web/dist/placeholder.txt
+internal/platform/webassets/dist/*
+!internal/platform/webassets/dist/placeholder.txt
 
 # Logs and temporary files
 *.log
