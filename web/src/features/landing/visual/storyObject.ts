@@ -1,128 +1,130 @@
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
 export interface StoryParts {
-  context: THREE.Mesh;
-  cursor: THREE.Mesh;
-  editor: THREE.Mesh;
-  frame: THREE.Mesh;
-  glow: THREE.Mesh;
+  context: CSS3DObject;
+  editor: CSS3DObject;
+  frame: CSS3DObject;
+  preview: CSS3DObject;
+  repo: CSS3DObject;
   root: THREE.Group;
-  status: THREE.Mesh;
-  terminal: THREE.Mesh;
+  status: CSS3DObject;
+  terminal: CSS3DObject;
 }
 
-type DisposableMaterial = THREE.Material | THREE.Material[];
-type StoryMesh = THREE.Mesh<THREE.BufferGeometry, DisposableMaterial>;
-
-function cssColor(variable: string, fallback: string): THREE.Color {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
-  return new THREE.Color(value || fallback);
+function panel(className: string, title: string, body: string): CSS3DObject {
+  const element = document.createElement('section');
+  element.className = `agent-workspace-panel ${className}`;
+  element.setAttribute('aria-hidden', 'true');
+  element.innerHTML = `<header class="agent-panel-header"><span>${title}</span><span class="agent-panel-dot"></span></header>${body}`;
+  return new CSS3DObject(element);
 }
 
-function plate(width: number, height: number, depth: number, radius: number): THREE.Mesh {
-  return new THREE.Mesh(
-    new RoundedBoxGeometry(width, height, depth, 5, radius),
-    new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.03 }),
+function makeFrame(): CSS3DObject {
+  return panel(
+    'agent-shell',
+    'masih-awam / workspace',
+    `<div class="agent-shell-body">
+      <div class="agent-goal"><span>Goal</span><strong>Fix the auth flow and verify it.</strong></div>
+      <div class="agent-loop"><span class="is-active">read</span><span>edit</span><span>run</span><span>verify</span></div>
+    </div>`,
   );
 }
 
-function makeFrame(): THREE.Mesh {
-  return new THREE.Mesh(
-    new RoundedBoxGeometry(5.1, 3.25, 0.16, 5, 0.2),
-    new THREE.MeshStandardMaterial({ roughness: 0.52, metalness: 0.08 }),
+function makeRepo(): CSS3DObject {
+  return panel(
+    'agent-repo',
+    'Repository',
+    `<div class="agent-file-list">
+      <span class="agent-file is-active">AGENTS.md</span>
+      <span class="agent-file">web/</span>
+      <span class="agent-file agent-file--nested">src/</span>
+      <span class="agent-file agent-file--nested">features/landing/</span>
+      <span class="agent-file agent-file--nested is-modified">StoryHero.svelte</span>
+      <span class="agent-file agent-file--nested is-modified">storyScene.ts</span>
+      <span class="agent-file">internal/</span>
+      <span class="agent-file">Makefile</span>
+    </div>`,
   );
 }
 
-function makeCursor(): THREE.Mesh {
-  return new THREE.Mesh(
-    new THREE.SphereGeometry(0.07, 24, 24),
-    new THREE.MeshBasicMaterial(),
+function makeContext(): CSS3DObject {
+  return panel(
+    'agent-context',
+    'Context',
+    `<div class="agent-context-body">
+      <span class="agent-context-tag">AGENTS.md</span>
+      <strong>Read rules before code changes.</strong>
+      <p>Reuse existing UI. Keep themes semantic. Verify before done.</p>
+    </div>`,
   );
 }
 
-function makeGlow(): THREE.Mesh {
-  return new THREE.Mesh(
-    new THREE.PlaneGeometry(7.4, 5.1),
-    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.055, depthWrite: false }),
+function makeEditor(): CSS3DObject {
+  return panel(
+    'agent-editor',
+    'StoryHero.svelte · modified',
+    `<div class="agent-code">
+      <span><i>41</i><code>const task = await agent.plan(goal);</code></span>
+      <span class="is-added"><i>42</i><code>+ await workspace.read(task.context);</code></span>
+      <span class="is-added"><i>43</i><code>+ await workspace.apply(task.change);</code></span>
+      <span class="is-added"><i>44</i><code>+ const proof = await verify.run();</code></span>
+      <span><i>45</i><code>return { task, proof };</code></span>
+    </div>`,
   );
 }
 
-function positionParts(parts: StoryParts): void {
-  parts.frame.position.z = -0.12;
-  parts.context.position.set(-1.65, 0.22, 0.02);
-  parts.context.scale.set(0.29, 0.76, 1);
-  parts.editor.position.set(0.55, 0.35, 0.04);
-  parts.editor.scale.set(0.58, 0.68, 1);
-  parts.terminal.position.set(0.55, -1.05, 0.06);
-  parts.terminal.scale.set(0.58, 0.18, 1);
-  parts.status.position.set(1.82, 1.25, 0.1);
-  parts.status.scale.set(0.17, 0.11, 1);
-  parts.cursor.position.set(-0.4, 0.42, 0.18);
-  parts.glow.position.z = -0.5;
+function makeTerminal(): CSS3DObject {
+  return panel(
+    'agent-terminal',
+    'Terminal',
+    `<div class="agent-terminal-body">
+      <span><b>$</b> make verify</span>
+      <span class="is-success">✓ svelte-check · 0 errors</span>
+      <span class="is-success">✓ eslint · passed</span>
+      <span class="is-success">✓ go test ./... · passed</span>
+    </div>`,
+  );
+}
+
+function makePreview(): CSS3DObject {
+  return panel(
+    'agent-preview',
+    'Browser preview',
+    `<div class="agent-preview-body">
+      <span class="agent-preview-url">127.0.0.1:8080</span>
+      <div class="agent-preview-card"><small>Masih Awam</small><strong>Agentic workspace</strong><span>ready to inspect</span></div>
+    </div>`,
+  );
+}
+
+function makeStatus(): CSS3DObject {
+  return panel(
+    'agent-status',
+    'Verified',
+    `<div class="agent-status-body"><span>✓</span><div><strong>4 checks passed</strong><small>Ready to ship</small></div></div>`,
+  );
 }
 
 export function createStoryParts(): StoryParts {
   const root = new THREE.Group();
   const parts: StoryParts = {
-    context: plate(4.35, 2.65, 0.08, 0.16),
-    cursor: makeCursor(),
-    editor: plate(4.35, 2.65, 0.08, 0.16),
+    context: makeContext(),
+    editor: makeEditor(),
     frame: makeFrame(),
-    glow: makeGlow(),
+    preview: makePreview(),
+    repo: makeRepo(),
     root,
-    status: plate(4.35, 2.65, 0.08, 0.16),
-    terminal: plate(4.35, 2.65, 0.08, 0.16),
+    status: makeStatus(),
+    terminal: makeTerminal(),
   };
-  positionParts(parts);
-  root.add(parts.glow, parts.frame, parts.context, parts.editor, parts.terminal, parts.status, parts.cursor);
-  refreshStoryTheme(parts);
+  root.add(parts.frame, parts.repo, parts.context, parts.editor, parts.terminal, parts.preview, parts.status);
   return parts;
 }
 
-function setStandard(mesh: THREE.Mesh, color: THREE.Color, opacity = 1): void {
-  const material = mesh.material as THREE.MeshStandardMaterial;
-  material.color.copy(color);
-  material.transparent = opacity < 1;
-  material.opacity = opacity;
-  material.needsUpdate = true;
-}
-
-export function refreshStoryTheme(parts: StoryParts): void {
-  const base100 = cssColor('--color-base-100', '#fffdf7');
-  const base200 = cssColor('--color-base-200', '#f6f3eb');
-  const base300 = cssColor('--color-base-300', '#ece8de');
-  const primary = cssColor('--color-primary', '#657c1a');
-  const secondary = cssColor('--color-secondary', '#275391');
-  const success = cssColor('--color-success', '#2f7d4a');
-
-  setStandard(parts.frame, base100);
-  setStandard(parts.context, base300, 0.98);
-  setStandard(parts.editor, base100, 0.98);
-  setStandard(parts.terminal, base200, 0.98);
-  setStandard(parts.status, success, 0.92);
-  (parts.cursor.material as THREE.MeshBasicMaterial).color.copy(primary);
-  (parts.glow.material as THREE.MeshBasicMaterial).color.copy(secondary);
-}
-
-function disposeMaterial(material: DisposableMaterial): void {
-  if (Array.isArray(material)) {
-    material.forEach((item) => {
-      item.dispose();
-    });
-    return;
-  }
-  material.dispose();
-}
-
-function isStoryMesh(object: THREE.Object3D): object is StoryMesh {
-  return object instanceof THREE.Mesh;
-}
-
 export function disposeStory(root: THREE.Object3D): void {
-  root.traverse((child) => {
-    if (!isStoryMesh(child)) return;
-    child.geometry.dispose();
-    disposeMaterial(child.material);
+  root.traverse((object) => {
+    if (object instanceof CSS3DObject) object.element.remove();
   });
+  root.clear();
 }
