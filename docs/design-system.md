@@ -4,12 +4,23 @@ This guide defines the visual language for the AI workspace. It keeps the Masih 
 
 ## Principles
 
-1. Keep the Masih Awam identity: warm near-black or paper-like surfaces, lime as the main brand color, violet and cyan as supporting accents, rounded geometry, and restrained motion.
+1. Keep the Masih Awam identity: warm near-black or paper-like surfaces, lime or olive as the main brand color, cool supporting accents, rounded geometry, and restrained motion.
 2. Use semantic roles instead of literal colors in product UI.
 3. Build hierarchy with surfaces, typography, spacing, and borders before adding more color.
 4. Keep light and dark themes equivalent in meaning, not necessarily identical in raw color values.
 5. Prefer local reusable components, then daisyUI, then Tailwind utilities, and add custom CSS only when the design system needs a capability they do not provide.
 6. Accessibility is part of the theme contract: visible focus, sufficient contrast, reduced-motion support, and status cues that do not rely on color alone.
+
+## Color harmony
+
+The brand palette uses a split-complementary relationship anchored on the Masih Awam primary hue.
+
+- Primary stays olive in light mode and lime in dark mode.
+- Secondary moves into the blue family.
+- Tertiary moves into the violet family.
+- The order is intentionally `olive/lime -> blue -> violet`, so supporting emphasis progresses in one visual direction instead of jumping back and forth around the color wheel.
+
+Status colors are not forced into the brand harmony. `info`, `success`, `warning`, and `error` keep conventional semantic hue families so users can distinguish meaning quickly.
 
 ## Theme names
 
@@ -25,13 +36,13 @@ The first visit follows the operating-system color preference. A manual theme ch
 | Product role | daisyUI role | Light | Dark | Typical use |
 | --- | --- | --- | --- | --- |
 | Primary | `primary` | `#657C1A` | `#C8FF4D` | Main CTA, current selection, strongest brand emphasis |
-| Secondary | `secondary` | `#6F56B3` | `#A78BFA` | Secondary actions, agent or AI emphasis |
-| Tertiary | `accent` | `#147A91` | `#7CE7FF` | Contextual actions, tertiary emphasis |
+| Secondary | `secondary` | `#275391` | `#77ADF8` | Secondary actions, agent or AI emphasis |
+| Tertiary | `accent` | `#77358D` | `#D788F2` | Contextual actions, tertiary emphasis |
 | Neutral | `neutral` | `#2B2A2D` | `#2A2A30` | Neutral controls and strong neutral surfaces |
-| Info | `info` | `#16697A` | `#55D9F0` | Informational feedback |
+| Info | `info` | `#0F6F84` | `#67D7EA` | Informational feedback |
 | Success | `success` | `#2F7D4A` | `#6EE7A0` | Successful operations |
-| Warning | `warning` | `#A45400` | `#FF9F43` | Risk, caution, attention |
-| Error | `error` | `#B4233A` | `#FF6B6B` | Errors and destructive actions |
+| Warning | `warning` | `#A45400` | `#FFB454` | Risk, caution, attention |
+| Error | `error` | `#B4233A` | `#FF7A85` | Errors and destructive actions |
 
 `accent` is the implementation name for the product's tertiary role.
 
