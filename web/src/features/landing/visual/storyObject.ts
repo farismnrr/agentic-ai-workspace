@@ -5,6 +5,7 @@ export interface StoryParts {
   context: CSS3DObject;
   editor: CSS3DObject;
   frame: CSS3DObject;
+  orchestrator: CSS3DObject;
   preview: CSS3DObject;
   repo: CSS3DObject;
   root: THREE.Group;
@@ -23,10 +24,25 @@ function panel(className: string, title: string, body: string): CSS3DObject {
 function makeFrame(): CSS3DObject {
   return panel(
     'agent-shell',
-    'Masih Awam',
+    'Masih Awam · AI Orchestrator',
     `<div class="agent-shell-body">
-      <div class="agent-goal"><span>Task</span><strong>Fix the sign-in redirect and verify it.</strong></div>
-      <div class="agent-loop"><span class="is-active">read</span><span>edit</span><span>run</span><span>verify</span></div>
+      <div class="agent-goal"><span>Goal</span><strong>Fix the sign-in redirect and verify it.</strong></div>
+      <div class="agent-loop"><span>plan</span><span>route</span><span>work</span><span>verify</span></div>
+    </div>`,
+  );
+}
+
+function makeOrchestrator(): CSS3DObject {
+  return panel(
+    'agent-orchestrator',
+    'Orchestrator',
+    `<div class="agent-orchestrator-body">
+      <div class="agent-lead"><span>Lead</span><strong>Auth redirect</strong><small>3 specialist lanes</small></div>
+      <div class="agent-route-list">
+        <div><span>Research</span><small>official docs</small><b>running</b></div>
+        <div><span>Code</span><small>callback.ts</small><b>ready</b></div>
+        <div><span>Browser</span><small>auth flow</small><b>queued</b></div>
+      </div>
     </div>`,
   );
 }
@@ -112,13 +128,14 @@ export function createStoryParts(): StoryParts {
     context: makeContext(),
     editor: makeEditor(),
     frame: makeFrame(),
+    orchestrator: makeOrchestrator(),
     preview: makePreview(),
     repo: makeRepo(),
     root,
     status: makeStatus(),
     terminal: makeTerminal(),
   };
-  root.add(parts.frame, parts.repo, parts.context, parts.editor, parts.terminal, parts.preview, parts.status);
+  root.add(parts.frame, parts.orchestrator, parts.repo, parts.context, parts.editor, parts.terminal, parts.preview, parts.status);
   return parts;
 }
 
