@@ -1,4 +1,4 @@
-package server
+package httpserver
 
 import (
 	"io/fs"
@@ -7,26 +7,11 @@ import (
 	staticmiddleware "github.com/gofiber/fiber/v3/middleware/static"
 )
 
-func New(frontend fs.FS) *fiber.App {
-	app := fiber.New()
-
-	registerAPI(app)
-
+func registerSPA(app *fiber.App, frontend fs.FS) {
 	app.Use("/", staticmiddleware.New("", staticmiddleware.Config{
 		FS: frontend,
 	}))
-
 	app.Get("/*", spaFallback(frontend))
-
-	return app
-}
-
-func registerAPI(app *fiber.App) {
-	api := app.Group("/api")
-
-	api.Get("/health", func(c fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok"})
-	})
 }
 
 func spaFallback(frontend fs.FS) fiber.Handler {

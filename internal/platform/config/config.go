@@ -1,18 +1,17 @@
 package config
 
-import (
-	"os"
-	"strings"
-)
+import "os"
 
 const defaultPort = "8080"
 
+// Config contains runtime process configuration.
 type Config struct {
 	Port string
 }
 
+// Load reads runtime configuration from the environment.
 func Load() Config {
-	port := strings.TrimSpace(os.Getenv("PORT"))
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
@@ -20,6 +19,7 @@ func Load() Config {
 	return Config{Port: port}
 }
 
+// Address returns the HTTP listen address.
 func (c Config) Address() string {
 	return ":" + c.Port
 }

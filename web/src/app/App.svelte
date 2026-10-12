@@ -1,6 +1,6 @@
-<script>
-  import HelloCard from './lib/components/HelloCard.svelte';
-  import { APP_DESCRIPTION, APP_TITLE } from './lib/constants/app.js';
+<script lang="ts">
+  import { APP_DESCRIPTION, APP_TITLE } from '../shared/config/app';
+  import HelloCard from '../shared/ui/HelloCard.svelte';
 </script>
 
 <main class="hero min-h-screen bg-base-200">

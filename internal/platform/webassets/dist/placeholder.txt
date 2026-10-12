@@ -1,0 +1,1 @@
+Generated SPA files are written here by the canonical frontend build.

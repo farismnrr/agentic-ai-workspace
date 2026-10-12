@@ -7,7 +7,9 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   build: {
-    outDir: fileURLToPath(new URL('../internal/web/dist', import.meta.url)),
+    outDir: fileURLToPath(
+      new URL('../internal/platform/webassets/dist', import.meta.url),
+    ),
     emptyOutDir: false,
   },
 });

@@ -61,6 +61,7 @@ linters:
         domain_dependency_rule:
           list-mode: lax
           files:
+            - "**/internal/modules/*/domain/*.go"
             - "**/internal/modules/*/domain/**/*.go"
           deny:
             - pkg: github.com/farismnrr/agentic-ai-workspace/internal/platform
@@ -72,6 +73,7 @@ linters:
         application_dependency_rule:
           list-mode: lax
           files:
+            - "**/internal/modules/*/application/*.go"
             - "**/internal/modules/*/application/**/*.go"
           deny:
             - pkg: github.com/farismnrr/agentic-ai-workspace/internal/platform
@@ -105,6 +107,9 @@ linters:
       require-specific: true
     revive:
       severity: error
+    wrapcheck:
+      ignore-package-globs:
+        - github.com/gofiber/fiber/v3*
 
 formatters:
   enable:

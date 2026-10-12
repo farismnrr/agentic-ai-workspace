@@ -3,21 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/farismnrr/agentic-ai-workspace/internal/config"
-	"github.com/farismnrr/agentic-ai-workspace/internal/server"
-	webassets "github.com/farismnrr/agentic-ai-workspace/internal/web"
+	"github.com/farismnrr/agentic-ai-workspace/internal/bootstrap"
 )
 
 func main() {
-	cfg := config.Load()
-
-	assets, err := webassets.Assets()
-	if err != nil {
-		log.Fatalf("load embedded web assets: %v", err)
+	if err := bootstrap.Run(); err != nil {
+		log.Fatal(err)
 	}
-
-	app := server.New(assets)
-
-	log.Printf("agentic-ai-workspace listening on %s", cfg.Address())
-	log.Fatal(app.Listen(cfg.Address()))
 }
