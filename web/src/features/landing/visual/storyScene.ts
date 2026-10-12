@@ -5,7 +5,6 @@ import { createStoryParts, disposeStory, type StoryParts } from './storyObject';
 
 interface StoryRuntime {
   active: boolean;
-  anchorX: number;
   camera: THREE.PerspectiveCamera;
   displayedProgress: number;
   frame: number | null;
@@ -46,9 +45,9 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.00055) * 3 * (1 - verify);
   const { parts } = runtime;
 
-  parts.root.position.set(runtime.anchorX, float, 0);
+  parts.root.position.set(0, 58 + float, 0);
   parts.root.scale.setScalar(runtime.rootScale);
-  parts.root.rotation.set(-0.025 + understand * 0.02, -0.07 + act * 0.1 - verify * 0.04, 0);
+  parts.root.rotation.set(-0.035 + understand * 0.025, -0.055 + act * 0.095 - verify * 0.035, 0);
 
   parts.frame.position.set(0, 0, -42 + settle * 18);
   parts.repo.position.set(-305 - understand * 85 + act * 44, 12, 12 + understand * 170 - act * 72 - verify * 28);
@@ -70,7 +69,7 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   setOpacity(parts.status, segment(progress, 0.7, 0.86));
   setOpacity(parts.repo, 1 - verify * 0.15);
 
-  runtime.camera.position.set(-18 * act, 4 * understand, 1440 - act * 110 + verify * 42);
+  runtime.camera.position.set(-18 * act, 4 * understand, 1360 - act * 105 + verify * 36);
 }
 
 function renderRuntime(runtime: StoryRuntime, time: number): void {
@@ -88,17 +87,13 @@ function animate(runtime: StoryRuntime, time: number): void {
     return;
   }
   renderRuntime(runtime, time);
-  runtime.frame = window.requestAnimationFrame((nextTime) => {
-    animate(runtime, nextTime);
-  });
+  runtime.frame = window.requestAnimationFrame((nextTime) => { animate(runtime, nextTime); });
 }
 
 function start(runtime: StoryRuntime): void {
   if (runtime.frame !== null || runtime.reducedMotion || !runtime.active) return;
   runtime.lastTime = performance.now();
-  runtime.frame = window.requestAnimationFrame((time) => {
-    animate(runtime, time);
-  });
+  runtime.frame = window.requestAnimationFrame((time) => { animate(runtime, time); });
 }
 
 function createRuntime(host: HTMLElement): StoryRuntime {
@@ -108,23 +103,10 @@ function createRuntime(host: HTMLElement): StoryRuntime {
   host.append(renderer.domElement);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 1, 4000);
-  camera.position.z = 1440;
+  camera.position.z = 1360;
   const parts = createStoryParts();
   scene.add(parts.root);
-  return {
-    active: true,
-    anchorX: 0,
-    camera,
-    displayedProgress: 0,
-    frame: null,
-    lastTime: 0,
-    parts,
-    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    renderer,
-    rootScale: 1,
-    scene,
-    targetProgress: 0,
-  };
+  return { active: true, camera, displayedProgress: 0, frame: null, lastTime: 0, parts, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches, renderer, rootScale: 1, scene, targetProgress: 0 };
 }
 
 function resizeRuntime(runtime: StoryRuntime, width: number, height: number): void {
@@ -132,8 +114,7 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height);
-  runtime.anchorX = width >= 1180 ? 235 : width >= 760 ? 120 : 0;
-  runtime.rootScale = width >= 1180 ? 0.88 : width >= 760 ? 0.72 : 0.52;
+  runtime.rootScale = width >= 1180 ? 1 : width >= 760 ? 0.78 : 0.54;
   renderRuntime(runtime, performance.now());
 }
 
@@ -141,7 +122,6 @@ export function createStoryScene(host: HTMLElement): StorySceneController {
   const runtime = createRuntime(host);
   start(runtime);
   renderRuntime(runtime, performance.now());
-
   return {
     active: (active) => {
       runtime.active = active;
@@ -161,8 +141,6 @@ export function createStoryScene(host: HTMLElement): StorySceneController {
         renderRuntime(runtime, performance.now());
       }
     },
-    resize: (width, height) => {
-      resizeRuntime(runtime, width, height);
-    },
+    resize: (width, height) => { resizeRuntime(runtime, width, height); },
   };
 }
