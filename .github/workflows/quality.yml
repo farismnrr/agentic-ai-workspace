@@ -130,5 +130,70 @@ jobs:
           name: spa-dist
           path: internal/platform/webassets/dist
 
-      - name: Compile final binary
-        run: make backend-build
+      - name: Compile final Linux AMD64 binary
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
+
+      - name: Prepare release binary
+        run: |
+          mkdir -p release
+          install -m 0755 bin/agentic-ai-workspace release/agentic-ai-workspace-linux-amd64
+
+      - name: Upload verified release binary
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-binary
+          path: release/agentic-ai-workspace-linux-amd64
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: rolling-latest-release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download verified binary
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-binary
+          path: release
+
+      - name: Publish rolling Latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          asset="release/agentic-ai-workspace-linux-amd64"
+          chmod +x "$asset"
+
+          if gh release view latest --json isImmutable >/dev/null 2>&1; then
+            immutable="$(gh release view latest --json isImmutable --jq '.isImmutable')"
+            if [ "$immutable" = "true" ]; then
+              echo "The rolling latest release cannot be replaced while immutable releases are enabled." >&2
+              exit 1
+            fi
+          fi
+
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/latest" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/latest" \
+              -f sha="${GITHUB_SHA}" -F force=true >/dev/null
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/latest" -f sha="${GITHUB_SHA}" >/dev/null
+          fi
+
+          printf 'Rolling Linux AMD64 build from main.\n\nCommit: `%s`\n' "$GITHUB_SHA" > release-notes.md
+
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest --target "$GITHUB_SHA" --title "Latest" \
+              --notes-file release-notes.md --latest
+            gh release upload latest "$asset" --clobber
+          else
+            gh release create latest "$asset" --verify-tag --title "Latest" \
+              --notes-file release-notes.md --latest
+          fi
