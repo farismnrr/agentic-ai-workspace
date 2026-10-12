@@ -1,82 +1,85 @@
 # agentic-ai-workspace
 
-Single-binary foundation for an AI workspace with strict architecture and quality gates.
+A small AI workspace foundation that ships as a single Linux executable.
+
+The frontend is built with Svelte, then embedded into the Go binary. In production you only run one file: no Node.js server, no second port, and no separate frontend process.
 
 ## Stack
 
-- Backend: Go 1.27.2 + Fiber v3
-- Frontend: Svelte 5 SPA + strict TypeScript
-- UI: Tailwind CSS + daisyUI
-- Runtime: one Go process, one port, one executable
-- Go quality gate: golangci-lint v2.14.0
-- Frontend quality gate: svelte-check + type-aware strict ESLint
+- Go 1.27.2
+- Fiber v3
+- Svelte 5 with strict TypeScript
+- Tailwind CSS + daisyUI
+- One process and one HTTP port at runtime
 
-Node.js and the frontend toolchain are build-time dependencies only. The compiled SPA is embedded into the Go executable.
+## Fastest way to run it
 
-## Canonical workflow
-
-Before coding or executing project code for a task, review current official documentation and best practices for the affected stack as required by `AGENTS.md`.
+Download the latest Linux build:
 
 ```bash
-make verify
+curl -L \
+  -o agentic-ai-workspace \
+  https://github.com/farismnrr/agentic-ai-workspace/releases/latest/download/agentic-ai-workspace-linux-amd64
+chmod +x agentic-ai-workspace
+./agentic-ai-workspace
+```
+
+By default the app listens on port `8080`.
+
+Use a different port with:
+
+```bash
+PORT=9000 ./agentic-ai-workspace
+```
+
+The GitHub release is a rolling build named **Latest**. After a new change reaches `main` and passes all checks, the Linux binary in that release is replaced automatically.
+
+## Building from source
+
+You need Go and Node.js only when building the project yourself.
+
+```bash
 make build
 ./bin/agentic-ai-workspace
 ```
 
-Or build, verify, and immediately run:
+Or build and run in one command:
 
 ```bash
 make run
 ```
 
-The default address is `:8080`. Override it at runtime:
+There is intentionally no development server or hot reload. The supported local flow is always build first, then run the resulting binary.
 
-```bash
-PORT=9000 ./bin/agentic-ai-workspace
-```
+## Quality checks
 
-There is intentionally no dev server or hot-reload command. Local execution always follows `build -> binary`.
-
-## Continuous integration
-
-GitHub Actions runs on every push and pull request. Guardrails, frontend checks, Go tests, and Go lint run independently where possible; `Quality / quality-gate` starts only after all verification jobs pass and then compiles the final binary with the verified SPA artifact.
-
-CI uses the committed npm lockfile with `npm ci`, the official npm and Go caches keyed by `web/package-lock.json` and `go.sum`, and the official cached golangci-lint action. Third-party actions are pinned to full commit SHAs. CI remains read-only during normal quality runs.
-
-A change is not complete while any quality job is failing.
-
-## Architecture
-
-Backend business features use feature-first Clean Architecture:
-
-```text
-internal/modules/<feature>/
-  domain/
-  application/
-  adapter/
-```
-
-Technical outer details live in `internal/platform/`, composition lives in `internal/bootstrap/`, and `cmd/` remains thin.
-The dependency rule is enforced by lint where it can be checked statically.
-
-Frontend composition lives under `web/src/app/`. Future feature code belongs under `web/src/features/`, while reusable
-components and focused logic belong under `web/src/shared/`.
-
-See [docs/system-design.md](./docs/system-design.md) for the full dependency rules and [AGENTS.md](./AGENTS.md) for binding
-guardrails.
-
-## Hard quality rules
-
-- human-authored files: maximum 200 lines;
-- Go functions: maximum 60 lines / 40 statements plus complexity limits;
-- frontend source: TypeScript only, with strict compiler flags;
-- Svelte script blocks: TypeScript only;
-- warnings fail verification;
-- daisyUI and existing reusable components are preferred before custom UI;
-- no second runtime port or frontend server.
-
-Run the complete gate with:
+Run everything with:
 
 ```bash
 make verify
 ```
+
+This checks the frontend, Go code, architecture guardrails, lint rules, tests, and production frontend build.
+
+GitHub Actions runs the same quality checks on every push and pull request. A Linux release is published only after all required checks pass.
+
+## Project structure
+
+```text
+cmd/workspace/              starts the application
+internal/bootstrap/         wires the application together
+internal/modules/           business features
+internal/platform/          HTTP server, config, embedded frontend
+web/                        Svelte frontend source
+docs/                       human-readable project documentation
+```
+
+Business features follow Clean Architecture inside `internal/modules/<feature>/`:
+
+```text
+domain -> application <- adapter
+```
+
+The important idea is simple: business rules stay independent from Fiber, databases, and other infrastructure details.
+
+For a more detailed explanation, read [docs/system-design.md](./docs/system-design.md).
