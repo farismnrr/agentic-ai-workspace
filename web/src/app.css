@@ -15,13 +15,13 @@
   --color-base-content: #151517;
   --color-primary: #657c1a;
   --color-primary-content: #fffdf7;
-  --color-secondary: #6f56b3;
+  --color-secondary: #275391;
   --color-secondary-content: #fffdf7;
-  --color-accent: #147a91;
+  --color-accent: #77358d;
   --color-accent-content: #fffdf7;
   --color-neutral: #2b2a2d;
   --color-neutral-content: #fffdf7;
-  --color-info: #16697a;
+  --color-info: #0f6f84;
   --color-info-content: #fffdf7;
   --color-success: #2f7d4a;
   --color-success-content: #fffdf7;
@@ -46,19 +46,19 @@
   --color-base-content: #f4f2eb;
   --color-primary: #c8ff4d;
   --color-primary-content: #111113;
-  --color-secondary: #a78bfa;
+  --color-secondary: #77adf8;
   --color-secondary-content: #111113;
-  --color-accent: #7ce7ff;
+  --color-accent: #d788f2;
   --color-accent-content: #111113;
   --color-neutral: #2a2a30;
   --color-neutral-content: #f4f2eb;
-  --color-info: #55d9f0;
+  --color-info: #67d7ea;
   --color-info-content: #111113;
   --color-success: #6ee7a0;
   --color-success-content: #111113;
-  --color-warning: #ff9f43;
+  --color-warning: #ffb454;
   --color-warning-content: #111113;
-  --color-error: #ff6b6b;
+  --color-error: #ff7a85;
   --color-error-content: #111113;
   --radius-selector: 1rem;
   --radius-field: 0.875rem;
@@ -81,7 +81,8 @@
   --brand-border-strong: rgb(17 17 19 / 24%);
   --brand-shadow: 0 30px 80px rgb(48 43 31 / 14%);
   --brand-ambient-primary: rgb(101 124 26 / 7%);
-  --brand-ambient-secondary: rgb(111 86 179 / 8%);
+  --brand-ambient-secondary: rgb(39 83 145 / 8%);
+  --brand-ambient-tertiary: rgb(119 53 141 / 7%);
   --brand-focus: #657c1a;
 }
 
@@ -95,7 +96,8 @@
   --brand-border-strong: rgb(255 255 255 / 20%);
   --brand-shadow: 0 30px 80px rgb(0 0 0 / 34%);
   --brand-ambient-primary: rgb(200 255 77 / 4%);
-  --brand-ambient-secondary: rgb(167 139 250 / 8%);
+  --brand-ambient-secondary: rgb(119 173 248 / 7%);
+  --brand-ambient-tertiary: rgb(215 136 242 / 7%);
   --brand-focus: #c8ff4d;
 }
 
@@ -110,7 +112,8 @@
     margin: 0;
     color: var(--color-base-content);
     background:
-      radial-gradient(circle at 82% 8%, var(--brand-ambient-secondary), transparent 32rem),
+      radial-gradient(circle at 84% 10%, var(--brand-ambient-tertiary), transparent 30rem),
+      radial-gradient(circle at 68% 22%, var(--brand-ambient-secondary), transparent 34rem),
       radial-gradient(circle at 12% 38%, var(--brand-ambient-primary), transparent 28rem),
       var(--color-base-200);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
