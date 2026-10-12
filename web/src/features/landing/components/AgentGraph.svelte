@@ -18,13 +18,14 @@
   function handlePointer(event: PointerEvent): void {
     if (controller === null) return;
     const bounds = host.getBoundingClientRect();
+    const inside = event.clientY >= bounds.top && event.clientY <= bounds.bottom;
+    if (!inside) {
+      controller.pointer(0, 0);
+      return;
+    }
     const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
     const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
-    controller.pointer(x, y);
-  }
-
-  function clearPointer(): void {
-    controller?.pointer(0, 0);
+    controller.pointer(Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y)));
   }
 
   onMount(() => {
@@ -33,17 +34,21 @@
     if (controller === null) return;
 
     const resizeObserver = new ResizeObserver(([entry]) => {
-      if (entry === undefined) return;
-      controller?.resize(entry.contentRect.width, entry.contentRect.height);
+      if (entry !== undefined) controller?.resize(entry.contentRect.width, entry.contentRect.height);
     });
     const themeObserver = new MutationObserver(() => controller?.refreshTheme());
+    const visibilityObserver = new IntersectionObserver(([entry]) => controller?.active(entry?.isIntersecting === true), {
+      threshold: 0.04,
+    });
 
     resizeObserver.observe(host);
+    visibilityObserver.observe(host);
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     controller.resize(host.clientWidth, host.clientHeight);
 
     return () => {
       resizeObserver.disconnect();
+      visibilityObserver.disconnect();
       themeObserver.disconnect();
       controller?.destroy();
       controller = null;
@@ -51,13 +56,9 @@
   });
 </script>
 
-<div
-  bind:this={host}
-  class="graph-host absolute inset-0"
-  onpointermove={handlePointer}
-  onpointerleave={clearPointer}
-  role="presentation"
->
+<svelte:window onpointermove={handlePointer} />
+
+<div bind:this={host} class="graph-host pointer-events-none absolute inset-0">
   <canvas bind:this={canvas} class="absolute inset-0 size-full" aria-hidden="true"></canvas>
 
   {#if !supported}
@@ -65,7 +66,7 @@
     <div class="absolute inset-[28%] rotate-45 border border-secondary/30" aria-hidden="true"></div>
   {/if}
 
-  <div class="pointer-events-none absolute inset-0 hidden md:block" aria-hidden="true">
+  <div class="absolute inset-0 hidden md:block" aria-hidden="true">
     {#each labels as item (item.label)}
       <div class={`graph-label absolute ${item.className}`}>
         <span class="block font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[var(--brand-text-tertiary)]">{item.eyebrow}</span>
@@ -74,7 +75,7 @@
     {/each}
   </div>
 
-  <div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center" aria-hidden="true">
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center" aria-hidden="true">
     <span class="font-mono text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-primary">agent core</span>
   </div>
 </div>
