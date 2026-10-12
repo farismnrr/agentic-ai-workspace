@@ -1,6 +1,6 @@
 # agentic-ai-workspace
 
-A small AI workspace foundation that ships as a single Linux executable.
+A small web-native AI orchestrator foundation that turns one goal into coordinated agent work and ships as a single Linux executable.
 
 The frontend is built with Svelte, then embedded into the Go binary. In production you only run one file: no Node.js server, no second port, and no separate frontend process.
 
