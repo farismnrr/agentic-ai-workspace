@@ -1,3 +1,6 @@
+<script lang="ts">
+</script>
+
 <section id="highlights" class="bg-base-100">
   <div class="mx-auto w-full max-w-[1600px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
     <div class="max-w-4xl">
