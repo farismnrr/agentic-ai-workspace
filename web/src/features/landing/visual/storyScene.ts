@@ -5,6 +5,7 @@ import { createStoryParts, disposeStory, type StoryParts } from './storyObject';
 
 interface StoryRuntime {
   active: boolean;
+  anchorX: number;
   camera: THREE.PerspectiveCamera;
   displayedProgress: number;
   frame: number | null;
@@ -38,6 +39,7 @@ function setOpacity(object: THREE.Object3D & { element?: HTMLElement }, value: n
 }
 
 function poseParts(runtime: StoryRuntime, progress: number, time: number): void {
+  const stage = segment(progress, 0.08, 0.28);
   const understand = segment(progress, 0.08, 0.34);
   const act = segment(progress, 0.3, 0.66);
   const verify = segment(progress, 0.62, 0.9);
@@ -45,8 +47,8 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.00055) * 3 * (1 - verify);
   const { parts } = runtime;
 
-  parts.root.position.set(0, 58 + float, 0);
-  parts.root.scale.setScalar(runtime.rootScale);
+  parts.root.position.set(runtime.anchorX * stage, 190 - stage * 132 + float, 0);
+  parts.root.scale.setScalar(runtime.rootScale * (0.82 + stage * 0.18));
   parts.root.rotation.set(-0.035 + understand * 0.025, -0.055 + act * 0.095 - verify * 0.035, 0);
 
   parts.frame.position.set(0, 0, -42 + settle * 18);
@@ -106,7 +108,7 @@ function createRuntime(host: HTMLElement): StoryRuntime {
   camera.position.z = 1360;
   const parts = createStoryParts();
   scene.add(parts.root);
-  return { active: true, camera, displayedProgress: 0, frame: null, lastTime: 0, parts, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches, renderer, rootScale: 1, scene, targetProgress: 0 };
+  return { active: true, anchorX: 0, camera, displayedProgress: 0, frame: null, lastTime: 0, parts, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches, renderer, rootScale: 1, scene, targetProgress: 0 };
 }
 
 function resizeRuntime(runtime: StoryRuntime, width: number, height: number): void {
@@ -114,7 +116,8 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height);
-  runtime.rootScale = width >= 1180 ? 1 : width >= 760 ? 0.78 : 0.54;
+  runtime.anchorX = width >= 1180 ? 220 : width >= 760 ? 105 : 0;
+  runtime.rootScale = width >= 1180 ? 0.88 : width >= 760 ? 0.72 : 0.5;
   renderRuntime(runtime, performance.now());
 }
 
