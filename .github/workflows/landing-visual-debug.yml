@@ -1,0 +1,152 @@
+name: Landing Visual Debug
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/landing-visual-debug.yml"
+      - "web/src/features/landing/**"
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Build production app
+        run: |
+          npm --prefix web ci --no-audit --no-fund
+          npm --prefix web run build
+          make backend-build
+
+      - name: Install isolated Playwright
+        run: |
+          mkdir -p /tmp/visual
+          cd /tmp/visual
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.64.0
+          ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Start production binary
+        run: |
+          PORT=8080 ./bin/agentic-ai-workspace > /tmp/landing-app.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8080/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/landing-app.log
+          exit 1
+
+      - name: Exercise and capture landing
+        run: |
+          cat > /tmp/visual/capture.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { mkdir, writeFile } from 'node:fs/promises';
+
+          const browser = await chromium.launch();
+          const output = `${process.env.GITHUB_WORKSPACE}/visual`;
+          await mkdir(output, { recursive: true });
+          const report = {};
+
+          function overlaps(a, b) {
+            return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+          }
+
+          async function inspectDesktop(scheme) {
+            const context = await browser.newContext({ colorScheme: scheme, viewport: { width: 1536, height: 900 } });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+            page.on('pageerror', (error) => errors.push(error.message));
+            await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+            await page.waitForTimeout(700);
+
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            if (overflow > 1) throw new Error(`horizontal overflow: ${overflow}px`);
+            const hero = page.locator('main > section').first();
+            const travel = await hero.evaluate((node) => node.clientHeight - window.innerHeight);
+            const states = [
+              [0, 'One goal. One orchestrator.', '.agent-shell'],
+              [1 / 3, 'It routes the work.', '.agent-orchestrator'],
+              [2 / 3, 'Agents work in the open.', '.agent-editor'],
+              [1, 'Proof closes the loop.', '.agent-status'],
+            ];
+            let firstShellWidth = 0;
+
+            for (const [index, [progress, heading, panel]] of states.entries()) {
+              await page.evaluate((y) => window.scrollTo(0, y), travel * progress);
+              await page.waitForTimeout(650);
+              const active = page.getByRole('heading', { name: heading });
+              if (!(await active.isVisible())) throw new Error(`hero heading missing: ${heading}`);
+              const copyBox = await active.locator('xpath=ancestor::article').boundingBox();
+              const panelBox = await page.locator(panel).boundingBox();
+              const shellBox = await page.locator('.agent-shell').boundingBox();
+              if (copyBox === null || panelBox === null || shellBox === null) throw new Error(`missing hero geometry at ${heading}`);
+              if (overlaps(copyBox, panelBox)) throw new Error(`hero overlap at ${heading}`);
+              if (index === 0) {
+                firstShellWidth = shellBox.width;
+                if (shellBox.width < 1050) throw new Error(`hero workspace too small: ${shellBox.width}px`);
+                if (shellBox.top < copyBox.bottom + 16) throw new Error(`hero workspace too close to copy: ${shellBox.top - copyBox.bottom}px`);
+              }
+              if (index === 3 && shellBox.width > firstShellWidth * 0.82) throw new Error(`hero workspace did not shrink enough: ${shellBox.width}px from ${firstShellWidth}px`);
+              await page.screenshot({ path: `${output}/${scheme}-hero-${index}.png` });
+            }
+
+            await page.locator('#closer-look').scrollIntoViewIfNeeded();
+            await page.getByRole('button', { name: 'Changes' }).click();
+            await page.getByRole('button', { name: 'Preview' }).click();
+            await page.getByRole('button', { name: 'Verify' }).click();
+            if (!(await page.getByRole('heading', { name: '4 checks passed' }).isVisible())) throw new Error('verify view did not render');
+            await page.screenshot({ path: `${output}/${scheme}-full.png`, fullPage: true });
+            report[scheme] = { errors, overflow, firstShellWidth, theme: await page.evaluate(() => document.documentElement.dataset.theme) };
+            if (errors.length > 0) throw new Error(`${scheme} browser errors: ${errors.join(' | ')}`);
+            await context.close();
+          }
+
+          await inspectDesktop('light');
+          await inspectDesktop('dark');
+
+          const mobile = await browser.newContext({ colorScheme: 'light', viewport: { width: 390, height: 844 } });
+          const page = await mobile.newPage();
+          await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+          const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+          if (overflow > 1) throw new Error(`mobile horizontal overflow: ${overflow}px`);
+          await page.screenshot({ path: `${output}/mobile-hero.png` });
+          report.mobile = { overflow };
+          await mobile.close();
+
+          await browser.close();
+          await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2));
+          EOF
+          cd /tmp/visual
+          node capture.mjs
+
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: landing-visual-debug
+          path: visual
+          if-no-files-found: warn
+          retention-days: 1
