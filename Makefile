@@ -5,6 +5,7 @@ BIN_DIR := bin
 BIN_PATH := $(BIN_DIR)/$(APP_NAME)
 WEB_DIR := web
 WEB_EMBED_DIR := internal/platform/webassets/dist
+GO_PACKAGES := ./cmd/... ./internal/...
 MAX_FILE_LINES := 200
 GOLANGCI_LINT_VERSION := v2.14.0
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
@@ -33,8 +34,9 @@ frontend-verify: frontend-deps
 	npm --prefix "$(WEB_DIR)" run build
 
 backend-verify: frontend-verify
-	go test ./...
-	$(GOLANGCI_LINT) run ./...
+	go mod tidy -diff
+	go test $(GO_PACKAGES)
+	$(GOLANGCI_LINT) run $(GO_PACKAGES)
 
 verify: guardrails backend-verify
 
