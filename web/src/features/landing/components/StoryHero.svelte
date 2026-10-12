@@ -39,8 +39,8 @@
 
   function chapterStyle(index: number): string {
     const delta = index - chapterPosition;
-    const opacity = Math.max(0, 1 - Math.abs(delta));
-    const translateY = Math.max(-1, Math.min(1, delta)) * 28;
+    const opacity = Math.max(0, 1 - Math.abs(delta)).toFixed(3);
+    const translateY = (Math.max(-1, Math.min(1, delta)) * 28).toFixed(2);
     return `opacity:${opacity};transform:translate3d(0,${translateY}px,0)`;
   }
 
