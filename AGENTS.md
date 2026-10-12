@@ -90,10 +90,11 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 2. Preserve Masih Awam branding through semantic theme roles, not by copying LMS implementation details or framework choices.
 3. Use daisyUI semantic roles before literal product colors: `primary`, `secondary`, `accent`, `neutral`, `info`, `success`, `warning`, `error`, and `base-*`.
 4. Product terminology calls daisyUI `accent` the tertiary role. Disabled, loading, hover, active, focus, and selected are interaction states, not extra brand colors.
-5. Shared visual changes must work in both `masihawam-light` and `masihawam-dark`.
-6. Keep brand values in the central theme source. Do not scatter hard-coded Masih Awam colors across feature components.
-7. Prefer configuring and composing daisyUI with the central theme over introducing custom component styling. Add custom tokens or CSS only for capabilities that daisyUI and Tailwind do not already cover cleanly.
-8. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
+5. The brand trio is split-complementary and anchored on the Masih Awam olive/lime primary: secondary is blue and tertiary is violet. Keep status colors semantic rather than forcing them into the brand harmony.
+6. Shared visual changes must work in both `masihawam-light` and `masihawam-dark`.
+7. Keep brand values in the central theme source. Do not scatter hard-coded Masih Awam colors across feature components.
+8. Prefer configuring and composing daisyUI with the central theme over introducing custom component styling. Add custom tokens or CSS only for capabilities that daisyUI and Tailwind do not already cover cleanly.
+9. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
 
 ## Size and complexity limits
 
