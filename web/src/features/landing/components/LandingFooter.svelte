@@ -1,3 +1,5 @@
+<script lang="ts"></script>
+
 <footer class="border-t border-[var(--brand-border)] bg-base-100/45">
   <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12">
     <div>
