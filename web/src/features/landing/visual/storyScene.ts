@@ -39,7 +39,7 @@ function setOpacity(object: THREE.Object3D & { element?: HTMLElement }, value: n
 }
 
 function poseParts(runtime: StoryRuntime, progress: number, time: number): void {
-  const stage = segment(progress, 0.08, 0.28);
+  const stage = segment(progress, 0.06, 0.26);
   const understand = segment(progress, 0.08, 0.34);
   const act = segment(progress, 0.3, 0.66);
   const verify = segment(progress, 0.62, 0.9);
@@ -47,8 +47,8 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.00055) * 3 * (1 - verify);
   const { parts } = runtime;
 
-  parts.root.position.set(runtime.anchorX * stage, 190 - stage * 132 + float, 0);
-  parts.root.scale.setScalar(runtime.rootScale * (0.82 + stage * 0.18));
+  parts.root.position.set(runtime.anchorX * stage, -125 + stage * 170 + float, 0);
+  parts.root.scale.setScalar(runtime.rootScale * (0.96 - stage * 0.17));
   parts.root.rotation.set(-0.035 + understand * 0.025, -0.055 + act * 0.095 - verify * 0.035, 0);
 
   parts.frame.position.set(0, 0, -42 + settle * 18);
@@ -116,8 +116,8 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height);
-  runtime.anchorX = width >= 1180 ? 220 : width >= 760 ? 105 : 0;
-  runtime.rootScale = width >= 1180 ? 0.88 : width >= 760 ? 0.72 : 0.5;
+  runtime.anchorX = width >= 1180 ? 180 : width >= 760 ? 90 : 0;
+  runtime.rootScale = width >= 1180 ? 0.94 : width >= 760 ? 0.76 : 0.52;
   renderRuntime(runtime, performance.now());
 }
 
