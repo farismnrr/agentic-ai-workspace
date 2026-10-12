@@ -44,9 +44,10 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   const verify = segment(progress, 0.7, 0.96);
   const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.0005) * 2 * (1 - verify);
   const shrink = 1 - progress * 0.28;
+  const focusX = runtime.anchorX * route * (1 - verify * 0.6);
   const { parts } = runtime;
 
-  parts.root.position.set(runtime.anchorX * route, -92 + route * 84 + execute * 20 + float, 0);
+  parts.root.position.set(focusX, -92 + route * 84 + execute * 20 + float, 0);
   parts.root.scale.setScalar(runtime.rootScale * shrink);
   parts.root.rotation.set(-0.018 + route * 0.014, -0.025 + execute * 0.048 - verify * 0.02, 0);
 
@@ -56,8 +57,8 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   parts.context.position.set(-300 - route * 36, -148, 82 + route * 188 - execute * 116);
   parts.editor.position.set(120 + execute * 34 - verify * 18, 44, 26 + route * 46 + execute * 220 - verify * 94);
   parts.terminal.position.set(120 + execute * 24, -166, 24 + execute * 226 - verify * 78);
-  parts.preview.position.set(448 - verify * 70, 58, 30 + execute * 48 + verify * 212);
-  parts.status.position.set(390, -174, 96 + verify * 242);
+  parts.preview.position.set(448 - verify * 120, 58, 30 + execute * 48 + verify * 212);
+  parts.status.position.set(390 - verify * 120, -174, 96 + verify * 242);
 
   parts.orchestrator.rotation.y = -route * 0.03 + execute * 0.05;
   parts.repo.rotation.y = -route * 0.065;
@@ -68,7 +69,7 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   parts.status.scale.setScalar(0.88 + verify * 0.12);
 
   setOpacity(parts.orchestrator, 0.82 + route * 0.18 - execute * 0.44 - verify * 0.16);
-  setOpacity(parts.repo, 0.94 - execute * 0.34 - verify * 0.2);
+  setOpacity(parts.repo, 0.94 - route * 0.5 + execute * 0.12 - verify * 0.2);
   setOpacity(parts.context, route * (1 - execute));
   setOpacity(parts.editor, 0.94 + execute * 0.06 - verify * 0.16);
   setOpacity(parts.terminal, 0.82 + execute * 0.18 - verify * 0.1);
@@ -121,7 +122,7 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height);
   runtime.anchorX = width >= 1180 ? 300 : width >= 760 ? 120 : 0;
-  runtime.rootScale = width >= 1180 ? 1.75 : width >= 760 ? 1.2 : 0.62;
+  runtime.rootScale = width >= 1180 ? 1.75 : width >= 760 ? 1.18 : 0.72;
   renderRuntime(runtime, performance.now());
 }
 
