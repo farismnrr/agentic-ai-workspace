@@ -96,6 +96,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 8. Prefer configuring and composing daisyUI with the central theme over introducing custom component styling. Add custom tokens or CSS only for capabilities that daisyUI and Tailwind do not already cover cleanly.
 9. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
 10. Before reporting landing or marketing UI as complete, compare the final implementation against current public design guidance and explicitly check for generic AI-default patterns such as repeated eyebrow/headline/body stacks, interchangeable hype copy, decorative gradients or glows, repeated equal card grids, excessive mono/uppercase decoration, and unnecessary nested surfaces. Fix unjustified patterns instead of merely noting them.
+11. Product positioning is a web-native AI orchestrator: communicate one goal becoming routed agent lanes, visible execution, and verifiable evidence. Avoid generic chatbot, abstract AI, or unexplained multi-agent imagery when the product workflow can tell the story directly.
 
 ## Size and complexity limits
 
