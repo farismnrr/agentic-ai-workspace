@@ -49,7 +49,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['vite.config.ts'],
+    files: ['vite.config.ts', 'eslint.config.ts'],
     languageOptions: {
       globals: globals.nodeBuiltin,
     },
