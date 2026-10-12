@@ -99,8 +99,9 @@ function poseParts(parts: StoryParts, progress: number, elapsed: number): void {
 function renderRuntime(runtime: StoryRuntime): void {
   runtime.timer.update();
   const elapsed = runtime.timer.getElapsed();
-  const mix = runtime.reducedMotion ? 1 : 0.075;
-  runtime.displayedProgress += (runtime.targetProgress - runtime.displayedProgress) * mix;
+  const delta = Math.min(runtime.timer.getDelta(), 0.1);
+  const blend = runtime.reducedMotion ? 1 : 1 - Math.exp(-10 * delta);
+  runtime.displayedProgress += (runtime.targetProgress - runtime.displayedProgress) * blend;
   poseParts(runtime.parts, runtime.displayedProgress, elapsed);
   runtime.renderer.render(runtime.scene, runtime.camera);
 }
@@ -110,6 +111,7 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.position.z = width < 720 ? 10.6 : 8.2;
   runtime.camera.updateProjectionMatrix();
+  runtime.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   runtime.renderer.setSize(width, height, false);
   renderRuntime(runtime);
 }
@@ -121,6 +123,10 @@ export function createStoryScene(canvas: HTMLCanvasElement): StorySceneControlle
     renderRuntime(runtime);
   };
   const setActive = (active: boolean): void => {
+    if (active && !runtime.active) {
+      runtime.displayedProgress = runtime.targetProgress;
+      runtime.timer.reset();
+    }
     runtime.active = active;
     runtime.renderer.setAnimationLoop(active && !runtime.reducedMotion ? render : null);
     if (active && runtime.reducedMotion) render();
