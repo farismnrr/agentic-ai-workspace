@@ -51,17 +51,14 @@ jobs:
       - name: Start production binary
         run: |
           PORT=8080 ./bin/agentic-ai-workspace > /tmp/landing-app.log 2>&1 &
-          echo $! > /tmp/landing-app.pid
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:8080/ >/dev/null; then
-              exit 0
-            fi
+            if curl --fail --silent http://127.0.0.1:8080/ >/dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/landing-app.log
           exit 1
 
-      - name: Capture landing walkthrough
+      - name: Exercise and capture landing
         run: |
           cat > /tmp/visual/capture.mjs <<'EOF'
           import { chromium } from 'playwright';
@@ -71,37 +68,54 @@ jobs:
           const report = {};
           await mkdir('visual', { recursive: true });
 
-          for (const scheme of ['light', 'dark']) {
-            const context = await browser.newContext({
-              colorScheme: scheme,
-              deviceScaleFactor: 1,
-              viewport: { width: 1440, height: 1000 },
-            });
+          async function captureDesktop(scheme) {
+            const context = await browser.newContext({ colorScheme: scheme, viewport: { width: 1440, height: 1000 } });
             const page = await context.newPage();
             const errors = [];
-            page.on('console', (message) => {
-              if (message.type() === 'error') errors.push(message.text());
-            });
+            page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
             page.on('pageerror', (error) => errors.push(error.message));
             await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-            await page.waitForTimeout(1200);
-            await page.screenshot({ path: `visual/${scheme}-full.png`, fullPage: true });
+            await page.waitForTimeout(900);
 
-            const height = await page.evaluate(() => document.documentElement.scrollHeight);
-            const frames = [0, 0.16, 0.34, 0.52, 0.7, 0.88];
-            for (let index = 0; index < frames.length; index += 1) {
-              await page.evaluate((ratio) => window.scrollTo(0, document.documentElement.scrollHeight * ratio), frames[index]);
-              await page.waitForTimeout(450);
-              await page.screenshot({ path: `visual/${scheme}-${index}.png` });
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            if (overflow > 1) throw new Error(`horizontal overflow: ${overflow}px`);
+            const heroTravel = await page.locator('main > section').first().evaluate((node) => node.clientHeight - window.innerHeight);
+            for (const [index, progress] of [0, 0.33, 0.66, 1].entries()) {
+              await page.evaluate((y) => window.scrollTo(0, y), heroTravel * progress);
+              await page.waitForTimeout(500);
+              await page.screenshot({ path: `visual/${scheme}-hero-${index}.png` });
             }
 
-            report[scheme] = {
-              errors,
-              height,
-              theme: await page.evaluate(() => document.documentElement.dataset.theme),
-            };
+            await page.locator('#highlights').scrollIntoViewIfNeeded();
+            await page.screenshot({ path: `visual/${scheme}-highlights.png` });
+            await page.locator('#closer-look').scrollIntoViewIfNeeded();
+            await page.getByRole('button', { name: 'Changes' }).click();
+            if (!(await page.getByText('auth/session.ts').first().isVisible())) throw new Error('changes view did not render');
+            await page.getByRole('button', { name: 'Preview' }).click();
+            if (!(await page.getByText('Signed in.').isVisible())) throw new Error('preview view did not render');
+            await page.getByRole('button', { name: 'Verify' }).click();
+            if (!(await page.getByText('4 checks passed').isVisible())) throw new Error('verify view did not render');
+            await page.screenshot({ path: `visual/${scheme}-workspace.png` });
+            await page.screenshot({ path: `visual/${scheme}-full.png`, fullPage: true });
+
+            report[scheme] = { errors, overflow, theme: await page.evaluate(() => document.documentElement.dataset.theme) };
+            if (errors.length > 0) throw new Error(`${scheme} browser errors: ${errors.join(' | ')}`);
             await context.close();
           }
+
+          await captureDesktop('light');
+          await captureDesktop('dark');
+
+          const mobile = await browser.newContext({ colorScheme: 'light', viewport: { width: 390, height: 844 } });
+          const page = await mobile.newPage();
+          await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+          const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+          if (mobileOverflow > 1) throw new Error(`mobile horizontal overflow: ${mobileOverflow}px`);
+          await page.screenshot({ path: 'visual/mobile-hero.png' });
+          await page.locator('#highlights').scrollIntoViewIfNeeded();
+          await page.screenshot({ path: 'visual/mobile-highlights.png' });
+          report.mobile = { overflow: mobileOverflow };
+          await mobile.close();
 
           await browser.close();
           await writeFile('visual/report.json', JSON.stringify(report, null, 2));
@@ -111,9 +125,10 @@ jobs:
           cp -R visual "$GITHUB_WORKSPACE/visual"
 
       - name: Upload visual evidence
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: landing-visual-debug
           path: visual
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 1
