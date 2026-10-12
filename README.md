@@ -4,7 +4,7 @@ Single-binary foundation for an AI workspace with strict architecture and qualit
 
 ## Stack
 
-- Backend: Go 1.26 + Fiber v3
+- Backend: Go 1.27.2 + Fiber v3
 - Frontend: Svelte 5 SPA + strict TypeScript
 - UI: Tailwind CSS + daisyUI
 - Runtime: one Go process, one port, one executable
