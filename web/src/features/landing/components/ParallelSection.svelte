@@ -7,15 +7,13 @@
   ] as const;
 </script>
 
-<section class="mx-auto w-full max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 lg:py-36">
-  <div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-end lg:gap-20">
-    <div>
-      <h2 class="text-4xl font-semibold tracking-[-0.04em] sm:text-6xl lg:text-7xl">More than one thing can move.</h2>
-    </div>
-    <p class="max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">Tasks stay isolated, readable, and easy to switch between instead of collapsing into one endless conversation.</p>
+<section class="mx-auto w-full max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
+  <div class="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-end lg:gap-20">
+    <h2 class="max-w-xl text-4xl font-semibold tracking-[-0.04em] sm:text-5xl lg:text-6xl">Run more than one task.</h2>
+    <p class="max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">Each task keeps its own context, progress, changes, and result. Switch without losing the thread.</p>
   </div>
 
-  <div class="mt-14 overflow-hidden rounded-3xl border border-[var(--brand-border-strong)] bg-base-100">
+  <div class="mt-12 overflow-hidden rounded-[1.75rem] border border-[var(--brand-border-strong)] bg-base-100 shadow-[var(--brand-shadow)]">
     <div class="grid grid-cols-3 gap-5 border-b border-[var(--brand-border)] bg-base-200 px-6 py-5 text-sm sm:grid-cols-[1fr_auto_auto]">
       <span>Tasks</span><span class="text-[var(--brand-text-tertiary)]">2 active</span><span class="text-[var(--brand-text-tertiary)]">4 total</span>
     </div>
