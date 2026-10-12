@@ -52,6 +52,7 @@
   onMount(() => {
     controller = createStoryScene(canvas);
     supported = controller !== null;
+    const canvasHost = canvas.parentElement ?? host;
     const resizeObserver = new ResizeObserver(([entry]) => {
       if (entry === undefined) return;
       controller?.resize(entry.contentRect.width, entry.contentRect.height);
@@ -62,9 +63,10 @@
       controller?.active(entry?.isIntersecting === true);
     }, { threshold: 0.02 });
 
-    resizeObserver.observe(canvas.parentElement ?? host);
+    resizeObserver.observe(canvasHost);
     visibilityObserver.observe(host);
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    controller?.resize(canvasHost.clientWidth, canvasHost.clientHeight);
     queueMeasure();
 
     return () => {
@@ -97,14 +99,12 @@
       <div class="relative flex-1">
         {#each chapters as chapter, index (chapter.eyebrow)}
           <article
-            class:opacity-100={activeChapter === index}
-            class:translate-y-0={activeChapter === index}
-            class="pointer-events-none absolute inset-x-0 bottom-[8%] translate-y-8 opacity-0 transition-[opacity,transform] duration-700 ease-out lg:bottom-[10%]"
+            class={`pointer-events-none absolute inset-x-0 bottom-[8%] transition-[opacity,transform] duration-700 ease-out lg:bottom-[10%] ${activeChapter === index ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
             aria-hidden={activeChapter !== index}
           >
             <div class:mx-auto={index === 0} class:text-center={index === 0} class="max-w-4xl">
               <p class="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-primary">{chapter.eyebrow}</p>
-              <h1 class:text-6xl={index === 0} class:sm:text-8xl={index === 0} class="mt-4 max-w-4xl text-5xl font-semibold leading-[0.92] tracking-[-0.055em] sm:text-7xl">
+              <h1 class={`mt-4 max-w-4xl font-semibold leading-[0.92] tracking-[-0.055em] ${index === 0 ? 'text-6xl sm:text-8xl' : 'text-5xl sm:text-7xl'}`}>
                 {chapter.title}
               </h1>
               <p class:mx-auto={index === 0} class="mt-5 max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">
@@ -120,7 +120,7 @@
 
       <div class="absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 md:flex lg:right-12" aria-hidden="true">
         {#each chapters as chapter, index (chapter.title)}
-          <span class:scale-x-[2.4]={activeChapter === index} class:bg-primary={activeChapter === index} class="h-px w-4 origin-right bg-base-content/20 transition-all duration-500"></span>
+          <span class={`h-px w-4 origin-right transition-all duration-500 ${activeChapter === index ? 'scale-x-[2.4] bg-primary' : 'bg-base-content/20'}`}></span>
         {/each}
       </div>
     </div>
