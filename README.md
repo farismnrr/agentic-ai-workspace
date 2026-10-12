@@ -63,6 +63,12 @@ This checks the frontend, Go code, architecture guardrails, lint rules, tests, a
 
 GitHub Actions runs the same quality checks on every push and pull request. A Linux release is published only after all required checks pass.
 
+## Design system
+
+The UI uses the Masih Awam visual language through semantic daisyUI themes instead of copying the LMS implementation. Matching light and dark themes share the same roles for actions, surfaces, and statuses.
+
+See [docs/design-system.md](./docs/design-system.md) for the color roles, interaction states, and component rules.
+
 ## Project structure
 
 ```text

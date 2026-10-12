@@ -80,6 +80,16 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 8. Prefer props and composition over copied markup.
 9. Generated SPA output is not source and must never be manually edited.
 
+## Design system rules
+
+1. `docs/design-system.md` is the source of truth for user-visible visual semantics and theme behavior.
+2. Preserve Masih Awam branding through semantic theme roles, not by copying LMS implementation details or framework choices.
+3. Use daisyUI semantic roles before literal product colors: `primary`, `secondary`, `accent`, `neutral`, `info`, `success`, `warning`, `error`, and `base-*`.
+4. Product terminology calls daisyUI `accent` the tertiary role. Disabled, loading, hover, active, focus, and selected are interaction states, not extra brand colors.
+5. Shared visual changes must work in both `masihawam-light` and `masihawam-dark`.
+6. Keep brand values in the central theme source. Do not scatter hard-coded Masih Awam colors across feature components.
+7. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
+
 ## Size and complexity limits
 
 1. Every human-authored source, config, script, markup, and documentation file is limited to 200 lines.
