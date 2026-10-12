@@ -65,8 +65,9 @@ jobs:
           import { mkdir, writeFile } from 'node:fs/promises';
 
           const browser = await chromium.launch();
+          const output = `${process.env.GITHUB_WORKSPACE}/visual`;
           const report = {};
-          await mkdir('visual', { recursive: true });
+          await mkdir(output, { recursive: true });
 
           async function captureDesktop(scheme) {
             const context = await browser.newContext({ colorScheme: scheme, viewport: { width: 1440, height: 1000 } });
@@ -83,20 +84,20 @@ jobs:
             for (const [index, progress] of [0, 0.33, 0.66, 1].entries()) {
               await page.evaluate((y) => window.scrollTo(0, y), heroTravel * progress);
               await page.waitForTimeout(500);
-              await page.screenshot({ path: `visual/${scheme}-hero-${index}.png` });
+              await page.screenshot({ path: `${output}/${scheme}-hero-${index}.png` });
             }
 
             await page.locator('#highlights').scrollIntoViewIfNeeded();
-            await page.screenshot({ path: `visual/${scheme}-highlights.png` });
+            await page.screenshot({ path: `${output}/${scheme}-highlights.png` });
             await page.locator('#closer-look').scrollIntoViewIfNeeded();
             await page.getByRole('button', { name: 'Changes' }).click();
             if (!(await page.getByText('auth/session.ts').first().isVisible())) throw new Error('changes view did not render');
             await page.getByRole('button', { name: 'Preview' }).click();
-            if (!(await page.getByText('Signed in.').isVisible())) throw new Error('preview view did not render');
+            if (!(await page.getByRole('heading', { name: 'Signed in.' }).isVisible())) throw new Error('preview view did not render');
             await page.getByRole('button', { name: 'Verify' }).click();
-            if (!(await page.getByText('4 checks passed').isVisible())) throw new Error('verify view did not render');
-            await page.screenshot({ path: `visual/${scheme}-workspace.png` });
-            await page.screenshot({ path: `visual/${scheme}-full.png`, fullPage: true });
+            if (!(await page.getByRole('heading', { name: '4 checks passed' }).isVisible())) throw new Error('verify view did not render');
+            await page.screenshot({ path: `${output}/${scheme}-workspace.png` });
+            await page.screenshot({ path: `${output}/${scheme}-full.png`, fullPage: true });
 
             report[scheme] = { errors, overflow, theme: await page.evaluate(() => document.documentElement.dataset.theme) };
             if (errors.length > 0) throw new Error(`${scheme} browser errors: ${errors.join(' | ')}`);
@@ -111,18 +112,17 @@ jobs:
           await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
           const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
           if (mobileOverflow > 1) throw new Error(`mobile horizontal overflow: ${mobileOverflow}px`);
-          await page.screenshot({ path: 'visual/mobile-hero.png' });
+          await page.screenshot({ path: `${output}/mobile-hero.png` });
           await page.locator('#highlights').scrollIntoViewIfNeeded();
-          await page.screenshot({ path: 'visual/mobile-highlights.png' });
+          await page.screenshot({ path: `${output}/mobile-highlights.png` });
           report.mobile = { overflow: mobileOverflow };
           await mobile.close();
 
           await browser.close();
-          await writeFile('visual/report.json', JSON.stringify(report, null, 2));
+          await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2));
           EOF
           cd /tmp/visual
           node capture.mjs
-          cp -R visual "$GITHUB_WORKSPACE/visual"
 
       - name: Upload visual evidence
         if: always()
