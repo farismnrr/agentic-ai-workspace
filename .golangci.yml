@@ -1,0 +1,116 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - depguard
+    - dupl
+    - durationcheck
+    - err113
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - gocyclo
+    - gomodguard_v2
+    - gosec
+    - govet
+    - iface
+    - ineffassign
+    - lll
+    - makezero
+    - mirror
+    - misspell
+    - mnd
+    - nakedret
+    - nestif
+    - nilerr
+    - noctx
+    - nolintlint
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - wrapcheck
+  settings:
+    cyclop:
+      max-complexity: 10
+      package-average: 5.0
+    depguard:
+      rules:
+        domain_dependency_rule:
+          list-mode: lax
+          files:
+            - "**/internal/modules/*/domain/**/*.go"
+          deny:
+            - pkg: github.com/farismnrr/agentic-ai-workspace/internal/platform
+              desc: domain must not depend on platform details
+            - pkg: github.com/farismnrr/agentic-ai-workspace/internal/bootstrap
+              desc: domain must not depend on composition root
+            - pkg: github.com/gofiber/fiber/v3
+              desc: domain must be framework independent
+        application_dependency_rule:
+          list-mode: lax
+          files:
+            - "**/internal/modules/*/application/**/*.go"
+          deny:
+            - pkg: github.com/farismnrr/agentic-ai-workspace/internal/platform
+              desc: application must depend on ports, not platform details
+            - pkg: github.com/farismnrr/agentic-ai-workspace/internal/bootstrap
+              desc: application must not depend on composition root
+            - pkg: github.com/gofiber/fiber/v3
+              desc: application must be framework independent
+    dupl:
+      threshold: 80
+    funlen:
+      lines: 60
+      statements: 40
+    gocognit:
+      min-complexity: 12
+    gocyclo:
+      min-complexity: 10
+    gomodguard_v2:
+      local-replace-directives: true
+      allowed:
+        - module: github.com/gofiber/fiber/v3
+    govet:
+      enable-all: true
+    lll:
+      line-length: 120
+    nestif:
+      min-complexity: 4
+    nolintlint:
+      allow-unused: false
+      require-explanation: true
+      require-specific: true
+    revive:
+      severity: error
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
