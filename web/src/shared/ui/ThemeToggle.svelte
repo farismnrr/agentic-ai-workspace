@@ -11,10 +11,11 @@
 
 <button
   type="button"
-  class="btn btn-ghost btn-sm rounded-full border border-base-content/10"
+  class="btn btn-ghost btn-sm gap-2 rounded-full border border-base-content/10 bg-base-100/70 backdrop-blur"
   aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
   aria-pressed={isDark}
   onclick={handleToggle}
 >
-  {isDark ? 'Dark' : 'Light'}
+  <span aria-hidden="true">{isDark ? '☀' : '◐'}</span>
+  <span>{isDark ? 'Light' : 'Dark'}</span>
 </button>
