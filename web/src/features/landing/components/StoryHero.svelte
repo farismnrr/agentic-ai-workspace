@@ -6,10 +6,10 @@
   import '../visual/storyWorkspace.css';
 
   const chapters = [
-    { title: 'Give it a goal.', body: 'A coding agent that works through your repo from the browser.' },
-    { title: 'It reads first.', body: 'Rules, architecture, and relevant files move into focus before a change.' },
-    { title: 'Then it works.', body: 'Edits, commands, and a live preview stay in one execution surface.' },
-    { title: 'Until it passes.', body: 'Tests and browser checks decide when the task is actually done.' },
+    { title: 'Give it a goal.', body: 'From repo to verified change, in one web workspace.' },
+    { title: 'It reads first.', body: 'Repo rules and relevant files first.' },
+    { title: 'Then it works.', body: 'Edit. Run. Preview.' },
+    { title: 'Until it passes.', body: 'Tests and browser checks decide done.' },
   ] as const;
 
   let host: HTMLElement;
@@ -23,8 +23,8 @@
 
   function chapterStyle(index: number): string {
     const delta = index - chapterPosition;
-    const opacity = Math.max(0, 1 - Math.abs(delta)).toFixed(3);
-    const translateY = (Math.max(-1, Math.min(1, delta)) * 26).toFixed(2);
+    const opacity = Math.max(0, 1 - Math.abs(delta) / 0.42).toFixed(3);
+    const translateY = (Math.max(-1, Math.min(1, delta)) * 24).toFixed(2);
     return `opacity:${opacity};transform:translate3d(0,${translateY}px,0)`;
   }
 
@@ -69,7 +69,7 @@
 
 <svelte:window onscroll={queueMeasure} onresize={queueMeasure} />
 
-<section bind:this={host} class="relative h-[430svh] bg-base-200 text-base-content">
+<section bind:this={host} class="relative h-[340svh] bg-base-200 text-base-content">
   <div class="sticky top-0 h-[100svh] overflow-hidden">
     <div bind:this={sceneHost} class="absolute inset-0 z-0" aria-hidden="true"></div>
 
@@ -79,19 +79,19 @@
       <div class="relative flex-1">
         {#each chapters as chapter, index (chapter.title)}
           <article
-            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[12%] w-[min(92vw,64rem)]' : 'left-0 top-[34%] max-w-[28rem]'}`}
+            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[10%] w-[min(92vw,56rem)]' : 'left-0 top-[38%] max-w-[25rem]'}`}
             style={chapterStyle(index)}
             aria-hidden={activeChapter !== index}
           >
             <div class={index === 0 ? '-translate-x-1/2 text-center' : ''}>
-              <h1 class={`${index === 0 ? 'text-6xl sm:text-7xl lg:text-8xl' : 'text-4xl sm:text-5xl lg:text-6xl'} font-semibold leading-[0.96] tracking-[-0.05em]`}>
+              <h1 class={`${index === 0 ? 'text-5xl sm:text-6xl lg:text-7xl' : 'text-4xl sm:text-5xl lg:text-6xl'} font-semibold leading-[0.96] tracking-[-0.05em]`}>
                 {chapter.title}
               </h1>
-              <p class={`mt-5 text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg ${index === 0 ? 'mx-auto max-w-lg' : 'max-w-md'}`}>
+              <p class={`mt-4 text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg ${index === 0 ? 'mx-auto max-w-md' : 'max-w-sm'}`}>
                 {chapter.body}
               </p>
               {#if index === 0}
-                <div class="pointer-events-auto mt-7 flex justify-center gap-3">
+                <div class="pointer-events-auto mt-6 flex justify-center gap-2">
                   <a class="btn btn-primary" href="#highlights">See how it works</a>
                   <a class="btn btn-ghost" href="#launch">Open workspace</a>
                 </div>
