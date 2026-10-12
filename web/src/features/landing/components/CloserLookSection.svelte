@@ -40,7 +40,7 @@
         <div class="mt-8 border-t border-[var(--brand-border)] pt-5 text-xs text-[var(--brand-text-tertiary)]">3 files in context · 2 changed</div>
       </aside>
 
-      <div class="p-6 sm:p-10 lg:p-14">
+      <div class="min-w-0 p-6 sm:p-10 lg:p-14">
         {#if selected === 'tasks'}
           <div class="mx-auto max-w-4xl">
             <div class="flex flex-col gap-4 border-b border-[var(--brand-border-strong)] pb-7 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-sm text-[var(--brand-text-tertiary)]">Current task</p><h3 class="mt-2 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">Fix the sign-in redirect.</h3></div><span class="text-sm text-primary">working</span></div>
@@ -52,8 +52,8 @@
             </div>
           </div>
         {:else if selected === 'changes'}
-          <div class="overflow-hidden border border-[var(--brand-border)] font-mono text-sm">
-            <div class="border-b border-[var(--brand-border)] bg-base-200 px-5 py-4">auth/session.ts</div>
+          <div class="overflow-x-auto border border-[var(--brand-border)] font-mono text-sm">
+            <div class="min-w-[34rem] border-b border-[var(--brand-border)] bg-base-200 px-5 py-4">auth/session.ts</div>
             <div class="grid min-w-[34rem] grid-cols-[3rem_1fr] gap-x-4 px-5 py-3 text-[var(--brand-text-secondary)]"><span>42</span><code>const next = sanitizeRedirect(requested);</code></div>
             <div class="grid min-w-[34rem] grid-cols-[3rem_1fr] gap-x-4 bg-success/10 px-5 py-3"><span>43</span><code>+ if (!next) return '/';</code></div>
             <div class="grid min-w-[34rem] grid-cols-[3rem_1fr] gap-x-4 bg-success/10 px-5 py-3"><span>44</span><code>+ return completeSignIn(next);</code></div>
