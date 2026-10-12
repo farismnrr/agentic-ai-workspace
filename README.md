@@ -35,6 +35,12 @@ PORT=9000 ./bin/agentic-ai-workspace
 
 There is intentionally no dev server or hot-reload command. Local execution always follows `build -> binary`.
 
+## Continuous integration
+
+GitHub Actions runs the `Quality / quality-gate` check on every push and pull request. The workflow executes `make build`,
+which runs all guardrails, strict frontend checks, Go tests and linting, builds the SPA, and compiles the final Go binary.
+A change is not considered complete while this check is failing.
+
 ## Architecture
 
 Backend business features use feature-first Clean Architecture:
