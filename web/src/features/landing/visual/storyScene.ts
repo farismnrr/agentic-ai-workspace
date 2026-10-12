@@ -121,8 +121,8 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height);
-  runtime.anchorX = width >= 1180 ? 300 : width >= 760 ? 120 : 0;
-  runtime.rootScale = width >= 1180 ? 1.75 : width >= 760 ? 1.18 : 0.72;
+  runtime.anchorX = width >= 1180 ? 300 : width >= 900 ? 155 : width >= 760 ? 100 : 0;
+  runtime.rootScale = width >= 1180 ? 1.75 : width >= 900 ? 1.34 : width >= 760 ? 1.18 : 0.72;
   renderRuntime(runtime, performance.now());
 }
 
