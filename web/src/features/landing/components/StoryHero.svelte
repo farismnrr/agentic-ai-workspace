@@ -7,25 +7,12 @@
 
   const chapters = [
     {
-      eyebrow: 'Agent at work',
       title: 'Give it a goal.',
-      body: 'A browser-native coding agent that can read the repo, edit the code, run the tools, and keep going until the result is proven.',
+      body: 'An agent that works in your codebase, from the browser.',
     },
-    {
-      eyebrow: '01 / Understand',
-      title: 'It reads before it writes.',
-      body: 'Repository rules, architecture, and relevant files separate into working context before the first change is made.',
-    },
-    {
-      eyebrow: '02 / Execute',
-      title: 'It works across the stack.',
-      body: 'Editor, terminal, and browser preview become one execution surface instead of a pile of disconnected chat instructions.',
-    },
-    {
-      eyebrow: '03 / Verify',
-      title: 'Done means verified.',
-      body: 'Tests, lint, builds, and browser checks stay visible, so completion is evidence—not confidence.',
-    },
+    { title: 'It reads first.' },
+    { title: 'Then it works.' },
+    { title: 'Until it passes.' },
   ] as const;
 
   let host: HTMLElement;
@@ -40,7 +27,7 @@
   function chapterStyle(index: number): string {
     const delta = index - chapterPosition;
     const opacity = Math.max(0, 1 - Math.abs(delta)).toFixed(3);
-    const translateY = (Math.max(-1, Math.min(1, delta)) * 24).toFixed(2);
+    const translateY = (Math.max(-1, Math.min(1, delta)) * 20).toFixed(2);
     return `opacity:${opacity};transform:translate3d(0,${translateY}px,0)`;
   }
 
@@ -85,38 +72,30 @@
 
 <svelte:window onscroll={queueMeasure} onresize={queueMeasure} />
 
-<section bind:this={host} class="relative h-[440svh] bg-base-200 text-base-content">
+<section bind:this={host} class="relative h-[400svh] bg-base-200 text-base-content">
   <div class="sticky top-0 h-[100svh] overflow-hidden">
     <div bind:this={sceneHost} class="absolute inset-0 z-0" aria-hidden="true"></div>
-    <div class="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_72%_44%,var(--brand-ambient-secondary),transparent_28rem)]" aria-hidden="true"></div>
 
     <div class="relative z-20 mx-auto flex h-full w-full max-w-[1440px] flex-col px-5 sm:px-8 lg:px-12">
       <LandingNav />
 
       <div class="relative flex-1">
-        {#each chapters as chapter, index (chapter.eyebrow)}
+        {#each chapters as chapter, index (chapter.title)}
           <article
-            class="pointer-events-none absolute left-0 top-[48%] max-w-[32rem] will-change-[opacity,transform] sm:top-[46%]"
+            class="pointer-events-none absolute left-0 top-[54%] max-w-[28rem] will-change-[opacity,transform] sm:top-[50%]"
             style={chapterStyle(index)}
             aria-hidden={activeChapter !== index}
           >
-            <p class="font-mono text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-primary">{chapter.eyebrow}</p>
-            <h1 class="mt-4 text-5xl font-semibold leading-[0.92] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+            <h1 class="text-4xl font-semibold leading-[0.98] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
               {chapter.title}
             </h1>
-            <p class="mt-5 max-w-md text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">
-              {chapter.body}
-            </p>
-            {#if index === 0}
-              <p class="mt-7 font-mono text-[0.65rem] uppercase tracking-[0.2em] text-[var(--brand-text-tertiary)]">Scroll to follow the agent ↓</p>
+            {#if 'body' in chapter}
+              <p class="mt-5 max-w-sm text-base leading-7 text-[var(--brand-text-secondary)]">
+                {chapter.body}
+              </p>
+              <p class="mt-6 text-sm text-[var(--brand-text-tertiary)]">Scroll to follow the task ↓</p>
             {/if}
           </article>
-        {/each}
-      </div>
-
-      <div class="absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 md:flex lg:right-12" aria-hidden="true">
-        {#each chapters as chapter, index (chapter.title)}
-          <span class={`h-px w-4 origin-right transition-all duration-300 ${activeChapter === index ? 'scale-x-[2.4] bg-primary' : 'bg-base-content/20'}`}></span>
         {/each}
       </div>
     </div>

@@ -11,7 +11,7 @@
   color: var(--color-base-content);
   background: var(--color-base-100);
   border: 1px solid var(--brand-border-strong);
-  border-radius: 1.5rem;
+  border-radius: 1rem;
   box-shadow: var(--brand-shadow);
   backface-visibility: hidden;
   transform-style: preserve-3d;
@@ -20,38 +20,34 @@
 
 .agent-panel-header {
   display: flex;
-  height: 42px;
+  height: 40px;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 14px;
   color: var(--brand-text-secondary);
   background: var(--brand-surface-soft);
   border-bottom: 1px solid var(--brand-border);
   font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
 }
 
 .agent-panel-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   background: var(--color-primary);
   border-radius: 999px;
-  box-shadow: 0 0 0 5px color-mix(in oklab, var(--color-primary) 13%, transparent);
 }
 
 .agent-shell {
   width: 900px;
   height: 520px;
-  border-radius: 2rem;
+  border-radius: 1.25rem;
 }
 
 .agent-shell-body {
   position: relative;
-  height: calc(100% - 42px);
-  background-image:
-    linear-gradient(var(--brand-border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--brand-border) 1px, transparent 1px);
-  background-size: 42px 42px;
+  height: calc(100% - 40px);
+  background: var(--color-base-200);
 }
 
 .agent-goal {
@@ -64,14 +60,14 @@
   padding: 16px 18px;
   background: var(--color-base-100);
   border: 1px solid var(--brand-border);
-  border-radius: 1rem;
+  border-radius: 0.75rem;
 }
 
 .agent-goal span,
 .agent-context-tag {
   color: var(--color-primary);
   font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -84,8 +80,8 @@
   display: flex;
   gap: 14px;
   color: var(--brand-text-tertiary);
-  font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.11em;
+  font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -108,7 +104,7 @@
   position: relative;
   padding: 9px 10px;
   color: var(--brand-text-secondary);
-  border-radius: 0.65rem;
+  border-radius: 0.4rem;
 }
 
 .agent-file--nested { padding-left: 26px; }
@@ -162,10 +158,10 @@
   padding: 18px;
   background: var(--color-base-200);
   border: 1px solid var(--brand-border);
-  border-radius: 1rem;
+  border-radius: 0.65rem;
 }
-.agent-preview-card small { color: var(--color-primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
-.agent-preview-card strong { font-size: 22px; letter-spacing: -0.03em; }
+.agent-preview-card small { color: var(--color-primary); font-weight: 700; }
+.agent-preview-card strong { font-size: 22px; letter-spacing: -0.02em; }
 .agent-preview-card span { color: var(--brand-text-secondary); font-size: 12px; }
 
 .agent-status .agent-panel-header { height: 30px; color: var(--color-success); }

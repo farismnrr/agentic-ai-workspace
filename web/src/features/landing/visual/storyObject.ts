@@ -23,9 +23,9 @@ function panel(className: string, title: string, body: string): CSS3DObject {
 function makeFrame(): CSS3DObject {
   return panel(
     'agent-shell',
-    'masih-awam / workspace',
+    'Masih Awam',
     `<div class="agent-shell-body">
-      <div class="agent-goal"><span>Goal</span><strong>Fix the auth flow and verify it.</strong></div>
+      <div class="agent-goal"><span>Task</span><strong>Fix the sign-in redirect and verify it.</strong></div>
       <div class="agent-loop"><span class="is-active">read</span><span>edit</span><span>run</span><span>verify</span></div>
     </div>`,
   );
@@ -39,11 +39,11 @@ function makeRepo(): CSS3DObject {
       <span class="agent-file is-active">AGENTS.md</span>
       <span class="agent-file">web/</span>
       <span class="agent-file agent-file--nested">src/</span>
-      <span class="agent-file agent-file--nested">features/landing/</span>
-      <span class="agent-file agent-file--nested is-modified">StoryHero.svelte</span>
-      <span class="agent-file agent-file--nested is-modified">storyScene.ts</span>
-      <span class="agent-file">internal/</span>
-      <span class="agent-file">Makefile</span>
+      <span class="agent-file agent-file--nested">features/auth/</span>
+      <span class="agent-file agent-file--nested is-modified">callback.ts</span>
+      <span class="agent-file agent-file--nested is-modified">session.ts</span>
+      <span class="agent-file">tests/</span>
+      <span class="agent-file agent-file--nested">auth.spec.ts</span>
     </div>`,
   );
 }
@@ -54,7 +54,7 @@ function makeContext(): CSS3DObject {
     'Context',
     `<div class="agent-context-body">
       <span class="agent-context-tag">AGENTS.md</span>
-      <strong>Read rules before code changes.</strong>
+      <strong>Read the rules before changing code.</strong>
       <p>Reuse existing UI. Keep themes semantic. Verify before done.</p>
     </div>`,
   );
@@ -63,13 +63,13 @@ function makeContext(): CSS3DObject {
 function makeEditor(): CSS3DObject {
   return panel(
     'agent-editor',
-    'StoryHero.svelte · modified',
+    'callback.ts · modified',
     `<div class="agent-code">
-      <span><i>41</i><code>const task = await agent.plan(goal);</code></span>
-      <span class="is-added"><i>42</i><code>+ await workspace.read(task.context);</code></span>
-      <span class="is-added"><i>43</i><code>+ await workspace.apply(task.change);</code></span>
-      <span class="is-added"><i>44</i><code>+ const proof = await verify.run();</code></span>
-      <span><i>45</i><code>return { task, proof };</code></span>
+      <span><i>41</i><code>const next = params.get('next');</code></span>
+      <span class="is-added"><i>42</i><code>+ const target = safeRedirect(next);</code></span>
+      <span class="is-added"><i>43</i><code>+ await session.persist();</code></span>
+      <span class="is-added"><i>44</i><code>+ return redirect(target);</code></span>
+      <span><i>45</i><code>}</code></span>
     </div>`,
   );
 }
@@ -80,9 +80,9 @@ function makeTerminal(): CSS3DObject {
     'Terminal',
     `<div class="agent-terminal-body">
       <span><b>$</b> make verify</span>
-      <span class="is-success">✓ svelte-check · 0 errors</span>
-      <span class="is-success">✓ eslint · passed</span>
-      <span class="is-success">✓ go test ./... · passed</span>
+      <span class="is-success">✓ frontend · passed</span>
+      <span class="is-success">✓ tests · passed</span>
+      <span class="is-success">✓ production build · passed</span>
     </div>`,
   );
 }
@@ -90,10 +90,10 @@ function makeTerminal(): CSS3DObject {
 function makePreview(): CSS3DObject {
   return panel(
     'agent-preview',
-    'Browser preview',
+    'Browser',
     `<div class="agent-preview-body">
-      <span class="agent-preview-url">127.0.0.1:8080</span>
-      <div class="agent-preview-card"><small>Masih Awam</small><strong>Agentic workspace</strong><span>ready to inspect</span></div>
+      <span class="agent-preview-url">127.0.0.1:8080/auth/callback</span>
+      <div class="agent-preview-card"><small>Redirect result</small><strong>/workspace</strong><span>session restored</span></div>
     </div>`,
   );
 }
@@ -102,7 +102,7 @@ function makeStatus(): CSS3DObject {
   return panel(
     'agent-status',
     'Verified',
-    `<div class="agent-status-body"><span>✓</span><div><strong>4 checks passed</strong><small>Ready to ship</small></div></div>`,
+    `<div class="agent-status-body"><span>✓</span><div><strong>4 checks passed</strong><small>No failures</small></div></div>`,
   );
 }
 
