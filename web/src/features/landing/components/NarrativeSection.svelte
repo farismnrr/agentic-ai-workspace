@@ -1,43 +1,41 @@
 <script lang="ts">
-  const capabilities = [
+  const principles = [
     {
       index: '01',
-      title: 'Reads before it touches.',
-      body: 'Repository rules, architecture, existing abstractions, and current code become context before the first edit happens.',
+      title: 'Context before confidence.',
+      body: 'The agent reads repository rules, architecture, and existing patterns before it proposes a change.',
     },
     {
       index: '02',
-      title: 'Operates real tools.',
-      body: 'Files, terminal commands, tests, builds, and browser checks live in one execution loop instead of a chain of pasted answers.',
+      title: 'Action over suggestions.',
+      body: 'It edits files, runs commands, and works through the same project surface a developer would use.',
     },
     {
       index: '03',
-      title: 'Leaves proof behind.',
-      body: 'The result is not “looks right to the model.” The agent runs the project’s verification path and surfaces what actually passed.',
+      title: 'Evidence before done.',
+      body: 'The loop ends with tests, lint, builds, and browser checks—not with a persuasive paragraph.',
     },
   ] as const;
 </script>
 
-<section id="capabilities" class="mx-auto grid w-full max-w-[1440px] gap-16 px-5 py-28 sm:px-8 lg:grid-cols-[0.82fr_1.18fr] lg:px-12 lg:py-40">
-  <div>
-    <p class="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-primary">System / 01</p>
-    <h2 class="mt-6 max-w-xl text-5xl font-semibold leading-[0.94] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
-      Not a chatbot.
-      <span class="text-[var(--brand-text-tertiary)]">A runtime.</span>
+<section id="capabilities" class="mx-auto w-full max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 lg:py-44">
+  <div class="max-w-5xl">
+    <p class="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-primary">After the prompt</p>
+    <h2 class="mt-6 text-5xl font-semibold leading-[0.94] tracking-[-0.055em] sm:text-7xl lg:text-8xl">
+      The interface gets quiet.
+      <span class="block text-[var(--brand-text-tertiary)]">The work gets serious.</span>
     </h2>
-    <p class="mt-7 max-w-md text-base leading-7 text-[var(--brand-text-secondary)]">
-      Chat is just the control surface. Under it is an execution loop built to understand a codebase, change it, and prove the change survived reality.
+    <p class="mt-8 max-w-2xl text-lg leading-8 text-[var(--brand-text-secondary)]">
+      Masih Awam is built around an execution loop, not a conversation loop. The browser is simply where that work becomes visible.
     </p>
   </div>
 
-  <div class="border-t border-[var(--brand-border-strong)]">
-    {#each capabilities as item (item.index)}
-      <article class="group grid gap-6 border-b border-[var(--brand-border)] py-8 sm:grid-cols-[4rem_1fr] sm:py-10">
+  <div class="mt-24 border-t border-[var(--brand-border-strong)] lg:mt-32">
+    {#each principles as item (item.index)}
+      <article class="grid gap-6 border-b border-[var(--brand-border)] py-9 sm:grid-cols-[5rem_1fr] lg:grid-cols-[6rem_0.8fr_1.2fr] lg:items-start lg:py-12">
         <span class="font-mono text-xs text-[var(--brand-text-tertiary)]">{item.index}</span>
-        <div class="grid gap-4 lg:grid-cols-[0.8fr_1.2fr] lg:gap-10">
-          <h3 class="text-2xl font-semibold tracking-[-0.035em] transition-transform duration-300 group-hover:translate-x-1">{item.title}</h3>
-          <p class="max-w-xl leading-7 text-[var(--brand-text-secondary)]">{item.body}</p>
-        </div>
+        <h3 class="text-2xl font-semibold tracking-[-0.035em] sm:text-3xl">{item.title}</h3>
+        <p class="max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg sm:leading-8">{item.body}</p>
       </article>
     {/each}
   </div>
