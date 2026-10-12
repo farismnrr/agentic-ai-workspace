@@ -117,7 +117,9 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
 export function createStoryScene(canvas: HTMLCanvasElement): StorySceneController | null {
   const runtime = createRuntime(canvas);
   if (runtime === null) return null;
-  const render = (): void => renderRuntime(runtime);
+  const render = (): void => {
+    renderRuntime(runtime);
+  };
   const setActive = (active: boolean): void => {
     runtime.active = active;
     runtime.renderer.setAnimationLoop(active && !runtime.reducedMotion ? render : null);
@@ -142,6 +144,8 @@ export function createStoryScene(canvas: HTMLCanvasElement): StorySceneControlle
       refreshStoryTheme(runtime.parts);
       render();
     },
-    resize: (width, height) => resizeRuntime(runtime, width, height),
+    resize: (width, height) => {
+      resizeRuntime(runtime, width, height);
+    },
   };
 }
