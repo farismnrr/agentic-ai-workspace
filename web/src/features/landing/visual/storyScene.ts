@@ -88,13 +88,17 @@ function animate(runtime: StoryRuntime, time: number): void {
     return;
   }
   renderRuntime(runtime, time);
-  runtime.frame = window.requestAnimationFrame((nextTime) => animate(runtime, nextTime));
+  runtime.frame = window.requestAnimationFrame((nextTime) => {
+    animate(runtime, nextTime);
+  });
 }
 
 function start(runtime: StoryRuntime): void {
   if (runtime.frame !== null || runtime.reducedMotion || !runtime.active) return;
   runtime.lastTime = performance.now();
-  runtime.frame = window.requestAnimationFrame((time) => animate(runtime, time));
+  runtime.frame = window.requestAnimationFrame((time) => {
+    animate(runtime, time);
+  });
 }
 
 function createRuntime(host: HTMLElement): StoryRuntime {
@@ -157,6 +161,8 @@ export function createStoryScene(host: HTMLElement): StorySceneController {
         renderRuntime(runtime, performance.now());
       }
     },
-    resize: (width, height) => resizeRuntime(runtime, width, height),
+    resize: (width, height) => {
+      resizeRuntime(runtime, width, height);
+    },
   };
 }
