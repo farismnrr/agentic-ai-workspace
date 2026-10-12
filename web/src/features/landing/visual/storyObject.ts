@@ -17,7 +17,7 @@ function panel(className: string, title: string, body: string): CSS3DObject {
   const element = document.createElement('section');
   element.className = `agent-workspace-panel ${className}`;
   element.setAttribute('aria-hidden', 'true');
-  element.innerHTML = `<header class="agent-panel-header"><span>${title}</span><span class="agent-panel-dot"></span></header>${body}`;
+  element.innerHTML = `<header class="agent-panel-header"><span>${title}</span></header>${body}`;
   return new CSS3DObject(element);
 }
 
@@ -26,8 +26,11 @@ function makeFrame(): CSS3DObject {
     'agent-shell',
     'Masih Awam · AI Orchestrator',
     `<div class="agent-shell-body">
-      <div class="agent-goal"><span>Goal</span><strong>Fix the sign-in redirect and verify it.</strong></div>
-      <div class="agent-loop"><span>plan</span><span>route</span><span>work</span><span>verify</span></div>
+      <div class="agent-goal">
+        <strong>Fix the sign-in redirect.</strong>
+        <small>Trace the callback, change the code, and verify it in the browser.</small>
+      </div>
+      <div class="agent-progress"><span>Plan ✓</span><span>Route ✓</span><span>Work ●</span><span>Verify ···</span></div>
     </div>`,
   );
 }
@@ -37,7 +40,7 @@ function makeOrchestrator(): CSS3DObject {
     'agent-orchestrator',
     'Orchestrator',
     `<div class="agent-orchestrator-body">
-      <div class="agent-lead"><span>Lead</span><strong>Auth redirect</strong><small>3 specialist lanes</small></div>
+      <div class="agent-lead"><span>Lead</span><strong>Auth redirect</strong><small>3 lanes</small></div>
       <div class="agent-route-list">
         <div><span>Research</span><small>official docs</small><b>running</b></div>
         <div><span>Code</span><small>callback.ts</small><b>ready</b></div>
@@ -67,11 +70,10 @@ function makeRepo(): CSS3DObject {
 function makeContext(): CSS3DObject {
   return panel(
     'agent-context',
-    'Context',
+    'Repository rules',
     `<div class="agent-context-body">
-      <span class="agent-context-tag">AGENTS.md</span>
-      <strong>Read the rules before changing code.</strong>
-      <p>Reuse existing UI. Keep themes semantic. Verify before done.</p>
+      <strong>Read before changing code.</strong>
+      <p>Reuse existing UI. Keep both themes semantic. Verify before done.</p>
     </div>`,
   );
 }
