@@ -104,9 +104,15 @@ The limits are enforced by `scripts/check-guardrails.sh`, ESLint, and golangci-l
 4. Frontend uses `svelte-check --fail-on-warnings` plus type-aware strict ESLint rules.
 5. Warnings are failures. Do not silence a diagnostic without fixing it or documenting a narrow justified suppression.
 6. `//nolint` directives must name the linter and explain the exception.
-7. `.github/workflows/quality.yml` must run on every push and pull request and execute `make build`, proving both verification and final compilation.
-8. A change is incomplete while its quality CI is failing. Do not bypass, skip, weaken, or make the CI fail-open without explicit user intent.
-9. A completed change must keep both `make verify` and `make build` green.
+7. `.github/workflows/quality.yml` must run on every push and pull request, enforce the full semantic equivalent of `make verify`, and compile the final embedded-SPA Go binary.
+8. Independent CI checks should run in parallel when that reduces wall-clock time without weakening verification.
+9. CI must use committed dependency lockfiles and deterministic install commands. npm CI uses `npm ci`, never an unlocked `npm install`.
+10. Use official dependency/tool caches keyed by their lockfiles when available. Cache package-manager stores and compiler caches; do not cache `node_modules`.
+11. Third-party GitHub Actions must be pinned to a full commit SHA with the intended release version documented beside it.
+12. CI permissions default to read-only and must stay least-privilege. Temporary write access requires explicit task need and must be removed afterward.
+13. CI must verify dependency metadata drift rather than silently fix or commit it during normal quality runs.
+14. A change is incomplete while quality CI is failing. Do not bypass, skip, weaken, or make CI fail-open without explicit user intent.
+15. A completed change must keep both `make verify` and `make build` green.
 
 ## Reuse and change discipline
 

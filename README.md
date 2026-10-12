@@ -39,9 +39,11 @@ There is intentionally no dev server or hot-reload command. Local execution alwa
 
 ## Continuous integration
 
-GitHub Actions runs the `Quality / quality-gate` check on every push and pull request. The workflow executes `make build`,
-which runs all guardrails, strict frontend checks, Go tests and linting, builds the SPA, and compiles the final Go binary.
-A change is not considered complete while this check is failing.
+GitHub Actions runs on every push and pull request. Guardrails, frontend checks, Go tests, and Go lint run independently where possible; `Quality / quality-gate` starts only after all verification jobs pass and then compiles the final binary with the verified SPA artifact.
+
+CI uses the committed npm lockfile with `npm ci`, the official npm and Go caches keyed by `web/package-lock.json` and `go.sum`, and the official cached golangci-lint action. Third-party actions are pinned to full commit SHAs. CI remains read-only during normal quality runs.
+
+A change is not complete while any quality job is failing.
 
 ## Architecture
 
