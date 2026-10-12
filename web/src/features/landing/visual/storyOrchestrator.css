@@ -1,6 +1,6 @@
 .agent-orchestrator {
-  width: 360px;
-  height: 248px;
+  width: 420px;
+  height: 260px;
 }
 
 .agent-orchestrator-body {
@@ -17,7 +17,7 @@
   padding: 12px 14px;
   background: var(--brand-surface);
   border: 1px solid var(--brand-border);
-  border-radius: 0.7rem;
+  border-radius: 0.55rem;
 }
 
 .agent-lead span,
@@ -26,10 +26,7 @@
   font-weight: 700;
 }
 
-.agent-lead span {
-  color: var(--color-primary);
-}
-
+.agent-lead span { color: var(--color-primary); }
 .agent-lead strong {
   min-width: 0;
   overflow: hidden;
@@ -53,28 +50,23 @@
 
 .agent-route-list div {
   display: grid;
-  grid-template-columns: 4.6rem 1fr auto;
+  grid-template-columns: 5rem 1fr auto;
   align-items: center;
   gap: 9px;
-  min-height: 35px;
-  padding: 0 10px;
+  min-height: 37px;
+  padding: 0 11px;
   background: var(--color-base-100);
   border: 1px solid var(--brand-border);
-  border-radius: 0.55rem;
+  border-radius: 0.45rem;
 }
 
 .agent-route-list b {
   color: var(--color-primary);
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
 }
 
-.agent-route-list div:nth-child(2) b {
-  color: var(--color-secondary);
-}
-
-.agent-route-list div:nth-child(3) b {
-  color: var(--brand-text-tertiary);
-}
+.agent-route-list div:nth-child(2) b { color: var(--color-secondary); }
+.agent-route-list div:nth-child(3) b { color: var(--brand-text-tertiary); }
