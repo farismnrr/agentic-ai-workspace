@@ -25,5 +25,10 @@
     "moduleDetection": "force",
     "skipLibCheck": false
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "vite.config.ts",
+    "eslint.config.ts"
+  ]
 }

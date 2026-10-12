@@ -66,7 +66,7 @@ SOLID is not permission to over-abstract. A stable domain boundary or real subst
 
 ## Frontend rules
 
-1. Application source is TypeScript. `.js` and `.jsx` are forbidden under `web/src`.
+1. All human-authored files under `web/` that can be TypeScript must be TypeScript. `.js`, `.jsx`, `.mjs`, and `.cjs` are forbidden outside dependencies.
 2. Every Svelte component containing a script block must use `<script lang="ts">`.
 3. TypeScript runs in strict mode with additional strictness flags; do not weaken them to make errors disappear.
 4. Use Svelte for UI and daisyUI as the default component layer.

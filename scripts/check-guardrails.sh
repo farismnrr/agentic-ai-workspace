@@ -13,9 +13,9 @@ esac
 file_violations="$(
   find . -type f \
     \( -name '*.go' -o -name '*.ts' -o -name '*.svelte' -o -name '*.css' \
-       -o -name '*.js' -o -name '*.mjs' -o -name '*.json' -o -name '*.yaml' \
-       -o -name '*.yml' -o -name '*.toml' -o -name '*.md' -o -name '*.sh' \
-       -o -name '*.html' -o -name 'Makefile' \) \
+       -o -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.json' \
+       -o -name '*.yaml' -o -name '*.yml' -o -name '*.toml' -o -name '*.md' \
+       -o -name '*.sh' -o -name '*.html' -o -name 'Makefile' \) \
     ! -path './.git/*' \
     ! -path './web/node_modules/*' \
     ! -path './internal/platform/webassets/dist/*' \
@@ -38,9 +38,14 @@ if [ -n "$file_violations" ]; then
   exit 1
 fi
 
-js_sources="$(find web/src -type f \( -name '*.js' -o -name '*.jsx' \) -print)"
+js_sources="$(
+  find web -type f \
+    \( -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) \
+    ! -path 'web/node_modules/*' -print
+)"
+
 if [ -n "$js_sources" ]; then
-  echo "Frontend source must be TypeScript, not JavaScript:" >&2
+  echo "Web code and tooling must be TypeScript, not JavaScript:" >&2
   echo "$js_sources" >&2
   exit 1
 fi
