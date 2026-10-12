@@ -1,0 +1,62 @@
+#!/bin/sh
+set -eu
+
+limit="${MAX_FILE_LINES:-200}"
+
+case "$limit" in
+  ''|*[!0-9]*)
+    echo "MAX_FILE_LINES must be a positive integer" >&2
+    exit 1
+    ;;
+esac
+
+file_violations="$(
+  find . -type f \
+    \( -name '*.go' -o -name '*.ts' -o -name '*.svelte' -o -name '*.css' \
+       -o -name '*.js' -o -name '*.mjs' -o -name '*.json' -o -name '*.yaml' \
+       -o -name '*.yml' -o -name '*.toml' -o -name '*.md' -o -name '*.sh' \
+       -o -name '*.html' -o -name 'Makefile' \) \
+    ! -path './.git/*' \
+    ! -path './web/node_modules/*' \
+    ! -path './internal/platform/webassets/dist/*' \
+    ! -name 'package-lock.json' \
+    -exec sh -c '
+      limit="$1"
+      shift
+      for file do
+        lines=$(wc -l < "$file" | tr -d " ")
+        if [ "$lines" -gt "$limit" ]; then
+          printf "%s: %s lines\n" "$file" "$lines"
+        fi
+      done
+    ' sh "$limit" {} +
+)"
+
+if [ -n "$file_violations" ]; then
+  echo "Files exceed the ${limit}-line hard limit:" >&2
+  echo "$file_violations" >&2
+  exit 1
+fi
+
+js_sources="$(find web/src -type f \( -name '*.js' -o -name '*.jsx' \) -print)"
+if [ -n "$js_sources" ]; then
+  echo "Frontend source must be TypeScript, not JavaScript:" >&2
+  echo "$js_sources" >&2
+  exit 1
+fi
+
+svelte_violations="$(
+  find web/src -type f -name '*.svelte' -exec sh -c '
+    for file do
+      if grep -q "<script" "$file" && ! grep -q "<script lang=\"ts\">" "$file"; then
+        echo "$file"
+      fi
+    done
+  ' sh {} +
+)"
+
+if [ -n "$svelte_violations" ]; then
+  echo 'Svelte script blocks must use <script lang="ts">:' >&2
+  echo "$svelte_violations" >&2
+  exit 1
+fi
