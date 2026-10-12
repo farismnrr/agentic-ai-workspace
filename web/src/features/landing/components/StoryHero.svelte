@@ -74,7 +74,7 @@
   <div class="sticky top-0 h-[100svh] overflow-hidden">
     <div
       bind:this={sceneHost}
-      class="absolute bottom-[-2%] left-1/2 top-[29%] z-0 w-[106vw] -translate-x-1/2 overflow-hidden sm:top-[28%] sm:w-[108vw] lg:top-[27%] lg:w-[112vw]"
+      class="absolute bottom-[-2%] left-1/2 top-[34%] z-0 w-[122vw] -translate-x-1/2 overflow-hidden sm:top-[31%] sm:w-[116vw] lg:top-[27%] lg:w-[112vw]"
       data-hero-scene
       aria-hidden="true"
     ></div>
@@ -85,7 +85,7 @@
       <div class="relative flex-1">
         {#each chapters as chapter, index (chapter.title)}
           <article
-            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[4%] w-[min(94vw,72rem)]' : 'left-0 top-[23%] max-w-[24rem]'}`}
+            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[4%] w-[min(94vw,72rem)]' : 'left-0 top-[8%] max-w-[24rem] sm:top-[10%]'}`}
             style={chapterStyle(index)}
             aria-hidden={activeChapter !== index}
             data-hero-chapter={index}
