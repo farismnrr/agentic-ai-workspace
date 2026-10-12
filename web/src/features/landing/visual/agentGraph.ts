@@ -5,7 +5,19 @@ import {
   disposeGraph,
   refreshGraphTheme,
   updateGraphParticles,
+  type GraphParts,
 } from './graphObjects';
+
+interface GraphRuntime {
+  camera: THREE.PerspectiveCamera;
+  clock: THREE.Clock;
+  parts: GraphParts;
+  pointer: THREE.Vector2;
+  reducedMotion: boolean;
+  renderer: THREE.WebGLRenderer;
+  root: THREE.Group;
+  scene: THREE.Scene;
+}
 
 export interface AgentGraphController {
   destroy: () => void;
@@ -14,10 +26,9 @@ export interface AgentGraphController {
   resize: (width: number, height: number) => void;
 }
 
-export function createAgentGraph(canvas: HTMLCanvasElement): AgentGraphController | null {
+function createRuntime(canvas: HTMLCanvasElement): GraphRuntime | null {
   const context = canvas.getContext('webgl2', { alpha: true, antialias: true });
   if (context === null) return null;
-
   const renderer = new THREE.WebGLRenderer({
     canvas,
     context,
@@ -30,50 +41,65 @@ export function createAgentGraph(canvas: HTMLCanvasElement): AgentGraphControlle
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 30);
-  camera.position.set(0, 0.1, 7.4);
-
   const root = new THREE.Group();
   const parts = createGraphParts();
+  camera.position.set(0, 0.1, 7.4);
   root.add(parts.lines, parts.nodes, parts.rings, parts.core, parts.particles);
   scene.add(root);
   refreshGraphTheme(parts);
 
-  const pointer = new THREE.Vector2();
-  const clock = new THREE.Clock();
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  const render = (): void => {
-    const elapsed = clock.getElapsedTime();
-    root.rotation.y += (pointer.x * 0.18 - root.rotation.y) * 0.035;
-    root.rotation.x += (-pointer.y * 0.09 - root.rotation.x) * 0.035;
-    parts.core.rotation.y = elapsed * 0.28;
-    parts.core.rotation.x = elapsed * 0.17;
-    parts.rings.rotation.z = elapsed * -0.08;
-    parts.rings.rotation.y = elapsed * 0.12;
-    if (!reducedMotion) updateGraphParticles(parts, elapsed);
-    renderer.render(scene, camera);
+  return {
+    camera,
+    clock: new THREE.Clock(),
+    parts,
+    pointer: new THREE.Vector2(),
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    renderer,
+    root,
+    scene,
   };
+}
 
-  renderer.setAnimationLoop(reducedMotion ? null : render);
+function renderRuntime(runtime: GraphRuntime): void {
+  const elapsed = runtime.clock.getElapsedTime();
+  runtime.root.rotation.y += (runtime.pointer.x * 0.18 - runtime.root.rotation.y) * 0.035;
+  runtime.root.rotation.x += (-runtime.pointer.y * 0.09 - runtime.root.rotation.x) * 0.035;
+  runtime.parts.core.rotation.y = elapsed * 0.28;
+  runtime.parts.core.rotation.x = elapsed * 0.17;
+  runtime.parts.rings.rotation.z = elapsed * -0.08;
+  runtime.parts.rings.rotation.y = elapsed * 0.12;
+  if (!runtime.reducedMotion) updateGraphParticles(runtime.parts, elapsed);
+  runtime.renderer.render(runtime.scene, runtime.camera);
+}
+
+function resizeRuntime(runtime: GraphRuntime, width: number, height: number): void {
+  if (width <= 0 || height <= 0) return;
+  runtime.camera.aspect = width / height;
+  runtime.camera.updateProjectionMatrix();
+  runtime.renderer.setSize(width, height, false);
+  if (runtime.reducedMotion) renderRuntime(runtime);
+}
+
+function destroyRuntime(runtime: GraphRuntime): void {
+  runtime.renderer.setAnimationLoop(null);
+  disposeGraph(runtime.root);
+  runtime.renderer.dispose();
+}
+
+export function createAgentGraph(canvas: HTMLCanvasElement): AgentGraphController | null {
+  const runtime = createRuntime(canvas);
+  if (runtime === null) return null;
+  const render = (): void => renderRuntime(runtime);
+  runtime.renderer.setAnimationLoop(runtime.reducedMotion ? null : render);
   render();
 
   return {
-    destroy: () => {
-      renderer.setAnimationLoop(null);
-      disposeGraph(root);
-      renderer.dispose();
-    },
-    pointer: (x, y) => pointer.set(x, y),
+    destroy: () => destroyRuntime(runtime),
+    pointer: (x, y) => runtime.pointer.set(x, y),
     refreshTheme: () => {
-      refreshGraphTheme(parts);
-      if (reducedMotion) render();
+      refreshGraphTheme(runtime.parts);
+      if (runtime.reducedMotion) render();
     },
-    resize: (width, height) => {
-      if (width <= 0 || height <= 0) return;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height, false);
-      if (reducedMotion) render();
-    },
+    resize: (width, height) => resizeRuntime(runtime, width, height),
   };
 }
