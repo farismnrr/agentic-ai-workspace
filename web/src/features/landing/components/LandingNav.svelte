@@ -7,11 +7,11 @@
     <span class="grid size-5 shrink-0 grid-cols-2 gap-0.5 transition-transform duration-300 group-hover:rotate-45" aria-hidden="true">
       <span class="bg-primary"></span><span class="bg-secondary"></span><span class="bg-accent"></span><span class="bg-base-content"></span>
     </span>
-    <span class="min-w-0 leading-tight"><span class="block truncate text-sm font-semibold tracking-tight">Masih Awam</span><span class="block truncate text-xs text-[var(--brand-text-tertiary)]">AI workspace</span></span>
+    <span class="min-w-0 leading-tight"><span class="block truncate text-sm font-semibold tracking-tight">Masih Awam</span><span class="block truncate text-xs text-[var(--brand-text-tertiary)]">AI orchestrator</span></span>
   </a>
 
   <nav class="hidden items-center gap-7 text-sm text-[var(--brand-text-secondary)] md:flex" aria-label="Primary navigation">
-    <a class="transition-colors hover:text-base-content" href="#highlights">Highlights</a>
+    <a class="transition-colors hover:text-base-content" href="#highlights">Orchestration</a>
     <a class="transition-colors hover:text-base-content" href="#closer-look">Workspace</a>
     <a class="transition-colors hover:text-base-content" href="#proof">Proof</a>
   </nav>
