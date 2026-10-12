@@ -39,45 +39,48 @@ function setOpacity(object: THREE.Object3D & { element?: HTMLElement }, value: n
 }
 
 function poseParts(runtime: StoryRuntime, progress: number, time: number): void {
-  const stage = segment(progress, 0.06, 0.26);
-  const understand = segment(progress, 0.08, 0.34);
-  const act = segment(progress, 0.3, 0.66);
-  const verify = segment(progress, 0.62, 0.9);
-  const settle = segment(progress, 0.9, 1);
-  const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.00055) * 3 * (1 - verify);
+  const route = segment(progress, 0.08, 0.33);
+  const execute = segment(progress, 0.38, 0.66);
+  const verify = segment(progress, 0.7, 0.96);
+  const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.0005) * 2 * (1 - verify);
   const { parts } = runtime;
 
-  parts.root.position.set(runtime.anchorX * stage, -125 + stage * 170 + float, 0);
-  parts.root.scale.setScalar(runtime.rootScale * (0.96 - stage * 0.17));
-  parts.root.rotation.set(-0.035 + understand * 0.025, -0.055 + act * 0.095 - verify * 0.035, 0);
+  parts.root.position.set(runtime.anchorX * route, -130 + route * 110 + execute * 18 + float, 0);
+  parts.root.scale.setScalar(runtime.rootScale * (0.96 - route * 0.08));
+  parts.root.rotation.set(-0.025 + route * 0.018, -0.035 + execute * 0.06 - verify * 0.025, 0);
 
-  parts.frame.position.set(0, 0, -42 + settle * 18);
-  parts.repo.position.set(-305 - understand * 85 + act * 44, 12, 12 + understand * 170 - act * 72 - verify * 28);
-  parts.context.position.set(-220 - understand * 55, -155 + understand * 8, 80 + understand * 210 - act * 95);
-  parts.editor.position.set(128 + act * 36 - verify * 24, 42, 18 + understand * 54 + act * 190 - verify * 108);
-  parts.terminal.position.set(128 + act * 28, -170 - act * 18, 22 + act * 228 - verify * 72);
-  parts.preview.position.set(350 - verify * 62, 78 - verify * 10, 28 + verify * 190);
-  parts.status.position.set(315 - settle * 20, -178 + settle * 8, 110 + verify * 220 - settle * 70);
+  parts.frame.position.set(0, 0, -54 + verify * 14);
+  parts.orchestrator.position.set(-18 - execute * 175, 24 + execute * 34, 50 + route * 230 - execute * 130 - verify * 35);
+  parts.repo.position.set(-312 - route * 58 + execute * 34, 36, 16 + route * 150 - execute * 76 - verify * 24);
+  parts.context.position.set(-225 - route * 38, -150, 70 + route * 190 - execute * 120);
+  parts.editor.position.set(132 + execute * 28 - verify * 20, 48, 20 + route * 42 + execute * 215 - verify * 95);
+  parts.terminal.position.set(132 + execute * 20, -170, 18 + execute * 228 - verify * 78);
+  parts.preview.position.set(348 - verify * 55, 72, 24 + execute * 46 + verify * 208);
+  parts.status.position.set(308, -178, 90 + verify * 240);
 
-  parts.repo.rotation.y = -understand * 0.08;
-  parts.context.rotation.y = -0.05 - understand * 0.08;
-  parts.editor.rotation.y = act * 0.035;
-  parts.terminal.rotation.x = -act * 0.035;
-  parts.preview.rotation.y = verify * 0.055;
-  parts.status.scale.setScalar(0.84 + verify * 0.16);
+  parts.orchestrator.rotation.y = -route * 0.035 + execute * 0.055;
+  parts.repo.rotation.y = -route * 0.075;
+  parts.context.rotation.y = -0.04 - route * 0.055;
+  parts.editor.rotation.y = execute * 0.03;
+  parts.terminal.rotation.x = -execute * 0.03;
+  parts.preview.rotation.y = verify * 0.05;
+  parts.status.scale.setScalar(0.86 + verify * 0.14);
 
-  setOpacity(parts.context, segment(progress, 0.12, 0.22) * (1 - segment(progress, 0.46, 0.58)));
-  setOpacity(parts.preview, segment(progress, 0.5, 0.7));
-  setOpacity(parts.status, segment(progress, 0.7, 0.86));
-  setOpacity(parts.repo, 1 - verify * 0.15);
+  setOpacity(parts.orchestrator, 0.22 + route * 0.78 - execute * 0.3 - verify * 0.16);
+  setOpacity(parts.repo, 0.48 + route * 0.52 - execute * 0.22 - verify * 0.2);
+  setOpacity(parts.context, route * (1 - execute));
+  setOpacity(parts.editor, 0.34 + execute * 0.66 - verify * 0.12);
+  setOpacity(parts.terminal, 0.12 + execute * 0.88 - verify * 0.08);
+  setOpacity(parts.preview, 0.08 + execute * 0.24 + verify * 0.68);
+  setOpacity(parts.status, verify);
 
-  runtime.camera.position.set(-18 * act, 4 * understand, 1360 - act * 105 + verify * 36);
+  runtime.camera.position.set(-14 * execute, 3 * route, 1360 - execute * 95 + verify * 24);
 }
 
 function renderRuntime(runtime: StoryRuntime, time: number): void {
   const delta = runtime.lastTime === 0 ? 0 : Math.min((time - runtime.lastTime) / 1000, 0.1);
   runtime.lastTime = time;
-  const blend = runtime.reducedMotion ? 1 : 1 - Math.exp(-9 * delta);
+  const blend = runtime.reducedMotion ? 1 : 1 - Math.exp(-10 * delta);
   runtime.displayedProgress += (runtime.targetProgress - runtime.displayedProgress) * blend;
   poseParts(runtime, runtime.displayedProgress, time);
   runtime.renderer.render(runtime.scene, runtime.camera);
@@ -116,8 +119,8 @@ function resizeRuntime(runtime: StoryRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height);
-  runtime.anchorX = width >= 1180 ? 180 : width >= 760 ? 90 : 0;
-  runtime.rootScale = width >= 1180 ? 0.94 : width >= 760 ? 0.76 : 0.52;
+  runtime.anchorX = width >= 1180 ? 230 : width >= 760 ? 105 : 0;
+  runtime.rootScale = width >= 1180 ? 0.9 : width >= 760 ? 0.73 : 0.49;
   renderRuntime(runtime, performance.now());
 }
 
