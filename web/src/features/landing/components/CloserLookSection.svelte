@@ -11,13 +11,13 @@
   let selected = $state<ViewKey>('tasks');
 </script>
 
-<section id="closer-look" class="mx-auto w-full max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 lg:py-36">
+<section id="closer-look" class="mx-auto w-full max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
   <div class="text-center">
-    <h2 class="text-4xl font-semibold tracking-[-0.04em] sm:text-6xl lg:text-7xl">One workspace, every surface.</h2>
-    <p class="mx-auto mt-5 max-w-2xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">Switch from delegation to inspection without leaving the task.</p>
+    <h2 class="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl lg:text-6xl">Everything stays in the task.</h2>
+    <p class="mx-auto mt-4 max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">Progress, changes, the running product, and verification are one click apart.</p>
   </div>
 
-  <div class="mt-10 flex justify-center">
+  <div class="mt-9 flex justify-center">
     <div class="tabs tabs-box bg-base-100">
       {#each views as view (view.key)}
         <button class:tab-active={selected === view.key} class="tab" type="button" onclick={() => { selected = view.key; }}>{view.label}</button>
@@ -26,7 +26,7 @@
   </div>
 
   <div class="mt-8 overflow-hidden rounded-[2rem] border border-[var(--brand-border-strong)] bg-base-100 shadow-[var(--brand-shadow)]">
-    <div class="grid min-h-[38rem] lg:grid-cols-[16rem_1fr]">
+    <div class="grid min-h-[34rem] lg:grid-cols-[16rem_1fr]">
       <aside class="border-b border-[var(--brand-border)] bg-base-200 p-5 lg:border-b-0 lg:border-r">
         <p class="text-sm font-medium">auth redirect</p>
         <p class="mt-1 text-xs text-[var(--brand-text-tertiary)]">main · agent running</p>
@@ -61,7 +61,7 @@
         {:else if selected === 'preview'}
           <div class="overflow-hidden rounded-2xl border border-[var(--brand-border)]">
             <div class="flex items-center gap-2 border-b border-[var(--brand-border)] bg-base-200 px-4 py-3 text-xs text-[var(--brand-text-tertiary)]"><span class="size-2 rounded-full bg-error"></span><span class="size-2 rounded-full bg-warning"></span><span class="size-2 rounded-full bg-success"></span><span class="ml-3">127.0.0.1:8080/auth/callback</span></div>
-            <div class="grid min-h-[28rem] place-items-center bg-base-100 p-8 text-center"><div><span class="text-success">✓</span><h3 class="mt-4 text-4xl font-semibold tracking-[-0.04em]">Signed in.</h3><p class="mt-3 text-[var(--brand-text-secondary)]">Redirect returned to the requested workspace.</p></div></div>
+            <div class="grid min-h-[24rem] place-items-center bg-base-100 p-8 text-center"><div><span class="text-success">✓</span><h3 class="mt-4 text-4xl font-semibold tracking-[-0.04em]">Signed in.</h3><p class="mt-3 text-[var(--brand-text-secondary)]">Redirect returned to the requested workspace.</p></div></div>
           </div>
         {:else}
           <div class="mx-auto max-w-3xl">
