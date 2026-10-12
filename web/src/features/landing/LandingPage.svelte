@@ -5,7 +5,7 @@
   import StoryHero from './components/StoryHero.svelte';
 </script>
 
-<main class="overflow-hidden bg-base-200 text-base-content">
+<main class="overflow-x-clip bg-base-200 text-base-content">
   <StoryHero />
   <NarrativeSection />
   <RuntimeSection />
