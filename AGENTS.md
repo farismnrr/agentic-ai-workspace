@@ -7,6 +7,15 @@ These rules are binding for every human or AI change in this repository.
 Before editing code, read this file, `README.md`, and the relevant files under `docs/`.
 Preserve these constraints unless the user explicitly changes them.
 
+## Mandatory current research before coding
+
+1. Before the first code edit or project-code execution command of every task, search the internet for current official documentation and best practices relevant to the affected stack.
+2. Prefer primary sources: official documentation, specifications, release notes, security guidance, and upstream repositories. Use secondary sources only when primary sources are insufficient.
+3. Confirm current version compatibility, deprecations, breaking changes, and relevant security recommendations. Do not rely only on model memory for mutable tooling or framework behavior.
+4. Apply the research findings to the implementation plan before modifying or executing project code.
+5. Repeat research when the task expands to a new framework, dependency, tool, or materially different technical area. Within one already-researched scope, research does not need to be repeated before every individual command unless assumptions change.
+6. This research step is mandatory even for apparently small setup, configuration, dependency, CI, build, or refactor changes.
+
 ## Non-negotiable runtime contract
 
 1. Production is one Go binary, one process, and one listening port.
@@ -87,15 +96,17 @@ SOLID is not permission to over-abstract. A stable domain boundary or real subst
 
 The limits are enforced by `scripts/check-guardrails.sh`, ESLint, and golangci-lint.
 
-## Lint and verification
+## Lint, build, and CI verification
 
-1. `make verify` is the mandatory quality gate.
+1. `make verify` is the mandatory local quality gate.
 2. `make build` runs verification before producing the binary.
 3. Go uses golangci-lint v2 with strict correctness, security, complexity, formatting, and architecture checks.
 4. Frontend uses `svelte-check --fail-on-warnings` plus type-aware strict ESLint rules.
 5. Warnings are failures. Do not silence a diagnostic without fixing it or documenting a narrow justified suppression.
 6. `//nolint` directives must name the linter and explain the exception.
-7. A completed change must keep `make verify` and `make build` green.
+7. `.github/workflows/quality.yml` must run on every push and pull request and execute `make build`, proving both verification and final compilation.
+8. A change is incomplete while its quality CI is failing. Do not bypass, skip, weaken, or make the CI fail-open without explicit user intent.
+9. A completed change must keep both `make verify` and `make build` green.
 
 ## Reuse and change discipline
 
