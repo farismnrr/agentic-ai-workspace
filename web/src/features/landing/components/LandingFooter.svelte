@@ -1,3 +1,6 @@
+<script lang="ts">
+</script>
+
 <footer class="border-t border-[var(--brand-border)] bg-base-100">
   <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-5 px-5 py-8 text-sm sm:px-8 md:flex-row md:items-end md:justify-between lg:px-12">
     <div><p class="font-semibold">Masih Awam</p><p class="mt-1 text-[var(--brand-text-tertiary)]">Web-native AI workspace</p></div>
