@@ -36,15 +36,5 @@ jobs:
           node-version: "24"
           package-manager-cache: false
 
-      - name: Bootstrap Go module metadata
-        run: |
-          go mod tidy
-          echo '---BEGIN GO.MOD---'
-          cat go.mod
-          echo '---END GO.MOD---'
-          echo '---BEGIN GO.SUM---'
-          cat go.sum
-          echo '---END GO.SUM---'
-
       - name: Verify and build
         run: make build
