@@ -10,15 +10,10 @@
   <NarrativeSection />
   <RuntimeSection />
 
-  <section id="launch" class="mx-auto w-full max-w-[1440px] px-5 pb-28 sm:px-8 lg:px-12 lg:pb-40">
-    <div class="grid gap-10 border-y border-[var(--brand-border-strong)] py-14 lg:grid-cols-[1fr_auto] lg:items-end lg:py-20">
-      <div>
-        <p class="font-mono text-xs font-semibold uppercase tracking-[0.24em] text-primary">Ready when you are</p>
-        <h2 class="mt-5 max-w-4xl text-5xl font-semibold leading-[0.92] tracking-[-0.055em] sm:text-7xl">
-          One goal. One workspace. Ship.
-        </h2>
-      </div>
-      <a class="btn btn-primary px-8" href="/">Open workspace</a>
+  <section id="launch" class="mx-auto w-full max-w-[1440px] px-5 pb-28 sm:px-8 lg:px-12 lg:pb-36">
+    <div class="flex flex-col gap-8 border-t border-[var(--brand-border-strong)] py-14 sm:flex-row sm:items-center sm:justify-between lg:py-16">
+      <h2 class="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl lg:text-5xl">Open the workspace.</h2>
+      <a class="btn btn-primary sm:px-7" href="/">Open workspace</a>
     </div>
   </section>
 
