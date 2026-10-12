@@ -1,3 +1,6 @@
+<script lang="ts">
+</script>
+
 <section id="proof" class="bg-base-100">
   <div class="mx-auto w-full max-w-[1600px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
     <div class="grid gap-10 lg:grid-cols-[0.56fr_1.44fr] lg:items-start lg:gap-16">
