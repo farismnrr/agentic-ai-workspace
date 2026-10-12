@@ -4,15 +4,15 @@
 <section id="highlights" class="bg-base-100">
   <div class="mx-auto w-full max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
     <div class="max-w-3xl">
-      <h2 class="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl lg:text-6xl">From prompt to proof.</h2>
-      <p class="mt-5 max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">The agent keeps the codebase, tools, product, and result in the same working loop.</p>
+      <h2 class="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl lg:text-6xl">Orchestration you can inspect.</h2>
+      <p class="mt-5 max-w-xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">One goal becomes context, agent lanes, execution, preview, and proof without disappearing into a black box.</p>
     </div>
 
     <article class="mt-16 grid gap-10 border-t border-[var(--brand-border-strong)] pt-12 lg:grid-cols-[0.7fr_1.3fr] lg:items-center lg:gap-20">
       <div>
-        <p class="text-sm font-medium text-primary">Context</p>
-        <h3 class="mt-3 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">It starts with the repo.</h3>
-        <p class="mt-4 max-w-md leading-7 text-[var(--brand-text-secondary)]">Rules, architecture, and relevant files become context before the first edit.</p>
+        <p class="text-sm font-medium text-primary">Plan</p>
+        <h3 class="mt-3 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">It reads before it routes.</h3>
+        <p class="mt-4 max-w-md leading-7 text-[var(--brand-text-secondary)]">Rules, architecture, and relevant files become context before work is handed to an agent lane.</p>
       </div>
       <div class="overflow-hidden rounded-[1.75rem] border border-[var(--brand-border)] bg-base-200 shadow-[var(--brand-shadow)]">
         <div class="grid min-h-80 sm:grid-cols-[0.8fr_1.2fr]">
