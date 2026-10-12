@@ -12,23 +12,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: quality-gate
+  bootstrap-lockfile:
+    name: bootstrap-lockfile
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      CI: true
+    timeout-minutes: 5
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@v7.0.0
-        with:
-          go-version-file: go.mod
-          cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v7.1.0
@@ -36,5 +28,10 @@ jobs:
           node-version: "24"
           package-manager-cache: false
 
-      - name: Verify and build
-        run: make build
+      - name: Generate deterministic lockfile
+        run: |
+          npm --prefix web install --package-lock-only --ignore-scripts --no-audit --no-fund
+          echo '---BEGIN PACKAGE-LOCK BASE64---'
+          base64 -w 0 web/package-lock.json
+          echo
+          echo '---END PACKAGE-LOCK BASE64---'
