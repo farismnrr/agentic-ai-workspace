@@ -15,6 +15,8 @@ Node.js and the frontend toolchain are build-time dependencies only. The compile
 
 ## Canonical workflow
 
+Before coding or executing project code for a task, review current official documentation and best practices for the affected stack as required by `AGENTS.md`.
+
 ```bash
 make verify
 make build
