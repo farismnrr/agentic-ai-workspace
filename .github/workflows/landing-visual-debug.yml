@@ -73,17 +73,13 @@ jobs:
             return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
           }
 
-          async function inspectDesktop(scheme) {
-            const context = await browser.newContext({ colorScheme: scheme, viewport: { width: 1536, height: 900 } });
-            const page = await context.newPage();
-            const errors = [];
-            page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
-            page.on('pageerror', (error) => errors.push(error.message));
-            await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-            await page.waitForTimeout(700);
-
+          async function assertNoPageOverflow(page, label) {
             const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-            if (overflow > 1) throw new Error(`horizontal overflow: ${overflow}px`);
+            if (overflow > 1) throw new Error(`${label} horizontal overflow: ${overflow}px`);
+            return overflow;
+          }
+
+          async function inspectHero(page, label, desktop) {
             const hero = page.locator('main > section').first();
             const travel = await hero.evaluate((node) => node.clientHeight - window.innerHeight);
             const states = [
@@ -94,47 +90,73 @@ jobs:
             ];
             let firstShellWidth = 0;
 
-            for (const [index, [progress, heading, panel]] of states.entries()) {
+            for (const [index, [progress, heading, focal]] of states.entries()) {
               await page.evaluate((y) => window.scrollTo(0, y), travel * progress);
-              await page.waitForTimeout(650);
+              await page.waitForTimeout(550);
               const active = page.getByRole('heading', { name: heading });
-              if (!(await active.isVisible())) throw new Error(`hero heading missing: ${heading}`);
+              if (!(await active.isVisible())) throw new Error(`${label} hero heading missing: ${heading}`);
               const copyBox = await active.locator('xpath=ancestor::article').boundingBox();
-              const panelBox = await page.locator(panel).boundingBox();
+              const focalBox = await page.locator(focal).boundingBox();
               const shellBox = await page.locator('.agent-shell').boundingBox();
-              if (copyBox === null || panelBox === null || shellBox === null) throw new Error(`missing hero geometry at ${heading}`);
-              if (overlaps(copyBox, panelBox)) throw new Error(`hero overlap at ${heading}`);
+              if (copyBox === null || focalBox === null || shellBox === null) throw new Error(`${label} missing hero geometry at ${heading}`);
+              if (overlaps(copyBox, focalBox)) throw new Error(`${label} hero focal overlap at ${heading}`);
+              if (desktop) {
+                const visibleOverlap = await page.locator('.agent-workspace-panel').evaluateAll((nodes, box) => nodes.some((node) => {
+                  const opacity = Number.parseFloat(getComputedStyle(node).opacity);
+                  if (opacity < 0.65) return false;
+                  const rect = node.getBoundingClientRect();
+                  return box.left < rect.right && box.right > rect.left && box.top < rect.bottom && box.bottom > rect.top;
+                }), copyBox);
+                if (visibleOverlap) throw new Error(`${label} hero copy overlaps a visible panel at ${heading}`);
+              }
               if (index === 0) {
                 firstShellWidth = shellBox.width;
-                if (shellBox.width < 1050) throw new Error(`hero workspace too small: ${shellBox.width}px`);
-                if (shellBox.top < copyBox.bottom + 16) throw new Error(`hero workspace too close to copy: ${shellBox.top - copyBox.bottom}px`);
+                const minimum = desktop ? 1050 : page.viewportSize().width * 0.9;
+                if (shellBox.width < minimum) throw new Error(`${label} hero workspace too small: ${shellBox.width}px`);
+                if (shellBox.top < copyBox.bottom + 12) throw new Error(`${label} hero workspace too close to copy`);
               }
-              if (index === 3 && shellBox.width > firstShellWidth * 0.82) throw new Error(`hero workspace did not shrink enough: ${shellBox.width}px from ${firstShellWidth}px`);
-              await page.screenshot({ path: `${output}/${scheme}-hero-${index}.png` });
+              if (index === 3 && shellBox.width > firstShellWidth * 0.82) throw new Error(`${label} hero workspace did not shrink enough`);
+              if (index === 3) {
+                const viewport = page.viewportSize();
+                if (focalBox.left < -1 || focalBox.right > viewport.width + 1) throw new Error(`${label} verify status clipped`);
+              }
+              await page.screenshot({ path: `${output}/${label}-hero-${index}.png` });
             }
+            return firstShellWidth;
+          }
 
+          async function inspectViews(page, label) {
             await page.locator('#closer-look').scrollIntoViewIfNeeded();
-            await page.getByRole('button', { name: 'Changes' }).click();
-            await page.getByRole('button', { name: 'Preview' }).click();
-            await page.getByRole('button', { name: 'Verify' }).click();
-            if (!(await page.getByRole('heading', { name: '4 checks passed' }).isVisible())) throw new Error('verify view did not render');
-            await page.screenshot({ path: `${output}/${scheme}-full.png`, fullPage: true });
-            report[scheme] = { errors, overflow, firstShellWidth, theme: await page.evaluate(() => document.documentElement.dataset.theme) };
-            if (errors.length > 0) throw new Error(`${scheme} browser errors: ${errors.join(' | ')}`);
+            for (const view of ['Changes', 'Preview', 'Verify']) {
+              await page.getByRole('button', { name: view }).click();
+              await page.waitForTimeout(120);
+              await assertNoPageOverflow(page, `${label}-${view}`);
+            }
+            if (!(await page.getByRole('heading', { name: '4 checks passed' }).isVisible())) throw new Error(`${label} verify view did not render`);
+          }
+
+          async function inspect(label, viewport, scheme, desktop = false) {
+            const context = await browser.newContext({ colorScheme: scheme, viewport });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+            page.on('pageerror', (error) => errors.push(error.message));
+            await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
+            await page.waitForTimeout(600);
+            const overflow = await assertNoPageOverflow(page, label);
+            const firstShellWidth = await inspectHero(page, label, desktop);
+            await inspectViews(page, label);
+            await page.screenshot({ path: `${output}/${label}-full.png`, fullPage: true });
+            if (errors.length > 0) throw new Error(`${label} browser errors: ${errors.join(' | ')}`);
+            report[label] = { errors, overflow, firstShellWidth, theme: await page.evaluate(() => document.documentElement.dataset.theme) };
             await context.close();
           }
 
-          await inspectDesktop('light');
-          await inspectDesktop('dark');
-
-          const mobile = await browser.newContext({ colorScheme: 'light', viewport: { width: 390, height: 844 } });
-          const page = await mobile.newPage();
-          await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-          const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-          if (overflow > 1) throw new Error(`mobile horizontal overflow: ${overflow}px`);
-          await page.screenshot({ path: `${output}/mobile-hero.png` });
-          report.mobile = { overflow };
-          await mobile.close();
+          await inspect('desktop-light', { width: 1536, height: 900 }, 'light', true);
+          await inspect('desktop-dark', { width: 1536, height: 900 }, 'dark', true);
+          await inspect('tablet-portrait', { width: 768, height: 1024 }, 'light');
+          await inspect('tablet-landscape', { width: 1024, height: 768 }, 'light');
+          await inspect('mobile', { width: 390, height: 844 }, 'light');
 
           await browser.close();
           await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2));
