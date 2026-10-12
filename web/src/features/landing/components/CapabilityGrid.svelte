@@ -36,7 +36,7 @@
   </div>
 
   <div class="mt-12 grid gap-4 lg:grid-cols-3">
-    {#each capabilities as item, index}
+    {#each capabilities as item, index (item.title)}
       <article
         class="group relative min-h-80 overflow-hidden rounded-[2rem] border border-[var(--brand-border)] bg-base-100 p-7 transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-border-strong)]"
       >
