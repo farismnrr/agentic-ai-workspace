@@ -20,7 +20,7 @@
     </div>
 
     <div class="divide-y divide-[var(--brand-border)] border-y border-[var(--brand-border)]">
-      {#each steps as step}
+      {#each steps as step (step.number)}
         <article class="grid gap-4 py-7 sm:grid-cols-[4rem_1fr] sm:py-9">
           <span class="text-sm font-semibold text-primary">{step.number}</span>
           <div>

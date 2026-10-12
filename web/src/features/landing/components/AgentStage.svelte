@@ -45,7 +45,7 @@
             </div>
 
             <div class="space-y-1">
-              {#each trace as item}
+              {#each trace as item (item.label)}
                 <div class="flex items-center gap-3 rounded-xl px-2 py-2.5">
                   <span
                     class:animate-pulse={item.state === 'active'}
