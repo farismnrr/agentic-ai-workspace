@@ -4,12 +4,13 @@
   import LandingNav from './LandingNav.svelte';
   import { createStoryScene, type StorySceneController } from '../visual/storyScene';
   import '../visual/storyWorkspace.css';
+  import '../visual/storyOrchestrator.css';
 
   const chapters = [
-    { title: 'Give it a goal.', body: 'From repo to verified change, in one web workspace.' },
-    { title: 'It reads first.', body: 'Repo rules and relevant files first.' },
-    { title: 'Then it works.', body: 'Edit. Run. Preview.' },
-    { title: 'Until it passes.', body: 'Tests and browser checks decide done.' },
+    { title: 'One goal. One orchestrator.', body: 'Masih Awam turns the outcome into a visible plan.' },
+    { title: 'It routes the work.', body: 'Research, code, browser, and verification get their own lane.' },
+    { title: 'Agents work in the open.', body: 'Context, diffs, commands, and preview stay attached to the task.' },
+    { title: 'Proof closes the loop.', body: 'Checks and changed files decide when the work is done.' },
   ] as const;
 
   let host: HTMLElement;
@@ -23,8 +24,8 @@
 
   function chapterStyle(index: number): string {
     const delta = index - chapterPosition;
-    const opacity = Math.max(0, 1 - Math.abs(delta) / 0.42).toFixed(3);
-    const translateY = (Math.max(-1, Math.min(1, delta)) * 24).toFixed(2);
+    const opacity = Math.max(0, 1 - Math.abs(delta) / 0.38).toFixed(3);
+    const translateY = (Math.max(-1, Math.min(1, delta)) * 22).toFixed(2);
     return `opacity:${opacity};transform:translate3d(0,${translateY}px,0)`;
   }
 
@@ -69,9 +70,9 @@
 
 <svelte:window onscroll={queueMeasure} onresize={queueMeasure} />
 
-<section bind:this={host} class="relative h-[340svh] bg-base-200 text-base-content">
+<section bind:this={host} class="relative h-[360svh] bg-base-200 text-base-content">
   <div class="sticky top-0 h-[100svh] overflow-hidden">
-    <div bind:this={sceneHost} class="absolute inset-0 z-0" aria-hidden="true"></div>
+    <div bind:this={sceneHost} class="absolute inset-x-0 bottom-0 top-[30%] z-0 overflow-hidden sm:top-[28%]" aria-hidden="true"></div>
 
     <div class="relative z-20 mx-auto flex h-full w-full max-w-[1440px] flex-col px-5 sm:px-8 lg:px-12">
       <LandingNav />
@@ -79,7 +80,7 @@
       <div class="relative flex-1">
         {#each chapters as chapter, index (chapter.title)}
           <article
-            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[10%] w-[min(92vw,56rem)]' : 'left-0 top-[38%] max-w-[25rem]'}`}
+            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[5%] w-[min(92vw,64rem)]' : 'left-0 top-[24%] max-w-[24rem]'}`}
             style={chapterStyle(index)}
             aria-hidden={activeChapter !== index}
           >
@@ -87,12 +88,12 @@
               <h1 class={`${index === 0 ? 'text-5xl sm:text-6xl lg:text-7xl' : 'text-4xl sm:text-5xl lg:text-6xl'} font-semibold leading-[0.96] tracking-[-0.05em]`}>
                 {chapter.title}
               </h1>
-              <p class={`mt-4 text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg ${index === 0 ? 'mx-auto max-w-md' : 'max-w-sm'}`}>
+              <p class={`mt-4 text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg ${index === 0 ? 'mx-auto max-w-lg' : 'max-w-sm'}`}>
                 {chapter.body}
               </p>
               {#if index === 0}
-                <div class="pointer-events-auto mt-6 flex justify-center gap-2">
-                  <a class="btn btn-primary" href="#highlights">See how it works</a>
+                <div class="pointer-events-auto mt-6 flex flex-wrap justify-center gap-2">
+                  <a class="btn btn-primary" href="#highlights">See orchestration</a>
                   <a class="btn btn-ghost" href="#launch">Open workspace</a>
                 </div>
               {/if}
