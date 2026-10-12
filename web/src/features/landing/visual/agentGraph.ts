@@ -9,6 +9,7 @@ import {
 } from './graphObjects';
 
 interface GraphRuntime {
+  active: boolean;
   camera: THREE.PerspectiveCamera;
   clock: THREE.Clock;
   parts: GraphParts;
@@ -20,6 +21,7 @@ interface GraphRuntime {
 }
 
 export interface AgentGraphController {
+  active: (active: boolean) => void;
   destroy: () => void;
   pointer: (x: number, y: number) => void;
   refreshTheme: () => void;
@@ -49,6 +51,7 @@ function createRuntime(canvas: HTMLCanvasElement): GraphRuntime | null {
   refreshGraphTheme(parts);
 
   return {
+    active: true,
     camera,
     clock: new THREE.Clock(),
     parts,
@@ -77,7 +80,7 @@ function resizeRuntime(runtime: GraphRuntime, width: number, height: number): vo
   runtime.camera.aspect = width / height;
   runtime.camera.updateProjectionMatrix();
   runtime.renderer.setSize(width, height, false);
-  if (runtime.reducedMotion) renderRuntime(runtime);
+  if (runtime.reducedMotion || !runtime.active) renderRuntime(runtime);
 }
 
 function destroyRuntime(runtime: GraphRuntime): void {
@@ -90,15 +93,21 @@ export function createAgentGraph(canvas: HTMLCanvasElement): AgentGraphControlle
   const runtime = createRuntime(canvas);
   if (runtime === null) return null;
   const render = (): void => renderRuntime(runtime);
-  runtime.renderer.setAnimationLoop(runtime.reducedMotion ? null : render);
+  const setActive = (active: boolean): void => {
+    runtime.active = active;
+    runtime.renderer.setAnimationLoop(active && !runtime.reducedMotion ? render : null);
+    if (active && runtime.reducedMotion) render();
+  };
+  setActive(true);
   render();
 
   return {
+    active: setActive,
     destroy: () => destroyRuntime(runtime),
     pointer: (x, y) => runtime.pointer.set(x, y),
     refreshTheme: () => {
       refreshGraphTheme(runtime.parts);
-      if (runtime.reducedMotion) render();
+      if (runtime.reducedMotion || !runtime.active) render();
     },
     resize: (width, height) => resizeRuntime(runtime, width, height),
   };
