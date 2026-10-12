@@ -39,11 +39,11 @@
         <div class="grid gap-4 md:grid-cols-2">
           <div class="overflow-hidden rounded-2xl border border-neutral-content/15 bg-neutral-content/[0.04]">
             <div class="border-b border-neutral-content/10 px-5 py-3 font-mono text-xs text-neutral-content/55">callback.ts · modified</div>
-            <div class="p-5 font-mono text-xs leading-7"><p>41&nbsp; const next = params.get('next');</p><p class="bg-success/10 text-success">42&nbsp; + const target = safeRedirect(next);</p><p class="bg-success/10 text-success">43&nbsp; + return redirect(target);</p></div>
+            <div class="overflow-x-auto p-5 font-mono text-xs leading-7"><p class="whitespace-nowrap">41&nbsp; const next = params.get('next');</p><p class="whitespace-nowrap bg-success/10 text-success">42&nbsp; + const target = safeRedirect(next);</p><p class="whitespace-nowrap bg-success/10 text-success">43&nbsp; + return redirect(target);</p></div>
           </div>
           <div class="overflow-hidden rounded-2xl border border-neutral-content/15 bg-neutral-content/[0.04]">
             <div class="border-b border-neutral-content/10 px-5 py-3 font-mono text-xs text-neutral-content/55">Terminal</div>
-            <div class="p-5 font-mono text-xs leading-7"><p><span class="text-primary">$</span> make verify</p><p class="text-success">✓ frontend · passed</p><p class="text-success">✓ tests · passed</p><p class="text-success">✓ production build · passed</p></div>
+            <div class="overflow-x-auto p-5 font-mono text-xs leading-7"><p class="whitespace-nowrap"><span class="text-primary">$</span> make verify</p><p class="whitespace-nowrap text-success">✓ frontend · passed</p><p class="whitespace-nowrap text-success">✓ tests · passed</p><p class="whitespace-nowrap text-success">✓ production build · passed</p></div>
           </div>
         </div>
       </div>
