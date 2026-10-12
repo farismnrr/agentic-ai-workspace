@@ -3,8 +3,10 @@ import * as THREE from 'three';
 const NODE_COUNT = 42;
 const PULSE_COUNT = 18;
 const TAU = Math.PI * 2;
+const ORIGIN = new THREE.Vector3();
 
 type GraphMaterial = THREE.LineBasicMaterial | THREE.MeshBasicMaterial | THREE.PointsMaterial;
+type Renderable = THREE.LineSegments | THREE.Mesh | THREE.Points;
 
 export interface GraphParts {
   core: THREE.Group;
@@ -58,7 +60,10 @@ function createNodes(positions: THREE.Vector3[]): THREE.InstancedMesh {
 function createConnections(positions: THREE.Vector3[]): THREE.LineSegments {
   const vertices: number[] = [];
   const addEdge = (from: number, to: number): void => {
-    vertices.push(...positions[from]!.toArray(), ...positions[to]!.toArray());
+    const fromPosition = positions[from];
+    const toPosition = positions[to];
+    if (fromPosition === undefined || toPosition === undefined) return;
+    vertices.push(...fromPosition.toArray(), ...toPosition.toArray());
   };
   for (let index = 0; index < 16; index += 1) addEdge(index, 16 + (index % 10));
   for (let index = 16; index < 26; index += 1) addEdge(index, 26 + ((index - 16) % 16));
@@ -118,16 +123,20 @@ export function refreshGraphTheme(parts: GraphParts): void {
   if (parts.nodes.instanceColor !== null) parts.nodes.instanceColor.needsUpdate = true;
   (parts.lines.material as THREE.LineBasicMaterial).color.copy(secondary);
   (parts.particles.material as THREE.PointsMaterial).color.copy(primary);
-  parts.core.children.forEach((child) => ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).color.copy(primary));
-  parts.rings.children.forEach((child) => ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).color.copy(accent));
+  parts.core.children.forEach((child) => {
+    ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).color.copy(primary);
+  });
+  parts.rings.children.forEach((child) => {
+    ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).color.copy(accent);
+  });
 }
 
 export function updateGraphParticles(parts: GraphParts, elapsed: number): void {
   const attribute = parts.particles.geometry.getAttribute('position') as THREE.BufferAttribute;
   const target = new THREE.Vector3();
   for (let index = 0; index < PULSE_COUNT; index += 1) {
-    const from = parts.positions[(index * 5) % parts.positions.length]!;
-    const to = index % 2 === 0 ? new THREE.Vector3() : parts.positions[26 + ((index * 3) % 16)]!;
+    const from = parts.positions[(index * 5) % parts.positions.length] ?? ORIGIN;
+    const to = index % 2 === 0 ? ORIGIN : (parts.positions[26 + ((index * 3) % 16)] ?? ORIGIN);
     const progress = (elapsed * (0.22 + (index % 4) * 0.035) + index / PULSE_COUNT) % 1;
     target.lerpVectors(from, to, progress);
     attribute.setXYZ(index, target.x, target.y, target.z);
@@ -135,12 +144,21 @@ export function updateGraphParticles(parts: GraphParts, elapsed: number): void {
   attribute.needsUpdate = true;
 }
 
+function isRenderable(object: THREE.Object3D): object is Renderable {
+  return object instanceof THREE.Mesh || object instanceof THREE.LineSegments || object instanceof THREE.Points;
+}
+
 export function disposeGraph(root: THREE.Object3D): void {
   root.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    mesh.geometry?.dispose();
-    const material = mesh.material as GraphMaterial | GraphMaterial[] | undefined;
-    if (Array.isArray(material)) material.forEach((item) => item.dispose());
-    else material?.dispose();
+    if (!isRenderable(child)) return;
+    child.geometry.dispose();
+    const material = child.material as GraphMaterial | GraphMaterial[];
+    if (Array.isArray(material)) {
+      material.forEach((item) => {
+        item.dispose();
+      });
+      return;
+    }
+    material.dispose();
   });
 }
