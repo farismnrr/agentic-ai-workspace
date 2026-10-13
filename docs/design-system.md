@@ -141,6 +141,12 @@ Use short transitions for hover, focus, expansion, or state changes. Sections fa
 
 The logo is a rounded primary-olive tile with a white "o..n" mark, set beside the Inter wordmark "Masih Awam". The favicon, touch icon, and manifest icons live in `web/public/` and use the same tile.
 
+## Sign-in and create-account screens
+
+`/login` and `/register` use a 50/50 split: logo, a serif headline with one marker highlight, a short subtitle, and the form on the left; on the right, a quiet panel with one hand-drawn illustration and a short serif caption. The panel hides below the `lg` breakpoint so the form gets the full width on phones.
+
+Forms use daisyUI inputs and the primary pill button. Every field has a visible label, errors appear as text under the field after it is touched or the form is submitted, and the password fields have a real show/hide button. The password strength meter always pairs its bars with a text label. These screens are UI only for now: nothing is sent to a server.
+
 ## Accessibility
 
 For normal text, target WCAG AA contrast. Focus indicators must remain easy to see in both themes.

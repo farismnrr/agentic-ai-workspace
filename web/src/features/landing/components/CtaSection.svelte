@@ -4,7 +4,7 @@
   import Icon from '../../../shared/ui/Icon.svelte';
   import Marker from '../../../shared/ui/Marker.svelte';
   import { illustrations } from '../assets/illustrations';
-  import { reassurances, REPO_URL } from '../content';
+  import { reassurances } from '../content';
 </script>
 
 <section id="get-started" class="mx-auto w-full max-w-6xl px-6 pb-16">
@@ -15,7 +15,7 @@
       </h2>
       <p class="mt-3 text-xl text-[var(--brand-text-secondary)]">Tell it what you need. It’ll take it from there.</p>
       <div class="mt-7">
-        <a class="btn btn-primary btn-lg min-h-12 rounded-full" href={REPO_URL}>Get started, it’s free</a>
+        <a class="btn btn-primary btn-lg min-h-12 rounded-full" href="/register">Get started, it’s free</a>
       </div>
       <ul class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--brand-text-secondary)]">
         {#each reassurances as item (item.label)}

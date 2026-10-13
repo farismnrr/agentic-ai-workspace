@@ -54,6 +54,7 @@
   --brand-shadow: 0 18px 48px rgb(48 43 31 / 12%);
   --brand-marker: #d8f26a;
   --brand-focus: #657c1a;
+  --brand-panel: #edebdf;
 }
 
 @layer base {
