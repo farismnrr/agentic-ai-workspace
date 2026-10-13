@@ -62,7 +62,7 @@ function poseParts(runtime: StoryRuntime, progress: number, time: number): void 
   const work = segment(progress, 0.4, 0.68);
   const proof = segment(progress, 0.72, 0.96);
   const float = runtime.reducedMotion ? 0 : Math.sin(time * 0.00055) * 1.4 * (1 - proof);
-  const shrink = 1 - progress * 0.22;
+  const shrink = 1 - progress * 0.31;
   const { monitor, root } = runtime.parts;
 
   root.position.set(0, -18 - progress * 24 + float, 0);
