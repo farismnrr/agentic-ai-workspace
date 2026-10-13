@@ -32,3 +32,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Loose design exploration (the logo ships as LogoMark.svelte and web/public icons)
+assets/Minimal_logo_mark_*.jpg
