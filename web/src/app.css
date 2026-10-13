@@ -37,8 +37,8 @@
 }
 
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: "Newsreader Variable", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Newsreader Variable", "Newsreader Fallback", ui-serif, Georgia, "Times New Roman", serif;
 }
 
 :root {
@@ -74,6 +74,13 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+  }
+
   button,
   input,
   textarea,
@@ -89,6 +96,44 @@
   :focus-visible {
     outline: var(--brand-focus-width) solid var(--brand-focus);
     outline-offset: 3px;
+  }
+}
+
+@keyframes brand-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-in {
+    animation: brand-rise 0.7s var(--brand-ease) both;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+
+  .js-reveal .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 0.6s var(--brand-ease),
+      transform 0.6s var(--brand-ease);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  .js-reveal .reveal[data-revealed] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .float-soft {
+    animation: brand-float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes brand-float {
+  50% {
+    transform: translateY(-6px) rotate(-1deg);
   }
 }
 

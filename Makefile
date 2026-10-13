@@ -12,7 +12,9 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$
 
 .PHONY: build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
 
-build: verify backend-build
+# Sequenced through a sub-make so `make -j` cannot embed a stale frontend build.
+build: verify
+	@$(MAKE) backend-build
 
 backend-build:
 	@mkdir -p "$(BIN_DIR)"

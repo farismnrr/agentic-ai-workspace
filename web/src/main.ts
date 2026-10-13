@@ -9,4 +9,8 @@ if (target === null) {
   throw new Error('Application mount target was not found');
 }
 
+if ('IntersectionObserver' in window) {
+  document.documentElement.classList.add('js-reveal');
+}
+
 mount(App, { target });

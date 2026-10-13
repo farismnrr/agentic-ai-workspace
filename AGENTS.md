@@ -135,6 +135,13 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 8. Keep release write permission isolated to the release job.
 9. Rolling replacement requires mutable releases. If repository immutable releases are enabled, fail clearly rather than creating parallel versioned releases.
 
+## Frontend lessons
+
+1. Headings get `font-display` from the base layer in `web/src/app.css`; do not repeat it per component. Serif is for section headlines only; the navbar and footer wordmark use Inter 600, and the logo is the inline stroke SVG in `LogoMark.svelte`.
+2. Scroll reveals use the `reveal` action in `web/src/shared/motion/`, and the hidden state exists only under `prefers-reduced-motion: no-preference` with the `js-reveal` root class, so content never stays invisible.
+3. Below-the-fold sections load through `LazySection`. Give the placeholder the section `id` so anchor links keep working.
+4. Favicon, touch icon, and manifest are static files in `web/public/`. Vite copies them into the embedded `dist/`, and Go serves hashed `/assets/*` as immutable with `index.html` set to `no-cache`.
+
 ## Reuse and change discipline
 
 1. Search for an existing component, function, module, or abstraction before creating a new one.
