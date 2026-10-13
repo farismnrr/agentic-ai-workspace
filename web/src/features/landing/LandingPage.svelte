@@ -1,21 +1,18 @@
 <script lang="ts">
-  import CtaSection from './components/CtaSection.svelte';
-  import FaqSection from './components/FaqSection.svelte';
-  import FeaturesSection from './components/FeaturesSection.svelte';
+  import LazySection from '../../shared/ui/LazySection.svelte';
   import HeroSection from './components/HeroSection.svelte';
   import HowItWorksSection from './components/HowItWorksSection.svelte';
-  import LandingFooter from './components/LandingFooter.svelte';
   import LandingNav from './components/LandingNav.svelte';
   import WhyDifferentSection from './components/WhyDifferentSection.svelte';
 </script>
 
 <LandingNav />
-<main class="overflow-x-clip">
+<main>
   <HeroSection />
   <HowItWorksSection />
   <WhyDifferentSection />
-  <FeaturesSection />
-  <FaqSection />
-  <CtaSection />
+  <LazySection load={() => import('./components/FeaturesSection.svelte')} minHeight="40rem" />
+  <LazySection id="faq" load={() => import('./components/FaqSection.svelte')} minHeight="32rem" />
+  <LazySection id="get-started" load={() => import('./components/CtaSection.svelte')} minHeight="24rem" />
 </main>
-<LandingFooter />
+<LazySection load={() => import('./components/LandingFooter.svelte')} minHeight="10rem" />

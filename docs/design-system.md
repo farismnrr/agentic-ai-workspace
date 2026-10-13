@@ -116,7 +116,7 @@ Literal colors are acceptable only for content that is inherently visual, such a
 
 The UI font is Inter Variable, self-hosted (Latin subset), with the platform sans-serif stack as fallback.
 
-Marketing headings use Newsreader Variable (`font-display`), also self-hosted, for an editorial tone. Workspace controls and dense product surfaces stay in Inter and prioritize readability and scanning speed.
+Headings (`h1`–`h4`) use Newsreader Variable (`font-display`), also self-hosted, for an editorial tone. Everything else, including the navbar and footer wordmark, body text, buttons, and form fields, uses Inter, which prioritizes readability and scanning speed. Heading fonts are set once in the base layer, so components do not repeat them. Metric-matched fallback fonts keep text from jumping while the web fonts load.
 
 ## Paper and marker
 
@@ -135,7 +135,11 @@ The brand uses rounded controls and panels, but not every element should become 
 
 Motion should be restrained and functional.
 
-Use short transitions for hover, focus, expansion, or state changes. Respect `prefers-reduced-motion`; the global base layer already collapses nonessential animation and transition duration when reduction is requested.
+Use short transitions for hover, focus, expansion, or state changes. Sections fade in once as they scroll into view, and the hero loads in with a short rise. Content is always visible without JavaScript. Respect `prefers-reduced-motion`; the global base layer already collapses nonessential animation and transition duration when reduction is requested, and scroll reveals only hide content when motion is allowed.
+
+## Logo and icons
+
+The logo is a rounded primary-olive tile with a white "o..n" mark, set beside the Inter wordmark "Masih Awam". The favicon, touch icon, and manifest icons live in `web/public/` and use the same tile.
 
 ## Accessibility
 
