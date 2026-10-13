@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent Automations</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #2468f2;
+      --text: #101828;
+      --muted: #667085;
+      --surface: #ffffff;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 82% 72%, rgba(63,116,246,.14), transparent 34%),
+        radial-gradient(circle at 62% 20%, rgba(70,120,255,.06), transparent 30%),
+        #fbfdff;
+    }
+
+    button, input { font: inherit; }
+
+    .page {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    .page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(70,100,150,.13) 1px, transparent 1.2px);
+      background-size: 24px 24px;
+      mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.25) 15%, rgba(0,0,0,.9) 45%, rgba(0,0,0,.55) 100%);
+      pointer-events: none;
+    }
+
+    .glow {
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      right: -240px;
+      bottom: -280px;
+      background: radial-gradient(circle, rgba(49,111,247,.14), rgba(72,126,248,.05) 45%, transparent 72%);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 2;
+      width: min(1400px, calc(100% - 80px));
+      height: 100%;
+      min-height: 0;
+      margin: 0 auto;
+      padding: clamp(32px, 6vh, 72px) 0 clamp(24px, 4vh, 48px);
+      overflow: hidden;
+    }
+
+    .copy {
+      position: relative;
+      z-index: 20;
+      width: min(560px, 42vw);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: clamp(18px, 3vh, 34px);
+      padding: 7px 10px;
+      border: 1px solid rgba(58,113,242,.08);
+      border-radius: 7px;
+      background: rgba(237,243,255,.78);
+      color: #5681e7;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      box-shadow: 0 6px 20px rgba(50,95,190,.05);
+    }
+
+    .eyebrow svg { width: 14px; height: 14px; }
+
+    h1 {
+      width: min(600px, 44vw);
+      max-width: none;
+      font-size: clamp(48px, min(4.5vw, 8vh), 76px);
+      line-height: .99;
+      letter-spacing: -.055em;
+      font-weight: 500;
+    }
+
+    h1 .blue { color: var(--blue); }
+
+    .description {
+      width: 470px;
+      max-width: 100%;
+      margin-top: clamp(16px, 2.5vh, 26px);
+      color: #667085;
+      font-size: clamp(14px, 1vw, 17px);
+      line-height: 1.6;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      min-width: 174px;
+      margin-top: clamp(20px, 3vh, 35px);
+      padding: 15px 25px;
+      border: 0;
+      border-radius: 18px;
+      color: #fff;
+      background: linear-gradient(180deg, #4d89ff 0%, #2368ed 62%, #1759db 100%);
+      box-shadow: inset 0 1px 1px rgba(255,255,255,.45), 0 10px 24px rgba(27,98,239,.28);
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .cta:hover {
+      transform: translateY(-2px);
+      box-shadow: inset 0 1px 1px rgba(255,255,255,.45), 0 16px 35px rgba(27,98,239,.32);
+    }
+
+    .cta-arrow { font-size: 20px; margin-top: -1px; }
+
+    .automation-canvas {
+      position: absolute;
+      left: 7%;
+      right: -3%;
+      top: clamp(220px, 30vh, 285px);
+      bottom: 0;
+      height: auto;
+      pointer-events: none;
+      transform-origin: center center;
+    }
+
+    .connection-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .path {
+      fill: none;
+      stroke: #bdd0f7;
+      stroke-width: 2.2;
+      stroke-dasharray: 3 7;
+      stroke-linecap: round;
+    }
+
+    .path-blue { stroke: #597ee9; stroke-width: 2.4; }
+
+    .hub {
+      position: absolute;
+      left: 51%;
+      top: 39%;
+      width: clamp(165px, 12vw, 210px);
+      height: clamp(94px, 7vw, 118px);
+      transform: translate(-50%, -50%) perspective(700px) rotateX(56deg) rotateZ(-1deg);
+      border-radius: 50%;
+      background: linear-gradient(180deg, #fff 0 58%, #e9efff 59% 66%, #1761e8 67% 100%);
+      box-shadow: 0 30px 25px rgba(37,91,196,.15), 0 7px 0 rgba(26,84,219,.11), inset 0 0 0 1px #e4eaf9;
+    }
+
+    .hub-inner {
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      width: 82px;
+      height: 52px;
+      transform: translate(-50%, -50%) rotateX(-56deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-logo { position: relative; width: 76px; height: 46px; }
+    .brand-logo span {
+      position: absolute;
+      display: block;
+      width: 25px;
+      height: 45px;
+      border-radius: 4px;
+      background: linear-gradient(180deg, #225ded, #1558df);
+      transform: skewY(35deg) rotate(12deg);
+    }
+    .brand-logo span:nth-child(1) { left: 5px; top: 3px; }
+    .brand-logo span:nth-child(2) { left: 26px; top: -5px; }
+    .brand-logo span:nth-child(3) { left: 49px; top: 5px; }
+
+    .iso-card {
+      position: absolute;
+      width: 220px;
+      height: 100px;
+      transform: perspective(800px) rotateX(56deg) rotateZ(-23deg);
+      border: 1px solid #e2e8f4;
+      border-radius: 6px;
+      background: linear-gradient(180deg, rgba(255,255,255,.98), #fbfdff);
+      box-shadow: -2px 9px 0 #dce6f7, 0 24px 40px rgba(40,77,153,.10);
+    }
+
+    .iso-card::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 13px;
+      height: 3px;
+      border-radius: 99px;
+      background: #eef2f9;
+    }
+
+    .iso-card .fake-line {
+      position: absolute;
+      right: 20px;
+      width: 90px;
+      height: 7px;
+      border-radius: 99px;
+      background: #eef2f8;
+    }
+
+    .iso-card .fake-line.one { top: 28px; }
+    .iso-card .fake-line.two { top: 44px; width: 110px; }
+    .iso-card .fake-line.three { top: 60px; width: 72px; }
+
+    .card-1 { left: 62%; top: 3%; }
+    .card-2 { left: 76%; top: -13%; }
+    .card-3 { left: 88%; top: -29%; }
+
+    .mini-icon { position: absolute; left: 27px; top: 31px; width: 48px; height: 40px; }
+
+    .mini-icon.blocks { display: flex; align-items: flex-end; gap: 4px; }
+    .mini-icon.blocks span {
+      width: 15px;
+      height: 30px;
+      border-radius: 4px;
+      border: 2px solid #b6c1dc;
+      background: #f8faff;
+      box-shadow: inset 0 -5px 0 #e6ecf8;
+    }
+
+    .mini-icon.chart { border: 3px solid #b9c4de; border-radius: 50%; }
+    .mini-icon.chart::before {
+      content: "";
+      position: absolute;
+      inset: 8px 6px;
+      border: 3px solid #bec9e3;
+      border-left-color: transparent;
+      border-bottom-color: transparent;
+      border-radius: 50%;
+      transform: rotate(-30deg);
+    }
+
+    .mini-icon.db span {
+      position: absolute;
+      width: 17px;
+      height: 17px;
+      border: 2px solid #bcc5dd;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .mini-icon.db span:nth-child(1) { left: 0; bottom: 4px; }
+    .mini-icon.db span:nth-child(2) { left: 14px; top: 4px; }
+    .mini-icon.db span:nth-child(3) { right: 0; bottom: 4px; }
+
+    .integration {
+      position: absolute;
+      width: 72px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: perspective(600px) rotateX(55deg) rotateZ(-24deg);
+      border: 1px solid #e5eaf4;
+      border-radius: 7px;
+      background: #fff;
+      box-shadow: -2px 8px 0 #dce4ef, 0 18px 30px rgba(45,72,128,.10);
+    }
+
+    .integration svg {
+      width: 32px;
+      height: 32px;
+      transform: rotateZ(24deg) rotateX(-55deg);
+    }
+
+    .hubspot { left: 1%; top: 60%; }
+    .gmail { left: 13%; top: 69%; }
+    .sheets { left: 17%; top: 40%; }
+    .youtube { left: 27%; top: 68%; }
+    .cloud { left: 13%; top: 89%; opacity: .72; }
+
+    .chat {
+      position: absolute;
+      right: 1.5%;
+      bottom: clamp(18px, 3vh, 32px);
+      width: clamp(350px, 30vw, 440px);
+      height: clamp(145px, 20vh, 185px);
+      padding: 22px 24px;
+      border: 1px solid rgba(220,229,245,.85);
+      border-radius: 17px;
+      background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(255,255,255,.93));
+      box-shadow: 0 35px 90px rgba(58,93,169,.12), 0 10px 30px rgba(71,98,155,.05);
+      backdrop-filter: blur(16px);
+      pointer-events: auto;
+    }
+
+    .chat-placeholder { color: #9aa3b1; font-size: 15px; }
+
+    .chat-footer {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-actions, .right-actions { display: flex; align-items: center; gap: 10px; }
+
+    .circle-button {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #edf0f4;
+      border-radius: 50%;
+      color: #939cab;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .web-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      border: 1px solid #edf0f4;
+      border-radius: 999px;
+      color: #606a79;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .web-search svg { width: 14px; height: 14px; }
+    .mic { color: #aab1bd; }
+
+    .send {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #5f91ff, #2e6df0);
+      box-shadow: 0 7px 15px rgba(31,96,232,.28), inset 0 1px 1px rgba(255,255,255,.45);
+      cursor: pointer;
+    }
+
+    .send::before, .send::after {
+      content: "";
+      position: absolute;
+      background: #fff;
+      border-radius: 99px;
+    }
+    .send::before { width: 13px; height: 2px; left: 13px; top: 19px; transform: rotate(-35deg); }
+    .send::after { width: 8px; height: 2px; left: 20px; top: 15px; transform: rotate(50deg); }
+
+    .soft-line {
+      position: absolute;
+      width: 700px;
+      height: 1px;
+      left: 100px;
+      top: 75%;
+      background: linear-gradient(90deg, transparent, rgba(157,180,228,.22), transparent);
+      transform: rotate(-31deg);
+    }
+
+    @media (max-width: 1100px) {
+      .hero { width: min(100% - 48px, 1000px); }
+      .copy { width: 520px; }
+      .chat { width: 390px; }
+    }
+
+    @media (max-height: 850px) and (min-width: 821px) {
+      .hero { padding-top: 34px; padding-bottom: 24px; }
+      .eyebrow { margin-bottom: 20px; }
+      h1 { font-size: clamp(48px, 7vh, 64px); line-height: .98; }
+      .description { margin-top: 18px; line-height: 1.5; }
+      .cta { margin-top: 22px; padding-top: 13px; padding-bottom: 13px; }
+      .automation-canvas {
+        top: 190px;
+        bottom: -25px;
+        transform: scale(.92);
+        transform-origin: right center;
+      }
+      .chat { width: 390px; height: 145px; bottom: 18px; }
+    }
+
+    @media (max-height: 720px) and (min-width: 821px) {
+      .hero { padding-top: 24px; }
+      h1 { font-size: 52px; }
+      .description { margin-top: 12px; }
+      .cta { margin-top: 16px; }
+      .automation-canvas {
+        top: 155px;
+        transform: scale(.82);
+        transform-origin: right center;
+      }
+      .chat { width: 350px; height: 130px; padding: 18px; bottom: 12px; }
+    }
+
+    @media (max-width: 820px) {
+      html, body { overflow: auto; }
+      .page { min-height: 100dvh; height: auto; overflow: hidden; }
+      .hero {
+        width: min(100% - 36px, 760px);
+        min-height: 1000px;
+        height: auto;
+        padding-top: 50px;
+      }
+      .copy { width: 100%; }
+      h1 { width: 100%; max-width: 650px; font-size: clamp(48px, 10vw, 72px); }
+      .description { font-size: 16px; }
+      .automation-canvas {
+        left: -170px;
+        right: -280px;
+        top: 420px;
+        bottom: auto;
+        height: 620px;
+        transform: scale(.82);
+      }
+      .chat {
+        left: 50%;
+        right: auto;
+        bottom: 35px;
+        width: min(92vw, 460px);
+        transform: translateX(-50%);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .hero { min-height: 950px; }
+      .eyebrow { margin-bottom: 25px; }
+      h1 { font-size: 49px; }
+      .description { margin-top: 22px; }
+      .automation-canvas { left: -290px; top: 425px; transform: scale(.67); }
+      .chat { height: 165px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="glow"></div>
+
+    <section class="hero">
+      <div class="copy">
+        <div class="eyebrow">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2l1.8 5.1L19 9l-5.2 1.9L12 16l-1.8-5.1L5 9l5.2-1.9L12 2Z" fill="currentColor"/>
+            <path d="M19 14l.9 2.5L22 17.3l-2.1.8L19 21l-.9-2.9-2.1-.8 2.1-.8L19 14Z" fill="currentColor" opacity=".55"/>
+          </svg>
+          AI SOLUTION
+        </div>
+
+        <h1>Turn workflow into <span class="blue">AI agent</span> automations.</h1>
+        <p class="description">Powerful and production-ready, our cloud platform has the solutions you need to succeed.</p>
+        <button class="cta" type="button">Get started <span class="cta-arrow">›</span></button>
+      </div>
+
+      <div class="automation-canvas">
+        <svg class="connection-layer" viewBox="0 0 1300 620" preserveAspectRatio="none" aria-hidden="true">
+          <path class="path path-blue" d="M670 278 C760 230 815 200 900 145"/>
+          <path class="path path-blue" d="M900 145 C1000 100 1070 60 1160 28"/>
+          <path class="path" d="M560 300 C430 330 330 370 240 420"/>
+          <path class="path" d="M250 420 C170 455 110 500 40 530"/>
+          <path class="path" d="M250 420 C210 370 205 340 260 295"/>
+          <path class="path" d="M260 295 C320 330 350 370 360 435"/>
+          <path class="path" d="M360 435 C280 480 220 530 185 575"/>
+        </svg>
+
+        <div class="hub">
+          <div class="hub-inner">
+            <div class="brand-logo"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+
+        <div class="iso-card card-1">
+          <div class="mini-icon blocks"><span></span><span></span><span></span></div>
+          <div class="fake-line one"></div><div class="fake-line two"></div><div class="fake-line three"></div>
+        </div>
+
+        <div class="iso-card card-2">
+          <div class="mini-icon chart"></div>
+          <div class="fake-line one"></div><div class="fake-line two"></div><div class="fake-line three"></div>
+        </div>
+
+        <div class="iso-card card-3">
+          <div class="mini-icon db"><span></span><span></span><span></span></div>
+          <div class="fake-line one"></div><div class="fake-line two"></div>
+        </div>
+
+        <div class="integration hubspot">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <circle cx="9" cy="17" r="3" stroke="#ef654a" stroke-width="2.4"/>
+            <circle cx="23" cy="10" r="3" stroke="#ef654a" stroke-width="2.4"/>
+            <circle cx="22" cy="24" r="3" stroke="#ef654a" stroke-width="2.4"/>
+            <path d="M11.5 15.5L20.5 11.5M11.5 18.5L19.5 22.5M23 13V21" stroke="#ef654a" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <div class="integration sheets">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="7" y="4" width="18" height="24" rx="2" fill="#29a866"/>
+            <path d="M11 11h10M11 15h10M11 19h10M14 10v11M18 10v11" stroke="white" stroke-width="1.4"/>
+          </svg>
+        </div>
+
+        <div class="integration gmail">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M5 9L16 17L27 9" stroke="#EA4335" stroke-width="3"/>
+            <path d="M5 9V24" stroke="#4285F4" stroke-width="3"/>
+            <path d="M27 9V24" stroke="#34A853" stroke-width="3"/>
+            <path d="M5 24H27" stroke="#FBBC05" stroke-width="3"/>
+          </svg>
+        </div>
+
+        <div class="integration youtube">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="4" y="8" width="24" height="16" rx="5" fill="#ff2f2f"/>
+            <path d="M14 12.5L21 16L14 19.5V12.5Z" fill="white"/>
+          </svg>
+        </div>
+
+        <div class="integration cloud">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M9 22h14a5 5 0 0 0 0-10 7 7 0 0 0-13-2A6 6 0 0 0 9 22Z" fill="#50B5E9"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="soft-line"></div>
+
+      <div class="chat">
+        <div class="chat-placeholder">Ask anythings ...</div>
+        <div class="chat-footer">
+          <div class="chat-actions">
+            <button class="circle-button" type="button">+</button>
+            <button class="web-search" type="button">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
+                <path d="M4 12h16M12 4c2 2.3 3 5 3 8s-1 5.7-3 8c-2-2.3-3-5-3-8s1-5.7 3-8Z" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              Web Search
+            </button>
+          </div>
+
+          <div class="right-actions">
+            <svg class="mic" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="9" y="4" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.7"/>
+              <path d="M6 11a6 6 0 0012 0M12 17v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+            <button class="send" type="button" aria-label="Send"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const cta = document.querySelector('.cta');
+    const send = document.querySelector('.send');
+
+    cta.addEventListener('click', () => {
+      cta.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(.96)' },
+        { transform: 'scale(1)' }
+      ], { duration: 220, easing: 'ease-out' });
+    });
+
+    send.addEventListener('click', () => {
+      send.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(.88)' },
+        { transform: 'scale(1)' }
+      ], { duration: 200, easing: 'ease-out' });
+    });
+  </script>
+</body>
+</html>
