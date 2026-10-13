@@ -7,7 +7,7 @@ This guide defines the visual language for the AI workspace. It keeps the Masih 
 1. Keep the Masih Awam identity: warm near-black or paper-like surfaces, lime or olive as the main brand color, cool supporting accents, rounded geometry, and restrained motion.
 2. Use semantic roles instead of literal colors in product UI.
 3. Build hierarchy with surfaces, typography, spacing, and borders before adding more color.
-4. Keep light and dark themes equivalent in meaning, not necessarily identical in raw color values.
+4. Keep one theme, `masihawam-light`, as the single source of color meaning.
 5. Prefer local reusable components, then daisyUI, then Tailwind utilities, and add custom CSS only when the design system needs a capability they do not provide.
 6. Accessibility is part of the theme contract: visible focus, sufficient contrast, reduced-motion support, and status cues that do not rely on color alone.
 
@@ -15,7 +15,7 @@ This guide defines the visual language for the AI workspace. It keeps the Masih 
 
 The brand palette uses a split-complementary relationship anchored on the Masih Awam primary hue.
 
-- Primary stays olive in light mode and lime in dark mode.
+- Primary is olive.
 - Secondary moves into the blue family.
 - Tertiary moves into the violet family.
 - The order is intentionally `olive/lime -> blue -> violet`, so supporting emphasis progresses in one visual direction instead of jumping back and forth around the color wheel.
@@ -24,29 +24,24 @@ Status colors are not forced into the brand harmony. `info`, `success`, `warning
 
 ## Theme names
 
-The app ships with two custom daisyUI themes:
-
-- `masihawam-light`
-- `masihawam-dark`
-
-The first visit follows the operating-system color preference. A manual theme change is saved in the browser for later visits.
+The app ships with one custom daisyUI theme, `masihawam-light`. There is no dark theme or theme toggle.
 
 ## Semantic colors
 
-| Product role | daisyUI role | Light | Dark | Typical use |
-| --- | --- | --- | --- | --- |
-| Primary | `primary` | `#657C1A` | `#C8FF4D` | Main CTA, current selection, strongest brand emphasis |
-| Secondary | `secondary` | `#275391` | `#77ADF8` | Secondary actions, agent or AI emphasis |
-| Tertiary | `accent` | `#77358D` | `#D788F2` | Contextual actions, tertiary emphasis |
-| Neutral | `neutral` | `#2B2A2D` | `#2A2A30` | Neutral controls and strong neutral surfaces |
-| Info | `info` | `#0F6F84` | `#67D7EA` | Informational feedback |
-| Success | `success` | `#2F7D4A` | `#6EE7A0` | Successful operations |
-| Warning | `warning` | `#A45400` | `#FFB454` | Risk, caution, attention |
-| Error | `error` | `#B4233A` | `#FF7A85` | Errors and destructive actions |
+| Product role | daisyUI role | Color | Typical use |
+| --- | --- | --- | --- |
+| Primary | `primary` | `#657C1A` | Main CTA, current selection, strongest brand emphasis |
+| Secondary | `secondary` | `#275391` | Secondary actions, agent or AI emphasis |
+| Tertiary | `accent` | `#77358D` | Contextual actions, tertiary emphasis |
+| Neutral | `neutral` | `#2B2A2D` | Neutral controls and strong neutral surfaces |
+| Info | `info` | `#0F6F84` | Informational feedback |
+| Success | `success` | `#2F7D4A` | Successful operations |
+| Warning | `warning` | `#A45400` | Risk, caution, attention |
+| Error | `error` | `#B4233A` | Errors and destructive actions |
 
 `accent` is the implementation name for the product's tertiary role.
 
-Primary is a brand/action role. Success is a status role. Do not use primary lime to communicate successful completion.
+Primary is a brand/action role. Success is a status role. Do not use primary olive or the lime marker alone to communicate successful completion.
 
 ## Base and surfaces
 
@@ -119,9 +114,13 @@ Literal colors are acceptable only for content that is inherently visual, such a
 
 ## Typography
 
-The default UI font stack is Inter when available, then the platform sans-serif stack.
+The UI font is Inter Variable, self-hosted (Latin subset), with the platform sans-serif stack as fallback.
 
-The brand may use editorial typography for marketing or high-level storytelling, but workspace controls and dense product surfaces should prioritize readability and scanning speed.
+Marketing headings use Newsreader Variable (`font-display`), also self-hosted, for an editorial tone. Workspace controls and dense product surfaces stay in Inter and prioritize readability and scanning speed.
+
+## Paper and marker
+
+The landing page reads like paper: flat `base-200` canvas, `base-100` cards, hand-drawn line illustrations, and no decorative gradients or glows. Emphasis inside a heading uses the shared `Marker` component, a lime highlighter stroke driven by `--brand-marker`. Primary buttons on marketing pages may be pill-shaped.
 
 ## Shape and depth
 
@@ -148,7 +147,7 @@ Do not communicate success, warning, or error by color alone. Pair important sta
 
 Theme values live in `web/src/app.css`.
 
-Theme selection logic lives in `web/src/shared/theme/theme.ts`.
+Self-hosted font faces live in `web/src/shared/theme/fonts.css`.
 
 Reusable visual components live in `web/src/shared/ui/`.
 

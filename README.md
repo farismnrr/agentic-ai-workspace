@@ -1,6 +1,6 @@
 # agentic-ai-workspace
 
-A small web-native AI orchestrator foundation that turns one goal into coordinated agent work and ships as a single Linux executable.
+A small web-native AI team that turns plain-language requests into visible, verified work and ships as a single Linux executable.
 
 The frontend is built with Svelte, then embedded into the Go binary. In production you only run one file: no Node.js server, no second port, and no separate frontend process.
 
@@ -65,7 +65,7 @@ GitHub Actions runs the same quality checks on every push and pull request. A Li
 
 ## Design system
 
-The UI uses the Masih Awam visual language through semantic daisyUI themes instead of copying the LMS implementation. Matching light and dark themes share the same roles for actions, surfaces, and statuses.
+The UI uses the Masih Awam visual language through semantic daisyUI themes instead of copying the LMS implementation. The app ships a single light theme that defines the roles for actions, surfaces, and statuses.
 
 See [docs/design-system.md](./docs/design-system.md) for the color roles, interaction states, and component rules.
 

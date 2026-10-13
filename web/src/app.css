@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./shared/theme/fonts.css";
 
 @plugin "daisyui" {
   themes: false;
@@ -35,43 +36,14 @@
   --border: 1px;
 }
 
-@plugin "daisyui/theme" {
-  name: "masihawam-dark";
-  default: false;
-  prefersdark: true;
-  color-scheme: dark;
-  --color-base-100: #121217;
-  --color-base-200: #0a0a0c;
-  --color-base-300: #1a1a20;
-  --color-base-content: #f4f2eb;
-  --color-primary: #c8ff4d;
-  --color-primary-content: #111113;
-  --color-secondary: #77adf8;
-  --color-secondary-content: #111113;
-  --color-accent: #d788f2;
-  --color-accent-content: #111113;
-  --color-neutral: #2a2a30;
-  --color-neutral-content: #f4f2eb;
-  --color-info: #67d7ea;
-  --color-info-content: #111113;
-  --color-success: #6ee7a0;
-  --color-success-content: #111113;
-  --color-warning: #ffb454;
-  --color-warning-content: #111113;
-  --color-error: #ff7a85;
-  --color-error-content: #111113;
-  --radius-selector: 1rem;
-  --radius-field: 0.875rem;
-  --radius-box: 1.375rem;
-  --border: 1px;
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Newsreader Variable", ui-serif, Georgia, "Times New Roman", serif;
 }
 
 :root {
   --brand-ease: cubic-bezier(0.2, 0.75, 0.25, 1);
   --brand-focus-width: 2px;
-}
-
-[data-theme="masihawam-light"] {
   --brand-text-secondary: #605e58;
   --brand-text-tertiary: #6f6b64;
   --brand-surface-soft: rgb(17 17 19 / 3%);
@@ -79,31 +51,16 @@
   --brand-surface-strong: rgb(17 17 19 / 9%);
   --brand-border: rgb(17 17 19 / 13%);
   --brand-border-strong: rgb(17 17 19 / 24%);
-  --brand-shadow: 0 30px 80px rgb(48 43 31 / 14%);
-  --brand-ambient-primary: rgb(101 124 26 / 7%);
-  --brand-ambient-secondary: rgb(39 83 145 / 8%);
-  --brand-ambient-tertiary: rgb(119 53 141 / 7%);
+  --brand-shadow: 0 18px 48px rgb(48 43 31 / 12%);
+  --brand-marker: #d8f26a;
   --brand-focus: #657c1a;
-}
-
-[data-theme="masihawam-dark"] {
-  --brand-text-secondary: #a8a6a0;
-  --brand-text-tertiary: #8b8983;
-  --brand-surface-soft: rgb(255 255 255 / 2.5%);
-  --brand-surface: rgb(255 255 255 / 5.5%);
-  --brand-surface-strong: rgb(255 255 255 / 9%);
-  --brand-border: rgb(255 255 255 / 12%);
-  --brand-border-strong: rgb(255 255 255 / 20%);
-  --brand-shadow: 0 30px 80px rgb(0 0 0 / 34%);
-  --brand-ambient-primary: rgb(200 255 77 / 4%);
-  --brand-ambient-secondary: rgb(119 173 248 / 7%);
-  --brand-ambient-tertiary: rgb(215 136 242 / 7%);
-  --brand-focus: #c8ff4d;
 }
 
 @layer base {
   html {
     background: var(--color-base-200);
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
   }
 
   body {
@@ -111,12 +68,8 @@
     min-height: 100vh;
     margin: 0;
     color: var(--color-base-content);
-    background:
-      radial-gradient(circle at 84% 10%, var(--brand-ambient-tertiary), transparent 30rem),
-      radial-gradient(circle at 68% 22%, var(--brand-ambient-secondary), transparent 34rem),
-      radial-gradient(circle at 12% 38%, var(--brand-ambient-primary), transparent 28rem),
-      var(--color-base-200);
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--color-base-200);
+    font-family: var(--font-sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }

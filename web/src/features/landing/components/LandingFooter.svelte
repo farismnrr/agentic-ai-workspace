@@ -1,9 +1,24 @@
 <script lang="ts">
+  import LogoMark from '../../../shared/ui/LogoMark.svelte';
+  import { footerLinks } from '../content';
 </script>
 
-<footer class="border-t border-[var(--brand-border)] bg-base-100">
-  <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-5 px-5 py-8 text-sm sm:px-8 md:flex-row md:items-end md:justify-between lg:px-12">
-    <div><p class="font-semibold">Masih Awam</p><p class="mt-1 text-[var(--brand-text-tertiary)]">Web-native AI workspace</p></div>
-    <div class="flex flex-wrap gap-x-6 gap-y-2 text-[var(--brand-text-secondary)]"><a class="hover:text-base-content" href="#highlights">Highlights</a><a class="hover:text-base-content" href="#closer-look">Workspace</a><a class="hover:text-base-content" href="#proof">Proof</a></div>
+<footer class="mx-auto w-full max-w-6xl px-6 pb-10">
+  <div class="flex flex-col gap-6 border-t border-[var(--brand-border-strong)] pt-8 sm:flex-row sm:items-start sm:justify-between">
+    <a class="flex items-center gap-3" href="/" aria-label="Masih Awam home">
+      <LogoMark class="size-8" />
+      <span class="leading-tight">
+        <span class="block text-xl font-medium tracking-tight">Masih Awam</span>
+        <span class="block text-sm text-[var(--brand-text-secondary)]">Work you can trust.</span>
+      </span>
+    </a>
+    <div class="flex flex-col gap-3 sm:items-end">
+      <nav class="flex flex-wrap gap-x-6 gap-y-2" aria-label="Footer">
+        {#each footerLinks as link (link.href)}
+          <a class="link link-hover" href={link.href}>{link.label}</a>
+        {/each}
+      </nav>
+      <p class="text-sm text-[var(--brand-text-secondary)]">© 2026 Masih Awam</p>
+    </div>
   </div>
 </footer>
