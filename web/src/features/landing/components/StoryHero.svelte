@@ -7,10 +7,10 @@
   import '../visual/storyOrchestrator.css';
 
   const chapters = [
-    { title: 'One goal. One orchestrator.', body: 'Turn a software task into visible, coordinated work.' },
-    { title: 'It routes the work.', body: 'The right context and tools move to the right agent.' },
-    { title: 'Agents work in the open.', body: 'Code, commands, and the running product stay attached to the task.' },
-    { title: 'Proof closes the loop.', body: 'The work ends when the evidence says it is done.' },
+    { title: 'One goal. One orchestrator.', body: 'Give Masih Awam a software task and keep the whole run in one place.' },
+    { title: 'It routes the work.', body: 'The right context, tools, and repository rules move to the right agent.' },
+    { title: 'Agents work in the open.', body: 'Watch research, code, commands, and the running product move with the task.' },
+    { title: 'Proof closes the loop.', body: 'Tests, build output, browser checks, and changes stay attached to the result.' },
   ] as const;
 
   let host: HTMLElement;
@@ -24,8 +24,8 @@
 
   function chapterStyle(index: number): string {
     const delta = index - chapterPosition;
-    const opacity = Math.max(0, 1 - Math.abs(delta) / 0.38).toFixed(3);
-    const translateY = (Math.max(-1, Math.min(1, delta)) * 22).toFixed(2);
+    const opacity = Math.max(0, 1 - Math.abs(delta) / 0.5).toFixed(3);
+    const translateY = (Math.max(-1, Math.min(1, delta)) * 18).toFixed(2);
     return `opacity:${opacity};transform:translate3d(0,${translateY}px,0)`;
   }
 
@@ -70,31 +70,24 @@
 
 <svelte:window onscroll={queueMeasure} onresize={queueMeasure} />
 
-<section bind:this={host} class="relative h-[360svh] bg-base-200 text-base-content">
+<section bind:this={host} class="relative h-[420svh] bg-base-200 text-base-content">
   <div class="sticky top-0 h-[100svh] overflow-hidden">
-    <div
-      bind:this={sceneHost}
-      class="absolute bottom-[-2%] left-1/2 top-[34%] z-0 w-[122vw] -translate-x-1/2 overflow-hidden sm:top-[31%] sm:w-[116vw] lg:top-[27%] lg:w-[112vw]"
-      data-hero-scene
-      aria-hidden="true"
-    ></div>
-
     <div class="relative z-20 mx-auto flex h-full w-full max-w-[1600px] flex-col px-5 sm:px-8 lg:px-12">
       <LandingNav />
 
-      <div class="relative flex-1">
-        {#each chapters as chapter, index (chapter.title)}
-          <article
-            class={`pointer-events-none absolute will-change-[opacity,transform] ${index === 0 ? 'left-1/2 top-[4%] w-[min(94vw,72rem)]' : 'left-0 top-[8%] max-w-[24rem] sm:top-[10%]'}`}
-            style={chapterStyle(index)}
-            aria-hidden={activeChapter !== index}
-            data-hero-chapter={index}
-          >
-            <div class={index === 0 ? '-translate-x-1/2 text-center' : ''}>
-              <h1 class={`${index === 0 ? 'text-5xl sm:text-6xl lg:text-7xl xl:text-[5.25rem]' : 'text-4xl sm:text-5xl lg:text-6xl'} font-semibold leading-[0.96] tracking-[-0.05em]`}>
+      <div class="relative min-h-0 flex-1">
+        <div class="absolute inset-x-0 top-[4%] z-20 mx-auto h-60 sm:top-[5%]">
+          {#each chapters as chapter, index (chapter.title)}
+            <article
+              class="pointer-events-none absolute inset-0 flex flex-col items-center text-center will-change-[opacity,transform]"
+              style={chapterStyle(index)}
+              aria-hidden={activeChapter !== index}
+              data-hero-chapter={index}
+            >
+              <h1 class={`${index === 0 ? 'text-5xl sm:text-6xl lg:text-7xl xl:text-[5.25rem]' : 'text-4xl sm:text-5xl lg:text-6xl'} max-w-5xl font-semibold leading-[0.96] tracking-[-0.05em]`}>
                 {chapter.title}
               </h1>
-              <p class={`mt-4 text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg ${index === 0 ? 'mx-auto max-w-xl' : 'max-w-sm'}`}>
+              <p class="mt-4 max-w-2xl text-base leading-7 text-[var(--brand-text-secondary)] sm:text-lg">
                 {chapter.body}
               </p>
               {#if index === 0}
@@ -103,9 +96,16 @@
                   <a class="btn btn-ghost" href="#launch">Open workspace</a>
                 </div>
               {/if}
-            </div>
-          </article>
-        {/each}
+            </article>
+          {/each}
+        </div>
+
+        <div
+          bind:this={sceneHost}
+          class="absolute bottom-[-1%] left-1/2 top-[39%] z-0 w-[112vw] -translate-x-1/2 overflow-visible sm:top-[36%] sm:w-[108vw] lg:top-[31%] lg:w-[104vw]"
+          data-hero-scene
+          aria-hidden="true"
+        ></div>
       </div>
     </div>
   </div>
