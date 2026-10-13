@@ -49,6 +49,10 @@ Or build and run in one command:
 make run
 ```
 
+`make run` listens on port 8080 by default. Use `make run PORT=9000` to change it. `make help` lists the available commands.
+
+The build produces one static Linux binary with no shared-library dependencies, the same file that is published to the release.
+
 There is intentionally no development server or hot reload. The supported local flow is always build first, then run the resulting binary.
 
 ## Quality checks
