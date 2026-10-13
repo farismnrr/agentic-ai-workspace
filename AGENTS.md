@@ -26,7 +26,8 @@ This file is the source of truth for AI agents working in this repository. It co
 3. Node.js, Vite, Tailwind CSS, and daisyUI are build-time dependencies only.
 4. Do not add a second runtime server, frontend port, or reverse proxy without explicit approval.
 5. Do not add hot reload or a dev-server workflow. Supported execution is `build -> run binary`.
-6. `make run` must verify and build before running the binary.
+6. `make run` must verify and build before running the binary (unlike a build-if-missing flow, it always rebuilds so the binary never goes stale).
+7. `backend-build` always uses `CGO_ENABLED=0`, so local and release binaries are the same static, single-file artifact.
 
 ## Clean Architecture dependency rule
 
