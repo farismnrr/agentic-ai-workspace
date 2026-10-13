@@ -1,20 +1,24 @@
 <script lang="ts">
-  import ThemeToggle from '../../../shared/ui/ThemeToggle.svelte';
+  import LogoMark from '../../../shared/ui/LogoMark.svelte';
+  import { navLinks, REPO_URL } from '../content';
 </script>
 
-<header class="flex h-20 items-center justify-between gap-6 border-b border-[var(--brand-border)]">
-  <a class="group flex min-w-0 items-center gap-3" href="/" aria-label="Masih Awam home">
-    <span class="grid size-5 shrink-0 grid-cols-2 gap-0.5 transition-transform duration-300 group-hover:rotate-45" aria-hidden="true">
-      <span class="bg-primary"></span><span class="bg-secondary"></span><span class="bg-accent"></span><span class="bg-base-content"></span>
-    </span>
-    <span class="min-w-0 leading-tight"><span class="block truncate text-sm font-semibold tracking-tight">Masih Awam</span><span class="block truncate text-xs text-[var(--brand-text-tertiary)]">AI orchestrator</span></span>
-  </a>
+<header class="mx-auto w-full max-w-6xl px-6">
+  <div class="navbar min-h-20 gap-6 px-0">
+    <a class="flex items-center gap-3 text-xl" href="/" aria-label="Masih Awam home">
+      <LogoMark />
+      <span class="font-medium tracking-tight">Masih Awam</span>
+    </a>
 
-  <nav class="hidden items-center gap-7 text-sm text-[var(--brand-text-secondary)] md:flex" aria-label="Primary navigation">
-    <a class="transition-colors hover:text-base-content" href="#highlights">Orchestration</a>
-    <a class="transition-colors hover:text-base-content" href="#closer-look">Workspace</a>
-    <a class="transition-colors hover:text-base-content" href="#proof">Proof</a>
-  </nav>
+    <nav class="hidden flex-1 items-center gap-7 md:flex" aria-label="Primary">
+      {#each navLinks as link (link.href)}
+        <a class="link link-hover" href={link.href}>{link.label}</a>
+      {/each}
+    </nav>
 
-  <div class="flex items-center gap-2"><ThemeToggle /><a class="btn btn-neutral btn-sm hidden sm:inline-flex" href="#launch">Open workspace</a></div>
+    <div class="ml-auto flex items-center gap-3 md:ml-0">
+      <a class="link link-hover hidden sm:inline" href={REPO_URL}>GitHub</a>
+      <a class="btn btn-primary rounded-full" href={REPO_URL}>Get started</a>
+    </div>
+  </div>
 </header>

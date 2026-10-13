@@ -91,12 +91,13 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 3. Use daisyUI semantic roles before literal product colors: `primary`, `secondary`, `accent`, `neutral`, `info`, `success`, `warning`, `error`, and `base-*`.
 4. Product terminology calls daisyUI `accent` the tertiary role. Disabled, loading, hover, active, focus, and selected are interaction states, not extra brand colors.
 5. The brand trio is split-complementary and anchored on the Masih Awam olive/lime primary: secondary is blue and tertiary is violet. Keep status colors semantic rather than forcing them into the brand harmony.
-6. Shared visual changes must work in both `masihawam-light` and `masihawam-dark`.
+6. The app ships one theme, `masihawam-light`. Do not add a dark theme, theme toggle, or `dark:` variants unless the user explicitly reintroduces them.
 7. Keep brand values in the central theme source. Do not scatter hard-coded Masih Awam colors across feature components.
 8. Prefer configuring and composing daisyUI with the central theme over introducing custom component styling. Add custom tokens or CSS only for capabilities that daisyUI and Tailwind do not already cover cleanly.
 9. Preserve visible focus, sufficient contrast, non-color status cues, and reduced-motion behavior.
 10. Before reporting landing or marketing UI as complete, compare the final implementation against current public design guidance and explicitly check for generic AI-default patterns such as repeated eyebrow/headline/body stacks, interchangeable hype copy, decorative gradients or glows, repeated equal card grids, excessive mono/uppercase decoration, and unnecessary nested surfaces. Fix unjustified patterns instead of merely noting them.
-11. Product positioning is a web-native AI orchestrator: communicate one goal becoming routed agent lanes, visible execution, and verifiable evidence. Avoid generic chatbot, abstract AI, or unexplained multi-agent imagery when the product workflow can tell the story directly.
+11. Product positioning is proof-first AI work for people who are not developers: tell it what you need, see every step, and accept only what is proven (the receipt, the "Proven to work" stamp). Use plain language, not agent or orchestration jargon. Avoid generic chatbot or abstract AI imagery when the real workflow can tell the story.
+12. Landing visuals are the hand-drawn illustrations in `web/src/features/landing/assets/` (imported through `illustrations.ts` so Vite hashes them and dimensions stay in one place). Section references live in `assets/landing/reference/` and are not embedded. Overlay UI (checklist, toast, form) is real HTML, not baked into images.
 
 ## Size and complexity limits
 
