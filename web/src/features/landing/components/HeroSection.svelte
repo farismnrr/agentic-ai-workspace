@@ -3,7 +3,7 @@
   import Illustration from '../../../shared/ui/Illustration.svelte';
   import Marker from '../../../shared/ui/Marker.svelte';
   import { illustrations } from '../assets/illustrations';
-  import { heroChecklist, reassurances, REPO_URL } from '../content';
+  import { heroChecklist, reassurances } from '../content';
   import TaskChecklist from './TaskChecklist.svelte';
 </script>
 
@@ -19,7 +19,7 @@
       A small AI team does the work, shows every step, and checks that it really works before you accept it.
     </p>
     <div class="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
-      <a class="btn btn-primary btn-lg min-h-12 rounded-full" href={REPO_URL}>Get started, it’s free</a>
+      <a class="btn btn-primary btn-lg min-h-12 rounded-full" href="/register">Get started, it’s free</a>
       <a class="link link-hover inline-flex items-center gap-2" href="#how-it-works">
         See how it works <Icon name="arrow-right" class="size-4" />
       </a>

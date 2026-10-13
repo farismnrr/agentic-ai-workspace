@@ -54,6 +54,8 @@ func spaFallback(frontend fs.FS) fiber.Handler {
 			return fiber.ErrInternalServerError
 		}
 
+		// The static middleware marks unmatched client routes as 404 before falling through.
+		c.Status(fiber.StatusOK)
 		c.Set("Content-Type", "text/html; charset=utf-8")
 		c.Set(fiber.HeaderCacheControl, "no-cache")
 		return c.Send(index)

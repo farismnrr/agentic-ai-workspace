@@ -73,6 +73,10 @@ The UI uses the Masih Awam visual language through semantic daisyUI themes inste
 
 See [docs/design-system.md](./docs/design-system.md) for the color roles, interaction states, and component rules.
 
+## Pages
+
+The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens. The account screens are UI only for now and do not talk to a server yet.
+
 ## Project structure
 
 ```text
