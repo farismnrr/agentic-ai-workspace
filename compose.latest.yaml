@@ -5,6 +5,8 @@
 #
 #   DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose -f compose.latest.yaml up -d
 #
+# Settings come from the shell or a .env file next to this one (PUBLIC_URL, CONNECTOR_URL,
+# ALLOWED_ORIGINS, ...), see the README.
 # The image is pulled from GHCR. To use a local build instead, run `make image` first.
 services:
   app:
@@ -15,6 +17,9 @@ services:
       PORT: "8081"
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8081}
       CONNECTOR_URL: ${CONNECTOR_URL:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
       # Workspaces are handed to the check containers as sub-paths of this volume.
       SANDBOX_DATA_VOLUME: agentic-data
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-node:24-bookworm}
