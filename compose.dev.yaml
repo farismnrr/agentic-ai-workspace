@@ -1,13 +1,14 @@
+# Development channel: follows the image published from dev (:dev).
 # One service: the app. Checks run as short-lived containers started through the Docker
 # socket, so the socket is mounted. Anyone who can reach the socket controls the host:
 # run Docker rootless where you can, and keep this server's sign-ups to people you trust.
 #
-#   DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose up -d
+#   DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose -f compose.dev.yaml up -d
 #
 # The image is pulled from GHCR. To use a local build instead, run `make image` first.
 services:
   app:
-    image: ghcr.io/farismnrr/agentic-ai-workspace:latest
+    image: ghcr.io/farismnrr/agentic-ai-workspace:dev
     ports:
       - "${PORT:-8081}:8081"
     environment:

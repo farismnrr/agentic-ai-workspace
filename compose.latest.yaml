@@ -1,0 +1,39 @@
+# Release channel: follows the image published from main (:latest).
+# One service: the app. Checks run as short-lived containers started through the Docker
+# socket, so the socket is mounted. Anyone who can reach the socket controls the host:
+# run Docker rootless where you can, and keep this server's sign-ups to people you trust.
+#
+#   DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose -f compose.latest.yaml up -d
+#
+# The image is pulled from GHCR. To use a local build instead, run `make image` first.
+services:
+  app:
+    image: ghcr.io/farismnrr/agentic-ai-workspace:latest
+    ports:
+      - "${PORT:-8081}:8081"
+    environment:
+      PORT: "8081"
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8081}
+      CONNECTOR_URL: ${CONNECTOR_URL:-}
+      # Workspaces are handed to the check containers as sub-paths of this volume.
+      SANDBOX_DATA_VOLUME: agentic-data
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE:-node:24-bookworm}
+      SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-2048}
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-1}
+      MAX_SANDBOXES: ${MAX_SANDBOXES:-4}
+    volumes:
+      - agentic-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID:?set DOCKER_GID=$(stat -c %g /var/run/docker.sock)}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  agentic-data:
+    # A fixed name: the app refers to this volume when it starts check containers.
+    name: agentic-data

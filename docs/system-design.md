@@ -190,6 +190,6 @@ Work happens on the `dev` branch. Two GitHub Actions workflows run the same chec
 
 ## Deployment
 
-For normal use, deployment is the Docker image (`ghcr.io/farismnrr/agentic-ai-workspace`) run with `compose.yaml`, which mounts the Docker socket so checks can run in containers, plus any environment variables the application needs.
+For normal use, deployment is the Docker image (`ghcr.io/farismnrr/agentic-ai-workspace`) run with `compose.latest.yaml` (or `compose.dev.yaml`), which mounts the Docker socket so checks can run in containers, plus any environment variables the application needs.
 
 There is no Node.js runtime, frontend server, or additional application port to deploy.

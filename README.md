@@ -17,11 +17,13 @@ The frontend is built with Svelte, then embedded into the Go binary. In producti
 The app ships as one Docker image holding the single Go binary. Checks (the commands the AI runs on your project) run in short-lived containers that the app starts through the Docker socket, so the compose file mounts it:
 
 ```bash
-curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.yaml
-DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose up -d
+curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.latest.yaml
+DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose -f compose.latest.yaml up -d
 ```
 
-By default the app listens on port `8081`; change it with `PORT=9000 docker compose up -d`. Images are published to `ghcr.io/farismnrr/agentic-ai-workspace`: `latest` is the last release from `main`, `dev` follows the `dev` branch, and `sha-<commit>` pins an exact build.
+Two compose files exist: `compose.latest.yaml` runs the image published from `main`, and `compose.dev.yaml` runs the one published from `dev`. Use one at a time, since they share a port and a data volume.
+
+By default the app listens on port `8081`; change it with `PORT=9000 docker compose -f compose.latest.yaml up -d`. Images are published to `ghcr.io/farismnrr/agentic-ai-workspace`: `latest` is the last release from `main`, `dev` follows the `dev` branch, and `sha-<commit>` pins an exact build.
 
 ## Building from source
 
@@ -40,7 +42,7 @@ make run
 
 `make run` needs a local Docker daemon for checks and listens on port 8081 by default. Use `make run PORT=9000` to change it. `make help` lists the available commands.
 
-The build produces one static Linux binary with no shared-library dependencies, the same file that goes into the image. `make image` builds the Docker image locally under the same name compose pulls, so it is used instead of the published one.
+The build produces one static Linux binary with no shared-library dependencies, the same file that goes into the image. `make image` builds the Docker image locally under the names the compose files pull (`latest` and `dev`), so it is used instead of the published one.
 
 There is intentionally no development server or hot reload. The supported local flow is always build first, then run the resulting binary.
 
@@ -70,7 +72,7 @@ Settings (environment variables):
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
 | `SANDBOX_IMAGE` | The Docker image checks run in (default `node:24-bookworm`, which has Git, Node.js, Python, make and a C compiler). Use any image with the tools your projects need; it is downloaded on first use. |
 | `SANDBOX_RUNTIME` | Optional hardened container runtime, such as `runsc` (gVisor), for extra isolation. |
-| `SANDBOX_DATA_VOLUME` | Set automatically by `compose.yaml`: the Docker volume that holds `DATA_DIR`, so check containers can mount a person's folder. Leave empty when the app runs directly on the host. |
+| `SANDBOX_DATA_VOLUME` | Set automatically by the compose files: the Docker volume that holds `DATA_DIR`, so check containers can mount a person's folder. Leave empty when the app runs directly on the host. |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Memory (default 2048) and CPU cores (default 1) one check may use. |
 | `MAX_SANDBOXES` | How many checks may run at the same time across all people (default 4). Extra ones wait up to 30 seconds, then are told the server is busy. |
 | `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
