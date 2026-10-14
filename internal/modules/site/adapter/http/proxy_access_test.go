@@ -10,10 +10,12 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
-const (
-	siteRoot   = "/run/sensio/tok/"
-	ticketRoot = "/run/sensio/tok/~" + goodTicket + "/"
-)
+const siteRoot = "/run/sensio/tok/"
+
+// ticketRoot is the address with the ticket the fake issues to a browser that sends no User-Agent.
+var ticketRoot = ticketFor("")
+
+func ticketFor(userAgent string) string { return siteRoot + "~" + goodTicket(userAgent) + "/" }
 
 // as returns the headers a browser sends for what it is doing: dest is "document" for a page
 // the person opens, or "script", "empty" (fetch) and so on for what a page loads itself.
@@ -66,7 +68,7 @@ func TestPrivateSiteIgnoresForgedHeadersAndAddressAlone(t *testing.T) {
 		}
 	}
 
-	forged := "/run/sensio/tok/~9999999999.forged/echo"
+	forged := siteRoot + "~9999999999.forged/echo"
 	if got, _, _ := (call{path: forged, headers: as("script", "")}).do(t, app); got != 403 {
 		t.Errorf("a forged ticket: status %d, want 403", got)
 	}
@@ -81,7 +83,7 @@ func TestOwnerOpensPrivateSiteThroughATicketedAddress(t *testing.T) {
 	owner := as("document", "owner-session")
 
 	status, header, _ := (call{path: siteRoot + "echo?x=1", headers: owner}).do(t, app)
-	if status != http.StatusFound || header.Get("Location") != "/run/sensio/tok/~"+goodTicket+"/echo?x=1" {
+	if status != http.StatusFound || header.Get("Location") != ticketRoot+"echo?x=1" {
 		t.Fatalf("the owner must be sent to a ticketed address, got %d %q", status, header.Get("Location"))
 	}
 
@@ -90,7 +92,7 @@ func TestOwnerOpensPrivateSiteThroughATicketedAddress(t *testing.T) {
 		t.Fatalf("status %d body %s", status, body)
 	}
 
-	if got := <-seen; got.Get("X-Forwarded-Prefix") != "/run/sensio/tok/~"+goodTicket || got.Get("Cookie") != "" {
+	if got := <-seen; got.Get("X-Forwarded-Prefix") != strings.TrimSuffix(ticketRoot, "/") || got.Get("Cookie") != "" {
 		t.Errorf("the app sees the ticketed prefix and no login: %v", got)
 	}
 }
@@ -151,5 +153,34 @@ func TestUnknownAndStoppedSitesAreNotFoundAndNeverFallIntoTheApp(t *testing.T) {
 		if !strings.HasPrefix(header.Get("Content-Security-Policy"), "sandbox") {
 			t.Errorf("%s: even errors must be sandboxed", name)
 		}
+	}
+}
+
+func TestATicketOnlyWorksForTheBrowserItWasIssuedTo(t *testing.T) {
+	app, seen := newApp(t, domain.Private, domain.Running)
+	owner := as("document", "owner-session")
+	owner["User-Agent"] = "Browser-A"
+
+	_, header, _ := (call{path: siteRoot + "echo", headers: owner}).do(t, app)
+	if header.Get("Location") != ticketFor("Browser-A")+"echo" {
+		t.Fatalf("the ticket is issued for the owner's browser, got %q", header.Get("Location"))
+	}
+
+	script := as("script", "")
+	script["User-Agent"] = "Browser-A"
+
+	if got, _, _ := (call{path: header.Get("Location"), headers: script}).do(t, app); got != 200 {
+		t.Fatalf("the same browser must be served, got %d", got)
+	}
+
+	// Someone who copied the address (even forging the headers a script sends) is a different holder.
+	script["User-Agent"] = "curl/8"
+
+	if got, _, _ := (call{path: header.Get("Location"), headers: script}).do(t, app); got != 403 {
+		t.Fatalf("a copied address from another browser must be forbidden, got %d", got)
+	}
+
+	if len(seen) != 1 {
+		t.Errorf("only the owner's own browser may reach the app, requests seen: %d", len(seen))
 	}
 }

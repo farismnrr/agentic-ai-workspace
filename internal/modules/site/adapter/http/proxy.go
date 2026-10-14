@@ -26,7 +26,7 @@ func (h *Handler) serve(c fiber.Ctx) error {
 	}
 
 	userID := h.userID(c)
-	valid := ticket != "" && h.service.ValidTicket(token, ticket)
+	valid := ticket != "" && h.service.ValidTicket(token, h.holder(c), ticket)
 
 	switch site.Decide(domain.Access{UserID: userID, Page: isPage(c), Ticket: valid}) {
 	case domain.AskSignIn:
@@ -58,7 +58,7 @@ func (h *Handler) deliver(c fiber.Ctx, site domain.Site, ticket, rest string, va
 		case valid:
 			segment = ticketPrefix + ticket
 		case owner && isPage(c):
-			segment = ticketPrefix + h.service.Ticket(site.Token)
+			segment = ticketPrefix + h.service.Ticket(site.Token, h.holder(c))
 		}
 	}
 
@@ -90,6 +90,15 @@ func (h *Handler) needsRedirect(c fiber.Ctx, site domain.Site, segment, ticket s
 	bare := strings.HasSuffix(path, "/"+site.Token) || (valid && strings.HasSuffix(path, "/"+ticketPrefix+ticket))
 
 	return c.Params("name") != site.Slug || bare || (segment != "" && !valid)
+}
+
+// holder identifies who a ticket is for: their browser, and their address when it can be trusted.
+func (h *Handler) holder(c fiber.Ctx) string {
+	if h.bindIP {
+		return c.IP() + "|" + c.Get("User-Agent")
+	}
+
+	return c.Get("User-Agent")
 }
 
 func (h *Handler) userID(c fiber.Ctx) string {

@@ -107,7 +107,7 @@ func TestAnAppThatIsDownIsABadGateway(t *testing.T) {
 	}
 	down := fiber.New()
 	pass := func(c fiber.Ctx) error { return c.Next() }
-	NewHandler(service, cookieAuth{}).Mount(pass, pass)(down)
+	NewHandler(service, cookieAuth{}, false).Mount(pass, pass)(down)
 
 	if got, _, _ := (call{path: "/run/sensio/tok/echo", headers: as("document", "")}).do(t, down); got != 502 {
 		t.Fatalf("status %d", got)

@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -74,6 +75,13 @@ func newEnv(t *testing.T) testEnv {
 func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
 	t.Helper()
 
+	return newEnvServing(t, adjust, fstest.MapFS{"index.html": {Data: []byte("<html>")}})
+}
+
+// newEnvServing is newEnvWith with the frontend files the app serves, so a browser can use it.
+func newEnvServing(t *testing.T, adjust func(*config.Config), frontend fs.FS) testEnv {
+	t.Helper()
+
 	root := filepath.Join(t.TempDir(), "workspaces")
 
 	cfg := config.Config{
@@ -101,7 +109,7 @@ func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
 
 	t.Cleanup(stop)
 
-	app := httpserver.New(fstest.MapFS{"index.html": {Data: []byte("<html>")}}, httpserver.Settings{}, mounts...)
+	app := httpserver.New(frontend, httpserver.Settings{}, mounts...)
 
 	workspaceRoots.Store(app, root)
 

@@ -54,7 +54,7 @@ Settings are environment variables, set in the shell or in a `.env` file next to
 | `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | How many web apps (see [sites.md](./sites.md)) one person (default 2) and the whole server (default 6) may keep running. Apps run until stopped. |
 | `MAX_SANDBOXES` | How many checks may run at the same time across all people (default 4). Extra ones wait up to 30 seconds, then are told the server is busy. |
 | `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
-| `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits; without it every visitor behind a tunnel looks like one address. |
+| `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits and to tie private site tickets to the visitor's address; without it every visitor behind a tunnel looks like one address. |
 | `DATA_DIR` | Where accounts and connections are stored (default `data`). Each person's private coding folder lives inside it, under `workspaces/`. |
 
 ## Docker and the sandbox
@@ -74,3 +74,5 @@ make verify
 This checks the frontend, Go code, architecture guardrails, lint rules, tests, and production frontend build.
 
 Development happens on `dev`. A fast GitHub Actions workflow checks and builds every push to `dev`. A full workflow, started manually, repeats all checks, merges `dev` into `main`, and publishes the image to GHCR as `latest`. Pushes to `dev` publish the `dev` image once all checks and an image smoke test pass.
+
+`make e2e-sites` drives a private site with a real signed-out browser (it needs Docker and Playwright: `npm i -g playwright && npx playwright install chromium`). It is not part of `make verify`.
