@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import { proofCopy } from '../../content/tasks-copy';
   import type { Proof } from '../../logic/task-types';
@@ -11,7 +12,7 @@
 </script>
 
 {#if proof === undefined}
-  <p class="rounded-lg border border-dashed border-[var(--brand-border-strong)] p-4 text-[var(--brand-text-secondary)]">{proofCopy.empty}</p>
+  <EmptyState compact bordered icon="shield" title={proofCopy.empty.title} body={proofCopy.empty.body} />
 {:else}
   <p class="flex items-center gap-2 rounded-lg px-3 py-2 font-medium {proof.proven ? 'bg-success/10 text-success' : 'bg-base-200 text-[var(--brand-text-secondary)]'}">
     <Icon name={proof.proven ? 'shield' : 'info'} class="size-5" />{proof.proven ? proofCopy.proven : proofCopy.unproven}

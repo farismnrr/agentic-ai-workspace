@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onDestroy, untrack } from 'svelte';
   import type { Readable } from 'svelte/store';
   import Icon from '../../../shared/ui/Icon.svelte';
@@ -60,7 +61,7 @@
       </div>
     </section>
   {:else}
-    <p class="text-[var(--brand-text-secondary)]">Nothing is waiting on you for this task any more.</p>
+    <EmptyState compact bordered icon="check-circle" title="Nothing is waiting on you here" body="This task no longer needs an answer or your OK." />
   {/if}
   {#if $error !== ''}<p class="text-sm text-error" role="alert">{$error}</p>{/if}
   <a class="link link-hover self-start font-medium text-primary" {href}>Open the whole task</a>

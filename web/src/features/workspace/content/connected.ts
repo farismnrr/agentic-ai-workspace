@@ -1,12 +1,12 @@
 export const connectedAppsCopy = {
   intro: 'Apps like ChatGPT that you let into your spaces. Remove access any time.',
-  empty: 'Nothing is connected yet. Copy a space address under Spaces & tools and add it in your AI app.',
+  empty: { title: 'No apps connected yet', body: 'Copy a space address under Spaces & tools and add it in your AI app, such as ChatGPT.' },
   failed: 'We could not load your connected apps. Please try again in a moment.',
 };
 
 export const spacesCopy = {
   intro: 'A space is a set of tools your AI apps can use. Give an app the address of the space you want it to reach.',
-  empty: 'No spaces are switched on for this server yet.',
+  empty: { title: 'No spaces available', body: 'This server has no spaces switched on yet, so there is nothing to connect an AI app to.' },
   failed: 'We could not load your spaces. Please try again in a moment.',
 };
 
@@ -21,7 +21,7 @@ export const toolGroups = {
 
 export const activityCopy = {
   intro: 'Every step an AI app takes in your spaces, newest first. Changes to files can be undone.',
-  empty: 'Nothing has happened yet. When an AI app uses your spaces, every step shows up here.',
+  empty: { title: 'No activity yet', body: 'When an AI app uses your spaces, every step shows up here.' },
   failed: 'We could not load the activity. Please try again in a moment.',
   outcomes: { ok: 'Done', failed: 'Failed', off: 'Was turned off', forbidden: 'Needed permission' },
   undoErrors: {

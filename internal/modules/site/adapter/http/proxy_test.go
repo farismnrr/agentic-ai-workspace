@@ -28,6 +28,15 @@ func (f fakeService) SetVisibility(context.Context, string, string, string) erro
 	return nil
 }
 func (f fakeService) Socket(string) string { return f.socket }
+
+// goodTicket is the only ticket the fake accepts, for the site with token "tok".
+const goodTicket = "9999999999.good"
+
+func (fakeService) Ticket(string) string { return goodTicket }
+func (fakeService) ValidTicket(token, ticket string) bool {
+	return token == "tok" && ticket == goodTicket
+}
+
 func (f fakeService) Resolve(_ context.Context, token string) (domain.Site, error) {
 	if site, ok := f.sites[token]; ok && site.Status == domain.Running {
 		return site, nil
@@ -140,19 +149,4 @@ func (c call) do(t *testing.T, app *fiber.App) (int, http.Header, string) {
 	body, _ := io.ReadAll(res.Body)
 
 	return res.StatusCode, res.Header, string(body)
-}
-
-// as returns the headers a browser sends for what it is doing: dest is "document" for a page
-// the person opens, or "script", "empty" (fetch) and so on for what a page loads itself.
-func as(dest, cookie string) map[string]string {
-	headers := map[string]string{"Sec-Fetch-Dest": dest, "Sec-Fetch-Mode": "no-cors"}
-	if dest == "document" {
-		headers["Sec-Fetch-Mode"] = "navigate"
-	}
-
-	if cookie != "" {
-		headers["Cookie"] = "session=" + cookie
-	}
-
-	return headers
 }

@@ -43,8 +43,15 @@ func newSites(
 		return nil, nil, fmt.Errorf("resolve sites folder: %w", err)
 	}
 
+	// Tickets are signed with a key made at startup; sites do not outlive a restart either.
+	secret, _, err := opaque.Generator{}.New()
+	if err != nil {
+		return nil, nil, fmt.Errorf("make ticket key: %w", err)
+	}
+
 	service := siteapp.NewService(siteapp.Deps{
-		Store: sitesqlite.NewStore(db), Runtime: siteruntime.New(engine, folders, base), Projects: projects,
+		Secret: []byte(secret),
+		Store:  sitesqlite.NewStore(db), Runtime: siteruntime.New(engine, folders, base), Projects: projects,
 		Notify: hubNotifier{hub: hub}, IDs: uuids{}, Now: time.Now,
 		Limits: siteapp.Limits{PerUser: cfg.SiteMaxPerUser, Total: cfg.SiteMaxTotal},
 	})

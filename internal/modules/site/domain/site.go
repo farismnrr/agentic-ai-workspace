@@ -82,21 +82,50 @@ func (s Site) BasePath() string {
 	return "/run/" + s.Slug + "/" + s.Token
 }
 
-// CanView decides whether a request may be answered. document is true for a page the
-// browser navigates to and false for what a page loads itself (scripts, styles, fetches).
-//
-// Pages of a private site need the signed-in owner. A page's own loads cannot: the browser
-// runs it in a sandbox without the person's login, so they are protected by the token in
-// the address instead, which only someone who opened the site has.
-func (s Site) CanView(userID string, document bool) bool {
+// Access describes one request to a site.
+type Access struct {
+	// UserID is the signed-in person, or empty.
+	UserID string
+	// Page is true for a GET the browser navigates to, a page the person opens; false for
+	// what a page loads itself (scripts, styles, fetches) and for form posts.
+	Page bool
+	// Ticket is true when the address carries a valid, unexpired ticket.
+	Ticket bool
+}
+
+// Verdict is what to do with a request.
+type Verdict int
+
+// Verdicts.
+const (
+	// Allow forwards the request to the app.
+	Allow Verdict = iota
+	// AskSignIn answers a page request with a page that asks the person to sign in.
+	AskSignIn
+	// Deny answers 403.
+	Deny
+	// Missing answers 404: the site is not running.
+	Missing
+)
+
+// Decide applies the rules. A public site answers anyone. A private site answers its
+// signed-in owner, and otherwise only a request carrying a ticket that is not a page: the
+// browser runs a page in a sandbox without the person's login, so what the page loads is
+// authorised by the ticket the owner's visit put in the address. A page itself always
+// needs the owner, and the uuid alone never opens anything.
+func (s Site) Decide(a Access) Verdict {
 	switch {
 	case s.Status != Running:
-		return false
+		return Missing
 	case s.Visibility == Public:
-		return true
-	case !document:
-		return true
+		return Allow
+	case a.UserID != "" && a.UserID == s.UserID:
+		return Allow
+	case a.Page:
+		return AskSignIn
+	case a.Ticket:
+		return Allow
 	}
 
-	return userID != "" && userID == s.UserID
+	return Deny
 }

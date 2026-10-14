@@ -19,7 +19,7 @@ export const homeCopy = {
 };
 
 export const proofCopy = {
-  empty: "Proof shows up here once the work has been finished and checked. You'll see what changed and what was tested.",
+  empty: { title: 'No proof yet', body: "It shows up once the work is finished and checked, with what changed and what was tested." },
   proven: 'Proven to work',
   unproven: 'Not independently checked',
   verified: 'Checked by the app',

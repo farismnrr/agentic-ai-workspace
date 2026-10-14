@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import { spacesCopy } from '../content/connected';
   import { loadSpaces, type ConnectorSpace } from '../logic/connectors-api';
@@ -28,7 +29,7 @@
 {:else if failed}
   <p class="text-error" role="alert">{spacesCopy.failed}</p>
 {:else if space === undefined}
-  <p class="text-[var(--brand-text-secondary)]">{spacesCopy.empty}</p>
+  <EmptyState bordered icon="box" title={spacesCopy.empty.title} body={spacesCopy.empty.body} />
 {:else}
   <div class="mb-8 grid items-start gap-4 md:grid-cols-[11rem_1fr]">
     <div>

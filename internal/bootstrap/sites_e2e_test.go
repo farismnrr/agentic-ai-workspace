@@ -41,16 +41,23 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 		t.Fatalf("the thread must offer a link under /run, got %q", url)
 	}
 
-	owner := map[string]string{"Cookie": a.cookie, "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document"}
+	page := map[string]string{"Cookie": a.cookie, "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document"}
 	anonymous := map[string]string{"Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document"}
+	script := map[string]string{"Sec-Fetch-Mode": "no-cors", "Sec-Fetch-Dest": "script"}
 
-	expectSandboxedPage(t, a, url, owner)
+	ticketed := expectOwnerOpens(t, a, url, page)
 
-	if got := do(t, a.env.app, "GET", url, "", anonymous).Status; got != 404 {
-		t.Fatalf("a private site must not open for an anonymous visitor, got %d", got)
+	// Private means private: neither a stranger's page nor a script request that merely knows the address.
+	for name, headers := range map[string]map[string]string{"page": anonymous, "script": script} {
+		if got := do(t, a.env.app, "GET", url, "", headers).Status; got != 403 {
+			t.Fatalf("an anonymous %s request to a private site must be forbidden, got %d", name, got)
+		}
 	}
 
-	listed := do(t, a.env.app, "GET", "/api/sites", "", owner).Body
+	// What the page loads itself carries the ticket the owner's visit put in the address.
+	mustContain(t, do(t, a.env.app, "GET", ticketed, "", script).Body, "hello site")
+
+	listed := do(t, a.env.app, "GET", "/api/sites", "", page).Body
 	mustContain(t, listed, `"status":"running"`, `"visibility":"private"`, url)
 
 	a.expectStatus(t, "PATCH", "/api/sites/"+a.project, `{"visibility":"public"}`, 204)
@@ -58,9 +65,25 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 
 	a.expectStatus(t, "POST", "/api/sites/"+a.project+"/stop", "", 204)
 
-	if got := do(t, a.env.app, "GET", url, "", owner).Status; got != 404 {
+	if got := do(t, a.env.app, "GET", url, "", page).Status; got != 404 {
 		t.Fatalf("a stopped site must be gone, got %d", got)
 	}
+}
+
+// expectOwnerOpens follows the owner's visit: a redirect to a ticketed address, then a sandboxed page.
+func expectOwnerOpens(t *testing.T, a agentRig, url string, headers map[string]string) string {
+	t.Helper()
+
+	redirect := do(t, a.env.app, "GET", url, "", headers)
+	ticketed := redirect.Header.Get("Location")
+
+	if redirect.Status != 302 || !strings.Contains(ticketed, "/~") {
+		t.Fatalf("the owner must be sent to a ticketed address, got %d %q", redirect.Status, ticketed)
+	}
+
+	expectSandboxedPage(t, a, ticketed, headers)
+
+	return ticketed
 }
 
 func expectSandboxedPage(t *testing.T, a agentRig, url string, headers map[string]string) {

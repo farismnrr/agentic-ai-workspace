@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import { sitesCopy } from '../content/sites-copy';
   import { describeSiteError } from '../logic/site-errors';
@@ -47,7 +48,9 @@
   {#if error !== ''}<p class="mt-3 text-error" role="alert">{error}</p>{/if}
 
   {#if $sites.length === 0}
-    <p class="mt-10 text-[var(--brand-text-secondary)]">{sitesCopy.none}</p>
+    <EmptyState class="mt-6" bordered icon="globe" title={sitesCopy.empty.title} body={sitesCopy.empty.body}>
+      <a class="btn btn-primary btn-sm rounded-lg" href="/app">{sitesCopy.empty.action}</a>
+    </EmptyState>
   {:else}
     <div class="mt-6 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
       <ul class="divide-y divide-[var(--brand-border)]">

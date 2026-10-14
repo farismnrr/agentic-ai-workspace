@@ -19,6 +19,7 @@ type Deps struct {
 	Notify   Notifier
 	IDs      IDs
 	Now      func() time.Time
+	Secret   []byte
 	Limits   Limits
 }
 
