@@ -26,7 +26,7 @@ This file is the source of truth for AI agents working in this repository. It co
 3. Node.js, Vite, Tailwind CSS, and daisyUI are build-time dependencies only.
 4. Do not add a second runtime server, frontend port, or reverse proxy without explicit approval.
 5. Do not add hot reload or a dev-server workflow. Supported execution is `build -> run binary`.
-6. `make run` must verify and build before running the binary (unlike a build-if-missing flow, it always rebuilds so the binary never goes stale).
+6. `make run` always verifies and rebuilds before running, so the binary never goes stale.
 7. `backend-build` always uses `CGO_ENABLED=0`, so local and release binaries are the same static, single-file artifact.
 
 ## Clean Architecture dependency rule
@@ -62,7 +62,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 ## Backend rules
 
 1. Keep `cmd/` to process startup only.
-2. Organize business behavior by feature, then by Clean Architecture layer.
+2. Organize business behavior by feature, then layer (see Folder structure).
 3. Avoid catch-all `helpers`, `utils`, `common`, or `misc` packages.
 4. Extract shared code only after real reuse exists and give it one concrete responsibility.
 5. Runtime environment access belongs in `internal/platform/config`.
@@ -72,18 +72,15 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 ## Frontend rules
 
 1. Human-authored code and tooling under `web/` must use TypeScript where applicable. `.js`, `.jsx`, `.mjs`, and `.cjs` are forbidden outside dependencies.
-2. Svelte components with scripts must use `<script lang="ts">`.
-3. TypeScript strictness must not be weakened to hide errors.
-4. Use Svelte and daisyUI as the default UI layer.
-5. Before creating frontend UI or logic, inspect existing `web/src/shared/ui/`, focused shared logic under `web/src/shared/`, feature-local reusable code, and the current daisyUI component set.
-6. Reuse order is mandatory: existing local reusable component or logic -> daisyUI component or pattern -> Tailwind utilities -> custom CSS only when necessary.
-7. Do not recreate generic controls that daisyUI already provides adequately, including buttons, inputs, selects, textareas, cards, badges, alerts, tabs, dropdowns, modals, tooltips, loading states, and similar primitives. Adapt them with semantic classes, composition, props, and the existing theme instead.
-8. Every frontend change must use the existing design-system theme and semantic roles. Do not introduce a parallel palette, one-off theme, or hard-coded brand styling inside a feature.
-9. Reusable UI lives in `web/src/shared/ui/`; focused shared logic lives under `web/src/shared/`.
-10. Keep feature-specific UI and logic local until real reuse exists. When the same project-specific pattern is reused across features or screens, extract one reusable component or focused shared module instead of copying it.
-11. Feature code belongs in `web/src/features/<feature>/`; app composition belongs in `web/src/app/`.
-12. Prefer props, slots/snippets, composition, and existing helpers over copied markup or duplicated behavior.
-13. Generated SPA output is not source and must never be manually edited.
+2. Svelte components with scripts use `<script lang="ts">`; never weaken TypeScript strictness to hide errors.
+3. Use Svelte and daisyUI as the default UI layer.
+4. Before creating frontend UI or logic, inspect existing `web/src/shared/ui/`, focused shared logic under `web/src/shared/`, feature-local reusable code, and the current daisyUI component set.
+5. Reuse order is mandatory: existing local reusable component or logic -> daisyUI component or pattern -> Tailwind utilities -> custom CSS only when necessary.
+6. Do not recreate generic controls that daisyUI already provides adequately, including buttons, inputs, selects, textareas, cards, badges, alerts, tabs, dropdowns, modals, tooltips, loading states, and similar primitives. Adapt them with semantic classes, composition, props, and the existing theme instead.
+7. Every frontend change must use the existing design-system theme and semantic roles. Do not introduce a parallel palette, one-off theme, or hard-coded brand styling inside a feature.
+8. Keep feature-specific UI and logic local until real reuse exists. When the same project-specific pattern is reused across features or screens, extract one reusable component or focused shared module instead of copying it.
+9. Prefer props, slots/snippets, composition, and existing helpers over copied markup or duplicated behavior.
+10. Generated SPA output is not source and must never be manually edited.
 
 ## Design system rules
 
@@ -109,47 +106,69 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 4. Frontend functions are limited by ESLint to 60 lines and complexity 10.
 5. Split code by responsibility, never into meaningless `part1` / `part2` files just to pass the limit.
 
+## Folder structure
+
+Folders express responsibility. Each folder has one reason to change; add a subfolder when a folder holds more than about 8 files or mixes two responsibilities.
+
+```text
+cmd/<binary>/main.go                      process startup only
+internal/bootstrap/                       composition root
+internal/platform/<concern>/              config, httpserver, webassets, ...
+internal/modules/<feature>/
+  domain/                                 entities, value objects, rules, errors
+  application/                            use cases + consumer-owned ports
+  adapter/<technology>/                   http, persistence, ... one folder per technology
+web/src/app/                              shell, router, composition
+web/src/features/<feature>/               components/, content/, assets/, logic/ by role
+web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ features
+```
+
+1. Import direction is `app -> features -> shared` on the frontend and `adapter -> application -> domain` on the backend. Features never import other features, and `shared` never imports a feature; promote the code to `shared` once two features need it. The only inward exception is the route store in `app/router`. `scripts/check-guardrails.sh` enforces this.
+2. Go packages are lowercase nouns named after their folder; Svelte components are `PascalCase.svelte`; TypeScript modules are `kebab-case.ts`; tests sit beside their code.
+3. Name folders by responsibility (`thread`, `settings`, `httpserver`), never by kind-of-file buckets such as `helpers`, `utils`, `misc`, or `types`.
+4. A new feature gets its layer/role folders from the start; do not grow a flat folder and split it later.
+5. When code moves between folders, update this section, `docs/system-design.md`, and the guardrails in the same change.
+
+## Branch workflow
+
+1. `dev` is the default working branch for features, fixes, refactors, docs, and CI changes. Start work from `dev` and push to `dev`.
+2. `main` is the production branch. It is updated only by the full release workflow merging a `dev` -> `main` pull request. Never commit, push, or force-push to `main`.
+3. Never delete `dev` or `main`; the release merge must not delete the head branch.
+
 ## Verification and CI
 
-1. `make verify` is the mandatory local quality gate.
-2. `make build` verifies before producing the binary.
-3. Go uses strict golangci-lint checks for correctness, security, architecture, formatting, and complexity.
-4. Frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
-5. Warnings fail verification. Fix diagnostics instead of silencing them unless a narrow suppression is justified.
-6. `//nolint` must name the linter and explain the exception.
-7. `.github/workflows/quality.yml` runs on every push and pull request and must preserve the semantic equivalent of `make verify` plus final binary compilation.
-8. Independent checks should run in parallel when safe.
-9. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`.
-10. Third-party GitHub Actions are pinned to full commit SHAs with the intended version documented beside them.
-11. CI defaults to least-privilege read-only permissions. Grant write permission only to the job that truly requires it.
-12. CI verifies dependency metadata drift instead of silently fixing it.
-13. A change is incomplete while quality CI is failing.
+1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary.
+2. Go uses strict golangci-lint; the frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
+3. Warnings fail verification. Fix diagnostics instead of silencing them. `//nolint` must name the linter and explain the exception.
+4. Keep exactly two workflow files in `.github/workflows/`: `fast.yml` and `full.yml`. Neither gets extra files or full-release auto-triggers without approval. Shared setup lives in `.github/actions/`.
+5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs `make verify` equivalents, builds the single `linux/amd64` static binary, and smoke-tests it (starts, serves `/` and an API route). Checks run in parallel and the build is not repeated. Documentation-only changes skip it.
+6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. It repeats every fast check from a clean checkout, builds and smoke-tests the release binary, and only then merges `dev` -> `main` and publishes the rolling release.
+7. Fast stays quicker than full by skipping clean-room rebuilds, cross-checks, merging, and publishing. It must never skip a lint, type, test, or guardrail gate.
+8. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`. CI verifies dependency drift instead of fixing it.
+9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
+10. Permissions default to read-only; write permission belongs only to the full release job.
+11. A change is incomplete while CI is failing.
 
 ## Rolling GitHub release
 
-1. Every successful push to `main` must publish the verified Linux binary to GitHub Releases.
-2. Keep exactly one rolling release identity: tag `latest`, release title `Latest`.
-3. Do not create semantic, dated, or per-commit release versions unless the user explicitly changes this rule.
-4. The release asset is the built binary only, named `agentic-ai-workspace-linux-amd64`.
-5. Build once in the quality gate and publish that verified binary; do not rebuild different source for release.
-6. A newer successful `main` push moves `latest` to that commit and replaces the existing asset.
-7. Release publication must depend on all quality checks passing and must never run for pull requests.
-8. Keep release write permission isolated to the release job.
-9. Rolling replacement requires mutable releases. If repository immutable releases are enabled, fail clearly rather than creating parallel versioned releases.
+1. Only a successful full workflow publishes a release. Pushes to `dev` and pull requests never do.
+2. Keep exactly one rolling release identity: tag `latest`, title `Latest`. No semantic, dated, or per-commit versions unless the user changes this rule.
+3. The asset is the verified binary only, named `agentic-ai-workspace-linux-amd64`. Publish the binary built in that run; never rebuild different source.
+4. A newer release moves `latest` to the merged `main` commit and replaces the asset. If immutable releases are enabled, fail clearly instead of creating versioned releases.
 
-## Frontend lessons
+## Frontend and routing lessons
 
-1. Headings get `font-display` from the base layer in `web/src/app.css`; do not repeat it per component. Serif is for section headlines only; the navbar and footer wordmark use Inter 600, and the logo is the inline stroke SVG in `LogoMark.svelte`.
-2. Scroll reveals use the `reveal` action in `web/src/shared/motion/`, and the hidden state exists only under `prefers-reduced-motion: no-preference` with the `js-reveal` root class, so content never stays invisible.
-3. Below-the-fold sections load through `LazySection`. Give the placeholder the section `id` so anchor links keep working.
-4. Favicon, touch icon, and manifest are static files in `web/public/`. Vite copies them into the embedded `dist/`, and Go serves hashed `/assets/*` as immutable with `index.html` set to `no-cache`.
-
-## Routing and auth lessons
-
-1. The SPA has no router library: `web/src/app/router.ts` is a small History API router over a Svelte store, and `App.svelte` switches pages. Adding a route only needs a change there; the Go fallback already serves the shell.
-2. The Go SPA fallback must force status 200, because the static middleware marks unmatched client routes as 404 before falling through. Missing `/assets/*` files stay real 404s.
-3. Login and register are UI only until the user asks for backend auth; do not add auth endpoints or fake success.
-4. `.svelte.ts` rune modules are not parsed by the current ESLint config; keep shared state in plain `.ts` (stores) instead of editing the lint config.
+1. Headings get `font-display` from the base layer in `web/src/app.css`. Serif is for section headlines only; navbar and footer wordmarks use Inter 600; the logo is the inline stroke SVG in `LogoMark.svelte`.
+2. Scroll reveals use the `reveal` action in `web/src/shared/motion/`; the hidden state exists only under `prefers-reduced-motion: no-preference` with the `js-reveal` root class. Below-the-fold sections use `LazySection` with the section `id` on the placeholder.
+3. Favicon, touch icon, and manifest are static files in `web/public/`; Go serves hashed `/assets/*` as immutable and `index.html` as `no-cache`.
+4. The SPA has no router library: `web/src/app/router.ts` is a History API router over a store of parsed routes. Add static paths to `staticRoutes` and `/app/*` patterns to `appPatterns`. The Go fallback must force status 200; missing `/assets/*` stay 404.
+5. Login, register, and the workspace (`/app/*`) are UI only with mock data in `content/`; actions show a preview notice, never fake success. Do not add auth endpoints until asked. Tasks live under a project; the Inbox is derived from tasks.
+6. The workspace uses the compact `app-ui` scale from `shell/AppShell.svelte` (14px text, hairline-divided flat rows, no card shadows, `btn-sm`, `h-10` inputs). Pages declare `spacious`, `dense`, or `split` width; split pages own their height and scroll inside panes. Home's greeting is the only serif.
+7. Task status looks come only from `content/status.ts`; history is the typed `TaskEvent` union rendered by `task/thread/EventItem.svelte`; counts are computed in `content/stats.ts`. `content/tasks/index.ts` stays newest first.
+8. The sidebar is the task navigator and the composer is one component (`components/ComposerBox.svelte`). Consecutive actions collapse into one line (`task/thread/blocks.ts`).
+9. Settings use `settings/parts/` with tabs driven by `settings/settings-nav.ts`; create-style forms open in a daisyUI `modal`.
+10. Icon names live in `shared/ui/icon-names.ts`; `Icon.svelte` holds only the paths.
+11. Required bindable props are declared `value?: string | undefined` with `$bindable('')`. `.svelte.ts` rune modules are not parsed by ESLint; keep shared state in plain `.ts` stores.
 
 ## Reuse and change discipline
 
