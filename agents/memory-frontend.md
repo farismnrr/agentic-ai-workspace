@@ -1,0 +1,15 @@
+# Frontend memory
+
+Durable lessons about the Svelte frontend and routing, kept for AI agents. Add one only when it is likely to matter again; fix stale facts instead of appending contradictions.
+
+1. Headings get `font-display` from the base layer in `web/src/app.css`. Serif is for section headlines only; navbar and footer wordmarks use Inter 600; the logo is the inline stroke SVG in `LogoMark.svelte`.
+2. Scroll reveals use the `reveal` action in `web/src/shared/motion/`; the hidden state exists only under `prefers-reduced-motion: no-preference` with the `js-reveal` root class. Below-the-fold sections use `LazySection` with the section `id` on the placeholder.
+3. Favicon, touch icon, and manifest are static files in `web/public/`; Go serves hashed `/assets/*` as immutable and `index.html` as `no-cache`.
+4. The SPA has no router library: `web/src/app/router.ts` is a History API router over a store of parsed routes. Add static paths to `staticRoutes` and `/app/*` patterns to `appPatterns`. The Go fallback must force status 200; missing `/assets/*` stay 404.
+5. Every workspace screen talks to the real API (`logic/*-api.ts`, plain-TS stores in `logic/workspace-store.ts` kept fresh by `AppShell`, `logic/thread.ts` for one task); `/app/*` requires a session. `content/` holds copy only, never sample data. Never fake success; a page without a backend says so plainly. Notifications are per device (`logic/notify.ts`, localStorage + Notification API). The Inbox and counts are derived from tasks in `logic/derive.ts`.
+6. The workspace uses the compact `app-ui` scale from `shell/AppShell.svelte` (14px text, hairline-divided flat rows, no card shadows, `btn-sm`, `h-10` inputs). Pages declare `spacious`, `dense`, or `split` width; split pages own their height and scroll inside panes. Home's greeting is the only serif.
+7. Task status looks come only from `content/status.ts`; the thread is the typed `TaskEvent` union from the API rendered by `task/thread/EventItem.svelte`; consecutive actions collapse (`task/thread/blocks.ts`); the composer is one component (`components/ComposerBox.svelte`).
+8. The agent loop (`modules/task`) rebuilds from the stored transcript, so a task can pause for an answer and resume. Proof is derived only from tasks the server ran (`application/proof.go`), never from the agent's claims. API keys are read only through `provider.Service.Credential`.
+9. Settings use `settings/parts/` with tabs driven by `settings/settings-nav.ts`; create-style forms open in a daisyUI `modal`.
+10. Icon names live in `shared/ui/icon-names.ts`; `Icon.svelte` holds only the paths.
+11. Required bindable props are declared `value?: string | undefined` with `$bindable('')`. `.svelte.ts` rune modules are not parsed by ESLint; keep shared state in plain `.ts` stores.
