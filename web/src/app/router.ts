@@ -1,15 +1,71 @@
 import { writable } from 'svelte/store';
 
-export type Route = 'landing' | 'login' | 'register';
+export type SettingsTab = 'models' | 'persona' | 'spaces' | 'connected' | 'activity' | 'usage' | 'notifications' | 'account';
 
-const routes: Record<string, Route> = { '/': 'landing', '/login': 'login', '/register': 'register' };
+export type Route =
+  | { name: 'landing' }
+  | { name: 'login' }
+  | { name: 'register' }
+  | { name: 'consent' }
+  | { name: 'home' }
+  | { name: 'inbox'; taskId?: string }
+  | { name: 'projects' }
+  | { name: 'project'; projectId: string }
+  | { name: 'task'; projectId: string; taskId: string }
+  | { name: 'settings'; tab: SettingsTab };
 
-const resolve = (path: string): Route => routes[path.replace(/(.)\/$/, '$1')] ?? 'landing';
+const settingsTabs: readonly string[] = ['models', 'persona', 'spaces', 'connected', 'activity', 'usage', 'notifications', 'account'];
+
+const isSettingsTab = (value: string | undefined): value is SettingsTab => value !== undefined && settingsTabs.includes(value);
+
+const staticRoutes: Record<string, Route> = {
+  '/': { name: 'landing' },
+  '/login': { name: 'login' },
+  '/register': { name: 'register' },
+  '/oauth/consent': { name: 'consent' },
+  '/app': { name: 'home' },
+  '/app/inbox': { name: 'inbox' },
+  '/app/projects': { name: 'projects' },
+  '/app/settings': { name: 'settings', tab: 'models' },
+};
+
+const appPatterns: [RegExp, (match: string[]) => Route | undefined][] = [
+  [/^\/app\/inbox\/([^/]+)$/, ([, taskId]) => (taskId === undefined ? undefined : { name: 'inbox', taskId })],
+  [/^\/app\/projects\/([^/]+)$/, ([, projectId]) => (projectId === undefined ? undefined : { name: 'project', projectId })],
+  [
+    /^\/app\/projects\/([^/]+)\/tasks\/([^/]+)$/,
+    ([, projectId, taskId]) => (projectId === undefined || taskId === undefined ? undefined : { name: 'task', projectId, taskId }),
+  ],
+  [/^\/app\/settings\/([^/]+)$/, ([, tab]) => (isSettingsTab(tab) ? { name: 'settings', tab } : undefined)],
+];
+
+function matchApp(path: string): Route | undefined {
+  for (const [pattern, build] of appPatterns) {
+    const match = pattern.exec(path);
+    const route = match === null ? undefined : build(match);
+    if (route !== undefined) return route;
+  }
+  return undefined;
+}
+
+/** Returns the route for a path, or undefined when the path is not an app route. */
+export function matchRoute(path: string): Route | undefined {
+  const clean = path.replace(/(.)\/$/, '$1');
+  const fixed = staticRoutes[clean];
+  if (fixed !== undefined) return fixed;
+  return matchApp(clean);
+}
+
+const pathOf = (url: string): string => url.split(/[?#]/)[0] ?? url;
+
+const resolve = (url: string): Route => matchRoute(pathOf(url)) ?? { name: 'landing' };
 
 export const route = writable<Route>(resolve(window.location.pathname));
 
-export function navigate(path: string): void {
-  window.history.pushState({}, '', path);
+/** Moves to a same-site URL (query allowed); `replace` skips adding a history entry. */
+export function navigate(path: string, replace = false): void {
+  if (replace) window.history.replaceState({}, '', path);
+  else window.history.pushState({}, '', path);
   route.set(resolve(path));
   window.scrollTo(0, 0);
 }
@@ -29,7 +85,7 @@ const internalAnchor = (event: MouseEvent): HTMLAnchorElement | undefined => {
 /** Turns plain same-origin clicks on known routes into client-side navigation. */
 export function interceptLinkClick(event: MouseEvent): void {
   const anchor = isPlainClick(event) ? internalAnchor(event) : undefined;
-  if (anchor !== undefined && anchor.pathname in routes && anchor.hash === '') {
+  if (anchor?.hash === '' && matchRoute(anchor.pathname) !== undefined) {
     event.preventDefault();
     navigate(anchor.pathname);
   }

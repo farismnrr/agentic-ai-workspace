@@ -147,6 +147,19 @@ The logo is a rounded primary-olive tile with a white "o..n" mark, set beside th
 
 Forms use daisyUI inputs and the primary pill button. Every field has a visible label, errors appear as text under the field after it is touched or the form is submitted, and the password fields have a real show/hide button. The password strength meter always pairs its bars with a text label. These screens are UI only for now: nothing is sent to a server.
 
+## Workspace screens
+
+The signed-in workspace lives under `/app`: Home, Inbox, Projects, a project (Tasks, About), a task, and Settings. It uses a compact app scale rather than the landing-page scale: 14px text, small radii, sans headings, flat rows separated by hairlines, and no card shadows (only the composer and popovers float). Colors are exactly the theme's roles.
+
+- **Sidebar:** New task, Search (Ctrl/Cmd+K), Inbox, All projects, then recent tasks grouped by day with a status dot and relative time, and a collapsible Projects list. Settings and the account menu sit at the bottom. It collapses to an icon rail on desktop and becomes a drawer on phones.
+- **Home:** the app opens on the composer (project picker, attach, how much it should ask you, send), then a short "Needs you" list and what is running. The greeting is the one serif moment.
+- **Inbox:** a list beside a detail pane. It gathers what needs the user (a permission request, a question, a finished task to review, a task that couldn't finish). It is not a global task list.
+- **Task:** a conversation next to a work panel. The user's message is a soft bubble; the assistant's reply is plain text. Consecutive actions fold into one expandable line, and only questions, permission requests, and results appear as cards. The work panel has Plan, Proof (before and after, what was checked), Changes, Preview, and Files. On phones these become tabs. The composer sits at the bottom.
+
+- **Settings:** a grouped left nav (AI, Preferences, Account) beside sections made of plain rows: the label and a short description on the left, the control on the right, hairline dividers, no cards around single controls. Adding a provider opens a dialog. Pages with editable values end with a sticky Save bar that reports success or failure. On phones the nav becomes a scrolling row of tabs.
+
+Task status is always an icon plus a text label (Waiting to start, Making a plan, Working on it, Needs your answer, Ready for your review, Done, Needs attention), never color alone. Permission requests show the exact action, a risk label, and two choices (Allow, Don't allow). Project tiles use the brand trio through `primary`, `secondary`, and `accent`, picked from the project id. Proof separates what the app verified from what the AI only claimed, and the "Proven to work" stamp appears only for verified, passing checks. Screens never show sample data or pretend buttons; destructive account actions (delete tasks, delete account) ask for confirmation, and deleting the account also asks for the password.
+
 ## Accessibility
 
 For normal text, target WCAG AA contrast. Focus indicators must remain easy to see in both themes.

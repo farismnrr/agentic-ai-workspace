@@ -35,3 +35,6 @@ Thumbs.db
 
 # Loose design exploration (the logo ships as LogoMark.svelte and web/public icons)
 assets/Minimal_logo_mark_*.jpg
+
+# Local runtime data (SQLite database, signing key)
+data/

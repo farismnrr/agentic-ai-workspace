@@ -156,16 +156,24 @@ web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ fe
 3. The asset is the verified binary only, named `agentic-ai-workspace-linux-amd64`. Publish the binary built in that run; never rebuild different source.
 4. A newer release moves `latest` to the merged `main` commit and replaces the asset. If immutable releases are enabled, fail clearly instead of creating versioned releases.
 
+## Backend platform lessons
+
+1. Migrations in `internal/platform/database/migrations/` are an append-only journal with checksums: never edit or delete an applied file; every schema or query change is a new numbered file. Startup fails if history was altered.
+2. The server is its own OAuth 2.1 authorization server (`modules/oauth`) and hosts MCP spaces (`modules/space`; first is `modules/coding` at `/api/coding`). Tokens are opaque and stored hashed; a space accepts only tokens whose `resource` is its own URL. Features meet only in `internal/bootstrap/bridges.go`. Open endpoints (sign-in, sign-up, OAuth) stay rate limited via `bootstrap/limits.go`.
+3. Discovery contract: protected resource metadata at `/.well-known/oauth-protected-resource/api/<slug>`, server metadata at `/.well-known/oauth-authorization-server` and `openid-configuration`, CIMD (SSRF-guarded, public IPs only), DCR, PKCE S256, RFC 9207 `iss`. Keep `internal/bootstrap/e2e_test.go` passing when touching any of it.
+4. A new space is a `space.Space` plus a bootstrap mount, never an `oauth` special case; the coding space is off unless `CODING_WORKSPACE_ROOT` is set (keep `DATA_DIR` outside it). `coding/domain.Tools()` is the single tool catalogue; calls pass permission, then scope, then run, are always logged, and no tool may reach `.workspace/` (task definitions). Write and run stay separate scopes, Off by default.
+5. Adapters answer errors with `c.Status(n).JSON(httpserver.Failure(code))`; returning a wrapped error after writing a response makes Fiber overwrite it with a 500. Direct Q&A uses `modules/chat` with SSE and one-click task escalation to `modules/task`.
+
 ## Frontend and routing lessons
 
 1. Headings get `font-display` from the base layer in `web/src/app.css`. Serif is for section headlines only; navbar and footer wordmarks use Inter 600; the logo is the inline stroke SVG in `LogoMark.svelte`.
 2. Scroll reveals use the `reveal` action in `web/src/shared/motion/`; the hidden state exists only under `prefers-reduced-motion: no-preference` with the `js-reveal` root class. Below-the-fold sections use `LazySection` with the section `id` on the placeholder.
 3. Favicon, touch icon, and manifest are static files in `web/public/`; Go serves hashed `/assets/*` as immutable and `index.html` as `no-cache`.
 4. The SPA has no router library: `web/src/app/router.ts` is a History API router over a store of parsed routes. Add static paths to `staticRoutes` and `/app/*` patterns to `appPatterns`. The Go fallback must force status 200; missing `/assets/*` stay 404.
-5. Login, register, and the workspace (`/app/*`) are UI only with mock data in `content/`; actions show a preview notice, never fake success. Do not add auth endpoints until asked. Tasks live under a project; the Inbox is derived from tasks.
+5. Every workspace screen talks to the real API (`logic/*-api.ts`, plain-TS stores in `logic/workspace-store.ts` kept fresh by `AppShell`, `logic/thread.ts` for one task); `/app/*` requires a session. `content/` holds copy only, never sample data. Never fake success; a page without a backend says so plainly. Notifications are per device (`logic/notify.ts`, localStorage + Notification API). The Inbox and counts are derived from tasks in `logic/derive.ts`.
 6. The workspace uses the compact `app-ui` scale from `shell/AppShell.svelte` (14px text, hairline-divided flat rows, no card shadows, `btn-sm`, `h-10` inputs). Pages declare `spacious`, `dense`, or `split` width; split pages own their height and scroll inside panes. Home's greeting is the only serif.
-7. Task status looks come only from `content/status.ts`; history is the typed `TaskEvent` union rendered by `task/thread/EventItem.svelte`; counts are computed in `content/stats.ts`. `content/tasks/index.ts` stays newest first.
-8. The sidebar is the task navigator and the composer is one component (`components/ComposerBox.svelte`). Consecutive actions collapse into one line (`task/thread/blocks.ts`).
+7. Task status looks come only from `content/status.ts`; the thread is the typed `TaskEvent` union from the API rendered by `task/thread/EventItem.svelte`; consecutive actions collapse (`task/thread/blocks.ts`); the composer is one component (`components/ComposerBox.svelte`).
+8. The agent loop (`modules/task`) rebuilds from the stored transcript, so a task can pause for an answer and resume. Proof is derived only from tasks the server ran (`application/proof.go`), never from the agent's claims. API keys are read only through `provider.Service.Credential`.
 9. Settings use `settings/parts/` with tabs driven by `settings/settings-nav.ts`; create-style forms open in a daisyUI `modal`.
 10. Icon names live in `shared/ui/icon-names.ts`; `Icon.svelte` holds only the paths.
 11. Required bindable props are declared `value?: string | undefined` with `$bindable('')`. `.svelte.ts` rune modules are not parsed by ESLint; keep shared state in plain `.ts` stores.
@@ -180,15 +188,7 @@ web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ fe
 
 ## Self-improvement and repository memory
 
-For every meaningful task, follow: **observe -> diagnose -> plan -> implement -> verify -> reflect -> codify**.
-
-- Observe the repository, tests, logs, CI, and current official documentation.
-- Diagnose concrete evidence separately from assumptions.
-- Plan the smallest coherent change that preserves architecture and reuse rules.
-- Implement in the correct boundary.
-- Verify the actual behavior and the canonical quality path.
-- Reflect on whether the task exposed a repeatable engineering lesson.
-- Codify durable lessons as a test, reusable abstraction, guardrail, or concise memory in this file.
+For every meaningful task, follow: **observe -> diagnose -> plan -> implement -> verify -> reflect -> codify**. Read the repository, tests, logs, CI, and current docs; separate evidence from assumptions; make the smallest coherent change in the correct boundary; verify behavior and the canonical quality path; codify durable lessons as a test, reusable abstraction, guardrail, or concise memory here.
 
 Before finishing a meaningful task, review this file as repository memory:
 
