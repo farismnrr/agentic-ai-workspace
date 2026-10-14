@@ -14,6 +14,7 @@ const (
 	EventApproval EventKind = "approval"
 	EventError    EventKind = "error"
 	EventReceipt  EventKind = "receipt"
+	EventSite     EventKind = "site"
 )
 
 // Risk grades how careful the agent must be before a step.
@@ -54,6 +55,8 @@ type Event struct {
 	Resolved  string    `json:"resolved,omitempty"`
 	Answered  string    `json:"answered,omitempty"`
 	Hint      string    `json:"hint,omitempty"`
+	// URL is where a running site can be opened (EventSite only).
+	URL string `json:"url,omitempty"`
 	// ToolUseID links an approval or question to the model's pending tool call.
 	ToolUseID string   `json:"-"`
 	Options   []string `json:"options,omitempty"`

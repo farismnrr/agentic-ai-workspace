@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
@@ -87,7 +88,7 @@
           <button class="btn btn-ghost btn-xs btn-square" type="button" aria-label="Remove {check.name}" onclick={() => (removing = check)}><Icon name="trash" class="size-4" /></button>
         </li>
       {:else}
-        <li class="p-4 text-[var(--brand-text-secondary)]">{projectsCopy.checks.none} For example: {projectsCopy.checks.examples.join(', ')}.</li>
+        <li><EmptyState compact icon="check-square" title={projectsCopy.checks.empty.title} body="{projectsCopy.checks.empty.body} For example: {projectsCopy.checks.examples.join(', ')}." /></li>
       {/each}
     </ul>
     <div class="border-t border-[var(--brand-border)] px-4 py-2.5">

@@ -10,6 +10,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'inbox'; taskId?: string }
   | { name: 'projects' }
+  | { name: 'sites' }
   | { name: 'project'; projectId: string }
   | { name: 'task'; projectId: string; taskId: string }
   | { name: 'settings'; tab: SettingsTab };
@@ -26,6 +27,7 @@ const staticRoutes: Record<string, Route> = {
   '/app': { name: 'home' },
   '/app/inbox': { name: 'inbox' },
   '/app/projects': { name: 'projects' },
+  '/app/sites': { name: 'sites' },
   '/app/settings': { name: 'settings', tab: 'models' },
 };
 
@@ -61,6 +63,15 @@ const pathOf = (url: string): string => url.split(/[?#]/)[0] ?? url;
 const resolve = (url: string): Route => matchRoute(pathOf(url)) ?? { name: 'landing' };
 
 export const route = writable<Route>(resolve(window.location.pathname));
+
+/**
+ * Goes to a same-site path after sign-in. App routes stay inside the page; anything else, such as an
+ * app under /run, is a real page load because the server (not the SPA) answers it.
+ */
+export function goTo(path: string): void {
+  if (matchRoute(pathOf(path)) !== undefined) navigate(path);
+  else window.location.assign(path);
+}
 
 /** Moves to a same-site URL (query allowed); `replace` skips adding a history entry. */
 export function navigate(path: string, replace = false): void {

@@ -23,6 +23,7 @@ type toolArgs struct {
 	To            string `json:"to"`
 	Name          string `json:"name"`
 	Command       string `json:"command"`
+	Port          int    `json:"port"`
 	StartLine     int    `json:"start_line"`
 	TimeoutSecs   int    `json:"timeout_seconds"`
 	EndLine       int    `json:"end_line"`
@@ -34,6 +35,10 @@ type toolHandler func(ctx context.Context, services codingmcp.Services, in toolA
 
 // Execute runs a project tool. Failures become results the model can read and react to.
 func (a *agentTools) Execute(ctx context.Context, projectID string, call taskapp.Call) taskapp.ToolResult {
+	if isSiteTool(call.Name) {
+		return a.executeSite(ctx, projectID, call)
+	}
+
 	handler, known := a.handlers[call.Name]
 	if !known {
 		return problem("There is no tool called " + call.Name + ".")

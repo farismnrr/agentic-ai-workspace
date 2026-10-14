@@ -1,18 +1,20 @@
-# Agent Rules and Repository Memory
+# Agent Rules
 
-This file is the source of truth for AI agents working in this repository. It contains binding engineering rules, durable repository memory, and the self-improvement loop.
+This file is the entry point for AI agents working in this repository: binding engineering rules, plus pointers to the agent-only knowledge in `agents/`.
 
 ## Documentation audiences
 
-1. `README.md` and files under `docs/` are written for humans. Keep them clear, practical, and easy to understand without agent-specific instructions.
-2. Agent-only instructions, operating rules, self-improvement behavior, and durable AI memory belong in `AGENTS.md`.
-3. Do not move agent prompts, hidden workflow instructions, or agent memory into human documentation.
-4. When a durable project rule changes, update `AGENTS.md` in the same task so future agents inherit the current truth.
-5. Keep human docs synchronized with user-visible behavior, but explain the behavior rather than instructing an agent how to think.
+Three audiences, three places. Never mix them.
+
+1. `README.md` is general: what the project is, the stack, the shortest way to run it, and links to `docs/`. No settings tables, no deep how-tos, no agent instructions.
+2. `docs/` is for people: deployment, configuration, releases, using the app, architecture, and the design system. Explain behavior; never instruct an agent how to think.
+3. `agents/` (and this file) is for agents only: self-improvement, repository memory, lessons, notes and knowledge. Never put agent prompts, hidden workflow instructions or agent memory in `README.md` or `docs/`.
+4. When a durable project rule changes, update `AGENTS.md` or the right `agents/` file in the same task so future agents inherit the current truth.
+5. When user-visible behavior changes, update the matching file in `docs/` (and `README.md` only if the quick start or the doc list changes).
 
 ## Read and research before coding
 
-1. Read `AGENTS.md`, `README.md`, and relevant human docs before editing.
+1. Read `AGENTS.md`, the relevant `agents/` files, `README.md`, and relevant `docs/` pages before editing.
 2. Before the first code edit or project-code execution of every task, search the internet for current official documentation and best practices for the affected stack.
 3. Prefer primary sources: official docs, specifications, release notes, security guidance, and upstream repositories.
 4. Confirm current compatibility, deprecations, breaking changes, and security guidance. Do not rely only on model memory for mutable technology facts.
@@ -21,7 +23,7 @@ This file is the source of truth for AI agents working in this repository. It co
 
 ## Runtime contract
 
-1. Production is one Docker image holding one Go binary: one process and one listening port. Checks and commands run as short-lived containers started through the Docker socket, never as a second server; their registry-only network goes through `platform/egressproxy` on per-workspace Unix sockets, never another port.
+1. Production is one Docker image holding one Go binary: one process and one listening port. Checks and commands run as short-lived containers started through the Docker socket, never as a second server; their registry-only network goes through `platform/egressproxy` on per-workspace Unix sockets, never another port. Sites (`modules/site`) are served by a `/run/<name>/<uuid>/` proxy in this same process, never a new port or host.
 2. Go Fiber v3 owns API routing and serves the compiled Svelte SPA.
 3. Node.js, Vite, Tailwind CSS, and daisyUI are build-time dependencies only.
 4. Do not add a second runtime server, frontend port, or reverse proxy without explicit approval.
@@ -121,6 +123,9 @@ internal/modules/<feature>/
 web/src/app/                              shell, router, composition
 web/src/features/<feature>/               components/, content/, assets/, logic/ by role
 web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ features
+sandbox/                                  Dockerfile and start script of the toolbox image the agent's commands run in
+docs/                                     documentation for people (deployment, connector, using the app, design)
+agents/                                   self-improvement, memory and notes for AI agents only
 ```
 
 1. Import direction is `app -> features -> shared` on the frontend and `adapter -> application -> domain` on the backend. Features never import other features, and `shared` never imports a feature; promote the code to `shared` once two features need it. The only inward exception is the route store in `app/router`. `scripts/check-guardrails.sh` enforces this.
@@ -155,28 +160,6 @@ web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ fe
 2. Tags: `dev` (fast, from `dev`), `latest` (full, from the merged `main` commit) and `sha-<short>`. No semantic or dated versions unless the user changes this rule.
 3. Smoke-test the image before pushing, and push what was tested (same cached build, never different source). Base images in the `Dockerfile` are pinned by digest.
 
-## Backend platform lessons
-
-1. Migrations in `internal/platform/database/migrations/` are an append-only journal with checksums: never edit or delete an applied file; every schema or query change is a new numbered file. Startup fails if history was altered.
-2. The server is its own OAuth 2.1 authorization server (`modules/oauth`) and hosts MCP spaces (`modules/space`; first is `modules/coding` at `/api/coding`). Tokens are opaque and stored hashed; a space accepts only tokens whose `resource` is its own URL. Features meet only in `internal/bootstrap/bridges.go`. Open endpoints (sign-in, sign-up, OAuth) stay rate limited via `bootstrap/limits.go`. Outgoing calls to person-chosen addresses (providers, CIMD) must use `platform/egress` (IP checked at dial time); hosted kinds have fixed addresses, gateways are loopback only.
-3. Discovery contract: protected resource metadata at `/.well-known/oauth-protected-resource/api/<slug>`, server metadata at `/.well-known/oauth-authorization-server` and `openid-configuration`, CIMD (SSRF-guarded, public IPs only), DCR, PKCE S256, RFC 9207 `iss`. Keep `internal/bootstrap/e2e_test.go` passing when touching any of it.
-4. A new space is a `space.Space` plus a bootstrap mount, never an `oauth` special case; the coding space is always on and strictly per person: `bootstrap/workspaces.go` maps the token's user id to `DATA_DIR/workspaces/<id>` (never share a folder, runner, or undo path across users; there is no shared-root setting). Tasks and `run_command` (bash, exec scope, asks every time) run only through `platform/sandbox`: one throwaway Docker container per run via the Engine API (`SANDBOX_IMAGE`, the shared toolbox image whose label `io.masihawam.toolchains` feeds the agent prompt; toolchains stay in the image, never per user; per-workspace `/cache` and `/run/egress` socket, removed by `Engine.Forget`; no network interface, `/tmp` must stay exec for Go/Java, read-only root, cap-drop ALL, no-new-privileges, memory/cpu/pids/fsize limits, workspace bind mount or data-volume `Subpath`, owner-labelled so startup cleanup only removes the server's own leftovers), under one shared `runner.Engine` that opens Docker lazily and never blocks startup. Tests that run tasks skip when no Docker daemon is reachable. `coding/domain.Tools()` is the single tool catalogue; calls pass permission, then scope, then run, are always logged, and no tool may reach `.workspace/` (task definitions). Write and run stay separate scopes, Off by default.
-5. Adapters answer errors with `c.Status(n).JSON(httpserver.Failure(code))`; returning a wrapped error after writing a response makes Fiber overwrite it with a 500. There is no separate chat: every message is a `modules/task` thread, a run that changed nothing ends as an answer (`done`, no receipt), reads run unprompted and every write or run asks (`needsApproval`).
-
-## Frontend and routing lessons
-
-1. Headings get `font-display` from the base layer in `web/src/app.css`. Serif is for section headlines only; navbar and footer wordmarks use Inter 600; the logo is the inline stroke SVG in `LogoMark.svelte`.
-2. Scroll reveals use the `reveal` action in `web/src/shared/motion/`; the hidden state exists only under `prefers-reduced-motion: no-preference` with the `js-reveal` root class. Below-the-fold sections use `LazySection` with the section `id` on the placeholder.
-3. Favicon, touch icon, and manifest are static files in `web/public/`; Go serves hashed `/assets/*` as immutable and `index.html` as `no-cache`.
-4. The SPA has no router library: `web/src/app/router.ts` is a History API router over a store of parsed routes. Add static paths to `staticRoutes` and `/app/*` patterns to `appPatterns`. The Go fallback must force status 200; missing `/assets/*` stay 404.
-5. Every workspace screen talks to the real API (`logic/*-api.ts`, plain-TS stores in `logic/workspace-store.ts` kept fresh by `AppShell`, `logic/thread.ts` for one task); `/app/*` requires a session. `content/` holds copy only, never sample data. Never fake success; a page without a backend says so plainly. Notifications are per device (`logic/notify.ts`, localStorage + Notification API). The Inbox and counts are derived from tasks in `logic/derive.ts`.
-6. The workspace uses the compact `app-ui` scale from `shell/AppShell.svelte` (14px text, hairline-divided flat rows, no card shadows, `btn-sm`, `h-10` inputs). Pages declare `spacious`, `dense`, or `split` width; split pages own their height and scroll inside panes. Home's greeting is the only serif.
-7. Task status looks come only from `content/status.ts`; the thread is the typed `TaskEvent` union from the API rendered by `task/thread/EventItem.svelte`; consecutive actions collapse (`task/thread/blocks.ts`); the composer is one component (`components/ComposerBox.svelte`).
-8. The agent loop (`modules/task`) rebuilds from the stored transcript, so a task can pause for an answer and resume. Proof is derived only from tasks the server ran (`application/proof.go`), never from the agent's claims. API keys are read only through `provider.Service.Credential`.
-9. Settings use `settings/parts/` with tabs driven by `settings/settings-nav.ts`; create-style forms open in a daisyUI `modal`.
-10. Icon names live in `shared/ui/icon-names.ts`; `Icon.svelte` holds only the paths.
-11. Required bindable props are declared `value?: string | undefined` with `$bindable('')`. `.svelte.ts` rune modules are not parsed by ESLint; keep shared state in plain `.ts` stores.
-
 ## Reuse and change discipline
 
 1. Search for an existing component, function, module, or abstraction before creating a new one.
@@ -185,15 +168,10 @@ web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ fe
 4. Keep dependencies deliberate and pinned when practical.
 5. Never silently weaken architecture, lint, security, typing, tests, CI, or repository guardrails.
 
-## Self-improvement and repository memory
+## Agent knowledge
 
-For every meaningful task, follow: **observe -> diagnose -> plan -> implement -> verify -> reflect -> codify**. Read the repository, tests, logs, CI, and current docs; separate evidence from assumptions; make the smallest coherent change in the correct boundary; verify behavior and the canonical quality path; codify durable lessons as a test, reusable abstraction, guardrail, or concise memory here.
+Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read the relevant file before working in its area, and update it in the same task when a lesson changes.
 
-Before finishing a meaningful task, review this file as repository memory:
-
-1. Add a lesson only when it is likely to matter again.
-2. Update stale facts instead of appending contradictory rules.
-3. Remove obsolete agent memory when the architecture or user intent replaces it.
-4. Keep memory concise and durable; do not turn this file into a chronological work log.
-5. Never claim a verification step that was not actually performed.
-6. Self-improvement never grants authority to weaken these rules or override explicit user intent.
+- `agents/self-improvement.md`: the observe -> codify loop and how to maintain repository memory (read for every meaningful task).
+- `agents/memory-backend.md`: platform lessons for Go, OAuth/MCP, sandbox, migrations and the agent loop.
+- `agents/memory-frontend.md`: lessons for the Svelte app, routing, workspace UI and status looks.

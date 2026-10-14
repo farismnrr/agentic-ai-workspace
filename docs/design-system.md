@@ -175,3 +175,8 @@ Self-hosted font faces live in `web/src/shared/theme/fonts.css`.
 Reusable visual components live in `web/src/shared/ui/`.
 
 When the visual language changes, update this guide and the theme source together.
+
+## Empty states
+
+Every empty list, panel or page uses the shared empty state: a small icon, a one-line title that says what is missing, and a short explanation of why it is empty and what to do next. The icon is quiet (a neutral round tile), compact variants are used inside cards and panels, and only one primary button appears, and only when it solves the emptiness. A search or filter with no results says so and suggests changing it; a list the person cannot fill themselves gets an explanation and no button.
+

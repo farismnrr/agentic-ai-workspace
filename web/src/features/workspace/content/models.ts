@@ -20,8 +20,8 @@ export const kindLabel = (kind: ProviderKind): string => kindChoices.find((choic
 export const modelsCopy = {
   defaultIntro: 'Used for every new task unless you pick another when you start it.',
   providersIntro: 'Your own keys. Tasks are billed by the provider, not by us.',
-  none: 'No provider yet. Add one so your AI team has a model to work with.',
-  noModels: 'Add a provider and verify its key to choose a model.',
+  none: { title: 'Add your first AI model', body: 'Add a provider with your own key so your AI team has a model to work with. Use Add above.' },
+  noModels: { title: 'No models to choose from yet', body: 'Add a provider and verify its key, then pick a model here.' },
   failed: 'We could not load your providers. Please try again in a moment.',
   saved: 'Saved, but the provider did not accept this key. Check it and press Verify.',
   errors: {

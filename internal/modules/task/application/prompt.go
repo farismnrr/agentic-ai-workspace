@@ -65,6 +65,10 @@ func appendComputer(out *strings.Builder, installed []string) {
 	out.WriteString("It cannot see the person's own computer; the project folder is its only shared place. ")
 	out.WriteString("The internet is limited to package registries (PyPI, npm, Go, crates.io, Maven), so installing " +
 		"project dependencies works but other websites do not. Every command asks the person first.\n")
+	out.WriteString("To show the person a web app, start it with start_site: a server that keeps running and listens on " +
+		"127.0.0.1 at a port you choose; they open it from a link in the thread. Use a production-style server (no " +
+		"hot reload) and relative links such as ./style.css, because the page is shown under a path. The page runs in " +
+		"a sandbox, so cookies, localStorage and service workers do not work in it.\n")
 }
 
 const workflow = `

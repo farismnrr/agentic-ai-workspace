@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { navigate } from '../../../app/router';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { projectsCopy } from '../content/projects-copy';
@@ -33,9 +34,9 @@
   </div>
 
   {#if $projects.length === 0}
-    <p class="mt-10 text-[var(--brand-text-secondary)]">{projectsCopy.none}</p>
+    <EmptyState class="mt-6" bordered icon="folder" title={projectsCopy.empty.title} body={projectsCopy.empty.body} />
   {:else if visible.length === 0}
-    <p class="mt-10 text-[var(--brand-text-secondary)]">No project matches “{query}”.</p>
+    <EmptyState class="mt-6" bordered icon="search" title="No project matches “{query}”" body="Try a different name, or clear the search." />
   {:else}
     <div class="mt-6"><ProjectsTable items={visible} /></div>
   {/if}

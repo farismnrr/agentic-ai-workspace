@@ -91,6 +91,17 @@ func (s *Store) Find(ctx context.Context, userID, id string) (domain.Project, er
 	return project, err
 }
 
+// FindByID loads one active project whoever owns it.
+func (s *Store) FindByID(ctx context.Context, id string) (domain.Project, error) {
+	project, err := scan(s.db.QueryRowContext(ctx,
+		`SELECT `+columns+` FROM projects WHERE id = ? AND archived_at IS NULL`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.Project{}, domain.ErrNotFound
+	}
+
+	return project, err
+}
+
 // Update changes the editable fields.
 func (s *Store) Update(ctx context.Context, userID, id, name, description string) error {
 	return s.exec(ctx,
