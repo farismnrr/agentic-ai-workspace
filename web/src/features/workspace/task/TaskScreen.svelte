@@ -81,7 +81,6 @@
               placeholder={canWrite ? 'Ask for a change or add details…' : 'You can write again once the AI has finished or stopped.'}
               bind:text={follow}
               disabled={!canWrite}
-              withMode={false}
               error={$error}
               onsend={(text: string) => void sendFollowUp(text)}
             />

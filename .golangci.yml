@@ -99,6 +99,7 @@ linters:
         - module: github.com/golang-jwt/jwt/v5
         - module: modernc.org/sqlite
         - module: golang.org/x/crypto
+        - module: golang.org/x/sys
     govet:
       enable-all: true
     lll:

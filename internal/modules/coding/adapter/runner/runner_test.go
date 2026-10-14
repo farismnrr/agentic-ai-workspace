@@ -12,12 +12,42 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox/sandboxtest"
 )
+
+// engine is shared by the tests like the server shares one between all workspaces.
+var (
+	engine     *runner.Engine
+	errToolbox error
+	sandboxDir string
+)
+
+// newEngine builds an engine on the test toolbox with room for size sandboxes.
+func newEngine(size int) *runner.Engine {
+	return runner.NewEngine(runner.EngineConfig{
+		Toolbox: filepath.Join(sandboxDir, "general"), Limits: sandbox.DefaultLimits(), Size: size,
+	})
+}
+
+// TestMain lets the test binary act as the sandbox init, as the server binary does.
+func TestMain(m *testing.M) {
+	sandbox.RunIfChild()
+
+	sandboxDir, errToolbox = sandboxtest.Ensure()
+	engine = newEngine(8)
+
+	os.Exit(m.Run())
+}
 
 func run(t *testing.T, seconds int, command ...string) application.RunResult {
 	t.Helper()
 
-	result, err := runner.New(t.TempDir()).Run(context.Background(),
+	if errToolbox != nil {
+		t.Skipf("no sandbox toolbox on this host: %v", errToolbox)
+	}
+
+	result, err := runner.New(t.TempDir(), engine).Run(context.Background(),
 		domain.Task{Name: "t", Command: command, TimeoutSeconds: seconds})
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +98,7 @@ func TestMissingCommandIsReportedNotFatal(t *testing.T) {
 	t.Parallel()
 
 	result := run(t, 5, "definitely-not-a-command-xyz")
-	if result.ExitCode != -1 || !strings.Contains(result.Output, "could not start") {
+	if result.ExitCode == 0 || !strings.Contains(result.Output, "could not start") {
 		t.Fatalf("got %+v", result)
 	}
 }
@@ -77,7 +107,7 @@ func TestOnlyOneTaskRunsAtATime(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	r := runner.New(dir)
+	r := runner.New(dir, engine)
 	done := make(chan struct{})
 
 	go func() {

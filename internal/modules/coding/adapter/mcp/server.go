@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -25,16 +26,37 @@ type Options struct {
 	ResourceMetadataURL string
 }
 
+// Workspaces gives each person a private workspace. A call can only ever reach
+// the workspace of the person whose token it carries.
+type Workspaces interface {
+	For(userID string) (Services, error)
+}
+
 type tools struct {
-	Services
-	guard *guard
+	workspaces Workspaces
+	guard      *guard
+}
+
+// services returns the workspace of the person whose token made this call.
+func (t *tools) services(ctx context.Context) (Services, error) {
+	id, _ := ctx.Value(identityKey{}).(string)
+	if id == "" {
+		return Services{}, errNoIdentity
+	}
+
+	services, err := t.workspaces.For(id)
+	if err != nil {
+		return Services{}, fmt.Errorf("open workspace: %w", err)
+	}
+
+	return services, nil
 }
 
 // NewServer builds the MCP server exposing the coding tools.
-func NewServer(services Services, opts Options) *sdk.Server {
+func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"}, nil)
 	g := &guard{gate: opts.Gate, recorder: opts.Recorder, metadataURL: opts.ResourceMetadataURL}
-	t := &tools{Services: services, guard: g}
+	t := &tools{workspaces: workspaces, guard: g}
 
 	t.addReadTools(server)
 	t.addWriteTools(server)
@@ -74,4 +96,5 @@ var knownErrors = []error{
 	domain.ErrDenied, domain.ErrNotFound, domain.ErrIsDir, domain.ErrNotDir, domain.ErrBinary, domain.ErrEmptyQuery,
 	domain.ErrTooLarge, domain.ErrExists, domain.ErrNotUnique, domain.ErrNoMatch, domain.ErrBadRange,
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
+	domain.ErrServerBusy,
 }

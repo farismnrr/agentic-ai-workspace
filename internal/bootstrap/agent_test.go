@@ -29,7 +29,7 @@ func TestTaskRunsFromRequestToReviewAndCanBeAcceptedAndUndone(t *testing.T) {
 		finishCall("Made hello.txt"),
 	)
 	id := a.start(t, "Make a hello file")
-	a.waitFor(t, id, "review")
+	a.waitApproving(t, id, "review")
 
 	if data := a.read("hello.txt"); data != "hi" {
 		t.Fatalf("the agent should have written the file, got %q", data)
@@ -66,7 +66,7 @@ func TestTaskRunsFromRequestToReviewAndCanBeAcceptedAndUndone(t *testing.T) {
 	mustContain(t, usage, `"model":"fake-model"`, `"tasks":1`, `"inputTokens":30`)
 }
 
-func TestRiskyStepsStopForApprovalInTheRealApp(t *testing.T) {
+func TestEveryChangeStopsForApprovalInTheRealApp(t *testing.T) {
 	t.Parallel()
 
 	a := newAgentRig(t,
@@ -77,16 +77,23 @@ func TestRiskyStepsStopForApprovalInTheRealApp(t *testing.T) {
 	id := a.start(t, "Create and remove a file")
 	a.waitFor(t, id, "needs-input")
 
+	if _, err := os.Stat(a.file("old.txt")); !os.IsNotExist(err) {
+		t.Fatalf("writing must wait for a yes, but the file exists: %v", err)
+	}
+
+	a.allowPending(t, id)
+	a.waitApprovals(t, id, 2)
+
 	var approval threadEvent
 
 	for _, event := range a.thread(t, id) {
-		if event.Kind == "approval" {
+		if event.Kind == "approval" && event.Resolved == "" {
 			approval = event
 		}
 	}
 
 	if _, err := os.Stat(a.file("old.txt")); err != nil || !strings.Contains(approval.Text, "old.txt") {
-		t.Fatalf("the file must still exist while the agent waits: %v %+v", err, approval)
+		t.Fatalf("the file must still exist while the delete waits: %v %+v", err, approval)
 	}
 
 	if a.post(t, "/api/tasks/"+id+"/events/"+approval.ID+"/answer", `{"allow":true}`) != 204 {
@@ -105,13 +112,13 @@ func TestFollowUpContinuesTheConversationWithValidMessages(t *testing.T) {
 
 	a := newAgentRig(t, finishCall("First"), finishCall("Second"))
 	id := a.start(t, "Do something")
-	a.waitFor(t, id, "review")
+	a.waitFor(t, id, "done")
 
 	if a.post(t, "/api/tasks/"+id+"/messages", `{"text":"Also the footer"}`) != 204 {
-		t.Fatal("a follow-up on reviewed work should be accepted")
+		t.Fatal("a follow-up on a finished conversation should be accepted")
 	}
 
-	a.waitFor(t, id, "review")
+	a.waitFor(t, id, "done")
 
 	sent := a.gateway.sent(1)
 	last, _ := sent[len(sent)-1].(map[string]any)
@@ -145,7 +152,7 @@ func TestAnotherPersonCannotSeeOrControlATask(t *testing.T) {
 
 	a := newAgentRig(t, finishCall("Done"))
 	id := a.start(t, "Private work")
-	a.waitFor(t, id, "review")
+	a.waitFor(t, id, "done")
 
 	other := cookieOf(t, do(t, a.env.app, "POST", "/api/auth/register",
 		`{"name":"Eve","email":"eve@example.com","password":"correct horse"}`, jsonHeaders()))
@@ -170,11 +177,11 @@ func TestThreadEntriesCarryIncreasingSequenceNumbersForResuming(t *testing.T) {
 
 	a := newAgentRig(t, finishCall("Done"))
 	id := a.start(t, "Count me")
-	a.waitFor(t, id, "review")
+	a.waitFor(t, id, "done")
 
 	events := a.thread(t, id)
 	if len(events) < 2 {
-		t.Fatalf("expected a request and a receipt, got %d", len(events))
+		t.Fatalf("expected a request and an answer, got %d", len(events))
 	}
 
 	for i, event := range events {

@@ -22,6 +22,7 @@ import (
 // newModels wires the pages behind Settings: AI models (providers) and persona/rules (preferences).
 // modelsWiring is what the agent needs from the settings pages.
 type modelsWiring struct {
+	ownPort   string
 	providers *providerapp.Service
 	prefs     *prefapp.Service
 	mounts    []httpserver.Mount
@@ -33,11 +34,17 @@ func newModels(db *sql.DB, cfg config.Config, auth, sameOrigin fiber.Handler) (m
 		return modelsWiring{}, err //nolint:wrapcheck // already descriptive
 	}
 
-	providers := providerapp.NewService(providersqlite.NewStore(db), cipher, probe.New(), opaque.Generator{}, time.Now)
+	checker := probe.New(hostedProviders, gateways(cfg.Port))
+	providers := providerapp.NewService(providersqlite.NewStore(db), cipher, checker, opaque.Generator{}, time.Now)
 	prefs := prefapp.NewService(prefsqlite.NewStore(db), opaque.Generator{}, time.Now)
 
-	return modelsWiring{providers: providers, prefs: prefs, mounts: []httpserver.Mount{
+	return modelsWiring{ownPort: cfg.Port, providers: providers, prefs: prefs, mounts: []httpserver.Mount{
 		providerhttp.NewHandler(providers).Mount(auth, sameOrigin),
 		prefhttp.NewHandler(prefs).Mount(auth, sameOrigin),
 	}}, nil
+}
+
+// agentModels hands the agent the models a person connected.
+func (m modelsWiring) agentModels() agentModels {
+	return agentModels{providers: m.providers, prefs: m.prefs, ownPort: m.ownPort}
 }

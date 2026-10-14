@@ -28,6 +28,7 @@
 
   function pick(): void {
     name = choice?.name ?? '';
+    baseUrl = '';
   }
 
   async function submit(event: SubmitEvent): Promise<void> {
@@ -62,8 +63,11 @@
     </select>
     <label class="mt-4 block font-medium" for="provider-name">Name</label>
     <input id="provider-name" class="input input-sm mt-1 w-full" maxlength="60" bind:value={name} />
-    <label class="mt-4 block font-medium" for="provider-url">Address {kind === 'compatible' ? '' : '(optional)'}</label>
-    <input id="provider-url" class="input input-sm mt-1 w-full font-mono text-xs" placeholder={choice?.baseUrlHint ?? ''} bind:value={baseUrl} required={kind === 'compatible'} />
+    {#if kind === 'compatible'}
+      <label class="mt-4 block font-medium" for="provider-url">Address</label>
+      <input id="provider-url" class="input input-sm mt-1 w-full font-mono text-xs" placeholder={choice?.baseUrlHint ?? ''} bind:value={baseUrl} required />
+      <p class="mt-1 text-xs text-[var(--brand-text-secondary)]">Only gateways running on this computer (localhost) can be used.</p>
+    {/if}
     <label class="mt-4 block font-medium" for="api-key">API key</label>
     <div class="relative mt-1">
       <input id="api-key" class="input input-sm w-full pr-10" type={shown ? 'text' : 'password'} autocomplete="off" required bind:value={key} />

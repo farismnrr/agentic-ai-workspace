@@ -157,7 +157,7 @@ func (a *assembly) blocks() []domain.Block {
 	for _, index := range order {
 		call := a.calls[index]
 		out = append(out, domain.Block{
-			Kind: domain.BlockToolUse, ID: call.id, Name: call.name, Input: parseArguments(call.args.String()),
+			Kind: domain.BlockToolUse, ID: callID(call.id), Name: call.name, Input: parseArguments(call.args.String()),
 		})
 	}
 

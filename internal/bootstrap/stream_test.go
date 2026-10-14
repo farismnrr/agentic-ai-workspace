@@ -113,11 +113,11 @@ func TestATaskStreamPushesTheThreadAndTheModelsTextAsItIsWritten(t *testing.T) {
 		t.Fatal("the model's words must arrive as deltas")
 	}
 
-	if receipt := stream.next(t, `"kind":"receipt"`); !strings.Contains(receipt, "All done") {
-		t.Fatalf("the finished work arrives as a thread entry: %s", receipt)
+	if answer := stream.next(t, `"All done"`); !strings.Contains(answer, `"kind":"message"`) {
+		t.Fatalf("an answer arrives as a plain message in the thread: %s", answer)
 	}
 
-	stream.next(t, `"status":"review"`)
+	stream.next(t, `"status":"done"`)
 }
 
 func TestAReturningViewerOnlyGetsWhatItMissed(t *testing.T) {
@@ -126,7 +126,7 @@ func TestAReturningViewerOnlyGetsWhatItMissed(t *testing.T) {
 	a := newAgentRig(t, finishCall("Done"))
 	base := a.env.serve(t)
 	id := a.start(t, "Quick one")
-	a.waitFor(t, id, "review")
+	a.waitFor(t, id, "done")
 
 	events := a.thread(t, id)
 	last := events[len(events)-1]
@@ -164,7 +164,7 @@ func TestTheWorkspaceStreamAnnouncesChangesAndStaysPrivate(t *testing.T) {
 	stream.next(t, "ready")
 	id := a.start(t, "Anything")
 	stream.next(t, "event: changed")
-	a.waitFor(t, id, "review")
+	a.waitFor(t, id, "done")
 
 	other := cookieOf(t, do(t, a.env.app, "POST", "/api/auth/register",
 		`{"name":"Eve","email":"eve@example.com","password":"correct horse"}`, jsonHeaders()))

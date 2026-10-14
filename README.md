@@ -78,12 +78,43 @@ Settings (environment variables):
 | `PUBLIC_URL` | The public address of the app, such as `https://your-domain.com`. Defaults to `http://localhost:<PORT>`. ChatGPT needs a public `https` address. |
 | `ALLOWED_ORIGINS` | Comma-separated browser origins that may sign in and change data (CSRF protection). Defaults to `http://localhost:<PORT>,http://127.0.0.1:<PORT>`. `PUBLIC_URL` is always allowed too. Add a domain or IP here, for example `https://workspace.example.com,http://192.168.1.20:8081`. |
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
+| `SANDBOX_DIR` | Where the toolbox lives (default `DATA_DIR/sandbox`; the toolbox is its `general` folder). |
+| `SANDBOX_PACKAGES` | Alpine packages for `sandbox install`, separated by spaces (default `git nodejs npm python3 go rust cargo make build-base`; `none` for the bare base). |
+| `SANDBOX_LIMITS` | `relaxed` runs checks even when cgroup limits are unavailable. By default they are refused. |
+| `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Memory (default 2048) and CPU cores (default 1) one check may use. |
+| `MAX_SANDBOXES` | How many checks may run at the same time across all people (default 4). Extra ones wait up to 30 seconds, then are told the server is busy. |
 | `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
 | `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits; without it every visitor behind a tunnel looks like one address. |
-| `DATA_DIR` | Where accounts and connections are stored (default `data`). Keep it outside the coding folder. |
-| `CODING_WORKSPACE_ROOT` | A folder the coding space may read. The coding space is off when this is empty. |
+| `DATA_DIR` | Where accounts and connections are stored (default `data`). Each person's private coding folder lives inside it, under `workspaces/`. |
+
+### The sandbox toolbox
+
+The tools checks use are not taken from the computer the server runs on. The server's owner installs them once into the sandbox's own folder, and every person's checks share that read-only copy:
+
+```sh
+./agentic-ai-workspace sandbox install   # downloads Alpine Linux and installs the tools (a few minutes, a few GB)
+./agentic-ai-workspace sandbox status    # shows what is installed and whether resource limits are available
+```
+
+Until this is done, checks report that the toolbox is missing. Tools needing the internet (`npm install`, `cargo fetch`, `go mod download`) cannot run, because checks have no network: a project has to bring its dependencies with it.
+
+**Resource limits.** Real CPU, memory and process limits come from cgroup v2, which the server must be allowed to use. Run it as a systemd service with `Delegate=yes`:
+
+```ini
+[Service]
+ExecStart=/opt/agentic-ai-workspace/agentic-ai-workspace
+Environment=PORT=8081 DATA_DIR=/var/lib/agentic-ai-workspace
+User=workspace
+Delegate=yes
+```
+
+If cgroups are not available, checks are **refused** instead of running without limits. `SANDBOX_LIMITS=relaxed` lets them run with weaker, approximate limits; do that only on a machine you trust. `make run` uses `systemd-run` for you.
+
+**If strangers can sign up**, also: run the server as its own unprivileged user, ideally inside a dedicated VM or container, keep the kernel updated (the sandbox shares it), and put the data folder on a filesystem with a size quota, since the workspace limit is only checked once per second.
 
 ### What the coding space can do
+
+Every person gets their own coding folder (`DATA_DIR/workspaces/<account>`); nobody can read or change anyone else's files, and the folder is deleted with the account. Checks run in a sandbox much like a container, built into the binary (no Docker needed). A check sees only your coding folder (as `/workspace`, the one place it can write), a private `/tmp`, and the **toolbox**: the sandbox's own copy of Git, Node.js, Python, Go, Rust and a C compiler, kept apart from the host's programs (see below). It has no internet, cannot see your other files or processes, has no special privileges, cannot use dangerous system calls (mounting, creating new sandboxes, kernel tracing), and is held to a memory, CPU, process, file-size and workspace-size limit.
 
 Each tool can be switched on or off under Settings, Spaces & tools. Looking around is on from the start; changing files and running tasks stay off until you turn them on.
 
@@ -110,7 +141,7 @@ A task runs with the same rights as the app itself, one at a time, with a time l
 
 ### Trying it from your computer
 
-To try it, run the app, expose it with a tunnel (for example `cloudflared tunnel --url http://localhost:8081`), and start the app with `PUBLIC_URL` set to the tunnel address. In ChatGPT, turn on developer mode, add a connector with `<PUBLIC_URL>/api/coding`, and sign in when asked. You can see and remove connected apps under Settings, Connected apps. The coding space can only read files; it never changes them and never shows `.env`, `.git`, or key files.
+To try it, run the app, expose it with a tunnel (for example `cloudflared tunnel --url http://localhost:8081`), and start the app with `PUBLIC_URL` set to the tunnel address. In ChatGPT, turn on developer mode, add a connector with `<PUBLIC_URL>/api/coding`, and sign in when asked. You can see and remove connected apps under Settings, Connected apps. Each tool has a switch under Settings, Spaces & tools; looking at files is on from the start and changing files or running checks stay off until you turn them on. The coding space never shows `.env`, `.git`, or key files.
 
 ## Design system
 
@@ -124,7 +155,7 @@ The app is a single-page Svelte app served by the Go binary: `/` is the landing 
 
 ## Working with the AI team
 
-1. **Add a model.** Under Settings, AI models, add Anthropic, OpenAI, or any OpenAI-compatible gateway such as [9router](http://localhost:20128/v1) (use its address and key). The key is stored encrypted and checked right away.
+1. **Add a model.** Under Settings, AI models, add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https://aistudio.google.com/apikey)), or an OpenAI-compatible gateway such as [9router](http://localhost:20128/v1) (use its address and key). Hosted providers use their fixed official address, and a gateway must run on the same computer as this app (`localhost`); the app refuses to connect to any other address, so nobody can point the server at your internal network. The key is stored encrypted and checked right away.
 2. **Create a project.** Each project gets its own folder under `DATA_DIR/projects`; the AI can only touch files inside it.
 3. **Describe what you need** on Home. The AI makes a plan, works step by step, and shows every step. Deleting or moving files and running checks need your OK first; choose "Ask me before every change" to be asked about edits too.
 4. **Review.** When it finishes you see what changed and what was checked. The proof says "Proven to work" only when the app itself ran a check that passed after the last change, and every change can be undone.

@@ -2,27 +2,37 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
 
 const (
-	defaultWorkers = 2
-	defaultPort    = "8081"
-	defaultDataDir = "data"
+	defaultWorkers         = 2
+	defaultSandboxes       = 4
+	defaultSandboxMemoryMB = 2048
+	defaultSandboxCPUs     = 1
+	defaultPort            = "8081"
+	defaultDataDir         = "data"
 )
 
 // Config contains runtime process configuration.
 type Config struct {
-	Port           string
-	PublicURL      string
-	DataDir        string
-	CodingRoot     string
-	ClientIPHeader string
-	AllowedOrigins []string
-	CORSOrigins    []string
-	AgentWorkers   int
-	CookieSecure   bool
+	Port            string
+	PublicURL       string
+	DataDir         string
+	WorkspacesDir   string
+	ClientIPHeader  string
+	SandboxDir      string
+	SandboxPackages string
+	AllowedOrigins  []string
+	CORSOrigins     []string
+	AgentWorkers    int
+	MaxSandboxes    int
+	SandboxMemoryMB int
+	SandboxCPUs     int
+	SandboxRelaxed  bool
+	CookieSecure    bool
 }
 
 // Load reads runtime configuration from the environment.
@@ -33,16 +43,24 @@ func Load() Config {
 	local := []string{"http://localhost:" + port, "http://127.0.0.1:" + port}
 	allowed := list("ALLOWED_ORIGINS", local)
 
+	dataDir := getenv("DATA_DIR", defaultDataDir)
+
 	return Config{
-		Port:           port,
-		PublicURL:      publicURL,
-		DataDir:        getenv("DATA_DIR", defaultDataDir),
-		CodingRoot:     os.Getenv("CODING_WORKSPACE_ROOT"),
-		AllowedOrigins: allowed,
-		CORSOrigins:    list("CORS_ORIGINS", allowed),
-		ClientIPHeader: strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),
-		AgentWorkers:   atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
-		CookieSecure:   strings.HasPrefix(publicURL, "https://"),
+		Port:            port,
+		PublicURL:       publicURL,
+		DataDir:         dataDir,
+		WorkspacesDir:   filepath.Join(dataDir, "workspaces"),
+		AllowedOrigins:  allowed,
+		CORSOrigins:     list("CORS_ORIGINS", allowed),
+		ClientIPHeader:  strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),
+		AgentWorkers:    atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
+		MaxSandboxes:    atoi(getenv("MAX_SANDBOXES", strconv.Itoa(defaultSandboxes)), defaultSandboxes),
+		SandboxDir:      getenv("SANDBOX_DIR", filepath.Join(dataDir, "sandbox")),
+		SandboxPackages: strings.TrimSpace(os.Getenv("SANDBOX_PACKAGES")),
+		SandboxMemoryMB: atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
+		SandboxCPUs:     atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
+		SandboxRelaxed:  strings.EqualFold(os.Getenv("SANDBOX_LIMITS"), "relaxed"),
+		CookieSecure:    strings.HasPrefix(publicURL, "https://"),
 	}
 }
 

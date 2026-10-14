@@ -41,8 +41,13 @@ func (t *tools) addExecTools(server *sdk.Server) {
 		func(in runInput) string { return "run " + in.Name }, t.runTask))
 }
 
-func (t *tools) listTasks(context.Context, struct{}) (tasksOutput, report, error) {
-	tasks, err := t.Tasks.List()
+func (t *tools) listTasks(ctx context.Context, _ struct{}) (tasksOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return tasksOutput{}, report{}, err
+	}
+
+	tasks, err := svc.Tasks.List()
 	if err != nil {
 		return tasksOutput{}, report{}, fmt.Errorf("list tasks: %w", err)
 	}
@@ -56,7 +61,12 @@ func (t *tools) listTasks(context.Context, struct{}) (tasksOutput, report, error
 }
 
 func (t *tools) runTask(ctx context.Context, in runInput) (runOutput, report, error) {
-	result, err := t.Tasks.Run(ctx, in.Name)
+	svc, err := t.services(ctx)
+	if err != nil {
+		return runOutput{}, report{}, err
+	}
+
+	result, err := svc.Tasks.Run(ctx, in.Name)
 	if err != nil {
 		return runOutput{}, report{}, fmt.Errorf("run task: %w", err)
 	}

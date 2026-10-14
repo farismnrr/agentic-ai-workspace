@@ -23,19 +23,20 @@ import (
 // Each project gets its own confined view of its files.
 type agentTools struct {
 	folders  *folder.Folders
+	engine   *codingrunner.Engine
 	backups  *codingbackup.Store
 	cache    map[string]codingmcp.Services
 	handlers map[string]toolHandler
 	mu       sync.Mutex
 }
 
-func newAgentTools(folders *folder.Folders, dataDir string) (*agentTools, error) {
+func newAgentTools(folders *folder.Folders, dataDir string, engine *codingrunner.Engine) (*agentTools, error) {
 	backups, err := codingbackup.Open(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("open backups: %w", err)
 	}
 
-	tools := &agentTools{folders: folders, backups: backups, cache: map[string]codingmcp.Services{}}
+	tools := &agentTools{folders: folders, engine: engine, backups: backups, cache: map[string]codingmcp.Services{}}
 	tools.handlers = toolHandlers()
 
 	return tools, nil
@@ -62,7 +63,7 @@ func (a *agentTools) services(projectID string) (codingmcp.Services, error) {
 	services := codingmcp.Services{
 		Reader: codingapp.NewService(files),
 		Editor: codingapp.NewEditor(files, files, a.backups, opaque.Generator{}),
-		Tasks:  codingapp.NewTasks(files, codingrunner.New(dir)),
+		Tasks:  codingapp.NewTasks(files, codingrunner.New(dir, a.engine)),
 	}
 	a.cache[projectID] = services
 

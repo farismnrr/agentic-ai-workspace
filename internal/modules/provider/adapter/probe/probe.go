@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
 const (
@@ -17,6 +20,9 @@ const (
 	maxBody      = 2 << 20
 	anthropicAPI = "2023-06-01"
 )
+
+// nonChat marks Gemini catalogue entries that are not chat models.
+var nonChat = []string{"embedding", "tts", "image", "live", "audio", "robotics", "computer-use"}
 
 var (
 	errStatus     = errors.New("the provider rejected the request")
@@ -27,15 +33,22 @@ var (
 // Probe lists the models of a provider over plain HTTP; a successful call
 // proves the address and key work.
 type Probe struct {
-	client *http.Client
+	hosted  *http.Client
+	gateway *http.Client
 }
 
-// New builds a Probe. Redirects are refused so a key is never sent to another host.
-func New() *Probe {
-	return &Probe{client: &http.Client{
+// New builds a Probe that connects to hosted providers and to custom gateways under
+// the given policies. Redirects are refused so a key is never sent to another host.
+func New(hosted, gateway egress.Policy) *Probe {
+	return &Probe{hosted: guarded(hosted), gateway: guarded(gateway)}
+}
+
+func guarded(policy egress.Policy) *http.Client {
+	return &http.Client{
 		Timeout:       timeout,
+		Transport:     egress.Transport(policy),
 		CheckRedirect: func(*http.Request, []*http.Request) error { return errNoRedirect },
-	}}
+	}
 }
 
 // Models returns the model ids a credential can use.
@@ -55,11 +68,42 @@ func (p *Probe) Models(ctx context.Context, credential domain.Credential) ([]str
 		request.Header.Set("Authorization", "Bearer "+credential.APIKey)
 	}
 
-	return p.fetch(request)
+	client := p.hosted
+	if credential.Kind.CustomAddress() {
+		client = p.gateway
+	}
+
+	models, err := fetch(client, request)
+	if err != nil || credential.Kind != domain.KindGemini {
+		return models, err
+	}
+
+	return geminiChatModels(models)
 }
 
-func (p *Probe) fetch(request *http.Request) ([]string, error) {
-	response, err := p.client.Do(request)
+// geminiChatModels keeps the models that can chat: Google lists embedding, speech,
+// image and live models in the same catalogue, and names them "models/<id>".
+func geminiChatModels(listed []string) ([]string, error) {
+	chat := make([]string, 0, len(listed))
+
+	for _, id := range listed {
+		id = strings.TrimPrefix(id, "models/")
+		if strings.HasPrefix(id, "gemini-") && !slices.ContainsFunc(nonChat, func(word string) bool {
+			return strings.Contains(id, word)
+		}) {
+			chat = append(chat, id)
+		}
+	}
+
+	if len(chat) == 0 {
+		return nil, errNoModels
+	}
+
+	return chat, nil
+}
+
+func fetch(client *http.Client, request *http.Request) ([]string, error) {
+	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("call provider: %w", err)
 	}

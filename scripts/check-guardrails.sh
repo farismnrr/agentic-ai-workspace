@@ -18,6 +18,7 @@ file_violations="$(
        -o -name '*.sh' -o -name '*.html' -o -name 'Makefile' \) \
     ! -path './.git/*' \
     ! -path './web/node_modules/*' \
+    ! -path './data/*' \
     ! -path './internal/platform/webassets/dist/*' \
     ! -name 'package-lock.json' \
     -exec sh -c '
