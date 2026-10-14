@@ -8,7 +8,7 @@ import (
 
 const (
 	defaultWorkers = 2
-	defaultPort    = "8080"
+	defaultPort    = "8081"
 	defaultDataDir = "data"
 )
 

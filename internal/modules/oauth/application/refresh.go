@@ -12,12 +12,17 @@ import (
 type RefreshParams struct {
 	RefreshToken string
 	ClientID     string
+	ClientSecret string
 	Resource     string
 }
 
 // Refresh rotates a refresh token and mints a new token pair. The scope of a
 // refreshed token is always the scope originally granted.
 func (s *Service) Refresh(ctx context.Context, p RefreshParams) (TokenResponse, error) {
+	if err := s.authenticateClient(ctx, p.ClientID, p.ClientSecret); err != nil {
+		return TokenResponse{}, err
+	}
+
 	record, err := s.Credentials.ConsumeRefresh(ctx, s.Tokens.Hash(p.RefreshToken), s.Now())
 	if errors.Is(err, domain.ErrCredentialReused) {
 		// Reuse of a rotated token signals theft: revoke the whole grant (OAuth 2.1 §4.3.1).

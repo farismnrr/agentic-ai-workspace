@@ -24,7 +24,7 @@ chmod +x agentic-ai-workspace
 ./agentic-ai-workspace
 ```
 
-By default the app listens on port `8080`.
+By default the app listens on port `8081`.
 
 Use a different port with:
 
@@ -49,7 +49,7 @@ Or build and run in one command:
 make run
 ```
 
-`make run` listens on port 8080 by default. Use `make run PORT=9000` to change it. `make help` lists the available commands.
+`make run` listens on port 8081 by default. Use `make run PORT=9000` to change it. `make help` lists the available commands.
 
 The build produces one static Linux binary with no shared-library dependencies, the same file that is published to the release.
 

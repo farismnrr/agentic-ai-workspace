@@ -63,11 +63,13 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
+	_, chatMount := newChat(db, models, projects, tasks, auth, sameOrigin)
+
 	account.AddEraser(eraser(tasks.DeleteAll))
 	account.AddEraser(eraser(projects.DeleteAll))
 
 	exportMount := newExport(account, models, projects, tasks, folders, auth)
-	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount, agentMount, exportMount}
+	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount, agentMount, chatMount, exportMount}
 	mounts = append(mounts, models.mounts...)
 
 	return append(mounts, spaceMounts...), stop, nil

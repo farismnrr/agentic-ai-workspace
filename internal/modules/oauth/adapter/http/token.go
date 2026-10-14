@@ -1,6 +1,10 @@
 package http
 
 import (
+	"encoding/base64"
+	"net/url"
+	"strings"
+
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
@@ -25,19 +29,23 @@ func (h *Handler) token(c fiber.Ctx) error {
 		err      error
 	)
 
+	clientID, clientSecret := parseClientAuth(c)
+
 	switch c.FormValue("grant_type") {
 	case "authorization_code":
 		response, err = h.service.ExchangeCode(c.Context(), application.ExchangeParams{
 			Code:         c.FormValue("code"),
 			RedirectURI:  c.FormValue("redirect_uri"),
-			ClientID:     c.FormValue("client_id"),
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
 			CodeVerifier: c.FormValue("code_verifier"),
 			Resource:     c.FormValue("resource"),
 		})
 	case "refresh_token":
 		response, err = h.service.Refresh(c.Context(), application.RefreshParams{
 			RefreshToken: c.FormValue("refresh_token"),
-			ClientID:     c.FormValue("client_id"),
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
 			Resource:     c.FormValue("resource"),
 		})
 	default:
@@ -65,4 +73,23 @@ func (h *Handler) revoke(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusOK)
+}
+
+const basicAuthParts = 2
+
+func parseClientAuth(c fiber.Ctx) (string, string) {
+	if auth := c.Get(fiber.HeaderAuthorization); strings.HasPrefix(auth, "Basic ") {
+		decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(strings.TrimPrefix(auth, "Basic ")))
+		if err == nil {
+			parts := strings.SplitN(string(decoded), ":", basicAuthParts)
+			if len(parts) == basicAuthParts {
+				id, _ := url.QueryUnescape(parts[0])
+				secret, _ := url.QueryUnescape(parts[1])
+
+				return id, secret
+			}
+		}
+	}
+
+	return c.FormValue("client_id"), c.FormValue("client_secret")
 }

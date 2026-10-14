@@ -1,10 +1,18 @@
 package domain
 
 import (
+	"crypto/subtle"
 	"errors"
 	"net"
 	"net/url"
 	"slices"
+)
+
+// Client authentication methods (RFC 7591).
+const (
+	AuthMethodNone              = "none"
+	AuthMethodClientSecretBasic = "client_secret_basic"
+	AuthMethodClientSecretPost  = "client_secret_post"
 )
 
 // ClientSource records how a client became known.
@@ -19,12 +27,28 @@ const (
 // ErrBadRedirectURI means a redirect URI is not acceptable for any client.
 var ErrBadRedirectURI = errors.New("redirect URI must be https (or http on a loopback address) without a fragment")
 
-// Client is a registered OAuth public client.
+// Client is a registered OAuth client (public or confidential).
 type Client struct {
 	ID           string
 	Name         string
 	Source       ClientSource
+	AuthMethod   string
+	SecretHash   string
 	RedirectURIs []string
+}
+
+// IsConfidential reports whether the client has registered client credentials.
+func (c Client) IsConfidential() bool {
+	return c.SecretHash != ""
+}
+
+// VerifySecret checks if secret matches the client's hashed secret in constant time.
+func (c Client) VerifySecret(secret string, hasher func(string) string) bool {
+	if c.SecretHash == "" || secret == "" || hasher == nil {
+		return false
+	}
+
+	return subtle.ConstantTimeCompare([]byte(hasher(secret)), []byte(c.SecretHash)) == 1
 }
 
 // AllowsRedirect reports whether uri exactly matches a registered redirect URI.

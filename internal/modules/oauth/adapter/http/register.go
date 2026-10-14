@@ -17,16 +17,18 @@ type registrationRequest struct {
 }
 
 type registrationResponse struct {
-	ClientID     string   `json:"client_id"`
-	ClientName   string   `json:"client_name"`
-	AuthMethod   string   `json:"token_endpoint_auth_method"`
-	RedirectURIs []string `json:"redirect_uris"`
-	GrantTypes   []string `json:"grant_types"`
-	ResponseType []string `json:"response_types"`
-	IssuedAt     int64    `json:"client_id_issued_at"`
+	ClientID            string   `json:"client_id"`
+	ClientSecret        string   `json:"client_secret,omitempty"`
+	ClientSecretExpires *int64   `json:"client_secret_expires_at,omitempty"`
+	ClientName          string   `json:"client_name"`
+	AuthMethod          string   `json:"token_endpoint_auth_method"`
+	RedirectURIs        []string `json:"redirect_uris"`
+	GrantTypes          []string `json:"grant_types"`
+	ResponseType        []string `json:"response_types"`
+	IssuedAt            int64    `json:"client_id_issued_at"`
 }
 
-// register implements Dynamic Client Registration (RFC 7591) for public clients.
+// register implements Dynamic Client Registration (RFC 7591).
 func (h *Handler) register(c fiber.Ctx) error {
 	noStore(c)
 
@@ -35,16 +37,23 @@ func (h *Handler) register(c fiber.Ctx) error {
 		return writeError(c, domain.NewError(domain.CodeInvalidClientMetadata, "body must be a JSON object"))
 	}
 
-	client, err := h.service.RegisterClient(c.Context(), application.Registration{
+	result, err := h.service.RegisterClient(c.Context(), application.Registration{
 		Name: body.ClientName, RedirectURIs: body.RedirectURIs, AuthMethod: body.AuthMethod,
 	})
 	if err != nil {
 		return writeError(c, err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(registrationResponse{
-		ClientID: client.ID, ClientName: client.Name, RedirectURIs: client.RedirectURIs,
+	res := registrationResponse{
+		ClientID: result.Client.ID, ClientName: result.Client.Name, RedirectURIs: result.Client.RedirectURIs,
 		GrantTypes: []string{"authorization_code", "refresh_token"}, ResponseType: []string{"code"},
-		AuthMethod: "none", IssuedAt: time.Now().Unix(),
-	})
+		AuthMethod: result.Client.AuthMethod, IssuedAt: time.Now().Unix(),
+	}
+	if result.ClientSecret != "" {
+		res.ClientSecret = result.ClientSecret
+		var zero int64
+		res.ClientSecretExpires = &zero
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(res)
 }

@@ -77,3 +77,35 @@ func TestClientAllowsRedirectIsExact(t *testing.T) {
 		t.Error("redirect matching must be exact")
 	}
 }
+
+func TestClientVerifySecret(t *testing.T) {
+	t.Parallel()
+
+	hasher := func(s string) string { return "hashed:" + s }
+
+	publicClient := domain.Client{ID: "pub"}
+	if publicClient.IsConfidential() {
+		t.Error("client without secret hash should not be confidential")
+	}
+	if publicClient.VerifySecret("any", hasher) {
+		t.Error("public client should never verify a secret")
+	}
+
+	confClient := domain.Client{
+		ID:         "conf",
+		AuthMethod: domain.AuthMethodClientSecretBasic,
+		SecretHash: "hashed:my-secret",
+	}
+	if !confClient.IsConfidential() {
+		t.Error("client with secret hash should be confidential")
+	}
+	if !confClient.VerifySecret("my-secret", hasher) {
+		t.Error("correct secret should verify")
+	}
+	if confClient.VerifySecret("wrong-secret", hasher) {
+		t.Error("wrong secret must not verify")
+	}
+	if confClient.VerifySecret("", hasher) {
+		t.Error("empty secret must not verify")
+	}
+}

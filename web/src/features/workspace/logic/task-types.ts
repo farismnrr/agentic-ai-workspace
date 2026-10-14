@@ -6,6 +6,8 @@ export type PlanState = 'done' | 'active' | 'pending' | 'failed';
 
 export type ApprovalMode = 'risky' | 'always';
 
+export type ComposerIntent = 'task' | 'chat';
+
 export interface PlanStep {
   id: string;
   title: string;
