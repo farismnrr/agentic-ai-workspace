@@ -74,3 +74,28 @@ func scanUser(row *sql.Row) (domain.User, string, error) {
 
 	return user, hash, nil
 }
+
+// PasswordHash returns the stored hash of a person's password.
+func (s *Store) PasswordHash(ctx context.Context, id string) (string, error) {
+	var hash string
+
+	err := s.db.QueryRowContext(ctx, `SELECT password_hash FROM users WHERE id = ?`, id).Scan(&hash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", domain.ErrUserNotFound
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("select password hash: %w", err)
+	}
+
+	return hash, nil
+}
+
+// SetPassword replaces a person's password hash.
+func (s *Store) SetPassword(ctx context.Context, id, passwordHash string) error {
+	if _, err := s.db.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, passwordHash, id); err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+
+	return nil
+}

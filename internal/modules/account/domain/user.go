@@ -29,6 +29,10 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	// ErrUserNotFound means no account matches the lookup.
 	ErrUserNotFound = errors.New("user not found")
+	// ErrWrongPassword means the current password given for a change was not right.
+	ErrWrongPassword = errors.New("the current password is not right")
+	// ErrInvalidResetToken means a reset link is unknown, used or expired.
+	ErrInvalidResetToken = errors.New("this reset link is not valid any more")
 	// ErrNoSession means the session token is unknown or expired.
 	ErrNoSession = errors.New("no active session")
 )

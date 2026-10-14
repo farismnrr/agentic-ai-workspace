@@ -2,13 +2,10 @@ package bootstrap
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -70,6 +67,13 @@ type testEnv struct {
 func newEnv(t *testing.T) testEnv {
 	t.Helper()
 
+	return newEnvWith(t, nil)
+}
+
+// newEnvWith is newEnv with a chance to adjust the configuration first.
+func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
+	t.Helper()
+
 	root := t.TempDir()
 	for name, body := range map[string]string{
 		"hello.txt":             "hello from the workspace\n",
@@ -91,6 +95,10 @@ func newEnv(t *testing.T) testEnv {
 		CORSOrigins:    []string{"http://localhost:8081"},
 	}
 
+	if adjust != nil {
+		adjust(&cfg)
+	}
+
 	db, err := database.Open(cfg.DataDir)
 	if err != nil {
 		t.Fatal(err)
@@ -108,45 +116,6 @@ func newEnv(t *testing.T) testEnv {
 	app := httpserver.New(fstest.MapFS{"index.html": {Data: []byte("<html>")}}, httpserver.Settings{}, mounts...)
 
 	return testEnv{app: app, root: root, dataDir: cfg.DataDir}
-}
-
-func do(t *testing.T, app *fiber.App, method, path, body string, headers map[string]string) reply {
-	t.Helper()
-
-	req := httptest.NewRequestWithContext(t.Context(), method, path, strings.NewReader(body))
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() { _ = resp.Body.Close() }()
-
-	data, _ := io.ReadAll(resp.Body)
-
-	return reply{Status: resp.StatusCode, Header: resp.Header, Body: data}
-}
-
-func jsonHeaders() map[string]string {
-	return map[string]string{"Content-Type": "application/json"}
-}
-
-func formHeaders() map[string]string {
-	return map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
-}
-
-func cookieOf(t *testing.T, r reply) string {
-	t.Helper()
-
-	cookie := strings.SplitN(r.Header.Get("Set-Cookie"), ";", 2)[0]
-	if !strings.HasPrefix(cookie, "session=") {
-		t.Fatalf("no session cookie in %q", r.Header.Get("Set-Cookie"))
-	}
-
-	return cookie
 }
 
 // connect runs the whole OAuth dance for scope and returns the access token.

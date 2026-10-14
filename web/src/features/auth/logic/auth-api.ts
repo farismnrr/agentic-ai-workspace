@@ -8,6 +8,12 @@ export const signIn = (email: string, password: string): Promise<SessionUser> =>
 export const createAccount = (name: string, email: string, password: string): Promise<SessionUser> =>
   request<SessionUser>('POST', '/api/auth/register', { name, email, password });
 
+export const requestReset = (email: string): Promise<undefined> =>
+  request<undefined>('POST', '/api/auth/forgot', { email });
+
+export const resetPassword = (token: string, password: string): Promise<undefined> =>
+  request<undefined>('POST', '/api/auth/reset', { token, password });
+
 /** Turns a failed auth request into a sentence a person can act on. */
 export function describeError(error: unknown): string {
   return error instanceof ApiError ? (errorCopy[error.code] ?? FALLBACK_ERROR) : FALLBACK_ERROR;

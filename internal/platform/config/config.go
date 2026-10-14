@@ -19,6 +19,10 @@ type Config struct {
 	DataDir        string
 	CodingRoot     string
 	ClientIPHeader string
+	SMTPAddr       string
+	SMTPUser       string
+	SMTPPassword   string
+	SMTPFrom       string
 	AllowedOrigins []string
 	CORSOrigins    []string
 	AgentWorkers   int
@@ -41,6 +45,10 @@ func Load() Config {
 		AllowedOrigins: allowed,
 		CORSOrigins:    list("CORS_ORIGINS", allowed),
 		ClientIPHeader: strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),
+		SMTPAddr:       strings.TrimSpace(os.Getenv("SMTP_ADDR")),
+		SMTPUser:       os.Getenv("SMTP_USER"),
+		SMTPPassword:   os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:       strings.TrimSpace(os.Getenv("SMTP_FROM")),
 		AgentWorkers:   atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
 		CookieSecure:   strings.HasPrefix(publicURL, "https://"),
 	}

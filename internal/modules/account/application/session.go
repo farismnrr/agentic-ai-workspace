@@ -84,3 +84,40 @@ func (s *Service) Profile(ctx context.Context, id string) (domain.User, error) {
 
 	return user, nil
 }
+
+// ChangePassword sets a new password after checking the current one, and signs
+// every other device out. keepToken is the session that stays signed in.
+func (s *Service) ChangePassword(ctx context.Context, userID, keepToken, current, next string) error {
+	if err := domain.ValidatePassword(next); err != nil {
+		return fmt.Errorf("change password: %w", err)
+	}
+
+	hash, err := s.users.PasswordHash(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("find account: %w", err)
+	}
+
+	if !s.hasher.Verify(current, hash) {
+		return domain.ErrWrongPassword
+	}
+
+	return s.replacePassword(ctx, userID, next, s.tokens.Hash(keepToken))
+}
+
+// replacePassword stores a new password and ends all sessions except keepHash.
+func (s *Service) replacePassword(ctx context.Context, userID, password, keepHash string) error {
+	hash, err := s.hasher.Hash(password)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	if err := s.users.SetPassword(ctx, userID, hash); err != nil {
+		return fmt.Errorf("save password: %w", err)
+	}
+
+	if err := s.sessions.DeleteSessionsExcept(ctx, userID, keepHash); err != nil {
+		return fmt.Errorf("end other sessions: %w", err)
+	}
+
+	return nil
+}

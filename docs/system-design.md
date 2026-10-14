@@ -122,6 +122,10 @@ A task is one request in a project. The agent loop (`modules/task`) sends the co
 - **Checks:** a project's checks live in `.workspace/tasks.json` inside its folder, which the AI's tools can never read or write; only the Checks tab changes them.
 - **Limits:** 40 model turns, 15 minutes and a token budget per run; a project runs one task at a time; interrupted tasks are marked and can be continued.
 
+Forgotten passwords: `POST /api/auth/forgot` always answers 202 and mails a one-hour, single-use link (`/reset?token=…`) only when the address has an account; the secret is stored hashed in `password_resets`. Using the link, or changing the password in Settings, ends every other session. Mail goes out over SMTP (`SMTP_*`) or, when none is configured, into the log.
+
+Task pages and the workspace follow changes live over server-sent events (`GET /api/tasks/:id/stream` for steps and streamed text, `GET /api/stream` for list changes); a client that reconnects resumes from `Last-Event-ID`, and the workspace falls back to a slow poll.
+
 Sign-in, sign-up and the open OAuth endpoints are rate limited per visitor address (failed sign-ins also per account and address, so someone else's wrong guesses never lock you out). Expired sessions, codes, tokens and unused clients are swept away every hour.
 
 The database schema changes only through numbered files in `internal/platform/database/migrations/`. Applied files are checksummed and can never be edited, so every change stays on record.
