@@ -7,6 +7,7 @@
   import InboxPage from '../features/workspace/inbox/InboxPage.svelte';
   import ProjectDetailPage from '../features/workspace/projects/ProjectDetailPage.svelte';
   import ProjectsPage from '../features/workspace/projects/ProjectsPage.svelte';
+  import SitesPage from '../features/workspace/sites/SitesPage.svelte';
   import SettingsPage from '../features/workspace/settings/SettingsPage.svelte';
   import TaskPage from '../features/workspace/task/TaskPage.svelte';
   import ConsentPage from '../features/auth/ConsentPage.svelte';
@@ -39,6 +40,8 @@
   <InboxPage />
 {:else if $route.name === 'projects'}
   <ProjectsPage />
+{:else if $route.name === 'sites'}
+  <SitesPage />
 {:else if $route.name === 'project'}
   <ProjectDetailPage projectId={$route.projectId} />
 {:else if $route.name === 'task'}

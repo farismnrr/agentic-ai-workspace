@@ -35,7 +35,12 @@ func (c Config) mounts(spec Spec) ([]mount.Mount, error) {
 	folders := []struct {
 		dir, target string
 		readOnly    bool
-	}{{spec.Workspace, Workspace, false}, {spec.Cache, Cache, false}, {spec.Egress, Egress, true}}
+	}{
+		{spec.Workspace, Workspace, false},
+		{spec.Cache, Cache, false},
+		{spec.Egress, Egress, true},
+		{spec.Site, SiteDir, false},
+	}
 
 	var out []mount.Mount
 

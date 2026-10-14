@@ -82,6 +82,10 @@ func describe(tool string, in toolArgs) taskapp.Described {
 		return describer(in, target)
 	}
 
+	if describer, ok := siteDescribers[tool]; ok {
+		return describer(in, target)
+	}
+
 	return said("Used "+tool, "May I use "+tool+"?", tool)
 }
 

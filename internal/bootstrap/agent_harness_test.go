@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 )
 
 // gateway is a fake OpenAI-compatible model that answers with a fixed script.
@@ -113,7 +115,14 @@ type agentRig struct {
 func newAgentRig(t *testing.T, steps ...string) agentRig {
 	t.Helper()
 
-	env := newEnv(t)
+	return newAgentRigWith(t, nil, steps...)
+}
+
+// newAgentRigWith is newAgentRig with a chance to adjust the configuration first.
+func newAgentRigWith(t *testing.T, adjust func(*config.Config), steps ...string) agentRig {
+	t.Helper()
+
+	env := newEnvWith(t, adjust)
 	cookie, _ := signedInClient(t, env.app)
 	gw := newGateway(t, steps...)
 
@@ -165,29 +174,6 @@ func (a agentRig) waitFor(t *testing.T, id, want string) {
 	}
 
 	t.Fatalf("task never reached %q, it is %q", want, a.status(t, id))
-}
-
-type threadEvent struct {
-	ID       string   `json:"id"`
-	Kind     string   `json:"kind"`
-	Text     string   `json:"text"`
-	Resolved string   `json:"resolved"`
-	Files    []string `json:"files"`
-	Seq      int64    `json:"seq"`
-	CanUndo  bool     `json:"canUndo"`
-}
-
-func (a agentRig) thread(t *testing.T, id string) []threadEvent {
-	t.Helper()
-
-	var events []threadEvent
-
-	body := do(t, a.env.app, "GET", "/api/tasks/"+id+"/events", "", jsonCookie(a.cookie)).Body
-	if err := json.Unmarshal(body, &events); err != nil {
-		t.Fatal(err)
-	}
-
-	return events
 }
 
 func (a agentRig) post(t *testing.T, path, body string) int {

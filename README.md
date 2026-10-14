@@ -27,6 +27,7 @@ Then open `http://localhost:8081`. To build from source, run `make run` (needs G
 | --- | --- |
 | [docs/deployment.md](./docs/deployment.md) | Running with Docker, settings, releases, and Docker security notes |
 | [docs/using-the-app.md](./docs/using-the-app.md) | Adding a model, projects, checks, and your data |
+| [docs/sites.md](./docs/sites.md) | Web apps the AI starts and how they are kept apart from the app |
 | [docs/connector.md](./docs/connector.md) | Connecting ChatGPT and other AI apps |
 | [docs/system-design.md](./docs/system-design.md) | How the code is organized |
 | [docs/design-system.md](./docs/design-system.md) | Colors, theme and component rules |

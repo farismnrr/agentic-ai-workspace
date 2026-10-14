@@ -62,17 +62,20 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
 
-	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, auth, sameOrigin)
+	tasks, sites, agentMounts, stop, err := newAgentAndSites(
+		db, cfg, models, projects, tools, folders, sess, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	account.AddEraser(eraser(sites.StopUser))
 	account.AddEraser(eraser(tasks.DeleteAll))
 	account.AddEraser(eraser(projects.DeleteAll))
 	account.AddEraser(eraser(coding.Erase))
 
 	exportMount := newExport(account, models, projects, tasks, folders, auth)
-	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount, agentMount, exportMount}
+	mounts := append([]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts...)
+	mounts = append(mounts, exportMount)
 	mounts = append(mounts, models.mounts...)
 
 	return append(mounts, spaceMounts...), func() { stop(); closeProxy() }, nil

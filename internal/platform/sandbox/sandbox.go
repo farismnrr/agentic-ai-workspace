@@ -18,6 +18,10 @@ const Cache = "/cache"
 // Egress is where the folder holding the proxy socket appears.
 const Egress = "/run/egress"
 
+// SiteDir is where the folder holding a site's socket appears. Inside, the start script
+// publishes the app's local port as a Unix socket that only the server can reach.
+const SiteDir = "/run/site"
+
 // Entry is the image's start script. It makes the proxy socket reachable as a local port, then runs the command.
 const Entry = "/usr/local/bin/sandbox-entry"
 
@@ -33,8 +37,10 @@ type Spec struct {
 	Cache string
 	// Egress is an optional folder holding the proxy socket, shown read-only at /run/egress.
 	Egress string
-	Argv   []string
-	Env    []string
+	// Site is an optional writable folder for a site's socket, shown at /run/site.
+	Site string
+	Argv []string
+	Env  []string
 }
 
 // Result is how a sandboxed command ended.

@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -63,4 +64,28 @@ func (a agentRig) allowPending(t *testing.T, id string) {
 			return
 		}
 	}
+}
+
+type threadEvent struct {
+	ID       string   `json:"id"`
+	URL      string   `json:"url"`
+	Kind     string   `json:"kind"`
+	Text     string   `json:"text"`
+	Resolved string   `json:"resolved"`
+	Files    []string `json:"files"`
+	Seq      int64    `json:"seq"`
+	CanUndo  bool     `json:"canUndo"`
+}
+
+func (a agentRig) thread(t *testing.T, id string) []threadEvent {
+	t.Helper()
+
+	var events []threadEvent
+
+	body := do(t, a.env.app, "GET", "/api/tasks/"+id+"/events", "", jsonCookie(a.cookie)).Body
+	if err := json.Unmarshal(body, &events); err != nil {
+		t.Fatal(err)
+	}
+
+	return events
 }
