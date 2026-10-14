@@ -164,7 +164,7 @@ func TestUndoIsRefusedAfterALaterChangeAndForOtherPeople(t *testing.T) {
 
 func TestTasksRunOnlyWhenSwitchedOnAndNeverExposeTheirFile(t *testing.T) {
 	t.Parallel()
-	requireToolbox(t)
+	requireDocker(t)
 
 	app := newApp(t)
 	cookie, clientID := signedInClient(t, app)

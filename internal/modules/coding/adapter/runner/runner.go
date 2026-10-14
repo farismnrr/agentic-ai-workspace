@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"errors"
-	"os/exec"
 	"sync"
 	"time"
 
@@ -12,10 +11,8 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
 )
 
-const waitDelay = 2 * time.Second
-
 // Runner executes a task's argument vector directly (never through a shell) in
-// a sandbox whose only writable folder is the workspace, one task at a time,
+// a container whose only writable folder is the workspace, one task at a time,
 // with a scrubbed environment. The shared engine bounds all runners together.
 type Runner struct {
 	engine *Engine
@@ -36,7 +33,7 @@ func (r *Runner) WithWorkspaceLimit(bytes int64) *Runner {
 	return r
 }
 
-// Run starts the task and waits for it, killing the whole sandbox on timeout.
+// Run starts the task and waits for it, removing the container on timeout.
 func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResult, error) {
 	select {
 	case r.slot <- struct{}{}:
@@ -51,10 +48,6 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 	}
 
 	defer release()
-
-	if refusal := r.engine.cfg.Refuse; refusal != nil {
-		return finish(ctx, refusal, &tail{limit: domain.MaxOutputBytes}, 0), nil
-	}
 
 	if sizeOver(r.dir, r.quota) {
 		return application.RunResult{ExitCode: -1, Output: overQuota}, nil
@@ -75,39 +68,23 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 
 	out := &tail{limit: domain.MaxOutputBytes}
 
-	group, err := r.engine.group()
+	docker, err := r.engine.Docker(ctx)
 	if err != nil {
-		return finish(ctx, err, out, 0)
+		return finish(ctx, err, sandbox.Result{}, out, 0)
 	}
 
-	if group != nil {
-		defer group.Close()
-	}
-
-	spec := sandbox.Spec{
-		Group: group, Toolbox: r.engine.cfg.Toolbox, Workspace: r.dir, Argv: task.Command,
-		Env: environment(), Limits: r.engine.cfg.Limits,
-	}
-
-	cmd, cleanup, err := sandbox.Command(ctx, spec)
-	if err != nil {
-		return finish(ctx, err, out, 0)
-	}
-
-	defer cleanup()
-
-	cmd.Stdout, cmd.Stderr, cmd.WaitDelay = out, out, waitDelay
+	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command, Env: environment()}
 	over := watchSize(ctx, r.dir, r.quota, cancel)
 
 	started := time.Now()
-	err = cmd.Run()
-	result := finish(ctx, err, out, time.Since(started))
+	res, err := docker.Run(ctx, spec, out)
+	result := finish(ctx, err, res, out, time.Since(started))
 
 	switch {
 	case over.Load():
 		result.TimedOut, result.ExitCode = false, -1
 		result.Output += stoppedBig
-	case group != nil && group.OOMKilled():
+	case res.OOMKilled:
 		result.ExitCode = -1
 		result.Output += stoppedOOM
 	}
@@ -115,20 +92,16 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 	return result
 }
 
-func finish(ctx context.Context, err error, out *tail, took time.Duration) application.RunResult {
+func finish(ctx context.Context, err error, res sandbox.Result, out *tail, took time.Duration) application.RunResult {
 	text, truncated := out.result()
-	result := application.RunResult{Output: text, Truncated: truncated, Duration: took}
-
-	var exit *exec.ExitError
+	result := application.RunResult{Output: text, Truncated: truncated, Duration: took, ExitCode: res.ExitCode}
 
 	switch {
 	case err == nil:
 	case errors.Is(ctx.Err(), context.DeadlineExceeded):
 		result.TimedOut, result.ExitCode = true, -1
-	case errors.As(err, &exit):
-		result.ExitCode = exit.ExitCode()
 	default:
-		result.ExitCode, result.Output = -1, "could not start the command: "+err.Error()
+		result.ExitCode, result.Output = -1, "could not run the command: "+err.Error()
 	}
 
 	return result

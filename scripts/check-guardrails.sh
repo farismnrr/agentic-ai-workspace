@@ -15,7 +15,7 @@ file_violations="$(
     \( -name '*.go' -o -name '*.ts' -o -name '*.svelte' -o -name '*.css' \
        -o -name '*.js' -o -name '*.mjs' -o -name '*.cjs' -o -name '*.json' \
        -o -name '*.yaml' -o -name '*.yml' -o -name '*.toml' -o -name '*.md' \
-       -o -name '*.sh' -o -name '*.html' -o -name 'Makefile' \) \
+       -o -name '*.sh' -o -name '*.html' -o -name 'Makefile' -o -name 'Dockerfile' \) \
     ! -path './.git/*' \
     ! -path './web/node_modules/*' \
     ! -path './data/*' \

@@ -4,6 +4,7 @@ SHELL := /bin/sh
 PORT ?= 8081
 
 APP_NAME := agentic-ai-workspace
+IMAGE := ghcr.io/farismnrr/$(APP_NAME)
 BIN_DIR := bin
 BIN_PATH := $(BIN_DIR)/$(APP_NAME)
 WEB_DIR := web
@@ -13,11 +14,12 @@ MAX_FILE_LINES := 200
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-.PHONY: help build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
+.PHONY: help image build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
 
 help:
 	@echo "make build    - verify, then build the single static binary ($(BIN_PATH))"
 	@echo "make run      - build, then run the binary on PORT (default $(PORT))"
+	@echo "make image    - build the Docker image ($(IMAGE):latest, what compose uses)"
 	@echo "make verify   - run every quality check (Go + frontend)"
 	@echo "make clean    - remove bin/, node_modules and generated frontend output"
 
@@ -29,15 +31,12 @@ backend-build:
 	@mkdir -p "$(BIN_DIR)"
 	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$(BIN_PATH)" ./cmd/workspace
 
-# Under systemd the server gets its own delegated cgroup, which is what lets it hold every
-# check to real CPU and memory limits. Without systemd it runs with SANDBOX_LIMITS=relaxed.
+# Checks run as Docker containers, so a local Docker daemon is needed to run them.
 run: build
-	@if systemd-run --user --scope --quiet true 2>/dev/null; then \
-		PORT="$(PORT)" systemd-run --user --scope --quiet -p Delegate=yes "./$(BIN_PATH)"; \
-	else \
-		echo "systemd user session not found: running with weaker limits (SANDBOX_LIMITS=relaxed)"; \
-		PORT="$(PORT)" SANDBOX_LIMITS=relaxed "./$(BIN_PATH)"; \
-	fi
+	@PORT="$(PORT)" "./$(BIN_PATH)"
+
+image:
+	docker build -t $(IMAGE):latest .
 
 guardrails:
 	MAX_FILE_LINES="$(MAX_FILE_LINES)" sh ./scripts/check-guardrails.sh

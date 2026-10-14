@@ -1,18 +1,15 @@
 package sandbox
 
-// Limits bound what one sandboxed command may consume. Memory, CPU and process
-// counts are enforced by a cgroup when the server has one (see OpenCgroups);
-// otherwise only the rlimits below apply, which are coarser: they work without
-// root but cannot account for a whole task.
+// Limits bound what one sandboxed command may consume. The Docker daemon enforces
+// them for the whole container, including every process it starts.
 type Limits struct {
-	// MemoryBytes caps memory. With a cgroup it is exact and includes page cache and
-	// tmpfs; as an rlimit (RLIMIT_DATA) it only covers private writable memory.
+	// MemoryBytes caps memory, tmpfs included; swap is off.
 	MemoryBytes uint64
 	// FileBytes caps the size of any single file the command writes.
 	FileBytes uint64
-	// Processes caps how many processes and threads a task may have (cgroup only).
+	// Processes caps how many processes and threads a task may have.
 	Processes uint64
-	// CPUMillis is the CPU share in thousandths of a core (cgroup only).
+	// CPUMillis is the CPU share in thousandths of a core.
 	CPUMillis uint64
 }
 

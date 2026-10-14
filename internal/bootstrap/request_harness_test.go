@@ -5,9 +5,13 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 )
+
+// requestTimeout leaves room for a task, which starts a container.
+const requestTimeout = 30 * time.Second
 
 func do(t *testing.T, app *fiber.App, method, path, body string, headers map[string]string) reply {
 	t.Helper()
@@ -17,7 +21,7 @@ func do(t *testing.T, app *fiber.App, method, path, body string, headers map[str
 		req.Header.Set(key, value)
 	}
 
-	resp, err := app.Test(req)
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: requestTimeout, FailOnTimeout: true})
 	if err != nil {
 		t.Fatal(err)
 	}

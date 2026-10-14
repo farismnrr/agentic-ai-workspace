@@ -13,28 +13,51 @@ const poolWait = 30 * time.Second
 
 // EngineConfig is what every runner shares.
 type EngineConfig struct {
-	// Cgroups holds each task to real CPU, memory and process limits; nil means rlimits only.
-	Cgroups *sandbox.Cgroups
-	// Refuse, when set, makes every task fail with this reason instead of running unprotected.
-	Refuse error
-	// Toolbox is the read-only folder with the programs tasks run (an absolute path).
-	Toolbox string
-	Limits  sandbox.Limits
-	// Size is how many sandboxes may run at once across every workspace.
+	// Open connects to Docker. It is retried until it works, so the server can start
+	// before Docker does and while the task image is still being downloaded.
+	Open func(context.Context) (*sandbox.Docker, error)
+	// Size is how many containers may run at once across every workspace.
 	Size int
 }
 
-// Engine is the sandbox infrastructure all runners share: the toolbox, the limits,
-// the cgroups and the pool that bounds how many sandboxes run at once, so one
-// person's checks cannot starve everyone else of CPU and memory.
+// Engine is the infrastructure all runners share: the Docker connection and the pool
+// that bounds how many containers run at once, so one person's checks cannot starve
+// everyone else of CPU and memory.
 type Engine struct {
 	places chan struct{}
-	cfg    EngineConfig
+	lock   chan struct{}
+	docker *sandbox.Docker
+	open   func(context.Context) (*sandbox.Docker, error)
 }
 
 // NewEngine builds the shared infrastructure.
 func NewEngine(cfg EngineConfig) *Engine {
-	return &Engine{places: make(chan struct{}, max(cfg.Size, 1)), cfg: cfg}
+	return &Engine{
+		places: make(chan struct{}, max(cfg.Size, 1)), lock: make(chan struct{}, 1), open: cfg.Open,
+	}
+}
+
+// Docker returns the connection, opening it on first use. A failed attempt is not remembered.
+func (e *Engine) Docker(ctx context.Context) (*sandbox.Docker, error) {
+	select {
+	case e.lock <- struct{}{}:
+		defer func() { <-e.lock }()
+	case <-ctx.Done():
+		return nil, domain.ErrServerBusy
+	}
+
+	if e.docker != nil {
+		return e.docker, nil
+	}
+
+	docker, err := e.open(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	e.docker = docker
+
+	return docker, nil
 }
 
 // acquire waits for a free place and returns the function that gives it back.
@@ -50,13 +73,4 @@ func (e *Engine) acquire(ctx context.Context) (func(), error) {
 	case <-ctx.Done():
 		return nil, domain.ErrServerBusy
 	}
-}
-
-// group creates the cgroup for one task, or nil when the server has none.
-func (e *Engine) group() (*sandbox.Group, error) {
-	if e.cfg.Cgroups == nil {
-		return nil, nil //nolint:nilnil // no cgroups configured is a normal, limited mode
-	}
-
-	return e.cfg.Cgroups.New(e.cfg.Limits) //nolint:wrapcheck // the sandbox package's errors are descriptive
 }

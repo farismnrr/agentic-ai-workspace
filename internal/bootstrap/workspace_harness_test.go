@@ -1,39 +1,39 @@
 package bootstrap
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 
-	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox/sandboxtest"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
 )
+
+// testImage is small and has the shell tools the tests need.
+const testImage = "busybox:1.37"
 
 var (
-	sandboxOnce sync.Once
-	sandboxPath string
-	errSandbox  error
+	dockerOnce sync.Once
+	errDocker  error
 )
 
-// testSandboxDir is the folder holding the shared toolbox the tests run tasks in, built once.
-func testSandboxDir() string {
-	sandboxOnce.Do(func() {
-		if sandboxPath, errSandbox = sandboxtest.Ensure(); errSandbox == nil {
-			errSandbox = sandboxtest.Probe(sandboxPath)
-		}
-	})
-
-	return sandboxPath
-}
-
-// requireToolbox skips a test that runs a sandboxed task when no toolbox could be had.
-func requireToolbox(t *testing.T) {
+// requireDocker skips a test that runs a task when the host has no usable Docker.
+func requireDocker(t *testing.T) {
 	t.Helper()
 
-	if testSandboxDir(); errSandbox != nil {
-		t.Skipf("no sandbox toolbox on this host: %v", errSandbox)
+	dockerOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		_, errDocker = sandbox.Open(ctx, sandbox.Config{Image: testImage, Limits: sandbox.DefaultLimits()})
+	})
+
+	if errDocker != nil {
+		t.Skipf("no Docker on this host: %v", errDocker)
 	}
 }
 

@@ -14,25 +14,14 @@ The frontend is built with Svelte, then embedded into the Go binary. In producti
 
 ## Fastest way to run it
 
-Download the latest Linux build:
+The app ships as one Docker image holding the single Go binary. Checks (the commands the AI runs on your project) run in short-lived containers that the app starts through the Docker socket, so the compose file mounts it:
 
 ```bash
-curl -L \
-  -o agentic-ai-workspace \
-  https://github.com/farismnrr/agentic-ai-workspace/releases/latest/download/agentic-ai-workspace-linux-amd64
-chmod +x agentic-ai-workspace
-./agentic-ai-workspace
+curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.yaml
+DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose up -d
 ```
 
-By default the app listens on port `8081`.
-
-Use a different port with:
-
-```bash
-PORT=9000 ./agentic-ai-workspace
-```
-
-The GitHub release is a rolling build named **Latest**. When a full release workflow succeeds, the Linux binary in that release is replaced.
+By default the app listens on port `8081`; change it with `PORT=9000 docker compose up -d`. Images are published to `ghcr.io/farismnrr/agentic-ai-workspace`: `latest` is the last release from `main`, `dev` follows the `dev` branch, and `sha-<commit>` pins an exact build.
 
 ## Building from source
 
@@ -49,9 +38,9 @@ Or build and run in one command:
 make run
 ```
 
-`make run` listens on port 8081 by default. Use `make run PORT=9000` to change it. `make help` lists the available commands.
+`make run` needs a local Docker daemon for checks and listens on port 8081 by default. Use `make run PORT=9000` to change it. `make help` lists the available commands.
 
-The build produces one static Linux binary with no shared-library dependencies, the same file that is published to the release.
+The build produces one static Linux binary with no shared-library dependencies, the same file that goes into the image. `make image` builds the Docker image locally under the same name compose pulls, so it is used instead of the published one.
 
 There is intentionally no development server or hot reload. The supported local flow is always build first, then run the resulting binary.
 
@@ -65,7 +54,7 @@ make verify
 
 This checks the frontend, Go code, architecture guardrails, lint rules, tests, and production frontend build.
 
-Development happens on `dev`. A fast GitHub Actions workflow checks and builds every push to `dev`. A full workflow, started manually, repeats all checks, merges `dev` into `main`, and publishes the Linux release.
+Development happens on `dev`. A fast GitHub Actions workflow checks and builds every push to `dev`. A full workflow, started manually, repeats all checks, merges `dev` into `main`, and publishes the image to GHCR as `latest`. Pushes to `dev` publish the `dev` image once all checks and an image smoke test pass.
 
 ## Connecting ChatGPT
 
@@ -79,43 +68,24 @@ Settings (environment variables):
 | `CONNECTOR_URL` | The public `https` address AI apps such as ChatGPT use to reach the server, for example `https://workspace.example.com`. This is the address shown under Settings, Spaces & tools, the issuer of the sign-in they are sent through, and the audience of their tokens. Defaults to `PUBLIC_URL`. Point your tunnel or reverse proxy for this address at the server. |
 | `ALLOWED_ORIGINS` | Comma-separated browser origins that may sign in and change data (CSRF protection). Defaults to `http://localhost:<PORT>,http://127.0.0.1:<PORT>`. `PUBLIC_URL` is always allowed too. Add a domain or IP here, for example `https://workspace.example.com,http://192.168.1.20:8081`. |
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
-| `SANDBOX_DIR` | Where the toolbox lives (default `DATA_DIR/sandbox`; the toolbox is its `general` folder). |
-| `SANDBOX_PACKAGES` | Alpine packages for `sandbox install`, separated by spaces (default `git nodejs npm python3 go rust cargo make build-base`; `none` for the bare base). |
-| `SANDBOX_LIMITS` | `relaxed` runs checks even when cgroup limits are unavailable. By default they are refused. |
+| `SANDBOX_IMAGE` | The Docker image checks run in (default `node:24-bookworm`, which has Git, Node.js, Python, make and a C compiler). Use any image with the tools your projects need; it is downloaded on first use. |
+| `SANDBOX_RUNTIME` | Optional hardened container runtime, such as `runsc` (gVisor), for extra isolation. |
+| `SANDBOX_DATA_VOLUME` | Set automatically by `compose.yaml`: the Docker volume that holds `DATA_DIR`, so check containers can mount a person's folder. Leave empty when the app runs directly on the host. |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Memory (default 2048) and CPU cores (default 1) one check may use. |
 | `MAX_SANDBOXES` | How many checks may run at the same time across all people (default 4). Extra ones wait up to 30 seconds, then are told the server is busy. |
 | `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
 | `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits; without it every visitor behind a tunnel looks like one address. |
 | `DATA_DIR` | Where accounts and connections are stored (default `data`). Each person's private coding folder lives inside it, under `workspaces/`. |
 
-### The sandbox toolbox
+### Docker and checks
 
-The tools checks use are not taken from the computer the server runs on. The server's owner installs them once into the sandbox's own folder, and every person's checks share that read-only copy:
+Checks need access to a Docker daemon (`DOCKER_HOST`, or the default socket). If Docker is not reachable, checks say so plainly and the rest of the app keeps working. Tools that need the internet (`npm install`, `cargo fetch`, `go mod download`) cannot run, because check containers have no network: a project has to bring its dependencies with it.
 
-```sh
-./agentic-ai-workspace sandbox install   # downloads Alpine Linux and installs the tools (a few minutes, a few GB)
-./agentic-ai-workspace sandbox status    # shows what is installed and whether resource limits are available
-```
-
-Until this is done, checks report that the toolbox is missing. Tools needing the internet (`npm install`, `cargo fetch`, `go mod download`) cannot run, because checks have no network: a project has to bring its dependencies with it.
-
-**Resource limits.** Real CPU, memory and process limits come from cgroup v2, which the server must be allowed to use. Run it as a systemd service with `Delegate=yes`:
-
-```ini
-[Service]
-ExecStart=/opt/agentic-ai-workspace/agentic-ai-workspace
-Environment=PORT=8081 DATA_DIR=/var/lib/agentic-ai-workspace
-User=workspace
-Delegate=yes
-```
-
-If cgroups are not available, checks are **refused** instead of running without limits. `SANDBOX_LIMITS=relaxed` lets them run with weaker, approximate limits; do that only on a machine you trust. `make run` uses `systemd-run` for you.
-
-**If strangers can sign up**, also: run the server as its own unprivileged user, ideally inside a dedicated VM or container, keep the kernel updated (the sandbox shares it), and put the data folder on a filesystem with a size quota, since the workspace limit is only checked once per second.
+**Access to the Docker socket is access to the whole machine.** Whoever controls the app can start containers as root on the host. Run Docker in [rootless mode](https://docs.docker.com/engine/security/rootless/) where you can, put the data folder on a filesystem with a size quota (the workspace limit is checked once per second), and keep sign-ups to people you trust. For stronger isolation set `SANDBOX_RUNTIME=runsc` after installing gVisor.
 
 ### What the coding space can do
 
-Every person gets their own coding folder (`DATA_DIR/workspaces/<account>`); nobody can read or change anyone else's files, and the folder is deleted with the account. Checks run in a sandbox much like a container, built into the binary (no Docker needed). A check sees only your coding folder (as `/workspace`, the one place it can write), a private `/tmp`, and the **toolbox**: the sandbox's own copy of Git, Node.js, Python, Go, Rust and a C compiler, kept apart from the host's programs (see below). It has no internet, cannot see your other files or processes, has no special privileges, cannot use dangerous system calls (mounting, creating new sandboxes, kernel tracing), and is held to a memory, CPU, process, file-size and workspace-size limit.
+Every person gets their own coding folder (`DATA_DIR/workspaces/<account>`); nobody can read or change anyone else's files, and the folder is deleted with the account. Every check runs in its own throwaway Docker container, removed when the check ends. It sees only your coding folder (as `/workspace`, the one place it can write), a private `/tmp`, and the programs in the sandbox image. It has no internet, cannot see your other files or processes, runs without privileges and with Docker's default system-call filter, and is held to a memory, CPU, process, file-size and workspace-size limit.
 
 Each tool can be switched on or off under Settings, Spaces & tools. Looking around is on from the start; changing files and running tasks stay off until you turn them on.
 

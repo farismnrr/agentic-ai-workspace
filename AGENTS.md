@@ -21,13 +21,13 @@ This file is the source of truth for AI agents working in this repository. It co
 
 ## Runtime contract
 
-1. Production is one Go binary, one process, and one listening port.
+1. Production is one Docker image holding one Go binary: one process and one listening port. Checks run as short-lived containers started through the Docker socket, never as a second server.
 2. Go Fiber v3 owns API routing and serves the compiled Svelte SPA.
 3. Node.js, Vite, Tailwind CSS, and daisyUI are build-time dependencies only.
 4. Do not add a second runtime server, frontend port, or reverse proxy without explicit approval.
 5. Do not add hot reload or a dev-server workflow. Supported execution is `build -> run binary`.
 6. `make run` always verifies and rebuilds before running, so the binary never goes stale.
-7. `backend-build` always uses `CGO_ENABLED=0`, so local and release binaries are the same static, single-file artifact.
+7. `backend-build` always uses `CGO_ENABLED=0`, so local binaries and the image's binary are the same static, single-file artifact. `make image` builds the image.
 
 ## Clean Architecture dependency rule
 
@@ -141,27 +141,26 @@ web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ fe
 2. Go uses strict golangci-lint; the frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
 3. Warnings fail verification. Fix diagnostics instead of silencing them. `//nolint` must name the linter and explain the exception.
 4. Keep exactly two workflow files in `.github/workflows/`: `fast.yml` and `full.yml`. Neither gets extra files or full-release auto-triggers without approval. Shared setup lives in `.github/actions/`.
-5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs `make verify` equivalents, builds the single `linux/amd64` static binary, and smoke-tests it (starts, serves `/` and an API route). Checks run in parallel and the build is not repeated. Documentation-only changes skip it.
-6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. It repeats every fast check from a clean checkout, builds and smoke-tests the release binary, and only then merges `dev` -> `main` and publishes the rolling release.
+5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs `make verify` equivalents, builds and smoke-tests the static binary, then builds the image (`.github/actions/build-image`), smoke-tests it, and on pushes only publishes `ghcr.io/<repo>:dev` and `:sha-<short>`. Checks run in parallel. Documentation-only changes skip it.
+6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. It repeats every fast check from a clean checkout, and only then merges `dev` -> `main` and publishes the image built from the merge commit as `:latest` and `:sha-<short>`.
 7. Fast stays quicker than full by skipping clean-room rebuilds, cross-checks, merging, and publishing. It must never skip a lint, type, test, or guardrail gate.
 8. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`. CI verifies dependency drift instead of fixing it.
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
-10. Permissions default to read-only; write permission belongs only to the full release job.
+10. Permissions default to read-only; `packages: write` belongs only to the image jobs, and merge rights only to the full publish job.
 11. A change is incomplete while CI is failing.
 
-## Rolling GitHub release
+## Container image
 
-1. Only a successful full workflow publishes a release. Pushes to `dev` and pull requests never do.
-2. Keep exactly one rolling release identity: tag `latest`, title `Latest`. No semantic, dated, or per-commit versions unless the user changes this rule.
-3. The asset is the verified binary only, named `agentic-ai-workspace-linux-amd64`. Publish the binary built in that run; never rebuild different source.
-4. A newer release moves `latest` to the merged `main` commit and replaces the asset. If immutable releases are enabled, fail clearly instead of creating versioned releases.
+1. Only the image jobs publish, to GHCR under `ghcr.io/<owner>/agentic-ai-workspace`. Pull requests never publish. There are no GitHub Releases or release tags.
+2. Tags: `dev` (fast, from `dev`), `latest` (full, from the merged `main` commit) and `sha-<short>`. No semantic or dated versions unless the user changes this rule.
+3. Smoke-test the image before pushing, and push what was tested (same cached build, never different source). Base images in the `Dockerfile` are pinned by digest.
 
 ## Backend platform lessons
 
 1. Migrations in `internal/platform/database/migrations/` are an append-only journal with checksums: never edit or delete an applied file; every schema or query change is a new numbered file. Startup fails if history was altered.
 2. The server is its own OAuth 2.1 authorization server (`modules/oauth`) and hosts MCP spaces (`modules/space`; first is `modules/coding` at `/api/coding`). Tokens are opaque and stored hashed; a space accepts only tokens whose `resource` is its own URL. Features meet only in `internal/bootstrap/bridges.go`. Open endpoints (sign-in, sign-up, OAuth) stay rate limited via `bootstrap/limits.go`. Outgoing calls to person-chosen addresses (providers, CIMD) must use `platform/egress` (IP checked at dial time); hosted kinds have fixed addresses, gateways are loopback only.
 3. Discovery contract: protected resource metadata at `/.well-known/oauth-protected-resource/api/<slug>`, server metadata at `/.well-known/oauth-authorization-server` and `openid-configuration`, CIMD (SSRF-guarded, public IPs only), DCR, PKCE S256, RFC 9207 `iss`. Keep `internal/bootstrap/e2e_test.go` passing when touching any of it.
-4. A new space is a `space.Space` plus a bootstrap mount, never an `oauth` special case; the coding space is always on and strictly per person: `bootstrap/workspaces.go` maps the token's user id to `DATA_DIR/workspaces/<id>` (never share a folder, runner, or undo path across users; there is no shared-root setting). Tasks run only through `platform/sandbox` (re-exec into namespaces + pivot_root into the own-rootfs toolbox built by `sandbox install`, never host binds; cgroup v2 limits, refused unless `SANDBOX_LIMITS=relaxed`; seccomp; fails closed) under one shared `runner.Engine`; any test binary that runs tasks needs `TestMain` calling `sandbox.RunIfChild()`. `coding/domain.Tools()` is the single tool catalogue; calls pass permission, then scope, then run, are always logged, and no tool may reach `.workspace/` (task definitions). Write and run stay separate scopes, Off by default.
+4. A new space is a `space.Space` plus a bootstrap mount, never an `oauth` special case; the coding space is always on and strictly per person: `bootstrap/workspaces.go` maps the token's user id to `DATA_DIR/workspaces/<id>` (never share a folder, runner, or undo path across users; there is no shared-root setting). Tasks run only through `platform/sandbox`: one throwaway Docker container per task via the Engine API (`SANDBOX_IMAGE`; no network, read-only root, cap-drop ALL, no-new-privileges, memory/cpu/pids/fsize limits, workspace bind mount or data-volume `Subpath`, owner-labelled so startup cleanup only removes the server's own leftovers), under one shared `runner.Engine` that opens Docker lazily and never blocks startup. Tests that run tasks skip when no Docker daemon is reachable. `coding/domain.Tools()` is the single tool catalogue; calls pass permission, then scope, then run, are always logged, and no tool may reach `.workspace/` (task definitions). Write and run stay separate scopes, Off by default.
 5. Adapters answer errors with `c.Status(n).JSON(httpserver.Failure(code))`; returning a wrapped error after writing a response makes Fiber overwrite it with a 500. There is no separate chat: every message is a `modules/task` thread, a run that changed nothing ends as an answer (`done`, no receipt), reads run unprompted and every write or run asks (`needsApproval`).
 
 ## Frontend and routing lessons
