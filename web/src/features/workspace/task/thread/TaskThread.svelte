@@ -18,15 +18,23 @@
   const { task, events, draft, actions, onretry }: Props = $props();
   const blocks = $derived(toBlocks(events));
   const working = $derived(['queued', 'planning', 'working'].includes(task.status));
+  const nearBottom = 96;
   let scroller = $state<HTMLElement>();
+  let following = true;
+
+  function onscroll(): void {
+    if (scroller === undefined) return;
+    following = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < nearBottom;
+  }
 
   $effect(() => {
-    // Follow the conversation as it grows, including words still being written.
-    if ((blocks.length > 0 || draft !== '') && scroller !== undefined) scroller.scrollTop = scroller.scrollHeight;
+    // Follow the conversation as it grows, including words still being written, until the
+    // person scrolls up to read; scrolling back to the end resumes following.
+    if ((blocks.length > 0 || draft !== '') && scroller !== undefined && following) scroller.scrollTop = scroller.scrollHeight;
   });
 </script>
 
-<div bind:this={scroller} class="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6" role="log" aria-label="Conversation">
+<div bind:this={scroller} {onscroll} class="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6" role="log" aria-label="Conversation">
   <ol class="mx-auto flex max-w-3xl flex-col gap-5">
     {#each blocks as block (block.kind === 'actions' ? block.id : block.event.id)}
       <li>
