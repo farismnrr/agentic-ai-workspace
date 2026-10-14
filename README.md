@@ -70,7 +70,8 @@ Settings (environment variables):
 | `CONNECTOR_URL` | The public `https` address AI apps such as ChatGPT use to reach the server, for example `https://workspace.example.com`. This is the address shown under Settings, Spaces & tools, the issuer of the sign-in they are sent through, and the audience of their tokens. Defaults to `PUBLIC_URL`. Point your tunnel or reverse proxy for this address at the server. |
 | `ALLOWED_ORIGINS` | Comma-separated browser origins that may sign in and change data (CSRF protection). Defaults to `http://localhost:<PORT>,http://127.0.0.1:<PORT>`. `PUBLIC_URL` is always allowed too. Add a domain or IP here, for example `https://workspace.example.com,http://192.168.1.20:8081`. |
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
-| `SANDBOX_IMAGE` | The Docker image checks run in (default `node:24-bookworm`, which has Git, Node.js, Python, make and a C compiler). Use any image with the tools your projects need; it is downloaded on first use. |
+| `SANDBOX_IMAGE` | The Docker image checks and commands run in (default `ghcr.io/<owner>/agentic-ai-workspace-sandbox`, which has Python, Node.js, Go, Rust, Java, Maven, Git, Bash and a C compiler). `make sandbox-image` builds it locally. Any image works, but only the default one gets the registry proxy and the toolchain list. It is downloaded on first use. |
+| `SANDBOX_EGRESS_HOSTS` | Comma-separated hostnames commands may reach over HTTPS (default: PyPI, npm, the Go module proxy, crates.io and Maven Central). Everything else, including your computer and network, stays unreachable. |
 | `SANDBOX_RUNTIME` | Optional hardened container runtime, such as `runsc` (gVisor), for extra isolation. |
 | `SANDBOX_DATA_VOLUME` | Set automatically by the compose files: the Docker volume that holds `DATA_DIR`, so check containers can mount a person's folder. Leave empty when the app runs directly on the host. |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Memory (default 2048) and CPU cores (default 1) one check may use. |
@@ -81,13 +82,13 @@ Settings (environment variables):
 
 ### Docker and checks
 
-Checks need access to a Docker daemon (`DOCKER_HOST`, or the default socket). If Docker is not reachable, checks say so plainly and the rest of the app keeps working. Tools that need the internet (`npm install`, `cargo fetch`, `go mod download`) cannot run, because check containers have no network: a project has to bring its dependencies with it.
+Checks need access to a Docker daemon (`DOCKER_HOST`, or the default socket). If Docker is not reachable, checks say so plainly and the rest of the app keeps working. Commands have no network of their own. They reach only the package registries in `SANDBOX_EGRESS_HOSTS`, through a proxy inside the app, so `npm install`, `pip install` (or `uv pip install`), `cargo fetch`, `go mod download` and `mvn` work while other websites do not. Downloads are cached per person (up to 5 GB, emptied when over) in `DATA_DIR/caches`.
 
 **Access to the Docker socket is access to the whole machine.** Whoever controls the app can start containers as root on the host. Run Docker in [rootless mode](https://docs.docker.com/engine/security/rootless/) where you can, put the data folder on a filesystem with a size quota (the workspace limit is checked once per second), and keep sign-ups to people you trust. For stronger isolation set `SANDBOX_RUNTIME=runsc` after installing gVisor.
 
 ### What the coding space can do
 
-Every person gets their own coding folder (`DATA_DIR/workspaces/<account>`); nobody can read or change anyone else's files, and the folder is deleted with the account. Every check runs in its own throwaway Docker container, removed when the check ends. It sees only your coding folder (as `/workspace`, the one place it can write), a private `/tmp`, and the programs in the sandbox image. It has no internet, cannot see your other files or processes, runs without privileges and with Docker's default system-call filter, and is held to a memory, CPU, process, file-size and workspace-size limit.
+Every person gets their own coding folder (`DATA_DIR/workspaces/<account>`); nobody can read or change anyone else's files, and the folder is deleted with the account. Every check runs in its own throwaway Docker container, removed when the check ends. It sees only your coding folder (as `/workspace`, the one place it can write), a private `/tmp`, a private download cache, and the programs in the sandbox image, which every person shares (each tool is stored once on disk). It can reach package registries only, cannot see your other files or processes, runs without privileges and with Docker's default system-call filter, and is held to a memory, CPU, process, file-size and workspace-size limit.
 
 Each tool can be switched on or off under Settings, Spaces & tools. Looking around is on from the start; changing files and running tasks stay off until you turn them on.
 
@@ -133,7 +134,7 @@ The app is a single-page Svelte app served by the Go binary: `/` is the landing 
 3. **Describe what you need** on Home. The AI makes a plan, works step by step, and shows every step. Deleting or moving files and running checks need your OK first; choose "Ask me before every change" to be asked about edits too.
 4. **Review.** When it finishes you see what changed and what was checked. The proof says "Proven to work" only when the app itself ran a check that passed after the last change, and every change can be undone.
 
-To let the app verify the AI's work, add **checks** on the project's Checks tab: named commands such as `go test ./...`. The AI can only run the checks you list, asks before running one, and "Proven to work" appears only when a check passed after its last change. Checks run on this computer with the app's rights, so add only commands you trust.
+To let the app verify the AI's work, add **checks** on the project's Checks tab: named commands such as `go test ./...`. The AI can run the checks you list and, when you allow it, any command in the sandbox (Settings, Spaces & tools, Run a command). It asks before every run, and "Proven to work" appears only when a check passed after its last change. Checks run on this computer with the app's rights, so add only commands you trust.
 
 ## Your data
 

@@ -148,3 +148,9 @@ type UsageStore interface {
 type IDs interface {
 	ID() (string, error)
 }
+
+// Computer describes the isolated computer where the agent's commands run.
+type Computer interface {
+	// Toolchains lists the languages and tools installed there, such as "Go 1.26"; empty when unknown.
+	Toolchains(ctx context.Context) []string
+}

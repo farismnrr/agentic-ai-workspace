@@ -25,6 +25,8 @@ var toolSchemas = map[string]string{
 	"move_file": `{"type":"object","properties":{"from":{"type":"string"},"to":{"type":"string"}},` +
 		`"required":["from","to"]}`,
 	"run_task": `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}`,
+	"run_command": `{"type":"object","properties":{"command":{"type":"string","description":"Shell command line"},` +
+		`"timeout_seconds":{"type":"integer"}},"required":["command"]}`,
 }
 
 type describer func(in toolArgs, target string) taskapp.Described
@@ -59,10 +61,15 @@ var describers = map[string]describer{
 		return said(fmt.Sprintf("Moved %s to %s", in.From, in.To), fmt.Sprintf("May I move %s to %s?", in.From, in.To),
 			"move_file "+in.From+" "+in.To)
 	},
+	"run_command": describeCommand,
 	"run_task": func(in toolArgs, _ string) taskapp.Described {
 		return said(fmt.Sprintf("Ran the %q check", in.Name), fmt.Sprintf("May I run the %q check?", in.Name),
 			"run_task "+in.Name)
 	},
+}
+
+func describeCommand(in toolArgs, _ string) taskapp.Described {
+	return said("Ran a command: "+in.Command, "May I run this command? "+in.Command, "run_command "+in.Command)
 }
 
 func describe(tool string, in toolArgs) taskapp.Described {
