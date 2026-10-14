@@ -7,7 +7,10 @@
   import PasswordField from './components/PasswordField.svelte';
   import PasswordStrength from './components/PasswordStrength.svelte';
   import TextField from './components/TextField.svelte';
-  import { NOT_CONNECTED_MESSAGE, registerCopy } from './content';
+  import { navigate } from '../../app/router';
+  import { setUser } from '../../shared/session/session';
+  import { registerCopy } from './content';
+  import { createAccount, describeError, nextPath } from './logic/auth-api';
   import { validateConfirm, validateEmail, validateName, validatePassword } from './validation';
 
   let form: HTMLFormElement | undefined = $state();
@@ -16,21 +19,30 @@
   let password = $state('');
   let confirm = $state('');
   let submitted = $state(false);
-  let notice = $state(false);
+  let error = $state('');
+  let busy = $state(false);
 
   const matched = $derived(confirm !== '' && confirm === password);
 
   async function onsubmit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     submitted = true;
-    notice = false;
+    error = '';
     await tick();
     const invalid = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
     if (invalid) {
       invalid.focus();
       return;
     }
-    notice = true;
+    busy = true;
+    try {
+      setUser(await createAccount(name, email, password));
+      navigate(nextPath(window.location.search));
+    } catch (failure) {
+      error = describeError(failure);
+    } finally {
+      busy = false;
+    }
   }
 </script>
 
@@ -53,9 +65,9 @@
         {/if}
       {/snippet}
     </PasswordField>
-    <button class="btn btn-primary btn-lg mt-2 min-h-12 rounded-full" type="submit">Create account</button>
-    {#if notice}
-      <div class="alert alert-info alert-soft" role="alert">{NOT_CONNECTED_MESSAGE}</div>
+    <button class="btn btn-primary btn-lg mt-2 min-h-12 rounded-full" type="submit" disabled={busy}>Create account</button>
+    {#if error !== ''}
+      <div class="alert alert-error alert-soft" role="alert">{error}</div>
     {/if}
   </form>
 

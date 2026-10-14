@@ -1,0 +1,37 @@
+<script lang="ts">
+  import ProjectTile from '../components/ProjectTile.svelte';
+  import type { Project } from '../content/types';
+  import { projectCounts } from '../content/stats';
+
+  interface Props {
+    items: Project[];
+  }
+
+  const { items }: Props = $props();
+</script>
+
+<div class="overflow-x-auto card border border-[var(--brand-border)] bg-base-100">
+  <table class="table">
+    <thead>
+      <tr><th>Project</th><th class="hidden sm:table-cell">Needs you</th><th class="hidden md:table-cell">Working</th><th class="hidden md:table-cell">Done</th><th class="text-right">Last activity</th></tr>
+    </thead>
+    <tbody>
+      {#each items as project (project.id)}
+        {@const counts = projectCounts(project.id)}
+        {@const waiting = counts['needs-input'] + counts.review + counts.failed}
+        <tr class="hover:bg-base-200/60">
+          <td>
+            <a class="flex items-center gap-3" href="/app/projects/{project.id}">
+              <ProjectTile name={project.name} tone={project.tone} class="size-9 text-base" />
+              <span class="flex flex-col"><span class="font-medium">{project.name}</span><span class="text-sm text-[var(--brand-text-secondary)]">{project.site}</span></span>
+            </a>
+          </td>
+          <td class="hidden sm:table-cell">{#if waiting > 0}<span class="badge badge-primary badge-soft">{waiting} waiting</span>{:else}<span class="text-[var(--brand-text-tertiary)]">None</span>{/if}</td>
+          <td class="hidden md:table-cell">{counts.working + counts.planning + counts.queued}</td>
+          <td class="hidden md:table-cell">{counts.done}</td>
+          <td class="text-right text-[var(--brand-text-secondary)]">{project.updated}</td>
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+</div>

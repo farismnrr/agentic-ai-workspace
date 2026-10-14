@@ -5,28 +5,40 @@
   import AuthLayout from './AuthLayout.svelte';
   import PasswordField from './components/PasswordField.svelte';
   import TextField from './components/TextField.svelte';
-  import { loginCopy, NOT_CONNECTED_MESSAGE } from './content';
+  import { navigate } from '../../app/router';
+  import { setUser } from '../../shared/session/session';
+  import { loginCopy } from './content';
+  import { describeError, nextPath, signIn } from './logic/auth-api';
   import { validateEmail } from './validation';
 
   let form: HTMLFormElement | undefined = $state();
   let email = $state('');
   let password = $state('');
   let submitted = $state(false);
-  let notice = $state(false);
+  let error = $state('');
+  let busy = $state(false);
 
   const validatePassword = (value: string): string => (value === '' ? 'Enter your password.' : '');
 
   async function onsubmit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     submitted = true;
-    notice = false;
+    error = '';
     await tick();
     const invalid = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
     if (invalid) {
       invalid.focus();
       return;
     }
-    notice = true;
+    busy = true;
+    try {
+      setUser(await signIn(email, password));
+      navigate(nextPath(window.location.search));
+    } catch (failure) {
+      error = describeError(failure);
+    } finally {
+      busy = false;
+    }
   }
 </script>
 
@@ -39,9 +51,9 @@
   <form bind:this={form} class="mt-8 flex flex-col gap-5" novalidate {onsubmit}>
     <TextField id="email" label="Email" type="email" autocomplete="email" placeholder="you@example.com" bind:value={email} validate={validateEmail} {submitted} />
     <PasswordField id="password" label="Password" autocomplete="current-password" placeholder="Your password" bind:value={password} validate={validatePassword} {submitted} />
-    <button class="btn btn-primary btn-lg min-h-12 rounded-full" type="submit">Sign in</button>
-    {#if notice}
-      <div class="alert alert-info alert-soft" role="alert">{NOT_CONNECTED_MESSAGE}</div>
+    <button class="btn btn-primary btn-lg min-h-12 rounded-full" type="submit" disabled={busy}>Sign in</button>
+    {#if error !== ''}
+      <div class="alert alert-error alert-soft" role="alert">{error}</div>
     {/if}
   </form>
 

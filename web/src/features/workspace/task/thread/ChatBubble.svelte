@@ -1,0 +1,26 @@
+<script lang="ts">
+  import LogoMark from '../../../../shared/ui/LogoMark.svelte';
+
+  interface Props {
+    who: 'you' | 'ai';
+    text: string;
+    time: string;
+  }
+
+  const { who, text, time }: Props = $props();
+</script>
+
+{#if who === 'you'}
+  <div class="flex flex-col items-end gap-1">
+    <p class="max-w-[85%] rounded-2xl bg-base-300/60 px-4 py-2 text-[15px] leading-6">{text}</p>
+    <span class="text-xs text-[var(--brand-text-tertiary)]">{time}</span>
+  </div>
+{:else}
+  <div class="flex gap-3">
+    <LogoMark class="mt-0.5 size-6 shrink-0" />
+    <div class="min-w-0">
+      <p class="text-xs text-[var(--brand-text-secondary)]">Masih Awam · {time}</p>
+      <p class="mt-0.5 text-[15px] leading-6">{text}</p>
+    </div>
+  </div>
+{/if}
