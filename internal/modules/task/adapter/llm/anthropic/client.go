@@ -8,6 +8,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/transport"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
 const (
@@ -23,8 +24,8 @@ type Client struct {
 }
 
 // New builds a client for a base address such as https://api.anthropic.com.
-func New(baseURL, apiKey string) *Client {
-	return &Client{http: transport.New(), baseURL: strings.TrimRight(baseURL, "/"), apiKey: apiKey}
+func New(baseURL, apiKey string, policy egress.Policy) *Client {
+	return &Client{http: transport.New(policy), baseURL: strings.TrimRight(baseURL, "/"), apiKey: apiKey}
 }
 
 type block struct {

@@ -61,26 +61,46 @@ func changed(path string, applied application.Applied, err error) (changeOutput,
 	return changeOutput{Path: path, Result: applied.Detail}, report{detail: applied.Detail, undo: undo}, nil
 }
 
-func (t *tools) editFile(_ context.Context, in editInput) (changeOutput, report, error) {
-	applied, err := t.Editor.Edit(in.Path, in.OldText, in.NewText, in.ReplaceAll)
+func (t *tools) editFile(ctx context.Context, in editInput) (changeOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
+
+	applied, err := svc.Editor.Edit(in.Path, in.OldText, in.NewText, in.ReplaceAll)
 
 	return changed(in.Path, applied, err)
 }
 
-func (t *tools) writeFile(_ context.Context, in writeInput) (changeOutput, report, error) {
-	applied, err := t.Editor.Write(in.Path, in.Content)
+func (t *tools) writeFile(ctx context.Context, in writeInput) (changeOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
+
+	applied, err := svc.Editor.Write(in.Path, in.Content)
 
 	return changed(in.Path, applied, err)
 }
 
-func (t *tools) deleteFile(_ context.Context, in deleteInput) (changeOutput, report, error) {
-	applied, err := t.Editor.Delete(in.Path)
+func (t *tools) deleteFile(ctx context.Context, in deleteInput) (changeOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
+
+	applied, err := svc.Editor.Delete(in.Path)
 
 	return changed(in.Path, applied, err)
 }
 
-func (t *tools) moveFile(_ context.Context, in moveInput) (changeOutput, report, error) {
-	applied, err := t.Editor.Move(in.From, in.To)
+func (t *tools) moveFile(ctx context.Context, in moveInput) (changeOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
+
+	applied, err := svc.Editor.Move(in.From, in.To)
 
 	return changed(in.To, applied, err)
 }

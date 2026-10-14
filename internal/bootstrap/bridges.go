@@ -7,7 +7,6 @@ import (
 
 	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
-	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
@@ -125,16 +124,22 @@ func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
 
 // undoer lets the activity log reverse a change recorded by the coding tools.
 type undoer struct {
-	editor *codingapp.Editor
+	workspaces *workspaces
 }
 
-func (u undoer) Undo(_ context.Context, blob []byte) error {
+// Undo reverses a change inside the workspace of the person who made it.
+func (u undoer) Undo(_ context.Context, userID string, blob []byte) error {
 	change, err := codingdomain.ParseChange(blob)
 	if err != nil {
 		return spacedomain.ErrNotUndoable
 	}
 
-	if err := u.editor.Undo(change); err != nil {
+	services, err := u.workspaces.For(userID)
+	if err != nil {
+		return fmt.Errorf("open workspace: %w", err)
+	}
+
+	if err := services.Editor.Undo(change); err != nil {
 		if errors.Is(err, codingdomain.ErrChanged) {
 			return fmt.Errorf("%w: %w", spacedomain.ErrUndoRefused, err)
 		}

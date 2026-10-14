@@ -27,7 +27,7 @@ func newAgent(
 	hub := taskapp.NewHub()
 	deps := taskapp.Observe(taskapp.Deps{
 		Tasks: store, Events: store, Transcript: store, Usage: store,
-		Models:   agentModels{providers: models.providers, prefs: models.prefs},
+		Models:   models.agentModels(),
 		Persona:  agentPersona{prefs: models.prefs},
 		Projects: agentProjects{projects: projects},
 		Tools:    tools, IDs: opaque.Generator{}, Now: time.Now,

@@ -63,7 +63,7 @@ func (a *ActivityLog) Undo(ctx context.Context, userID, id string) error {
 		return domain.ErrNotUndoable
 	}
 
-	if err := undoer.Undo(ctx, entry.Undo); err != nil {
+	if err := undoer.Undo(ctx, entry.UserID, entry.Undo); err != nil {
 		return errors.Join(err)
 	}
 

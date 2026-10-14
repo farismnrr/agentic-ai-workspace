@@ -23,5 +23,4 @@
     <input id="connector-address" class="input input-sm w-full font-mono text-xs" readonly value={url} onfocus={(event) => { event.currentTarget.select(); }} />
     <button class="btn btn-sm" type="button" onclick={copy}>{copied ? 'Copied' : 'Copy'}</button>
   </div>
-  <p class="mt-1 text-xs text-[var(--brand-text-tertiary)]">In ChatGPT, add this address as a connector, then sign in when asked.</p>
 </div>

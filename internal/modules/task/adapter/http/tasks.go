@@ -19,7 +19,6 @@ type taskPayload struct {
 	Title      string            `json:"title"`
 	Summary    string            `json:"summary"`
 	Status     domain.Status     `json:"status"`
-	Mode       domain.Mode       `json:"mode"`
 	ProviderID string            `json:"providerId"`
 	Model      string            `json:"model"`
 	Plan       []domain.PlanStep `json:"plan"`
@@ -27,7 +26,7 @@ type taskPayload struct {
 
 func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
-		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status, Mode: t.Mode,
+		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
 		ProviderID: t.ProviderID, Model: t.Model, Plan: append([]domain.PlanStep{}, t.Plan...), Proof: t.Proof,
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
 	}
@@ -58,18 +57,17 @@ func (h *Handler) get(c fiber.Ctx) error {
 
 func (h *Handler) create(c fiber.Ctx) error {
 	var body struct {
-		ProjectID  string      `json:"projectId"`
-		Prompt     string      `json:"prompt"`
-		ProviderID string      `json:"providerId"`
-		Model      string      `json:"model"`
-		Mode       domain.Mode `json:"mode"`
+		ProjectID  string `json:"projectId"`
+		Prompt     string `json:"prompt"`
+		ProviderID string `json:"providerId"`
+		Model      string `json:"model"`
 	}
 	if err := c.Bind().JSON(&body); err != nil {
 		return badBody(c)
 	}
 
 	task, err := h.service.Create(c.Context(), httpserver.UserID(c), application.CreateInput{
-		ProjectID: body.ProjectID, Prompt: body.Prompt, ProviderID: body.ProviderID, Model: body.Model, Mode: body.Mode,
+		ProjectID: body.ProjectID, Prompt: body.Prompt, ProviderID: body.ProviderID, Model: body.Model,
 	})
 	if err != nil {
 		return fail(c, err)

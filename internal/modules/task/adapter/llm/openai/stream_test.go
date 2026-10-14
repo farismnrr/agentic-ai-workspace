@@ -52,7 +52,7 @@ func TestStreamedAnswerIsAssembledAndTextIsForwardedAsItArrives(t *testing.T) {
 	request := conversation()
 	request.OnText = func(delta string) { pieces = append(pieces, delta) }
 
-	reply, err := openai.New(server.URL+"/v1", "k").Complete(context.Background(), request)
+	reply, err := openai.New(server.URL+"/v1", "k", local).Complete(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestAGatewayThatRefusesStreamingIsAskedAgainWithoutIt(t *testing.T) {
 	request := conversation()
 	request.OnText = func(string) { t.Error("nothing was streamed, so nothing should be forwarded") }
 
-	reply, err := openai.New(server.URL+"/v1", "k").Complete(context.Background(), request)
+	reply, err := openai.New(server.URL+"/v1", "k", local).Complete(context.Background(), request)
 	if err != nil || len(reply.Blocks) != 2 {
 		t.Fatalf("the plain request should have worked: %+v %v", reply, err)
 	}

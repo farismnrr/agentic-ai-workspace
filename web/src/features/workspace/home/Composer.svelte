@@ -3,34 +3,28 @@
   import ComposerBox from '../components/ComposerBox.svelte';
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
-  import { sendChatMessage } from '../logic/chat-api';
   import { describeTaskError } from '../logic/task-errors';
   import { createTask } from '../logic/tasks-api';
-  import type { ApprovalMode, ComposerIntent } from '../logic/task-types';
   import { chosenProject, projects, refresh } from '../logic/workspace-store';
 
   let text = $state('');
   let project = $state('');
   let busy = $state(false);
   let error = $state('');
-  let intent = $state<ComposerIntent>('task');
 
-  const fallback = $derived($chosenProject !== '' ? $chosenProject : ($projects[0]?.id ?? ''));
-  const selected = $derived($projects.some((item) => item.id === project) ? project : fallback);
+  // Preselect only when there is no real choice to make: the project the person came from, or the only one.
+  $effect(() => {
+    if (project !== '') return;
+    const known = (id: string): boolean => $projects.some((item) => item.id === id);
+    if ($chosenProject !== '' && known($chosenProject)) project = $chosenProject;
+    else if ($projects.length === 1 && $projects[0] !== undefined) project = $projects[0].id;
+  });
 
-  async function send(prompt: string, mode: ApprovalMode, chosen: string, selectedIntent?: ComposerIntent): Promise<void> {
+  async function send(prompt: string, chosen: string): Promise<void> {
     busy = true;
     error = '';
-    const projId = chosen || selected;
     try {
-      if (selectedIntent === 'chat') {
-        await sendChatMessage(projId, prompt);
-        text = '';
-        await refresh();
-        navigate(`/app/projects/${projId}`);
-        return;
-      }
-      const task = await createTask({ projectId: projId, prompt, mode });
+      const task = await createTask({ projectId: chosen, prompt });
       text = '';
       await refresh();
       navigate(`/app/projects/${task.projectId}/tasks/${task.id}`);
@@ -49,11 +43,9 @@
 {:else}
   <ComposerBox
     id="composer"
-    placeholder={intent === 'chat' ? 'Ask a question or discuss this project…' : 'Describe what you need in plain words…'}
+    placeholder="Ask a question or tell me what you need…"
     bind:text
     bind:project
-    bind:intent
-    withIntent={true}
     projects={$projects}
     {busy}
     {error}

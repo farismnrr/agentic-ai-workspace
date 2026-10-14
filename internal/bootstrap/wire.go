@@ -34,10 +34,14 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	spaceMounts, err := newSpaceMounts(db, cfg, registry, oauth, sess, sameOrigin)
+	engine := newSandboxEngine(cfg)
+
+	coding, err := newWorkspaces(cfg, engine)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	spaceMounts := newSpaceMounts(db, cfg, coding, registry, oauth, sess, sameOrigin)
 
 	auth := httpserver.RequireSession(sess)
 
@@ -51,7 +55,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, fmt.Errorf("open project folders: %w", err)
 	}
 
-	tools, err := newAgentTools(folders, cfg.DataDir)
+	tools, err := newAgentTools(folders, cfg.DataDir, engine)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,13 +67,12 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	_, chatMount := newChat(db, models, projects, tasks, auth, sameOrigin)
-
 	account.AddEraser(eraser(tasks.DeleteAll))
 	account.AddEraser(eraser(projects.DeleteAll))
+	account.AddEraser(eraser(coding.Erase))
 
 	exportMount := newExport(account, models, projects, tasks, folders, auth)
-	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount, agentMount, chatMount, exportMount}
+	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount, agentMount, exportMount}
 	mounts = append(mounts, models.mounts...)
 
 	return append(mounts, spaceMounts...), stop, nil
@@ -77,37 +80,23 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 // newSpaceMounts wires permissions, the activity log, the app API and each hosted space.
 func newSpaceMounts(
-	db *sql.DB, cfg config.Config, registry *spaceapp.Registry, oauth *oauthapp.Service, sess sessions,
-	sameOrigin fiber.Handler,
-) ([]httpserver.Mount, error) {
+	db *sql.DB, cfg config.Config, coding *workspaces, registry *spaceapp.Registry, oauth *oauthapp.Service,
+	sess sessions, sameOrigin fiber.Handler,
+) []httpserver.Mount {
 	store := spacesqlite.NewStore(db)
 	permissions := spaceapp.NewPermissions(registry, store, time.Now)
-	undoers := map[string]spaceapp.Undoer{}
-
-	var services codingmcp.Services
-
-	if cfg.CodingRoot != "" {
-		var err error
-		if services, err = codingServices(cfg); err != nil {
-			return nil, err
-		}
-
-		undoers["coding"] = undoer{editor: services.Editor}
-	}
+	undoers := map[string]spaceapp.Undoer{"coding": undoer{workspaces: coding}}
 
 	log := spaceapp.NewActivityLog(store, opaque.Generator{}, undoers, time.Now)
 	api := spacehttp.NewAPI(registry, sess, permissions, log)
 	mounts := []httpserver.Mount{api.Mount(sameOrigin)}
 
-	if cfg.CodingRoot != "" {
-		space := codingSpace()
-		mounter := spacehttp.NewMounter(registry, cfg.PublicURL, cfg.PublicURL, verifier{oauth: oauth})
-		handler := codingHandler(services, codingmcp.Options{
-			Gate: gate{permissions: permissions}, Recorder: recorder{log: log},
-			ResourceMetadataURL: cfg.PublicURL + space.MetadataPath(),
-		})
-		mounts = append(mounts, mounter.Mount(space, handler))
-	}
+	space := codingSpace()
+	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
+	handler := codingHandler(coding, codingmcp.Options{
+		Gate: gate{permissions: permissions}, Recorder: recorder{log: log},
+		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
+	})
 
-	return mounts, nil
+	return append(mounts, mounter.Mount(space, handler))
 }

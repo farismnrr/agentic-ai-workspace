@@ -63,6 +63,9 @@ func (r *Runner) record(ctx context.Context, task domain.Task, reply Reply) (out
 
 	// No tool calls: the model considers itself done.
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if !workDone(events) {
+		return r.answer(ctx, task, say), true
+	}
 
 	return r.complete(ctx, task, say, buildProof(events, nil)), true
 }

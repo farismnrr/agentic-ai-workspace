@@ -2,23 +2,6 @@ package cimd
 
 import "testing"
 
-func TestCheckAddressBlocksNonPublic(t *testing.T) {
-	t.Parallel()
-
-	for _, address := range []string{
-		"127.0.0.1:443", "[::1]:443", "10.0.0.5:443", "192.168.1.1:443", "172.16.0.1:443",
-		"169.254.169.254:80", "100.64.0.1:443", "0.0.0.0:80", "[::ffff:10.0.0.1]:443", "[fe80::1]:443",
-	} {
-		if err := checkAddress(address); err == nil {
-			t.Errorf("%s must be blocked", address)
-		}
-	}
-
-	if err := checkAddress("93.184.216.34:443"); err != nil {
-		t.Errorf("public address must pass: %v", err)
-	}
-}
-
 func TestParseDocument(t *testing.T) {
 	t.Parallel()
 

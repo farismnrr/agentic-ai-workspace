@@ -4,6 +4,7 @@ SHELL := /bin/sh
 PORT ?= 8081
 
 APP_NAME := agentic-ai-workspace
+IMAGE := ghcr.io/farismnrr/$(APP_NAME)
 BIN_DIR := bin
 BIN_PATH := $(BIN_DIR)/$(APP_NAME)
 WEB_DIR := web
@@ -13,11 +14,12 @@ MAX_FILE_LINES := 200
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-.PHONY: help build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
+.PHONY: help image build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
 
 help:
 	@echo "make build    - verify, then build the single static binary ($(BIN_PATH))"
 	@echo "make run      - build, then run the binary on PORT (default $(PORT))"
+	@echo "make image    - build the Docker image ($(IMAGE):latest and :dev, what the compose files use)"
 	@echo "make verify   - run every quality check (Go + frontend)"
 	@echo "make clean    - remove bin/, node_modules and generated frontend output"
 
@@ -29,8 +31,12 @@ backend-build:
 	@mkdir -p "$(BIN_DIR)"
 	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$(BIN_PATH)" ./cmd/workspace
 
+# Checks run as Docker containers, so a local Docker daemon is needed to run them.
 run: build
-	PORT="$(PORT)" "./$(BIN_PATH)"
+	@PORT="$(PORT)" "./$(BIN_PATH)"
+
+image:
+	docker build -t $(IMAGE):latest -t $(IMAGE):dev .
 
 guardrails:
 	MAX_FILE_LINES="$(MAX_FILE_LINES)" sh ./scripts/check-guardrails.sh

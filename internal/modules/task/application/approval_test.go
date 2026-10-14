@@ -14,7 +14,8 @@ func TestRiskyStepWaitsForApprovalThenRunsOnce(t *testing.T) {
 
 	r := newRig(nil, call("c1", "delete_file", map[string]string{"path": "old.txt"}), finish("Cleaned up"))
 	r.tools.risks["delete_file"] = domain.RiskMedium
-	task := r.start(t, "Remove the old file", domain.ModeRisky)
+	r.tools.results["delete_file"] = application.ToolResult{Output: "ok", Files: []string{"old.txt"}}
+	task := r.start(t, "Remove the old file")
 	r.run(task.ID)
 
 	approval := r.lastEvent(task.ID, domain.EventApproval)
@@ -41,7 +42,7 @@ func TestDeniedStepIsNotRunAndTheModelIsTold(t *testing.T) {
 
 	r := newRig(nil, call("c1", "delete_file", map[string]string{"path": "old.txt"}), finish("Left it alone"))
 	r.tools.risks["delete_file"] = domain.RiskMedium
-	task := r.start(t, "Remove the old file", domain.ModeRisky)
+	task := r.start(t, "Remove the old file")
 	r.run(task.ID)
 
 	no := false
@@ -55,18 +56,23 @@ func TestDeniedStepIsNotRunAndTheModelIsTold(t *testing.T) {
 	}
 }
 
-func TestOnlyAlwaysModeAsksBeforeEdits(t *testing.T) {
+func TestOnlyLookingAroundRunsWithoutAsking(t *testing.T) {
 	t.Parallel()
 
-	for mode, wantAsk := range map[domain.Mode]bool{domain.ModeRisky: false, domain.ModeAlways: true} {
-		r := newRig(nil, call("c1", "edit_file", map[string]string{"path": "a"}), finish("Done"))
-		r.tools.risks["edit_file"] = domain.RiskLow
-		task := r.start(t, "Edit", mode)
+	risks := map[string]domain.Risk{
+		"read_file": domain.RiskNone, "edit_file": domain.RiskLow, "write_file": domain.RiskLow,
+		"delete_file": domain.RiskMedium, "run_task": domain.RiskMedium,
+	}
+
+	for tool, risk := range risks {
+		r := newRig(nil, call("c1", tool, map[string]string{"path": "a"}), finish("Done"))
+		r.tools.risks[tool] = risk
+		task := r.start(t, "Do it")
 		r.run(task.ID)
 
 		asked := r.task(t, task.ID).Status == domain.StatusNeedsInput
-		if asked != wantAsk {
-			t.Errorf("mode %s: asked=%v, want %v", mode, asked, wantAsk)
+		if want := risk != domain.RiskNone; asked != want {
+			t.Errorf("%s: asked=%v, want %v", tool, asked, want)
 		}
 	}
 }
@@ -78,7 +84,7 @@ func TestAskUserPausesAndTheAnswerReachesTheModel(t *testing.T) {
 		call("c1", "ask_user", map[string]any{"question": "Which page?", "options": []string{"Home", "Menu"}}),
 		finish("Done"),
 	)
-	task := r.start(t, "Update the page", domain.ModeRisky)
+	task := r.start(t, "Update the page")
 	r.run(task.ID)
 
 	question := r.lastEvent(task.ID, domain.EventQuestion)

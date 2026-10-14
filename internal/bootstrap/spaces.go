@@ -10,14 +10,9 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 )
 
-// newRegistry lists the spaces that are switched on by configuration.
+// newRegistry lists the spaces this server offers.
 func newRegistry(cfg config.Config) *spaceapp.Registry {
-	spaces := []spacedomain.Space{}
-	if cfg.CodingRoot != "" {
-		spaces = append(spaces, codingSpace())
-	}
-
-	return spaceapp.NewRegistry(cfg.PublicURL, spaces...)
+	return spaceapp.NewRegistry(cfg.Connector(), codingSpace())
 }
 
 func resourceOf(registry *spaceapp.Registry, space spacedomain.Space) oauthapp.Resource {

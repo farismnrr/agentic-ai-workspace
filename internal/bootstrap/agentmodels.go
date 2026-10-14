@@ -12,6 +12,7 @@ import (
 	anthropicllm "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/anthropic"
 	openaillm "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/openai"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
 var (
@@ -23,6 +24,15 @@ var (
 type agentModels struct {
 	providers *providerapp.Service
 	prefs     *prefapp.Service
+	ownPort   string
+}
+
+// hostedProviders is where Anthropic, OpenAI and Gemini live: the public internet only.
+var hostedProviders = egress.Policy{Rule: egress.PublicOnly}
+
+// gateways is where a custom gateway may live: this computer, but never this server itself.
+func gateways(ownPort string) egress.Policy {
+	return egress.Policy{Rule: egress.LocalOnly, OwnPort: ownPort}
 }
 
 func (m agentModels) Client(ctx context.Context, userID, providerID string) (taskapp.Model, error) {
@@ -42,11 +52,17 @@ func (m agentModels) Client(ctx context.Context, userID, providerID string) (tas
 		return nil, fmt.Errorf("load credential: %w", err)
 	}
 
-	if credential.Kind == providerdomain.KindAnthropic {
-		return anthropicllm.New(credential.BaseURL, credential.APIKey), nil
+	policy := hostedProviders
+	if credential.Kind.CustomAddress() {
+		policy = gateways(m.ownPort)
 	}
 
-	return openaillm.New(credential.BaseURL, credential.APIKey), nil
+	if credential.Kind == providerdomain.KindAnthropic {
+		return anthropicllm.New(credential.BaseURL, credential.APIKey, policy), nil
+	}
+
+	// OpenAI, Gemini (through Google's OpenAI-compatible endpoint) and gateways share one wire format.
+	return openaillm.New(credential.BaseURL, credential.APIKey, policy), nil
 }
 
 func (m agentModels) Default(ctx context.Context, userID string) (string, string, error) {

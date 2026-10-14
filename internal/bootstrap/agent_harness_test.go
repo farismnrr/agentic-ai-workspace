@@ -168,12 +168,13 @@ func (a agentRig) waitFor(t *testing.T, id, want string) {
 }
 
 type threadEvent struct {
-	ID      string   `json:"id"`
-	Kind    string   `json:"kind"`
-	Text    string   `json:"text"`
-	Files   []string `json:"files"`
-	Seq     int64    `json:"seq"`
-	CanUndo bool     `json:"canUndo"`
+	ID       string   `json:"id"`
+	Kind     string   `json:"kind"`
+	Text     string   `json:"text"`
+	Resolved string   `json:"resolved"`
+	Files    []string `json:"files"`
+	Seq      int64    `json:"seq"`
+	CanUndo  bool     `json:"canUndo"`
 }
 
 func (a agentRig) thread(t *testing.T, id string) []threadEvent {

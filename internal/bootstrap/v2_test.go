@@ -81,8 +81,9 @@ func TestToolSwitchesStartOffForWritingAndRunning(t *testing.T) {
 func TestWriteToolRefusesUntilSwitchedOn(t *testing.T) {
 	t.Parallel()
 
-	app, root := newWorkspace(t)
+	app := newApp(t)
 	cookie, clientID := signedInClient(t, app)
+	root := userWorkspace(t, app, cookie)
 	token := connect(t, app, cookie, clientID, "coding:read coding:write")
 	args := `{"path":"hello.txt","old_text":"hello","new_text":"howdy"}`
 
@@ -118,8 +119,9 @@ func TestMissingScopeAsksForStepUpSignIn(t *testing.T) {
 func TestUndoRestoresTheFileOnce(t *testing.T) {
 	t.Parallel()
 
-	app, root := newWorkspace(t)
+	app := newApp(t)
 	cookie, clientID := signedInClient(t, app)
+	root := userWorkspace(t, app, cookie)
 	token := connect(t, app, cookie, clientID, "coding:read coding:write")
 	enableTool(t, app, cookie, "edit_file")
 	callTool(t, app, token, "edit_file", `{"path":"hello.txt","old_text":"hello","new_text":"howdy"}`)
@@ -162,6 +164,7 @@ func TestUndoIsRefusedAfterALaterChangeAndForOtherPeople(t *testing.T) {
 
 func TestTasksRunOnlyWhenSwitchedOnAndNeverExposeTheirFile(t *testing.T) {
 	t.Parallel()
+	requireDocker(t)
 
 	app := newApp(t)
 	cookie, clientID := signedInClient(t, app)
