@@ -95,6 +95,25 @@ This contains technical details shared by the process, such as configuration, th
 
 Business rules do not belong here.
 
+## Accounts, sign-in, and connectors
+
+The binary also hosts its own sign-in and an OAuth 2.1 authorization server, so AI apps can connect to it without any extra service.
+
+- **Accounts** (`modules/account`): email and password (argon2id) with a cookie session. Data is kept in SQLite under `DATA_DIR`, using a pure-Go driver so the binary stays static.
+- **Spaces** (`modules/space`, `modules/coding`): each space is an MCP endpoint at `/api/<name>`. The first, `coding`, offers read-only tools to list, read, and search a folder you choose. Paths are confined with Go's `os.Root`, and secret files are never shown.
+- **Authorization server** (`modules/oauth`): issues opaque access tokens (stored hashed) tied to one space, plus rotating refresh tokens. A replayed code or refresh token revokes the whole connection.
+
+What an AI app discovers from `https://domain.com/api/coding`:
+
+1. A call without a token gets `401` and a pointer to `/.well-known/oauth-protected-resource/api/coding`.
+2. That document names the authorization server and the permissions (`coding:read`).
+3. `/.well-known/oauth-authorization-server` (and the OpenID Connect twin) lists the endpoints, PKCE `S256`, and the two ways to register: Client ID Metadata Documents and dynamic registration.
+4. The app sends the person to `/oauth/authorize`, which opens the consent page in the app. After approval the app exchanges the code at `/oauth/token`.
+
+Each tool has a permission scope (`coding:read`, `coding:write`, `coding:exec`) and a switch the person controls in Settings. A call must pass the switch first, then the token's scope, and is always written to an activity log. Edits save the old content first (under `DATA_DIR/backups`), which is what the Undo button restores. Tasks are named commands from `.workspace/tasks.json`, run without a shell and one at a time; the tools can never read or write that folder.
+
+The database schema changes only through numbered files in `internal/platform/database/migrations/`. Applied files are checksummed and can never be edited, so every change stays on record.
+
 ## Why dependencies point inward
 
 The main rule is that business code should not depend on infrastructure details.
