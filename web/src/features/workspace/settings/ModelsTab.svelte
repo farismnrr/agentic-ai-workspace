@@ -6,7 +6,7 @@
   import { loadModels, loadProviders, removeProvider, type ModelOption, type Provider } from '../logic/providers-api';
   import { describeProviderError } from '../logic/provider-errors';
   import AddProviderModal from './AddProviderModal.svelte';
-  import ConfirmModal from './ConfirmModal.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
   import ProviderRow from './ProviderRow.svelte';

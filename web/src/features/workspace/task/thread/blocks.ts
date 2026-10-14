@@ -1,6 +1,4 @@
-import type { TaskEvent } from '../../content/task-types';
-
-export type ActionEvent = Extract<TaskEvent, { kind: 'action' }>;
+import type { ActionEvent, TaskEvent } from '../../logic/task-types';
 
 export type Block = { kind: 'actions'; id: string; items: ActionEvent[] } | { kind: 'event'; event: TaskEvent };
 

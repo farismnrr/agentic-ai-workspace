@@ -1,5 +1,5 @@
 import type { IconName } from '../../../shared/ui/icon-names';
-import type { TaskStatus } from './task-types';
+import type { TaskStatus } from '../logic/task-types';
 
 export type StatusTone = 'primary' | 'info' | 'warning' | 'error' | 'neutral';
 

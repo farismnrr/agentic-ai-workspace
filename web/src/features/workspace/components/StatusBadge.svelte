@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
   import { statusMeta } from '../content/status';
-  import type { TaskStatus } from '../content/task-types';
+  import type { TaskStatus } from '../logic/task-types';
   import { badgeTone } from './tone';
 
   interface Props {

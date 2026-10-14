@@ -1,11 +1,16 @@
 <script lang="ts">
   import { route } from '../../../app/router';
   import { dotTone } from '../components/tone';
-  import { recentGroups } from '../content/recent';
   import { statusMeta } from '../content/status';
+  import { dayGroup, timeAgo, type DayGroup } from '../logic/time';
+  import { tasks } from '../logic/workspace-store';
 
   const activeTask = $derived($route.name === 'task' ? $route.taskId : undefined);
-  const groups = recentGroups(9);
+  const recent = $derived($tasks.slice(0, 9));
+  const order: DayGroup[] = ['Today', 'Yesterday', 'Earlier'];
+  const groups = $derived(
+    order.map((label) => ({ label, tasks: recent.filter((task) => dayGroup(task.updatedAt) === label) })).filter((group) => group.tasks.length > 0),
+  );
 </script>
 
 {#each groups as group (group.label)}
@@ -23,7 +28,7 @@
             {#if meta.needsYou || task.status === 'working'}<span class="status {dotTone[meta.tone]}"></span>{/if}
           </span>
           <span class="flex-1 truncate">{task.title}</span>
-          <span class="shrink-0 text-xs text-[var(--brand-text-tertiary)]">{task.updated.replace(' ago', '')}</span>
+          <span class="shrink-0 text-xs text-[var(--brand-text-tertiary)]">{timeAgo(task.updatedAt).replace(' ago', '')}</span>
         </a>
       </li>
     {/each}

@@ -1,11 +1,12 @@
 <script lang="ts">
   import { navigate, route } from '../../../app/router';
-  import { inboxItems } from '../content/inbox';
+  import { inboxItems } from '../logic/derive';
+  import { tasks } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import InboxDetail from './InboxDetail.svelte';
   import InboxList from './InboxList.svelte';
 
-  const items = inboxItems();
+  const items = $derived(inboxItems($tasks));
   const routeId = $derived($route.name === 'inbox' ? $route.taskId : undefined);
   const selected = $derived(items.find((item) => item.id === routeId));
   const desktopPick = $derived(selected ?? items[0]);
