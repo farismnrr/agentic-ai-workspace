@@ -112,6 +112,15 @@ What an AI app discovers from `https://domain.com/api/coding`:
 
 Each tool has a permission scope (`coding:read`, `coding:write`, `coding:exec`) and a switch the person controls in Settings. A call must pass the switch first, then the token's scope, and is always written to an activity log. Edits save the old content first (under `DATA_DIR/backups`), which is what the Undo button restores. Tasks are named commands from `.workspace/tasks.json`, run without a shell and one at a time; the tools can never read or write that folder.
 
+### The agent
+
+A task is one request in a project. The agent loop (`modules/task`) sends the conversation to the chosen model, runs the tools it asks for inside the project's folder, and records everything twice: as plain-language steps the person reads (the thread) and as a provider-neutral transcript used to rebuild the conversation. Because the transcript is stored, a task can stop to ask for approval or an answer and later continue, even after a restart.
+
+- **Models:** Anthropic Messages and OpenAI Chat Completions over plain HTTP; any compatible gateway works. API keys are sealed with AES-256-GCM using `DATA_DIR/secret.key`.
+- **Approvals:** reads, searches and edits run on their own (edits are undoable); deleting, moving and running checks wait for a yes. A task can also ask before every change.
+- **Proof:** built only from checks the server ran after the last change. Claims the AI makes without running anything are listed as claimed.
+- **Limits:** 40 model turns, 15 minutes and a token budget per run; a project runs one task at a time; interrupted tasks are marked and can be continued.
+
 The database schema changes only through numbered files in `internal/platform/database/migrations/`. Applied files are checksummed and can never be edited, so every change stays on record.
 
 ## Why dependencies point inward
