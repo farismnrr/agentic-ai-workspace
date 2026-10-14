@@ -55,6 +55,7 @@ type request struct {
 	Messages  []message `json:"messages"`
 	Tools     []tool    `json:"tools,omitempty"`
 	MaxTokens int       `json:"max_tokens"`
+	Stream    bool      `json:"stream,omitempty"`
 }
 
 type response struct {
@@ -67,6 +68,10 @@ type response struct {
 
 // Complete sends one conversation turn and returns the model's text and tool calls.
 func (c *Client) Complete(ctx context.Context, in application.Request) (application.Reply, error) {
+	if in.OnText != nil {
+		return c.stream(ctx, in)
+	}
+
 	var out response
 
 	headers := map[string]string{"x-api-key": c.apiKey, "anthropic-version": version}

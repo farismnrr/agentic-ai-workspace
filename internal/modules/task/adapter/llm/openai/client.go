@@ -47,10 +47,16 @@ type toolDef struct {
 	Function function `json:"function"`
 }
 
+type streamOptions struct {
+	IncludeUsage bool `json:"include_usage"`
+}
+
 type request struct {
-	Model    string    `json:"model"`
-	Messages []message `json:"messages"`
-	Tools    []toolDef `json:"tools,omitempty"`
+	StreamOptions *streamOptions `json:"stream_options,omitempty"`
+	Model         string         `json:"model"`
+	Messages      []message      `json:"messages"`
+	Tools         []toolDef      `json:"tools,omitempty"`
+	Stream        bool           `json:"stream,omitempty"`
 }
 
 type response struct {
@@ -68,6 +74,10 @@ type response struct {
 
 // Complete sends one conversation turn and returns the model's text and tool calls.
 func (c *Client) Complete(ctx context.Context, in application.Request) (application.Reply, error) {
+	if in.OnText != nil {
+		return c.stream(ctx, in)
+	}
+
 	var out response
 
 	headers := map[string]string{"Authorization": "Bearer " + c.apiKey}
@@ -92,22 +102,6 @@ func (c *Client) Complete(ctx context.Context, in application.Request) (applicat
 	}
 
 	return reply, nil
-}
-
-// parseArguments keeps the model's JSON, or wraps unreadable text so the tool can report it.
-func parseArguments(raw string) json.RawMessage {
-	if strings.TrimSpace(raw) == "" {
-		return json.RawMessage(`{}`)
-	}
-
-	var object map[string]json.RawMessage
-	if json.Unmarshal([]byte(raw), &object) == nil && object != nil {
-		return json.RawMessage(raw)
-	}
-
-	wrapped, _ := json.Marshal(map[string]string{"_unreadable_arguments": raw})
-
-	return wrapped
 }
 
 func encode(in application.Request) request {

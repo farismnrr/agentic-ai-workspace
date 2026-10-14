@@ -28,6 +28,7 @@
   const task: Readable<Task | undefined> = thread.task;
   const events: Readable<TaskEvent[]> = thread.events;
   const missing: Readable<boolean> = thread.missing;
+  const draft: Readable<string> = thread.draft;
   onDestroy(thread.stop);
 
   const project = $derived(findProject($projects, projectId));
@@ -70,7 +71,7 @@
       </div>
       <div class="flex min-h-0 flex-1">
         <section class="min-w-0 flex-1 flex-col lg:flex {view === 'chat' ? 'flex' : 'hidden'}" aria-label="Conversation">
-          <TaskThread task={$task} events={$events} actions={controller.actions} onretry={controller.retry} />
+          <TaskThread task={$task} events={$events} draft={$draft} actions={controller.actions} onretry={controller.retry} />
           {#if $task.status === 'review'}
             <ReviewBar proven={$task.proof?.proven ?? false} onaccept={controller.accept} onchanges={focusFollowUp} />
           {/if}

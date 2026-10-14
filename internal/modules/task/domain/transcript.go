@@ -55,7 +55,9 @@ type Usage struct {
 
 // ModelError is returned by model clients; Retryable marks rate limits and outages.
 type ModelError struct {
-	Message   string
+	Message string
+	// Status is the HTTP status of the failed call, or zero when there was none.
+	Status    int
 	Retryable bool
 }
 

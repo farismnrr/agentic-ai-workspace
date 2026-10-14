@@ -2,23 +2,27 @@
   import type { Task, TaskEvent } from '../../logic/task-types';
   import type { ThreadActions } from '../../logic/task-actions';
   import ActionGroup from './ActionGroup.svelte';
+  import ChatBubble from './ChatBubble.svelte';
   import { toBlocks } from './blocks';
   import EventItem from './EventItem.svelte';
 
   interface Props {
     task: Task;
     events: TaskEvent[];
+    /** Words the AI is writing right now. */
+    draft: string;
     actions: ThreadActions;
     onretry: () => void;
   }
 
-  const { task, events, actions, onretry }: Props = $props();
+  const { task, events, draft, actions, onretry }: Props = $props();
   const blocks = $derived(toBlocks(events));
   const working = $derived(['queued', 'planning', 'working'].includes(task.status));
   let scroller = $state<HTMLElement>();
 
   $effect(() => {
-    if (blocks.length > 0 && scroller !== undefined) scroller.scrollTop = scroller.scrollHeight;
+    // Follow the conversation as it grows, including words still being written.
+    if ((blocks.length > 0 || draft !== '') && scroller !== undefined) scroller.scrollTop = scroller.scrollHeight;
   });
 </script>
 
@@ -33,7 +37,9 @@
         {/if}
       </li>
     {/each}
-    {#if working}
+    {#if working && draft !== ''}
+      <li><ChatBubble who="ai" text={draft} time="writing…" /></li>
+    {:else if working}
       <li class="ml-9 flex items-center gap-2 text-[var(--brand-text-secondary)]" aria-live="polite">
         <span class="loading loading-dots loading-sm"></span>{task.status === 'queued' ? 'Waiting to start' : 'Working on it'}
       </li>

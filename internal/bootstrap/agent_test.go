@@ -164,3 +164,22 @@ func TestAnotherPersonCannotSeeOrControlATask(t *testing.T) {
 		t.Errorf("anonymous listing = %d, want 401", got)
 	}
 }
+
+func TestThreadEntriesCarryIncreasingSequenceNumbersForResuming(t *testing.T) {
+	t.Parallel()
+
+	a := newAgentRig(t, finishCall("Done"))
+	id := a.start(t, "Count me")
+	a.waitFor(t, id, "review")
+
+	events := a.thread(t, id)
+	if len(events) < 2 {
+		t.Fatalf("expected a request and a receipt, got %d", len(events))
+	}
+
+	for i, event := range events {
+		if event.Seq != int64(i+1) {
+			t.Fatalf("entry %d has sequence %d, want %d", i, event.Seq, i+1)
+		}
+	}
+}

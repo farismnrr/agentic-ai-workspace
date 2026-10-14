@@ -24,13 +24,14 @@ func newAgent(
 	auth, sameOrigin fiber.Handler,
 ) (httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStore(db, opaque.Generator{})
-	deps := taskapp.Deps{
+	hub := taskapp.NewHub()
+	deps := taskapp.Observe(taskapp.Deps{
 		Tasks: store, Events: store, Transcript: store, Usage: store,
 		Models:   agentModels{providers: models.providers, prefs: models.prefs},
 		Persona:  agentPersona{prefs: models.prefs},
 		Projects: agentProjects{projects: projects},
 		Tools:    tools, IDs: opaque.Generator{}, Now: time.Now,
-	}
+	}, hub)
 
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
@@ -46,7 +47,8 @@ func newAgent(
 	stop := func() {
 		cancel()
 		scheduler.Stop()
+		hub.Close()
 	}
 
-	return taskhttp.NewHandler(service, time.Now).Mount(auth, sameOrigin), stop, nil
+	return taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
 }

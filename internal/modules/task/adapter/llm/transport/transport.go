@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -36,29 +38,9 @@ func New() *Client {
 
 // Post sends body as JSON with the given headers and decodes a 2xx answer into out.
 func (c *Client) Post(ctx context.Context, url string, headers map[string]string, body, out any) error {
-	encoded, err := json.Marshal(body)
+	response, err := c.open(ctx, url, headers, body)
 	if err != nil {
-		return fmt.Errorf("encode model request: %w", err)
-	}
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(encoded))
-	if err != nil {
-		return fmt.Errorf("build model request: %w", err)
-	}
-
-	request.Header.Set("Content-Type", "application/json")
-
-	for key, value := range headers {
-		request.Header.Set(key, value)
-	}
-
-	response, err := c.http.Do(request)
-	if err != nil {
-		if ctx.Err() != nil {
-			return fmt.Errorf("model call cancelled: %w", ctx.Err())
-		}
-
-		return &domain.ModelError{Message: "could not reach the model: " + shorten(err.Error()), Retryable: true}
+		return err
 	}
 
 	defer func() { _ = response.Body.Close() }()
@@ -96,7 +78,7 @@ func statusError(status int, data []byte) error {
 
 	retryable := status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
 
-	return &domain.ModelError{Message: shorten(message), Retryable: retryable}
+	return &domain.ModelError{Message: shorten(message), Status: status, Retryable: retryable}
 }
 
 func shorten(text string) string {
@@ -106,4 +88,112 @@ func shorten(text string) string {
 	}
 
 	return string(runes[:maxMessage]) + "…"
+}
+
+const (
+	maxEventLine = 4 << 20
+	scanBuffer   = 64 << 10
+)
+
+// Stream posts body and feeds each server-sent event of a 2xx answer to handle.
+// Returning an error from handle stops the stream.
+func (c *Client) Stream(
+	ctx context.Context, url string, headers map[string]string, body any, handle func(event, data string) error,
+) error {
+	response, err := c.open(ctx, url, headers, body)
+	if err != nil {
+		return err
+	}
+
+	defer func() { _ = response.Body.Close() }()
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		data, _ := io.ReadAll(io.LimitReader(response.Body, maxResponse))
+
+		return statusError(response.StatusCode, data)
+	}
+
+	return readEvents(ctx, response.Body, handle)
+}
+
+// readEvents parses a server-sent event stream and calls handle for every complete event.
+func readEvents(ctx context.Context, body io.Reader, handle func(event, data string) error) error {
+	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, 0, scanBuffer), maxEventLine)
+
+	var current pendingEvent
+
+	for scanner.Scan() {
+		ready, err := current.feed(scanner.Text(), handle)
+		if err != nil {
+			return err
+		}
+
+		if ready {
+			current = pendingEvent{}
+		}
+	}
+
+	if ctx.Err() != nil {
+		return fmt.Errorf("model call cancelled: %w", ctx.Err())
+	}
+
+	if scanner.Err() != nil {
+		return &domain.ModelError{Message: "the model's answer was cut off", Retryable: true}
+	}
+
+	return nil
+}
+
+// pendingEvent is the event being read: a name and its data lines, ended by a blank line.
+type pendingEvent struct {
+	name string
+	data []string
+}
+
+// feed takes one line; ready reports that a blank line completed an event.
+func (p *pendingEvent) feed(line string, handle func(event, data string) error) (bool, error) {
+	switch {
+	case line == "":
+		if len(p.data) == 0 {
+			return true, nil
+		}
+
+		return true, handle(p.name, strings.Join(p.data, "\n"))
+	case strings.HasPrefix(line, "event:"):
+		p.name = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+	case strings.HasPrefix(line, "data:"):
+		p.data = append(p.data, strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " "))
+	}
+
+	return false, nil
+}
+
+func (c *Client) open(ctx context.Context, url string, headers map[string]string, body any) (*http.Response, error) {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("encode model request: %w", err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(encoded))
+	if err != nil {
+		return nil, fmt.Errorf("build model request: %w", err)
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+
+	for key, value := range headers {
+		request.Header.Set(key, value)
+	}
+
+	response, err := c.http.Do(request)
+	if err != nil {
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("model call cancelled: %w", ctx.Err())
+		}
+
+		return nil, &domain.ModelError{Message: "could not reach the model: " + shorten(err.Error()), Retryable: true}
+	}
+
+	return response, nil
 }
