@@ -32,7 +32,10 @@ RUN apt-get update \
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY --from=python /opt/python /opt/python
 RUN ln -s "$(ls -d /opt/python/cpython-*/bin/python3 | head -n1)" /usr/local/bin/python3 \
-    && ln -s python3 /usr/local/bin/python
+    && ln -s python3 /usr/local/bin/python \
+    && printf '#!/bin/sh\nexec python3 -m pip "$@"\n' > /usr/local/bin/pip \
+    && chmod 0755 /usr/local/bin/pip \
+    && ln -s pip /usr/local/bin/pip3
 
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -53,7 +56,7 @@ RUN chmod 0755 /usr/local/bin/sandbox-entry
 ENV RUSTUP_HOME=/opt/rustup \
     JAVA_HOME=/opt/java/openjdk \
     MAVEN_HOME=/opt/maven \
-    GOFLAGS=-buildvcs=false \
+    GOFLAGS="-modcacherw -buildvcs=false" \
     PATH=/usr/local/go/bin:/opt/cargo/bin:/opt/java/openjdk/bin:/opt/maven/bin:/usr/local/bin:/usr/bin:/bin
 
 # One JSON list the server reads to tell the agent what it can use.
