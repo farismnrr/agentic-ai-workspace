@@ -40,7 +40,14 @@ func NewHandler(issuer string, service *application.Service, auth Authenticator,
 
 // Mount registers discovery, protocol and consent routes. Protocol endpoints
 // carry no cookies, so cors (not sameOrigin) guards them for browser-based MCP clients.
-func (h *Handler) Mount(sameOrigin, cors fiber.Handler) httpserver.Mount {
+// Limits protect the endpoints strangers can reach: each is a middleware.
+type Limits struct {
+	Authorize fiber.Handler
+	Token     fiber.Handler
+	Register  fiber.Handler
+}
+
+func (h *Handler) Mount(sameOrigin, cors fiber.Handler, limits Limits) httpserver.Mount {
 	return func(app *fiber.App) {
 		app.Use("/.well-known", cors)
 		app.Use("/oauth", cors)
@@ -48,9 +55,9 @@ func (h *Handler) Mount(sameOrigin, cors fiber.Handler) httpserver.Mount {
 		app.Get("/.well-known/oauth-authorization-server", h.serveMetadata)
 		app.Get("/.well-known/openid-configuration", h.serveMetadata)
 		app.Get("/oauth/jwks.json", h.serveKeys)
-		app.Get("/oauth/authorize", h.authorize)
-		app.Post("/oauth/token", h.token)
-		app.Post("/oauth/register", h.register)
+		app.Get("/oauth/authorize", limits.Authorize, h.authorize)
+		app.Post("/oauth/token", limits.Token, h.token)
+		app.Post("/oauth/register", limits.Register, h.register)
 		app.Post("/oauth/revoke", h.revoke)
 		app.All("/oauth/userinfo", h.userinfo)
 

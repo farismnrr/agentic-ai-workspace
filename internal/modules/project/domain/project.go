@@ -18,6 +18,7 @@ var (
 	ErrInvalidName        = errors.New("give the project a name of up to 80 characters")
 	ErrInvalidDescription = errors.New("the description can have up to 500 characters")
 	ErrNotFound           = errors.New("project not found")
+	ErrInvalidChecks      = errors.New("those checks are not valid")
 )
 
 // Project is a piece of work with its own folder of files.

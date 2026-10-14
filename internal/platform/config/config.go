@@ -14,23 +14,15 @@ const (
 
 // Config contains runtime process configuration.
 type Config struct {
-	Port string
-	// PublicURL is the externally visible origin (scheme://host[:port]) used as
-	// the OAuth issuer and as the base of every MCP resource identifier.
-	PublicURL string
-	// DataDir holds the SQLite database and the signing key.
-	DataDir string
-	// CodingRoot is the sandbox directory exposed by the coding MCP space; empty disables the space.
-	CodingRoot string
-	// AllowedOrigins are the browser origins allowed to send state-changing requests (CSRF).
-	// PublicURL is always allowed in addition. Defaults to localhost and 127.0.0.1 on PORT.
+	Port           string
+	PublicURL      string
+	DataDir        string
+	CodingRoot     string
+	ClientIPHeader string
 	AllowedOrigins []string
-	// CORSOrigins are the origins browsers may call the OAuth endpoints from; defaults to AllowedOrigins.
-	CORSOrigins []string
-	// AgentWorkers is how many tasks the agent runs at the same time.
-	AgentWorkers int
-	// CookieSecure marks session cookies Secure; it follows PublicURL's scheme.
-	CookieSecure bool
+	CORSOrigins    []string
+	AgentWorkers   int
+	CookieSecure   bool
 }
 
 // Load reads runtime configuration from the environment.
@@ -48,6 +40,7 @@ func Load() Config {
 		CodingRoot:     os.Getenv("CODING_WORKSPACE_ROOT"),
 		AllowedOrigins: allowed,
 		CORSOrigins:    list("CORS_ORIGINS", allowed),
+		ClientIPHeader: strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),
 		AgentWorkers:   atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
 		CookieSecure:   strings.HasPrefix(publicURL, "https://"),
 	}

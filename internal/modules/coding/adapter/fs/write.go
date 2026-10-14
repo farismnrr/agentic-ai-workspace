@@ -75,3 +75,8 @@ func (r *Root) ReadTasks() ([]byte, error) {
 
 	return data, translate(err)
 }
+
+// WriteTasks saves the task definitions, creating the .workspace folder.
+func (r *Root) WriteTasks(data []byte) error {
+	return r.WriteFile(tasksFile, data)
+}

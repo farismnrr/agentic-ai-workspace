@@ -22,6 +22,21 @@ type Folders interface {
 	Create(id string) error
 }
 
+// Check is a named command the AI may run to prove its work in a project.
+type Check struct {
+	Name           string
+	Description    string
+	Command        []string
+	TimeoutSeconds int
+}
+
+// Checks reads and writes the checks stored in a project's folder. Save must
+// wrap domain.ErrInvalidChecks when the checks are not acceptable.
+type Checks interface {
+	List(ctx context.Context, projectID string) ([]Check, error)
+	Save(ctx context.Context, projectID string, checks []Check) error
+}
+
 // IDs mints identifiers.
 type IDs interface {
 	ID() (string, error)
@@ -31,13 +46,14 @@ type IDs interface {
 type Service struct {
 	store   Store
 	folders Folders
+	checks  Checks
 	ids     IDs
 	now     func() time.Time
 }
 
 // NewService wires the use cases.
-func NewService(store Store, folders Folders, ids IDs, now func() time.Time) *Service {
-	return &Service{store: store, folders: folders, ids: ids, now: now}
+func NewService(store Store, folders Folders, checks Checks, ids IDs, now func() time.Time) *Service {
+	return &Service{store: store, folders: folders, checks: checks, ids: ids, now: now}
 }
 
 // Create makes a project and its folder.
@@ -102,6 +118,33 @@ func (s *Service) Update(ctx context.Context, userID, id, name, description stri
 func (s *Service) Archive(ctx context.Context, userID, id string) error {
 	if err := s.store.Archive(ctx, userID, id, s.now()); err != nil {
 		return fmt.Errorf("archive project: %w", err)
+	}
+
+	return nil
+}
+
+// Checks returns the commands the AI may run in one of the person's projects.
+func (s *Service) Checks(ctx context.Context, userID, id string) ([]Check, error) {
+	if _, err := s.Get(ctx, userID, id); err != nil {
+		return nil, err
+	}
+
+	checks, err := s.checks.List(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("list checks: %w", err)
+	}
+
+	return checks, nil
+}
+
+// SaveChecks replaces the commands the AI may run in a project.
+func (s *Service) SaveChecks(ctx context.Context, userID, id string, checks []Check) error {
+	if _, err := s.Get(ctx, userID, id); err != nil {
+		return err
+	}
+
+	if err := s.checks.Save(ctx, id, checks); err != nil {
+		return fmt.Errorf("save checks: %w", err)
 	}
 
 	return nil

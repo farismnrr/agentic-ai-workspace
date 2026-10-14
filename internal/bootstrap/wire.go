@@ -2,12 +2,14 @@ package bootstrap
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spacesqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/sqlite"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
@@ -21,11 +23,13 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	sameOrigin := httpserver.SameOrigin(cfg.PublicURL, cfg.AllowedOrigins)
 	cors := httpserver.CORS(cfg.CORSOrigins)
 
-	account, accountMount := newAccount(db, cfg, sameOrigin)
+	account, accountMount := newAccount(db, cfg, sameOrigin, accountLimits())
 	sess := sessions{account: account}
 	registry := newRegistry(cfg)
 
-	oauth, oauthMount, err := newOAuth(db, cfg, registry, sess, directory{account: account}, sameOrigin, cors)
+	users := directory{account: account}
+
+	oauth, oauthMount, err := newOAuth(db, cfg, registry, sess, users, sameOrigin, cors, oauthLimits())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -42,12 +46,19 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	projects, folders, projectMount, err := newProjects(db, cfg, auth, sameOrigin)
+	folders, err := folder.Open(cfg.DataDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open project folders: %w", err)
+	}
+
+	tools, err := newAgentTools(folders, cfg.DataDir)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	agentMount, stop, err := newAgent(db, cfg, models, projects, folders, auth, sameOrigin)
+	projects, projectMount := newProjects(db, folders, tools, auth, sameOrigin)
+
+	agentMount, stop, err := newAgent(db, cfg, models, projects, tools, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}

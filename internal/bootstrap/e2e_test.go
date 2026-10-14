@@ -54,11 +54,11 @@ func signedInClient(t *testing.T, app *fiber.App) (cookie, clientID string) {
 func TestUnauthenticatedCallPointsToResourceMetadata(t *testing.T) {
 	t.Parallel()
 
-	reply := do(t, newApp(t), "POST", "/api/coding", rpc("tools/list", "{}"), mcpHeaders(""))
+	res := do(t, newApp(t), "POST", "/api/coding", rpc("tools/list", "{}"), mcpHeaders(""))
 	want := `resource_metadata="https://example.test/.well-known/oauth-protected-resource/api/coding"`
 
-	if reply.Status != 401 || !strings.Contains(reply.Header.Get("WWW-Authenticate"), want) {
-		t.Fatalf("expected 401 with resource_metadata, got %d %v", reply.Status, reply.Header)
+	if res.Status != 401 || !strings.Contains(res.Header.Get("WWW-Authenticate"), want) {
+		t.Fatalf("expected 401 with resource_metadata, got %d %v", res.Status, res.Header)
 	}
 }
 
@@ -185,8 +185,8 @@ func TestRevokedGrantStopsWorkingAtOnce(t *testing.T) {
 func TestUnknownAPIPathIs404JSONNotSPA(t *testing.T) {
 	t.Parallel()
 
-	reply := do(t, newApp(t), "GET", "/api/nope", "", nil)
-	if reply.Status != 404 || !strings.Contains(string(reply.Body), "not_found") {
-		t.Fatalf("got %d %s", reply.Status, reply.Body)
+	res := do(t, newApp(t), "GET", "/api/nope", "", nil)
+	if res.Status != 404 || !strings.Contains(string(res.Body), "not_found") {
+		t.Fatalf("got %d %s", res.Status, res.Body)
 	}
 }

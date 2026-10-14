@@ -78,6 +78,8 @@ Settings (environment variables):
 | `PUBLIC_URL` | The public address of the app, such as `https://your-domain.com`. Defaults to `http://localhost:<PORT>`. ChatGPT needs a public `https` address. |
 | `ALLOWED_ORIGINS` | Comma-separated browser origins that may sign in and change data (CSRF protection). Defaults to `http://localhost:<PORT>,http://127.0.0.1:<PORT>`. `PUBLIC_URL` is always allowed too. Add a domain or IP here, for example `https://workspace.example.com,http://192.168.1.20:8081`. |
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
+| `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
+| `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits; without it every visitor behind a tunnel looks like one address. |
 | `DATA_DIR` | Where accounts and connections are stored (default `data`). Keep it outside the coding folder. |
 | `CODING_WORKSPACE_ROOT` | A folder the coding space may read. The coding space is off when this is empty. |
 
@@ -127,7 +129,7 @@ The app is a single-page Svelte app served by the Go binary: `/` is the landing 
 3. **Describe what you need** on Home. The AI makes a plan, works step by step, and shows every step. Deleting or moving files and running checks need your OK first; choose "Ask me before every change" to be asked about edits too.
 4. **Review.** When it finishes you see what changed and what was checked. The proof says "Proven to work" only when the app itself ran a check that passed after the last change, and every change can be undone.
 
-To give the AI checks it can run, put a `.workspace/tasks.json` in the project's folder (same format as for connectors, below). `AGENT_WORKERS` sets how many tasks run at the same time (default 2; a project runs one at a time).
+To let the app verify the AI's work, add **checks** on the project's Checks tab: named commands such as `go test ./...`. The AI can only run the checks you list, asks before running one, and "Proven to work" appears only when a check passed after its last change. Checks run on this computer with the app's rights, so add only commands you trust.
 
 ## Project structure
 

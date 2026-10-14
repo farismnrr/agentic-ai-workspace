@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/database"
@@ -32,7 +33,9 @@ func Run() error {
 
 	defer stop()
 
-	app := httpserver.New(frontend, mounts...)
+	defer database.StartSweeper(db, time.Hour)()
+
+	app := httpserver.New(frontend, httpserver.Settings{ClientIPHeader: cfg.ClientIPHeader}, mounts...)
 	if err := app.Listen(cfg.Address()); err != nil {
 		return fmt.Errorf("listen on %s: %w", cfg.Address(), err)
 	}

@@ -15,9 +15,11 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
 )
 
-func newAccount(db *sql.DB, cfg config.Config, sameOrigin fiber.Handler) (*accountapp.Service, httpserver.Mount) {
+func newAccount(
+	db *sql.DB, cfg config.Config, sameOrigin fiber.Handler, limits accounthttp.Limits,
+) (*accountapp.Service, httpserver.Mount) {
 	store := accountsqlite.NewStore(db)
 	service := accountapp.NewService(store, store, argon2.Hasher{}, opaque.Generator{}, time.Now)
 
-	return service, accounthttp.NewHandler(service, cfg.CookieSecure).Mount(sameOrigin)
+	return service, accounthttp.NewHandler(service, cfg.CookieSecure).Mount(sameOrigin, limits)
 }

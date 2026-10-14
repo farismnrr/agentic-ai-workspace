@@ -105,7 +105,7 @@ func newEnv(t *testing.T) testEnv {
 
 	t.Cleanup(stop)
 
-	app := httpserver.New(fstest.MapFS{"index.html": {Data: []byte("<html>")}}, mounts...)
+	app := httpserver.New(fstest.MapFS{"index.html": {Data: []byte("<html>")}}, httpserver.Settings{}, mounts...)
 
 	return testEnv{app: app, root: root, dataDir: cfg.DataDir}
 }

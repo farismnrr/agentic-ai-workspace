@@ -20,7 +20,7 @@ import (
 
 func newOAuth(
 	db *sql.DB, cfg config.Config, registry *spaceapp.Registry, sess sessions, users directory,
-	sameOrigin, cors fiber.Handler,
+	sameOrigin, cors fiber.Handler, limits oauthhttp.Limits,
 ) (*oauthapp.Service, httpserver.Mount, error) {
 	signer, err := oauthjwt.LoadOrCreate(cfg.DataDir, cfg.PublicURL)
 	if err != nil {
@@ -37,5 +37,5 @@ func newOAuth(
 
 	handler := oauthhttp.NewHandler(cfg.PublicURL, service, sess, signer, resources.All())
 
-	return service, handler.Mount(sameOrigin, cors), nil
+	return service, handler.Mount(sameOrigin, cors, limits), nil
 }

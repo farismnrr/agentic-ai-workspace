@@ -30,6 +30,8 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		api.Get("/:id", h.get)
 		api.Put("/:id", sameOrigin, h.update)
 		api.Delete("/:id", sameOrigin, h.archive)
+		api.Get("/:id/checks", h.checks)
+		api.Put("/:id/checks", sameOrigin, h.saveChecks)
 	}
 }
 
@@ -114,6 +116,8 @@ func fail(c fiber.Ctx, err error) error {
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_name"))
 	case errors.Is(err, domain.ErrInvalidDescription):
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_description"))
+	case errors.Is(err, domain.ErrInvalidChecks):
+		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_checks"))
 	case errors.Is(err, domain.ErrNotFound):
 		return c.Status(fiber.StatusNotFound).JSON(httpserver.Failure("not_found"))
 	}

@@ -32,6 +32,7 @@ type IDs interface {
 // TaskFile returns the raw task definitions, or domain.ErrNoTasks when absent.
 type TaskFile interface {
 	ReadTasks() ([]byte, error)
+	WriteTasks(data []byte) error
 }
 
 // RunResult is what a finished task produced.

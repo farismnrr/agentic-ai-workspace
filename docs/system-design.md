@@ -119,7 +119,10 @@ A task is one request in a project. The agent loop (`modules/task`) sends the co
 - **Models:** Anthropic Messages and OpenAI Chat Completions over plain HTTP; any compatible gateway works. API keys are sealed with AES-256-GCM using `DATA_DIR/secret.key`.
 - **Approvals:** reads, searches and edits run on their own (edits are undoable); deleting, moving and running checks wait for a yes. A task can also ask before every change.
 - **Proof:** built only from checks the server ran after the last change. Claims the AI makes without running anything are listed as claimed.
+- **Checks:** a project's checks live in `.workspace/tasks.json` inside its folder, which the AI's tools can never read or write; only the Checks tab changes them.
 - **Limits:** 40 model turns, 15 minutes and a token budget per run; a project runs one task at a time; interrupted tasks are marked and can be continued.
+
+Sign-in, sign-up and the open OAuth endpoints are rate limited per visitor address (failed sign-ins also per account and address, so someone else's wrong guesses never lock you out). Expired sessions, codes, tokens and unused clients are swept away every hour.
 
 The database schema changes only through numbered files in `internal/platform/database/migrations/`. Applied files are checksummed and can never be edited, so every change stays on record.
 
