@@ -52,10 +52,10 @@ func guarded[In, Out any](
 
 		out, rep, err := run(context.WithValue(ctx, identityKey{}, token.UserID), in)
 		if err != nil {
-			entry.Outcome, entry.Detail = OutcomeFailed, userFacing(err).Error()
+			entry.Outcome, entry.Detail = OutcomeFailed, UserFacing(err).Error()
 			g.record(ctx, entry)
 
-			return nil, none, userFacing(err)
+			return nil, none, UserFacing(err)
 		}
 
 		entry.Outcome, entry.Detail, entry.Undo = OutcomeOK, rep.detail, rep.undo

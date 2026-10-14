@@ -17,7 +17,7 @@ import (
 )
 
 // wire builds every feature and returns the route mounts in registration order.
-func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, error) {
+func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	sameOrigin := httpserver.SameOrigin(cfg.PublicURL, cfg.AllowedOrigins)
 	cors := httpserver.CORS(cfg.CORSOrigins)
 
@@ -27,30 +27,35 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, error) {
 
 	oauth, oauthMount, err := newOAuth(db, cfg, registry, sess, directory{account: account}, sameOrigin, cors)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	spaceMounts, err := newSpaceMounts(db, cfg, registry, oauth, sess, sameOrigin)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	auth := httpserver.RequireSession(sess)
 
-	_, modelMounts, err := newModels(db, cfg, auth, sameOrigin)
+	models, err := newModels(db, cfg, auth, sameOrigin)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	_, _, projectMount, err := newProjects(db, cfg, auth, sameOrigin)
+	projects, folders, projectMount, err := newProjects(db, cfg, auth, sameOrigin)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount}
-	mounts = append(mounts, modelMounts...)
+	agentMount, stop, err := newAgent(db, cfg, models, projects, folders, auth, sameOrigin)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return append(mounts, spaceMounts...), nil
+	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount, agentMount}
+	mounts = append(mounts, models.mounts...)
+
+	return append(mounts, spaceMounts...), stop, nil
 }
 
 // newSpaceMounts wires permissions, the activity log, the app API and each hosted space.

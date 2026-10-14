@@ -64,6 +64,10 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome
 	event := domain.Event{
 		Text: described.Text, Technical: described.Technical, Files: result.Files, Undo: result.Undo, Run: result.Run,
 	}
+	if result.Note != "" {
+		event.Technical += " → " + result.Note
+	}
+
 	if result.IsError {
 		event.Text = "Tried to, but it did not work: " + lowerFirst(described.Text)
 		event.Technical = described.Technical + " → " + truncate(result.Output, maxModelError)
