@@ -23,11 +23,18 @@ func NewHandler(service *application.Service, secure bool) *Handler {
 }
 
 // Mount registers the /api/auth routes; sameOrigin guards the POSTs.
-func (h *Handler) Mount(sameOrigin fiber.Handler) httpserver.Mount {
+// Limits slow down guessing and mass sign-ups; each is a middleware.
+type Limits struct {
+	Register   fiber.Handler
+	LoginIP    fiber.Handler
+	LoginEmail fiber.Handler
+}
+
+func (h *Handler) Mount(sameOrigin fiber.Handler, limits Limits) httpserver.Mount {
 	return func(app *fiber.App) {
 		auth := app.Group("/api/auth", sameOrigin)
-		auth.Post("/register", h.register)
-		auth.Post("/login", h.login)
+		auth.Post("/register", limits.Register, h.register)
+		auth.Post("/login", limits.LoginIP, limits.LoginEmail, h.login)
 		auth.Post("/logout", h.logout)
 		auth.Get("/me", h.me)
 	}

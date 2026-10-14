@@ -1,0 +1,37 @@
+package bootstrap
+
+import (
+	"time"
+
+	accounthttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/adapter/http"
+	oauthhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/adapter/http"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
+)
+
+// Limits are per client address unless noted. Sign-in counts only failures, so
+// people who type their password correctly are never slowed down.
+const (
+	registerPerHour       = 5
+	loginFailuresPerIP    = 30
+	loginFailuresPerEmail = 8
+	loginWindow           = 10 * time.Minute
+	authorizePerMinute    = 60
+	tokenPerMinute        = 120
+	clientRegisterPerHour = 20
+)
+
+func accountLimits() accounthttp.Limits {
+	return accounthttp.Limits{
+		Register:   httpserver.Limit(registerPerHour, time.Hour, nil, false),
+		LoginIP:    httpserver.Limit(loginFailuresPerIP, loginWindow, nil, true),
+		LoginEmail: httpserver.Limit(loginFailuresPerEmail, loginWindow, httpserver.EmailKey, true),
+	}
+}
+
+func oauthLimits() oauthhttp.Limits {
+	return oauthhttp.Limits{
+		Authorize: httpserver.Limit(authorizePerMinute, time.Minute, nil, false),
+		Token:     httpserver.Limit(tokenPerMinute, time.Minute, nil, false),
+		Register:  httpserver.Limit(clientRegisterPerHour, time.Hour, nil, false),
+	}
+}

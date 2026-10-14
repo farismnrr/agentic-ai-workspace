@@ -53,3 +53,21 @@ func (t *Tasks) Run(ctx context.Context, name string) (RunResult, error) {
 
 	return RunResult{}, domain.ErrUnknownTask
 }
+
+// Save replaces the approved tasks after checking them.
+func (t *Tasks) Save(tasks []domain.Task) error {
+	if err := domain.ValidateTasks(tasks); err != nil {
+		return fmt.Errorf("check tasks: %w", err)
+	}
+
+	data, err := domain.EncodeTasks(tasks)
+	if err != nil {
+		return fmt.Errorf("encode tasks: %w", err)
+	}
+
+	if err := t.file.WriteTasks(data); err != nil {
+		return fmt.Errorf("write tasks: %w", err)
+	}
+
+	return nil
+}

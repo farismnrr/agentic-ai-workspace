@@ -8,7 +8,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	taskhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/http"
 	tasksqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/sqlite"
@@ -21,14 +20,9 @@ import (
 // newAgent wires the agent loop: stores, model clients, project tools, the
 // scheduler, and the task API. The returned function stops the workers.
 func newAgent(
-	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, folders *folder.Folders,
+	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
 	auth, sameOrigin fiber.Handler,
 ) (httpserver.Mount, func(), error) {
-	tools, err := newAgentTools(folders, cfg.DataDir)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	store := tasksqlite.NewStore(db, opaque.Generator{})
 	deps := taskapp.Deps{
 		Tasks: store, Events: store, Transcript: store, Usage: store,

@@ -12,6 +12,7 @@ export const FALLBACK_ERROR = 'Something went wrong on our side. Please try agai
 
 export const errorCopy: Record<string, string> = {
   cross_origin: 'This page was opened from an address the app does not recognise. Reload it from the main address.',
+  too_many_requests: 'Too many attempts. Please wait a few minutes and try again.',
   invalid_credentials: 'That email and password do not match.',
   email_taken: 'An account with this email already exists. Try signing in instead.',
   invalid_email: 'Enter an email like you@example.com.',
