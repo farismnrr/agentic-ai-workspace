@@ -10,9 +10,6 @@
     onanswer: (allow: boolean) => void;
   }
 
-  const riskLabel: Record<Risk, string> = { low: 'Low risk', medium: 'Check first', high: 'High risk' };
-  const riskTone: Record<Risk, string> = { low: 'badge-ghost', medium: 'badge-warning badge-soft', high: 'badge-error badge-soft' };
-
   const { text, action, risk, resolved, onanswer }: Props = $props();
 </script>
 
@@ -20,9 +17,12 @@
   <div class="flex items-start gap-2">
     <Icon name="shield" class="mt-0.5 size-5 shrink-0 text-warning" />
     <p class="flex-1 font-medium">{text}</p>
-    <span class="badge badge-sm {riskTone[risk]}">{riskLabel[risk]}</span>
+    {#if risk === 'high'}<span class="badge badge-sm badge-error badge-soft">Be careful</span>{/if}
   </div>
-  <p class="mt-3 rounded-lg bg-base-200 px-3 py-2 text-sm"><span class="text-[var(--brand-text-secondary)]">It will:</span> {action}</p>
+  <details class="mt-2 text-sm">
+    <summary class="cursor-pointer text-[var(--brand-text-secondary)]">Show details</summary>
+    <p class="mt-1 rounded-lg bg-base-200 px-3 py-2"><code class="break-all">{action}</code></p>
+  </details>
   {#if resolved === undefined}
     <ul class="mt-3 flex flex-wrap gap-2">
       <li><button class="btn btn-primary btn-sm rounded-lg" type="button" onclick={() => { onanswer(true); }}>Allow</button></li>

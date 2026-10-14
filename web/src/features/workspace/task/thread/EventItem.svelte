@@ -6,6 +6,7 @@
   import ChatBubble from './ChatBubble.svelte';
   import QuestionCard from './QuestionCard.svelte';
   import ResultCard from './ResultCard.svelte';
+  import SiteCard from './SiteCard.svelte';
 
   interface Props {
     event: TaskEvent;
@@ -29,6 +30,8 @@
       <ApprovalCard text={event.text} action={event.action} risk={event.risk} resolved={event.resolved} onanswer={(allow: boolean) => { actions.allow(event.id, allow); }} />
     {:else if event.kind === 'error'}
       <ResultCard kind="error" text={event.text} hint={event.hint} {onretry} />
+    {:else if event.kind === 'site'}
+      <SiteCard text={event.text} url={event.url} />
     {:else}
       <ResultCard kind="receipt" text={event.text} {proven} />
     {/if}

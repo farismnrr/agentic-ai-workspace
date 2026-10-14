@@ -75,6 +75,12 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome
 
 	r.action(ctx, task, event)
 
+	if result.Link != "" && !result.IsError {
+		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
+			Kind: domain.EventSite, Text: "Your app is running", URL: result.Link, Time: r.deps.Now(),
+		})
+	}
+
 	return outcome{}, false
 }
 

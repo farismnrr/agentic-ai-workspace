@@ -78,7 +78,7 @@ func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
 
 	cfg := config.Config{
 		Port: "0", PublicURL: publicURL, DataDir: t.TempDir(), WorkspacesDir: root, CookieSecure: true,
-		SandboxImage: testImage, MaxSandboxes: 4,
+		SandboxImage: testImage, MaxSandboxes: 4, SiteMaxPerUser: 2, SiteMaxTotal: 6,
 		AllowedOrigins: []string{"http://localhost:8081", "http://127.0.0.1:8081"},
 		CORSOrigins:    []string{"http://localhost:8081"},
 	}

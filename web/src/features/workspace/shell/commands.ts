@@ -15,6 +15,7 @@ const pages: Command[] = [
   { id: 'home', label: 'Home', hint: 'Go to', href: '/app', icon: 'home' },
   { id: 'inbox', label: 'Inbox', hint: 'Go to', href: '/app/inbox', icon: 'inbox' },
   { id: 'projects', label: 'Projects', hint: 'Go to', href: '/app/projects', icon: 'folder' },
+  { id: 'sites', label: 'Sites', hint: 'Go to', href: '/app/sites', icon: 'globe' },
   { id: 'settings', label: 'Settings', hint: 'Go to', href: '/app/settings', icon: 'settings' },
   { id: 'usage', label: 'Usage', hint: 'Settings', href: '/app/settings/usage', icon: 'clock' },
 ];

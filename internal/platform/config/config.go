@@ -11,6 +11,8 @@ import (
 const (
 	defaultWorkers         = 2
 	defaultSandboxes       = 4
+	defaultSitesPerUser    = 2
+	defaultSitesTotal      = 6
 	defaultSandboxMemoryMB = 2048
 	defaultSandboxCPUs     = 1
 	defaultPort            = "8081"
@@ -41,6 +43,8 @@ type Config struct {
 	CORSOrigins       []string
 	AgentWorkers      int
 	MaxSandboxes      int
+	SiteMaxPerUser    int
+	SiteMaxTotal      int
 	SandboxMemoryMB   int
 	SandboxCPUs       int
 	CookieSecure      bool
@@ -74,6 +78,8 @@ func Load() Config {
 		ClientIPHeader:    strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),
 		AgentWorkers:      atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
 		MaxSandboxes:      atoi(getenv("MAX_SANDBOXES", strconv.Itoa(defaultSandboxes)), defaultSandboxes),
+		SiteMaxPerUser:    atoi(getenv("SITE_MAX_PER_USER", strconv.Itoa(defaultSitesPerUser)), defaultSitesPerUser),
+		SiteMaxTotal:      atoi(getenv("SITE_MAX_TOTAL", strconv.Itoa(defaultSitesTotal)), defaultSitesTotal),
 		SandboxImage:      getenv("SANDBOX_IMAGE", defaultSandboxImage),
 		SandboxRuntime:    strings.TrimSpace(os.Getenv("SANDBOX_RUNTIME")),
 		SandboxDataVolume: strings.TrimSpace(os.Getenv("SANDBOX_DATA_VOLUME")),

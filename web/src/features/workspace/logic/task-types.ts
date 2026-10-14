@@ -39,7 +39,8 @@ export type TaskEvent =
   | (EventBase & { kind: 'question'; text: string; options?: string[]; answered?: string })
   | (EventBase & { kind: 'approval'; text: string; action: string; risk: Risk; resolved?: 'allowed' | 'denied' })
   | (EventBase & { kind: 'error'; text: string; hint?: string })
-  | (EventBase & { kind: 'receipt'; text: string });
+  | (EventBase & { kind: 'receipt'; text: string })
+  | (EventBase & { kind: 'site'; text: string; url: string });
 
 export type ActionEvent = Extract<TaskEvent, { kind: 'action' }>;
 

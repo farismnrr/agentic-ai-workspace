@@ -13,6 +13,10 @@ The app is a single-page Svelte app served by the Go binary: `/` is the landing 
 
 To let the app verify the AI's work, add **checks** on the project's Checks tab: named commands such as `go test ./...`. The AI can run the checks you list and, when you allow it, any command in the sandbox (Settings, Spaces & tools, Run a command). It asks before every run, and "Proven to work" appears only when a check passed after its last change. Checks run on this computer with the app's rights, so add only commands you trust.
 
+## Sites
+
+When the AI builds a web app and runs it, it appears under **Sites** (and in the sidebar while it runs). Open it from there or from the link in the task, make it public if you want to share it, and press Stop when you are done. See [sites.md](./sites.md).
+
 ## Your data
 
 Under Settings, Account you can change your password (other devices are signed out), download everything as a zip (settings, projects with their files, tasks with every step, usage; saved AI keys are never included), delete all tasks, or delete the account with its projects and files after confirming your password. Settings, Notifications can alert you in this browser, while the tab is in the background, when a task needs you or fails.

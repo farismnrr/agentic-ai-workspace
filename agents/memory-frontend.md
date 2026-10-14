@@ -13,3 +13,5 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
 9. Settings use `settings/parts/` with tabs driven by `settings/settings-nav.ts`; create-style forms open in a daisyUI `modal`.
 10. Icon names live in `shared/ui/icon-names.ts`; `Icon.svelte` holds only the paths.
 11. Required bindable props are declared `value?: string | undefined` with `$bindable('')`. `.svelte.ts` rune modules are not parsed by ESLint; keep shared state in plain `.ts` stores.
+12. Sites: the `sites` store is loaded by `refresh()` with projects and tasks (the `changed` stream event already triggers it), the sidebar shows only running apps (`SidebarSites.svelte`) with a Stop button, `/app/sites` owns visibility (going public always goes through `ConfirmModal`), and a `site` thread event renders `SiteCard.svelte`. App links always use `target="_blank" rel="noopener noreferrer"` and are never SPA routes: `/run/*` must stay unknown to `router.ts` so clicks do a real page load. Approval cards show plain questions; the technical line sits behind "Show details" and only high risk gets a badge.
+
