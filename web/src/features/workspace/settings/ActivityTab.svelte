@@ -3,7 +3,7 @@
   import { ApiError } from '../../../shared/api/http';
   import { activityCopy } from '../content/connected';
   import { loadActivity, undoActivity, type ActivityEntry, type ActivityOutcome } from '../logic/connectors-api';
-  import ConfirmModal from './ConfirmModal.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
 
   let entries: ActivityEntry[] = $state([]);

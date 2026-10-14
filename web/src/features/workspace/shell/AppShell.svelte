@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { onMount } from 'svelte';
+  import { watch } from '../logic/workspace-store';
   import CommandPalette from './CommandPalette.svelte';
   import { paletteOpen, type Crumb } from './shell-state';
   import Sidebar from './Sidebar.svelte';
@@ -23,6 +25,8 @@
 
   const { crumbs, width = 'dense', children, footer }: Props = $props();
   let open = $state(false);
+
+  onMount(() => watch());
 
   function onkeydown(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {

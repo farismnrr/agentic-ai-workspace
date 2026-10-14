@@ -1,13 +1,13 @@
 <script lang="ts">
   import Icon from '../../../../shared/ui/Icon.svelte';
-  import type { Change } from '../../content/task-types';
+  import type { Change } from '../../logic/task-types';
 
   interface Props {
     changes: Change[];
   }
 
   const { changes }: Props = $props();
-  const files = $derived([...new Set(changes.flatMap((change) => change.files))]);
+  const files = $derived([...new Set(changes.filter((change) => !change.undone).flatMap((change) => change.files))]);
 </script>
 
 {#if files.length === 0}

@@ -1,8 +1,9 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
   import StatusDot from '../components/StatusDot.svelte';
-  import { findProject } from '../content/projects';
-  import type { InboxItem } from '../content/inbox';
+  import { findProject, type InboxItem } from '../logic/derive';
+  import { timeAgo } from '../logic/time';
+  import { projects } from '../logic/workspace-store';
 
   interface Props {
     items: InboxItem[];
@@ -24,7 +25,7 @@
         <span class="flex min-w-0 flex-1 flex-col">
           <span class="truncate text-[15px] font-medium">{item.task.title}</span>
           <span class="truncate text-sm text-[var(--brand-text-secondary)]">{item.headline}</span>
-          <span class="mt-0.5 text-xs text-[var(--brand-text-tertiary)]">{findProject(item.task.projectId)?.name} · {item.task.updated}</span>
+          <span class="mt-0.5 text-xs text-[var(--brand-text-tertiary)]">{findProject($projects, item.task.projectId)?.name} · {timeAgo(item.task.updatedAt)}</span>
         </span>
         <Icon name="chevron-right" class="mt-1 size-4 shrink-0 text-[var(--brand-text-tertiary)]" />
       </a>

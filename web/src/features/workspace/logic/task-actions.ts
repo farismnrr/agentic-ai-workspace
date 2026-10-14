@@ -1,0 +1,55 @@
+import { writable, type Readable } from 'svelte/store';
+import { describeTaskError } from './task-errors';
+import { acceptTask, answerApproval, answerQuestion, cancelTask, retryTask, sendMessage, undoStep } from './tasks-api';
+import type { Thread } from './thread';
+import { refresh } from './workspace-store';
+
+/** What the person can do from inside the thread; the page that owns the task provides these. */
+export interface ThreadActions {
+  allow: (eventId: string, allow: boolean) => void;
+  choose: (eventId: string, choice: string) => void;
+  undo: (eventId: string) => void;
+}
+
+export interface TaskController {
+  actions: ThreadActions;
+  /** The last problem in plain words, or an empty string. */
+  error: Readable<string>;
+  accept: () => void;
+  stop: () => void;
+  retry: () => void;
+  /** Resolves true when the message was accepted. */
+  follow: (text: string) => Promise<boolean>;
+}
+
+/** Runs the buttons of one task and refreshes the thread and lists afterwards. */
+export function createController(taskId: string, thread: Thread): TaskController {
+  const error = writable('');
+
+  const act = async (run: () => Promise<unknown>): Promise<boolean> => {
+    error.set('');
+    let ok = true;
+    try {
+      await run();
+    } catch (failure) {
+      ok = false;
+      error.set(describeTaskError(failure));
+    } finally {
+      await Promise.all([thread.refresh(), refresh()]);
+    }
+    return ok;
+  };
+
+  return {
+    error,
+    actions: {
+      allow: (eventId, allow) => void act(() => answerApproval(taskId, eventId, allow)),
+      choose: (eventId, choice) => void act(() => answerQuestion(taskId, eventId, choice)),
+      undo: (eventId) => void act(() => undoStep(taskId, eventId)),
+    },
+    accept: () => void act(() => acceptTask(taskId)),
+    stop: () => void act(() => cancelTask(taskId)),
+    retry: () => void act(() => retryTask(taskId)),
+    follow: (text) => act(() => sendMessage(taskId, text)),
+  };
+}

@@ -1,13 +1,14 @@
 <script lang="ts">
   import { navigate } from '../../../app/router';
   import Icon from '../../../shared/ui/Icon.svelte';
+  import { projects, tasks } from '../logic/workspace-store';
   import { allCommands, filterCommands, type Command } from './commands';
   import { paletteOpen } from './shell-state';
 
   let dialog = $state<HTMLDialogElement>();
   let query = $state('');
   let active = $state(0);
-  const results = $derived(filterCommands(allCommands(), query));
+  const results = $derived(filterCommands(allCommands($projects, $tasks), query));
 
   $effect(() => {
     if ($paletteOpen && dialog?.open !== true) dialog?.showModal();

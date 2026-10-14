@@ -1,7 +1,8 @@
 <script lang="ts">
   import { statusMeta, statusOrder } from '../content/status';
-  import { tasksOf } from '../content/tasks';
-  import type { Task, TaskStatus } from '../content/task-types';
+  import { tasksOf } from '../logic/derive';
+  import type { Task, TaskStatus } from '../logic/task-types';
+  import { tasks } from '../logic/workspace-store';
   import TaskRow from './TaskRow.svelte';
 
   interface Props {
@@ -21,7 +22,7 @@
   const rank = (status: TaskStatus): number => statusOrder.indexOf(status);
 
   let filter = $state<Filter>('all');
-  const all = $derived(tasksOf(projectId));
+  const all = $derived(tasksOf($tasks, projectId));
   const rows = $derived(all.filter(groups[filter]).sort((a, b) => rank(a.status) - rank(b.status)));
   const counts = $derived(Object.fromEntries((Object.keys(groups) as Filter[]).map((key) => [key, all.filter(groups[key]).length])));
 </script>
@@ -34,5 +35,5 @@
   {/each}
 </div>
 <div class="mt-3 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
-  {#each rows as task (task.id)}<TaskRow {task} />{:else}<p class="p-5 text-[var(--brand-text-secondary)]">Nothing here yet.</p>{/each}
+  {#each rows as task (task.id)}<TaskRow {task} />{:else}<p class="p-5 text-[var(--brand-text-secondary)]">Nothing here yet. Start a task from Home or with New task.</p>{/each}
 </div>

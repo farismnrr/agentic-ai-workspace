@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
-  import { inboxCount } from '../content/stats';
+  import { inboxItems } from '../logic/derive';
+  import { tasks } from '../logic/workspace-store';
   import { paletteOpen, sidebarCollapsed, type Crumb } from './shell-state';
 
   interface Props {
@@ -8,7 +9,7 @@
   }
 
   const { crumbs }: Props = $props();
-  const waiting = inboxCount();
+  const waiting = $derived(inboxItems($tasks).length);
 </script>
 
 <header class="sticky top-0 z-10 flex h-12 items-center gap-2 border-b border-[var(--brand-border)] bg-base-200/90 px-3 backdrop-blur">

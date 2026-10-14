@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { connectedAppsCopy } from '../content/connected';
   import { loadConnectedApps, revokeApp, type ConnectedApp } from '../logic/connectors-api';
-  import ConfirmModal from './ConfirmModal.svelte';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
 
   let apps: ConnectedApp[] = $state([]);

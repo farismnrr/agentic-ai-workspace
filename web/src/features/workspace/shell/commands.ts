@@ -1,7 +1,6 @@
 import type { IconName } from '../../../shared/ui/icon-names';
-import { projects } from '../content/projects';
 import { statusMeta } from '../content/status';
-import { tasks } from '../content/tasks';
+import type { Project, Task } from '../logic/task-types';
 
 export interface Command {
   id: string;
@@ -20,7 +19,7 @@ const pages: Command[] = [
   { id: 'usage', label: 'Usage', hint: 'Settings', href: '/app/settings/usage', icon: 'clock' },
 ];
 
-export const allCommands = (): Command[] => [
+export const allCommands = (projects: Project[], tasks: Task[]): Command[] => [
   ...pages,
   ...projects.map((project): Command => ({ id: `p-${project.id}`, label: project.name, hint: 'Project', href: `/app/projects/${project.id}`, icon: 'folder' })),
   ...tasks.map(

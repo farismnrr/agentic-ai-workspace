@@ -1,45 +1,53 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
-  import { projects } from '../content/projects';
-  import { askLevels } from '../content/user';
-  import Notice from './Notice.svelte';
+  import { askLevels } from '../content/tasks-copy';
+  import type { ApprovalMode, Project } from '../logic/task-types';
 
   interface Props {
     id: string;
     placeholder: string;
     text?: string | undefined;
-    withProject?: boolean;
+    /** When given, the composer shows a project picker. */
+    projects?: Project[] | undefined;
+    project?: string | undefined;
+    busy?: boolean | undefined;
+    disabled?: boolean | undefined;
+    /** Hide the "how much should it ask" choice, for follow-ups that keep the task's setting. */
+    withMode?: boolean | undefined;
+    error?: string | undefined;
+    onsend: (text: string, mode: ApprovalMode, project: string) => void;
   }
 
-  let { id, placeholder, text = $bindable(''), withProject = false }: Props = $props();
-  let project = $state('bakery');
-  let ask = $state('always');
-  let sent = $state(false);
+  let { id, placeholder, text = $bindable(''), projects, project = $bindable(''), busy = false, disabled = false, withMode = true, error = '', onsend }: Props = $props();
+  let mode: ApprovalMode = $state('risky');
 
   function onsubmit(event: SubmitEvent): void {
     event.preventDefault();
-    sent = text.trim() !== '';
+    if (text.trim() !== '' && !busy && !disabled) onsend(text.trim(), mode, project);
   }
 </script>
 
 <form {onsubmit}>
   <label class="sr-only" for={id}>{placeholder}</label>
   <div class="rounded-3xl border border-[var(--brand-border)] bg-base-100 shadow-lg focus-within:border-[var(--brand-border-strong)]">
-    <textarea {id} bind:value={text} rows="2" {placeholder} class="field-sizing-content max-h-52 min-h-14 w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] focus:outline-none"></textarea>
+    <textarea {id} bind:value={text} rows="2" {placeholder} {disabled} class="field-sizing-content max-h-52 min-h-14 w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] focus:outline-none"></textarea>
     <div class="flex flex-wrap items-center gap-1 px-2 pb-2">
-      <button class="btn btn-ghost btn-circle btn-sm" type="button" aria-label="Attach a file" title="Attach a file (preview)"><Icon name="paperclip" class="size-4" /></button>
-      {#if withProject}
+      {#if projects !== undefined}
         <label class="sr-only" for="{id}-project">Project</label>
-        <select id="{id}-project" class="select select-ghost select-sm w-auto rounded-full" bind:value={project}>
+        <select id="{id}-project" class="select select-ghost select-sm w-auto rounded-full" bind:value={project} {disabled}>
           {#each projects as item (item.id)}<option value={item.id}>{item.name}</option>{/each}
         </select>
       {/if}
-      <label class="sr-only" for="{id}-ask">How much should it ask you?</label>
-      <select id="{id}-ask" class="select select-ghost select-sm ml-auto w-auto rounded-full" bind:value={ask}>
-        {#each askLevels as level (level.value)}<option value={level.value}>{level.label}</option>{/each}
-      </select>
-      <button class="btn btn-primary btn-circle btn-sm" type="submit" aria-label="Send"><Icon name="arrow-right" class="size-4" /></button>
+      {#if withMode}
+        <label class="sr-only" for="{id}-ask">How much should it ask you?</label>
+        <select id="{id}-ask" class="select select-ghost select-sm ml-auto w-auto rounded-full" bind:value={mode} {disabled}>
+          {#each askLevels as level (level.value)}<option value={level.value}>{level.label}</option>{/each}
+        </select>
+      {/if}
+      <button class="btn btn-primary btn-circle btn-sm {withMode ? '' : 'ml-auto'}" type="submit" aria-label="Send" disabled={busy || disabled || text.trim() === ''}>
+        {#if busy}<span class="loading loading-spinner loading-xs"></span>{:else}<Icon name="arrow-right" class="size-4" />{/if}
+      </button>
     </div>
   </div>
-  {#if sent}<div class="mt-2"><Notice show /></div>{/if}
+  {#if error !== ''}<p class="mt-2 text-sm text-error" role="alert">{error}</p>{/if}
 </form>
