@@ -1,5 +1,5 @@
 # Development channel: follows the image published from dev (:dev).
-# One service: the app. Checks run as short-lived containers started through the Docker
+# One service: the app, on the host network. Checks run as short-lived containers started through the Docker
 # socket, so the socket is mounted. Anyone who can reach the socket controls the host:
 # run Docker rootless where you can, and keep this server's sign-ups to people you trust.
 #
@@ -11,10 +11,12 @@
 services:
   app:
     image: ghcr.io/farismnrr/agentic-ai-workspace:dev
-    ports:
-      - "${PORT:-8081}:8081"
+    # The host's network, so "localhost" in Settings means this computer: a model gateway
+    # that listens on the host's loopback is then reachable (the egress rule allows only
+    # loopback for gateways). The app listens on PORT directly; checks still get no network.
+    network_mode: host
     environment:
-      PORT: "8081"
+      PORT: ${PORT:-8081}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8081}
       CONNECTOR_URL: ${CONNECTOR_URL:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
