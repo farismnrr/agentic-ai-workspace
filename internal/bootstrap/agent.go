@@ -30,7 +30,7 @@ func newAgent(
 		Models:   models.agentModels(),
 		Persona:  agentPersona{prefs: models.prefs},
 		Projects: agentProjects{projects: projects},
-		Tools:    tools, IDs: opaque.Generator{}, Now: time.Now,
+		Tools:    tools, Computer: computer{engine: tools.engine}, IDs: opaque.Generator{}, Now: time.Now,
 	}, hub)
 
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())

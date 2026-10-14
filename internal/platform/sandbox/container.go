@@ -16,19 +16,19 @@ import (
 
 const (
 	drainWait = 2 * time.Second
-	tmpfsOpts = "rw,nosuid,nodev,size=512m"
+	tmpfsOpts = "rw,exec,nosuid,nodev,size=512m"
 	nanoPerMS = 1_000_000
 )
 
 // Run starts spec.Argv in a new container, copies its output to out and waits for
 // it to end. When ctx ends first the container is killed. The container is always removed.
 func (d *Docker) Run(ctx context.Context, spec Spec, out io.Writer) (Result, error) {
-	workspace, err := d.cfg.workspaceMount(spec.Workspace)
+	mounts, err := d.cfg.mounts(spec)
 	if err != nil {
 		return Result{}, err
 	}
 
-	created, err := d.api.ContainerCreate(ctx, d.createOptions(spec, workspace))
+	created, err := d.api.ContainerCreate(ctx, d.createOptions(spec, mounts))
 	if err != nil {
 		return Result{}, fmt.Errorf("create container: %w", err)
 	}
@@ -100,14 +100,14 @@ func (d *Docker) oomKilled(ctx context.Context, id string) bool {
 	return res.Container.State.OOMKilled
 }
 
-func (d *Docker) createOptions(spec Spec, workspace mount.Mount) client.ContainerCreateOptions {
+func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.ContainerCreateOptions {
 	limits, enabled := d.cfg.Limits, true
 	pids, memory, file := signed(limits.Processes), signed(limits.MemoryBytes), signed(limits.FileBytes)
 	fsize := &container.Ulimit{Name: "fsize", Soft: file, Hard: file}
 
 	return client.ContainerCreateOptions{
 		Config: &container.Config{
-			Image: d.cfg.Image, Cmd: spec.Argv, Env: spec.Env, WorkingDir: Workspace,
+			Image: d.cfg.Image, Cmd: command(spec), Env: spec.Env, WorkingDir: Workspace,
 			User:   strconv.Itoa(d.cfg.UID) + ":" + strconv.Itoa(d.cfg.GID),
 			Labels: map[string]string{taskLabel: d.cfg.Owner}, NetworkDisabled: true,
 			AttachStdout: true, AttachStderr: true,
@@ -117,13 +117,22 @@ func (d *Docker) createOptions(spec Spec, workspace mount.Mount) client.Containe
 		HostConfig: &container.HostConfig{
 			NetworkMode: "none", ReadonlyRootfs: true, Init: &enabled, Runtime: d.cfg.Runtime,
 			CapDrop: []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"},
-			Mounts: []mount.Mount{workspace}, Tmpfs: map[string]string{"/tmp": tmpfsOpts},
+			Mounts: mounts, Tmpfs: map[string]string{"/tmp": tmpfsOpts},
 			Resources: container.Resources{
 				Memory: memory, MemorySwap: memory, PidsLimit: &pids,
 				NanoCPUs: signed(limits.CPUMillis) * nanoPerMS, Ulimits: []*container.Ulimit{fsize},
 			},
 		},
 	}
+}
+
+// command runs through the image's start script when the proxy socket is mounted, so tools find it on a local port.
+func command(spec Spec) []string {
+	if spec.Egress == "" {
+		return spec.Argv
+	}
+
+	return append([]string{Entry}, spec.Argv...)
 }
 
 // signed converts a limit for the Docker API, which counts in int64.

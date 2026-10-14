@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
@@ -21,7 +22,9 @@ type toolArgs struct {
 	From          string `json:"from"`
 	To            string `json:"to"`
 	Name          string `json:"name"`
+	Command       string `json:"command"`
 	StartLine     int    `json:"start_line"`
+	TimeoutSecs   int    `json:"timeout_seconds"`
 	EndLine       int    `json:"end_line"`
 	ReplaceAll    bool   `json:"replace_all"`
 	CaseSensitive bool   `json:"case_sensitive"`
@@ -69,6 +72,7 @@ func toolHandlers() map[string]toolHandler {
 		"delete_file": deleteFile,
 		"move_file":   moveFile,
 		"run_task":    runTask,
+		"run_command": runCommand,
 	}
 }
 
@@ -111,6 +115,32 @@ func moveFile(_ context.Context, s codingmcp.Services, in toolArgs) taskapp.Tool
 
 func runTask(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
 	result, err := s.Tasks.Run(ctx, in.Name)
+
+	return ran(in.Name, fmt.Sprintf("Task %q", in.Name), result, err)
+}
+
+func runCommand(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
+	result, err := s.Tasks.RunCommand(ctx, in.Command, in.TimeoutSecs)
+
+	return ran(commandName(in.Command), "Command", result, err)
+}
+
+const maxCommandName = 60
+
+// commandName is how a command is listed among the checks that ran: its first line, kept short.
+func commandName(command string) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(command), "\n")
+	runes := []rune(line)
+
+	if len(runes) > maxCommandName {
+		return string(runes[:maxCommandName]) + "…"
+	}
+
+	return line
+}
+
+// ran words a finished run for the model and records it as a check that really ran.
+func ran(name, label string, result codingapp.RunResult, err error) taskapp.ToolResult {
 	if err != nil {
 		return failure(err)
 	}
@@ -125,8 +155,8 @@ func runTask(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.Too
 	}
 
 	return taskapp.ToolResult{
-		Output: fmt.Sprintf("Task %q finished: %s.\n%s", in.Name, verdict, result.Output),
+		Output: fmt.Sprintf("%s finished: %s.\n%s", label, verdict, result.Output),
 		Note:   verdict,
-		Run:    &taskdomain.RunInfo{Name: in.Name, ExitCode: result.ExitCode, TimedOut: result.TimedOut},
+		Run:    &taskdomain.RunInfo{Name: name, ExitCode: result.ExitCode, TimedOut: result.TimedOut},
 	}
 }

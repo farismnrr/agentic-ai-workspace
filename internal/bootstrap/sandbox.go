@@ -12,6 +12,7 @@ import (
 
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egressproxy"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
 )
 
@@ -48,11 +49,13 @@ func sandboxConfig(cfg config.Config) sandbox.Config {
 // newSandboxEngine builds the infrastructure all runners share. Docker is reached lazily and
 // warmed in the background, so a missing daemon never keeps the server from starting; checks
 // are answered with a plain reason until it works.
-func newSandboxEngine(cfg config.Config) *codingrunner.Engine {
+func newSandboxEngine(cfg config.Config) (*codingrunner.Engine, func()) {
 	conf := sandboxConfig(cfg)
+	hub := egressproxy.NewHub(filepath.Join(conf.DataDir, "egress"), egressproxy.New(cfg.SandboxEgress))
 
 	engine := codingrunner.NewEngine(codingrunner.EngineConfig{
-		Size: cfg.MaxSandboxes,
+		Size:   cfg.MaxSandboxes,
+		Extras: codingrunner.Extras{CacheDir: filepath.Join(conf.DataDir, "caches"), Proxy: hub},
 		Open: func(ctx context.Context) (*sandbox.Docker, error) {
 			docker, err := sandbox.Open(ctx, conf)
 			if err != nil {
@@ -77,5 +80,5 @@ func newSandboxEngine(cfg config.Config) *codingrunner.Engine {
 			conf.Image, conf.Limits.MemoryBytes/mebibyte, conf.Limits.CPUMillis/millisPerCore, cfg.MaxSandboxes)
 	}()
 
-	return engine
+	return engine, hub.Close
 }

@@ -34,7 +34,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	engine := newSandboxEngine(cfg)
+	engine, closeProxy := newSandboxEngine(cfg)
 
 	coding, err := newWorkspaces(cfg, engine)
 	if err != nil {
@@ -60,7 +60,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	projects, projectMount := newProjects(db, folders, tools, auth, sameOrigin)
+	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
 
 	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, auth, sameOrigin)
 	if err != nil {
@@ -75,7 +75,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	mounts := []httpserver.Mount{accountMount, oauthMount, projectMount, agentMount, exportMount}
 	mounts = append(mounts, models.mounts...)
 
-	return append(mounts, spaceMounts...), stop, nil
+	return append(mounts, spaceMounts...), func() { stop(); closeProxy() }, nil
 }
 
 // newSpaceMounts wires permissions, the activity log, the app API and each hosted space.

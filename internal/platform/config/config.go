@@ -15,8 +15,15 @@ const (
 	defaultSandboxCPUs     = 1
 	defaultPort            = "8081"
 	defaultDataDir         = "data"
-	defaultSandboxImage    = "node:24-bookworm"
+	defaultSandboxImage    = "ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest"
 )
+
+// defaultEgressHosts are the package registries sandboxed commands may reach.
+var defaultEgressHosts = []string{
+	"pypi.org", "files.pythonhosted.org", "registry.npmjs.org", "proxy.golang.org", "sum.golang.org",
+	"crates.io", "index.crates.io", "static.crates.io", "static.rust-lang.org",
+	"repo.maven.apache.org", "repo1.maven.org",
+}
 
 // Config contains runtime process configuration.
 type Config struct {
@@ -29,6 +36,7 @@ type Config struct {
 	SandboxImage      string
 	SandboxRuntime    string
 	SandboxDataVolume string
+	SandboxEgress     []string
 	AllowedOrigins    []string
 	CORSOrigins       []string
 	AgentWorkers      int
@@ -69,6 +77,7 @@ func Load() Config {
 		SandboxImage:      getenv("SANDBOX_IMAGE", defaultSandboxImage),
 		SandboxRuntime:    strings.TrimSpace(os.Getenv("SANDBOX_RUNTIME")),
 		SandboxDataVolume: strings.TrimSpace(os.Getenv("SANDBOX_DATA_VOLUME")),
+		SandboxEgress:     list("SANDBOX_EGRESS_HOSTS", defaultEgressHosts),
 		SandboxMemoryMB:   atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
 		SandboxCPUs:       atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
 		CookieSecure:      strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
