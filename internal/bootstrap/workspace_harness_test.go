@@ -19,7 +19,11 @@ var (
 
 // testSandboxDir is the folder holding the shared toolbox the tests run tasks in, built once.
 func testSandboxDir() string {
-	sandboxOnce.Do(func() { sandboxPath, errSandbox = sandboxtest.Ensure() })
+	sandboxOnce.Do(func() {
+		if sandboxPath, errSandbox = sandboxtest.Ensure(); errSandbox == nil {
+			errSandbox = sandboxtest.Probe(sandboxPath)
+		}
+	})
 
 	return sandboxPath
 }

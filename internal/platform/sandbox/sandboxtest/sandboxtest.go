@@ -65,6 +65,29 @@ func Ensure() (string, error) {
 	return dir, ready(dir)
 }
 
+// Probe starts a harmless command in a sandbox built on the toolbox in dir. Hosts that forbid
+// unprivileged user namespaces (such as CI images with AppArmor restrictions) fail here, so
+// tests can skip instead of failing. The calling test binary must call sandbox.RunIfChild first.
+func Probe(dir string) error {
+	spec := sandbox.Spec{
+		Toolbox: filepath.Join(dir, "general"), Workspace: dir, Argv: []string{"true"},
+		Env: []string{"PATH=" + sandbox.Path}, Limits: sandbox.DefaultLimits(),
+	}
+
+	cmd, cleanup, err := sandbox.Command(context.Background(), spec)
+	if err != nil {
+		return fmt.Errorf("prepare the probe: %w", err)
+	}
+
+	defer cleanup()
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("the host cannot start sandboxes: %w", err)
+	}
+
+	return nil
+}
+
 func ready(dir string) error {
 	if err := sandbox.ToolboxReady(filepath.Join(dir, "general")); err != nil {
 		return errors.Join(errors.New("test toolbox is not ready"), err) //nolint:err113 // a test helper's message
