@@ -34,7 +34,11 @@ func newEngine(size int) *runner.Engine {
 func TestMain(m *testing.M) {
 	sandbox.RunIfChild()
 
-	sandboxDir, errToolbox = sandboxtest.Ensure()
+	// Tests that run tasks skip when there is no toolbox or the host forbids user namespaces.
+	if sandboxDir, errToolbox = sandboxtest.Ensure(); errToolbox == nil {
+		errToolbox = sandboxtest.Probe(sandboxDir)
+	}
+
 	engine = newEngine(8)
 
 	os.Exit(m.Run())
@@ -105,6 +109,10 @@ func TestMissingCommandIsReportedNotFatal(t *testing.T) {
 
 func TestOnlyOneTaskRunsAtATime(t *testing.T) {
 	t.Parallel()
+
+	if errToolbox != nil {
+		t.Skipf("sandbox unavailable on this host: %v", errToolbox)
+	}
 
 	dir := t.TempDir()
 	r := runner.New(dir, engine)
