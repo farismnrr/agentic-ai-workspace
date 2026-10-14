@@ -16,6 +16,7 @@ func TestConfidentialClientDCRAndBasicAuth(t *testing.T) {
 	app := newApp(t)
 	cookie := cookieOf(t, do(t, app, "POST", "/api/auth/register",
 		`{"name":"GeminiUser","email":"gemini@example.com","password":"correct horse"}`, jsonHeaders()))
+	seedWorkspace(t, app, cookie)
 
 	// DCR without auth_method defaults to client_secret_basic and issues secret
 	dcr := do(t, app, "POST", "/oauth/register",

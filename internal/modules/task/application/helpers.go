@@ -44,14 +44,6 @@ func (s *Service) owned(ctx context.Context, userID, taskID string) (domain.Task
 	return task, nil
 }
 
-func modeOf(mode domain.Mode) domain.Mode {
-	if mode == domain.ModeAlways {
-		return domain.ModeAlways
-	}
-
-	return domain.ModeRisky
-}
-
 func titleOf(prompt string) string {
 	line, _, _ := strings.Cut(prompt, "\n")
 	if utf8.RuneCountInString(line) <= maxTitle {

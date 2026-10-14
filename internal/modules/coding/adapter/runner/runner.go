@@ -3,30 +3,40 @@ package runner
 import (
 	"context"
 	"errors"
-	"os"
 	"os/exec"
 	"sync"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
 )
 
 const waitDelay = 2 * time.Second
 
 // Runner executes a task's argument vector directly (never through a shell) in
-// the workspace, one task at a time, with a scrubbed environment.
+// a sandbox whose only writable folder is the workspace, one task at a time,
+// with a scrubbed environment. The shared engine bounds all runners together.
 type Runner struct {
-	slot chan struct{}
-	dir  string
+	engine *Engine
+	slot   chan struct{}
+	dir    string
+	quota  int64
 }
 
-// New runs tasks with dir as the working directory.
-func New(dir string) *Runner {
-	return &Runner{dir: dir, slot: make(chan struct{}, 1)}
+// New runs tasks with dir (an absolute path) as the workspace, on the shared engine.
+func New(dir string, engine *Engine) *Runner {
+	return &Runner{dir: dir, engine: engine, slot: make(chan struct{}, 1), quota: DefaultWorkspaceBytes}
 }
 
-// Run starts the task and waits for it, killing the whole process group on timeout.
+// WithWorkspaceLimit stops a task whose workspace grows past bytes.
+func (r *Runner) WithWorkspaceLimit(bytes int64) *Runner {
+	r.quota = bytes
+
+	return r
+}
+
+// Run starts the task and waits for it, killing the whole sandbox on timeout.
 func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResult, error) {
 	select {
 	case r.slot <- struct{}{}:
@@ -35,19 +45,74 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 		return application.RunResult{}, domain.ErrTaskBusy
 	}
 
+	release, err := r.engine.acquire(ctx)
+	if err != nil {
+		return application.RunResult{}, err
+	}
+
+	defer release()
+
+	if refusal := r.engine.cfg.Refuse; refusal != nil {
+		return finish(ctx, refusal, &tail{limit: domain.MaxOutputBytes}, 0), nil
+	}
+
+	if sizeOver(r.dir, r.quota) {
+		return application.RunResult{ExitCode: -1, Output: overQuota}, nil
+	}
+
+	return r.execute(ctx, task), nil
+}
+
+const (
+	overQuota  = "The workspace is over its size limit. Delete some files, then try again."
+	stoppedBig = "\nStopped: the workspace grew past its size limit."
+	stoppedOOM = "\nStopped: it used more memory than allowed."
+)
+
+func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunResult {
 	ctx, cancel := context.WithTimeout(ctx, task.Timeout())
 	defer cancel()
 
 	out := &tail{limit: domain.MaxOutputBytes}
-	//nolint:gosec // the command is an approved, named task from the workspace owner's tasks.json
-	cmd := exec.CommandContext(ctx, task.Command[0], task.Command[1:]...)
-	cmd.Dir, cmd.Env, cmd.Stdout, cmd.Stderr, cmd.WaitDelay = r.dir, environment(), out, out, waitDelay
-	isolate(cmd)
+
+	group, err := r.engine.group()
+	if err != nil {
+		return finish(ctx, err, out, 0)
+	}
+
+	if group != nil {
+		defer group.Close()
+	}
+
+	spec := sandbox.Spec{
+		Group: group, Toolbox: r.engine.cfg.Toolbox, Workspace: r.dir, Argv: task.Command,
+		Env: environment(), Limits: r.engine.cfg.Limits,
+	}
+
+	cmd, cleanup, err := sandbox.Command(ctx, spec)
+	if err != nil {
+		return finish(ctx, err, out, 0)
+	}
+
+	defer cleanup()
+
+	cmd.Stdout, cmd.Stderr, cmd.WaitDelay = out, out, waitDelay
+	over := watchSize(ctx, r.dir, r.quota, cancel)
 
 	started := time.Now()
-	err := cmd.Run()
+	err = cmd.Run()
+	result := finish(ctx, err, out, time.Since(started))
 
-	return finish(ctx, err, out, time.Since(started)), nil
+	switch {
+	case over.Load():
+		result.TimedOut, result.ExitCode = false, -1
+		result.Output += stoppedBig
+	case group != nil && group.OOMKilled():
+		result.ExitCode = -1
+		result.Output += stoppedOOM
+	}
+
+	return result
 }
 
 func finish(ctx context.Context, err error, out *tail, took time.Duration) application.RunResult {
@@ -69,16 +134,9 @@ func finish(ctx context.Context, err error, out *tail, took time.Duration) appli
 	return result
 }
 
-// environment passes only what build tools need; server settings never leak to tasks.
+// environment is fixed: server settings and the host's home never reach tasks.
 func environment() []string {
-	env := []string{"LANG=C.UTF-8", "CI=1"}
-	for _, key := range []string{"PATH", "HOME", "TMPDIR"} {
-		if value := os.Getenv(key); value != "" {
-			env = append(env, key+"="+value)
-		}
-	}
-
-	return env
+	return []string{"LANG=C.UTF-8", "CI=1", "PATH=" + sandbox.Path, "HOME=/tmp", "TMPDIR=/tmp"}
 }
 
 // tail keeps the last limit bytes written to it.

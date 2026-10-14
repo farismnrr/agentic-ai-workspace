@@ -8,6 +8,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/transport"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
 // Client talks to the OpenAI Chat Completions API or any gateway that speaks it, such as 9router.
@@ -18,8 +19,8 @@ type Client struct {
 }
 
 // New builds a client for a base address such as https://api.openai.com/v1.
-func New(baseURL, apiKey string) *Client {
-	return &Client{http: transport.New(), baseURL: strings.TrimRight(baseURL, "/"), apiKey: apiKey}
+func New(baseURL, apiKey string, policy egress.Policy) *Client {
+	return &Client{http: transport.New(policy), baseURL: strings.TrimRight(baseURL, "/"), apiKey: apiKey}
 }
 
 type function struct {
@@ -97,7 +98,8 @@ func (c *Client) Complete(ctx context.Context, in application.Request) (applicat
 
 	for _, call := range choice.ToolCalls {
 		reply.Blocks = append(reply.Blocks, domain.Block{
-			Kind: domain.BlockToolUse, ID: call.ID, Name: call.Function.Name, Input: parseArguments(call.Function.Arguments),
+			Kind: domain.BlockToolUse, ID: callID(call.ID), Name: call.Function.Name,
+			Input: parseArguments(call.Function.Arguments),
 		})
 	}
 

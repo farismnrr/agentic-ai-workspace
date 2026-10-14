@@ -29,7 +29,7 @@ func TestWorkReachesReviewWithPlanAndVerifiedProof(t *testing.T) {
 	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}, Undo: []byte("u")}
 	r.tools.results["run_task"] = application.ToolResult{Output: "pass", Run: &domain.RunInfo{Name: "test"}}
 
-	task := r.start(t, "Fix the sign-in button", domain.ModeRisky)
+	task := r.start(t, "Fix the sign-in button")
 	r.run(task.ID)
 
 	done := r.task(t, task.ID)
@@ -51,8 +51,9 @@ func TestWorkReachesReviewWithPlanAndVerifiedProof(t *testing.T) {
 func TestClaimsWithoutARunAreNeverProof(t *testing.T) {
 	t.Parallel()
 
-	r := newRig(nil, finish("All good", "I tested everything"))
-	task := r.start(t, "Check things", domain.ModeRisky)
+	r := newRig(nil, call("c1", "edit_file", map[string]string{"path": "a"}), finish("All good", "I tested everything"))
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a"}, Undo: []byte("u")}
+	task := r.start(t, "Check things")
 	r.run(task.ID)
 
 	proof := r.task(t, task.ID).Proof
@@ -66,7 +67,7 @@ func TestAFailingTaskAfterTheLastChangeBlocksProof(t *testing.T) {
 
 	r := newRig(nil, call("c1", "run_task", map[string]string{"name": "test"}), finish("Done"))
 	r.tools.results["run_task"] = application.ToolResult{Run: &domain.RunInfo{Name: "test", ExitCode: 1}}
-	task := r.start(t, "Run tests", domain.ModeRisky)
+	task := r.start(t, "Run tests")
 	r.run(task.ID)
 
 	if proof := r.task(t, task.ID).Proof; proof.Proven || proof.Rows[2].Value != "A check failed" {
@@ -83,7 +84,7 @@ func TestStepLimitStopsARunawayAgent(t *testing.T) {
 	}
 
 	r := newRig(nil, steps...)
-	task := r.start(t, "Loop forever", domain.ModeRisky)
+	task := r.start(t, "Loop forever")
 	r.run(task.ID)
 
 	if r.task(t, task.ID).Status != domain.StatusFailed || len(r.model.requests) != 10 {
@@ -97,7 +98,7 @@ func TestTokenBudgetStopsTheRun(t *testing.T) {
 	big := call("c1", "read_file", map[string]string{"path": "a"})
 	big.reply.Usage = domain.Usage{Input: 900, Output: 200}
 	r := newRig(nil, big, finish("never reached"))
-	task := r.start(t, "Spend a lot", domain.ModeRisky)
+	task := r.start(t, "Spend a lot")
 	r.run(task.ID)
 
 	if r.task(t, task.ID).Status != domain.StatusFailed || len(r.model.requests) != 1 {
@@ -109,15 +110,15 @@ func TestRetryableModelErrorsAreRetriedAndPermanentOnesFail(t *testing.T) {
 	t.Parallel()
 
 	retried := newRig(nil, failing("rate limited", true), failing("busy", true), finish("Done"))
-	task := retried.start(t, "Try", domain.ModeRisky)
+	task := retried.start(t, "Try")
 	retried.run(task.ID)
 
-	if retried.task(t, task.ID).Status != domain.StatusReview {
+	if retried.task(t, task.ID).Status != domain.StatusDone {
 		t.Fatal("transient errors should be retried")
 	}
 
 	broken := newRig(nil, failing("invalid api key", false))
-	task = broken.start(t, "Try", domain.ModeRisky)
+	task = broken.start(t, "Try")
 	broken.run(task.ID)
 
 	if broken.task(t, task.ID).Status != domain.StatusFailed ||
@@ -130,7 +131,7 @@ func TestCancellingStopsTheRunAndKeepsItResumable(t *testing.T) {
 	t.Parallel()
 
 	r := newRig(blockingModel{})
-	task := r.start(t, "Slow", domain.ModeRisky)
+	task := r.start(t, "Slow")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
@@ -143,5 +144,44 @@ func TestCancellingStopsTheRunAndKeepsItResumable(t *testing.T) {
 	got, stoppedText := r.task(t, task.ID).Status, r.lastEvent(task.ID, domain.EventError).Text
 	if got != domain.StatusFailed || stoppedText != "Stopped." {
 		t.Fatalf("cancelled runs end as stopped: %v", got)
+	}
+}
+
+func TestAQuestionIsAnsweredInTheThreadWithoutReview(t *testing.T) {
+	t.Parallel()
+
+	reply := step{reply: application.Reply{
+		Blocks: []domain.Block{{Kind: domain.BlockText, Text: "It is a bakery website."}},
+		Usage:  domain.Usage{Input: 10, Output: 5},
+	}}
+	r := newRig(nil, reply)
+	task := r.start(t, "What is this project?")
+	r.run(task.ID)
+
+	done := r.task(t, task.ID)
+	want := []domain.EventKind{domain.EventRequest, domain.EventMessage}
+
+	if done.Status != domain.StatusDone || done.Summary != "It is a bakery website." || done.Proof != nil {
+		t.Fatalf("an answer needs no review and no proof: %+v", done)
+	}
+
+	if got := r.kinds(task.ID); !slices.Equal(got, want) {
+		t.Fatalf("thread = %v, want %v", got, want)
+	}
+}
+
+func TestFinishingWithoutChangingAnythingIsAlsoJustAnAnswer(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(nil, call("c1", "read_file", map[string]string{"path": "a"}), finish("It has two pages.", "Looked at a"))
+	task := r.start(t, "How many pages?")
+	r.run(task.ID)
+
+	if got := r.task(t, task.ID).Status; got != domain.StatusDone {
+		t.Fatalf("reading alone must not ask for a review, got %s", got)
+	}
+
+	if kinds := r.kinds(task.ID); slices.Contains(kinds, domain.EventReceipt) {
+		t.Fatalf("an answer has no receipt: %v", kinds)
 	}
 }

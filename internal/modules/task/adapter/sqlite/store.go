@@ -12,7 +12,11 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-const taskColumns = `id, project_id, user_id, title, summary, status, mode, provider_id, model, plan, proof, ` +
+// legacyMode fills the tasks.mode column, which predates the single approval policy.
+// The journal is append-only, so the column stays; nothing reads it.
+const legacyMode = "risky"
+
+const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
 	`created_at, updated_at`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
@@ -40,7 +44,7 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO tasks (id, project_id, user_id, title, summary, status, mode, provider_id, model, plan,
 		   created_at, updated_at) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?)`,
-		t.ID, t.ProjectID, t.UserID, t.Title, string(t.Status), string(t.Mode), t.ProviderID, t.Model, string(plan),
+		t.ID, t.ProjectID, t.UserID, t.Title, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
 		t.CreatedAt.Unix(), t.UpdatedAt.Unix())
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
@@ -161,19 +165,19 @@ func collectTasks(rows *sql.Rows) ([]domain.Task, error) {
 
 func scanTask(row scanner) (domain.Task, error) {
 	var (
-		t                  domain.Task
-		status, mode, plan string
-		proof              sql.NullString
-		created, updated   int64
+		t                domain.Task
+		status, plan     string
+		proof            sql.NullString
+		created, updated int64
 	)
 
-	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &mode, &t.ProviderID, &t.Model,
+	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
 		&plan, &proof, &created, &updated)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}
 
-	t.Status, t.Mode = domain.Status(status), domain.Mode(mode)
+	t.Status = domain.Status(status)
 	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0), time.Unix(updated, 0)
 
 	if err := json.Unmarshal([]byte(plan), &t.Plan); err != nil {

@@ -1,12 +1,11 @@
 import { request } from '../../../shared/api/http';
-import type { ApprovalMode, Task, TaskEvent } from './task-types';
+import type { Task, TaskEvent } from './task-types';
 
 const base = (id: string): string => `/api/tasks/${encodeURIComponent(id)}`;
 
 export interface NewTask {
   projectId: string;
   prompt: string;
-  mode: ApprovalMode;
 }
 
 export interface UsageRow {

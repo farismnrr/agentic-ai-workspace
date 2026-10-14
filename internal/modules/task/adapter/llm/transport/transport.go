@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
 const (
@@ -28,10 +29,12 @@ type Client struct {
 	http *http.Client
 }
 
-// New builds a Client. Redirects are refused so a key is never sent to another host.
-func New() *Client {
+// New builds a Client that may only reach what the policy allows. Redirects are
+// refused so a key is never sent to another host.
+func New(policy egress.Policy) *Client {
 	return &Client{http: &http.Client{
 		Timeout:       callTimeout,
+		Transport:     egress.Transport(policy),
 		CheckRedirect: func(*http.Request, []*http.Request) error { return errRedirect },
 	}}
 }
@@ -59,35 +62,6 @@ func (c *Client) Post(ctx context.Context, url string, headers map[string]string
 	}
 
 	return nil
-}
-
-// statusError turns an HTTP failure into a ModelError; rate limits and outages may be retried.
-func statusError(status int, data []byte) error {
-	var body struct {
-		Error struct {
-			Message string `json:"message"`
-		} `json:"error"`
-	}
-
-	_ = json.Unmarshal(data, &body)
-
-	message := body.Error.Message
-	if message == "" {
-		message = fmt.Sprintf("the provider answered HTTP %d", status)
-	}
-
-	retryable := status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
-
-	return &domain.ModelError{Message: shorten(message), Status: status, Retryable: retryable}
-}
-
-func shorten(text string) string {
-	runes := []rune(text)
-	if len(runes) <= maxMessage {
-		return text
-	}
-
-	return string(runes[:maxMessage]) + "…"
 }
 
 const (

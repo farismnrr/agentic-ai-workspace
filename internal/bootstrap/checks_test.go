@@ -63,6 +63,7 @@ func TestChecksBelongToTheProjectOwner(t *testing.T) {
 
 func TestPassingCheckAfterTheLastChangeMakesTheWorkProven(t *testing.T) {
 	t.Parallel()
+	requireToolbox(t)
 
 	a := newAgentRig(t,
 		toolCall("w1", "write_file", map[string]string{"path": "page.html", "content": "<p>hi</p>"}),
@@ -72,22 +73,7 @@ func TestPassingCheckAfterTheLastChangeMakesTheWorkProven(t *testing.T) {
 	a.putChecks(t, goodChecks)
 
 	id := a.start(t, "Make a page")
-	a.waitFor(t, id, "needs-input")
-
-	var approval threadEvent
-
-	for _, event := range a.thread(t, id) {
-		if event.Kind == "approval" {
-			approval = event
-		}
-	}
-
-	if !strings.Contains(approval.Text, "hello") {
-		t.Fatalf("running a check asks first: %+v", approval)
-	}
-
-	a.post(t, "/api/tasks/"+id+"/events/"+approval.ID+"/answer", `{"allow":true}`)
-	a.waitFor(t, id, "review")
+	a.waitApproving(t, id, "review")
 
 	task := do(t, a.env.app, "GET", "/api/tasks/"+id, "", jsonCookie(a.cookie)).Body
 	mustContain(t, task, `"proven":true`, "Ran hello", "Verified", `The \"hello\" task passed`)

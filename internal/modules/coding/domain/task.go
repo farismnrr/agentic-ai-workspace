@@ -21,6 +21,7 @@ var (
 	ErrUnknownTask = errors.New("unknown task; use list_tasks to see the available names")
 	ErrBadTasks    = errors.New("the tasks file is not valid")
 	ErrTaskBusy    = errors.New("another task is still running; try again when it finishes")
+	ErrServerBusy  = errors.New("the server is busy running other checks; try again in a moment")
 )
 
 var taskName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,39}$`)

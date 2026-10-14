@@ -21,15 +21,6 @@ func (s Status) Running() bool {
 	return s == StatusQueued || s == StatusPlanning || s == StatusWorking
 }
 
-// Mode says how much the agent may do without asking.
-type Mode string
-
-// Approval modes: "risky" asks only before risky steps, "always" also before edits.
-const (
-	ModeRisky  Mode = "risky"
-	ModeAlways Mode = "always"
-)
-
 // PlanState is the state of one plan step.
 type PlanState string
 
@@ -84,6 +75,5 @@ type Task struct {
 	ProviderID string
 	Model      string
 	Status     Status
-	Mode       Mode
 	Plan       []PlanStep
 }

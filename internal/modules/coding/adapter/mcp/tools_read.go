@@ -96,8 +96,13 @@ func describeRead(in readInput) string {
 	return "read " + in.Path + ":" + strconv.Itoa(in.StartLine) + "-" + strconv.Itoa(in.EndLine)
 }
 
-func (t *tools) listFiles(_ context.Context, in listInput) (listOutput, report, error) {
-	listing, err := t.Reader.List(in.Path)
+func (t *tools) listFiles(ctx context.Context, in listInput) (listOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return listOutput{}, report{}, err
+	}
+
+	listing, err := svc.Reader.List(in.Path)
 	if err != nil {
 		return listOutput{}, report{}, fmt.Errorf("list: %w", err)
 	}
@@ -116,8 +121,13 @@ func (t *tools) listFiles(_ context.Context, in listInput) (listOutput, report, 
 	return out, report{}, nil
 }
 
-func (t *tools) findFiles(_ context.Context, in findInput) (findOutput, report, error) {
-	found, err := t.Reader.Find(in.Pattern, in.Path)
+func (t *tools) findFiles(ctx context.Context, in findInput) (findOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return findOutput{}, report{}, err
+	}
+
+	found, err := svc.Reader.Find(in.Pattern, in.Path)
 	if err != nil {
 		return findOutput{}, report{}, fmt.Errorf("find: %w", err)
 	}
@@ -125,8 +135,13 @@ func (t *tools) findFiles(_ context.Context, in findInput) (findOutput, report, 
 	return findOutput{Paths: append([]string{}, found.Paths...), Truncated: found.Truncated}, report{}, nil
 }
 
-func (t *tools) readFile(_ context.Context, in readInput) (readOutput, report, error) {
-	file, err := t.Reader.ReadLines(in.Path, in.StartLine, in.EndLine)
+func (t *tools) readFile(ctx context.Context, in readInput) (readOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return readOutput{}, report{}, err
+	}
+
+	file, err := svc.Reader.ReadLines(in.Path, in.StartLine, in.EndLine)
 	if err != nil {
 		return readOutput{}, report{}, fmt.Errorf("read: %w", err)
 	}
@@ -136,8 +151,13 @@ func (t *tools) readFile(_ context.Context, in readInput) (readOutput, report, e
 	}, report{}, nil
 }
 
-func (t *tools) searchCode(_ context.Context, in searchInput) (searchOutput, report, error) {
-	result, err := t.Reader.Search(strings.TrimSpace(in.Query), in.Path, in.CaseSensitive)
+func (t *tools) searchCode(ctx context.Context, in searchInput) (searchOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return searchOutput{}, report{}, err
+	}
+
+	result, err := svc.Reader.Search(strings.TrimSpace(in.Query), in.Path, in.CaseSensitive)
 	if err != nil {
 		return searchOutput{}, report{}, fmt.Errorf("search: %w", err)
 	}

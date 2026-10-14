@@ -51,7 +51,7 @@ func TestStreamedAnswerIsAssembledAndTextIsForwardedAsItArrives(t *testing.T) {
 	request := conversation()
 	request.OnText = func(delta string) { pieces = append(pieces, delta) }
 
-	reply, err := anthropic.New(server.URL, "k").Complete(context.Background(), request)
+	reply, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestAnErrorInTheMiddleOfAStreamIsReportedAndRetryable(t *testing.T) {
 	request := conversation()
 	request.OnText = func(string) {}
 
-	_, err := anthropic.New(server.URL, "k").Complete(context.Background(), request)
+	_, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), request)
 
 	modelErr, ok := domain.AsModelError(err)
 	if !ok || modelErr.Message != "Overloaded" || !modelErr.Retryable {

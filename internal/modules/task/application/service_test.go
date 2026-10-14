@@ -40,7 +40,7 @@ func TestCreateValidatesAndQueuesTheAgent(t *testing.T) {
 	}
 
 	r.models.none = false
-	task := r.start(t, "Make my menu page\nwith photos", domain.ModeRisky)
+	task := r.start(t, "Make my menu page\nwith photos")
 
 	if task.Title != "Make my menu page" || len(r.disp.enqueued) != 1 || r.kinds(task.ID)[0] != domain.EventRequest {
 		t.Fatalf("the request is recorded and the agent queued: %+v %v", task, r.disp.enqueued)
@@ -51,7 +51,7 @@ func TestFollowUpRulesByStatus(t *testing.T) {
 	t.Parallel()
 
 	r := newRig(nil)
-	task := r.start(t, "Hello", domain.ModeRisky)
+	task := r.start(t, "Hello")
 	ctx := context.Background()
 
 	for status, want := range map[domain.Status]error{
@@ -69,7 +69,7 @@ func TestAFollowUpKeepsToolResultsAheadOfTheNewText(t *testing.T) {
 	t.Parallel()
 
 	r := newRig(nil, finish("First"), finish("Second"))
-	task := r.start(t, "Do it", domain.ModeRisky)
+	task := r.start(t, "Do it")
 	r.run(task.ID)
 
 	if err := r.service.FollowUp(context.Background(), "u1", task.ID, "And the footer please"); err != nil {
@@ -83,8 +83,8 @@ func TestAFollowUpKeepsToolResultsAheadOfTheNewText(t *testing.T) {
 		t.Fatalf("tool results must come first in the user turn: %+v", last.Blocks)
 	}
 
-	if r.task(t, task.ID).Status != domain.StatusReview {
-		t.Fatal("the follow-up run should reach review again")
+	if r.task(t, task.ID).Status != domain.StatusDone {
+		t.Fatal("a follow-up that changes nothing is answered, not sent to review")
 	}
 }
 
@@ -92,7 +92,7 @@ func TestStateChangesAreRestrictedAndOwned(t *testing.T) {
 	t.Parallel()
 
 	r := newRig(nil)
-	task := r.start(t, "Hello", domain.ModeRisky)
+	task := r.start(t, "Hello")
 	ctx := context.Background()
 
 	if err := r.service.Accept(ctx, "u1", task.ID); !errors.Is(err, domain.ErrWrongState) {
@@ -119,7 +119,7 @@ func TestUndoReversesAStepOnceAndNeverWhileRunning(t *testing.T) {
 
 	r := newRig(nil, call("c1", "edit_file", map[string]string{"path": "a"}), finish("Done"))
 	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a"}, Undo: []byte("blob")}
-	task := r.start(t, "Edit", domain.ModeRisky)
+	task := r.start(t, "Edit")
 	r.run(task.ID)
 
 	ctx := context.Background()
@@ -138,7 +138,7 @@ func TestRecoverMarksInterruptedTasksSoNothingIsStuck(t *testing.T) {
 	t.Parallel()
 
 	r := newRig(nil)
-	task := r.start(t, "Hello", domain.ModeRisky)
+	task := r.start(t, "Hello")
 	_ = r.mem.SetStatus(context.Background(), task.ID, domain.StatusWorking, task.UpdatedAt)
 
 	if err := r.service.Recover(context.Background()); err != nil {

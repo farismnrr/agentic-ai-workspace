@@ -11,7 +11,11 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/anthropic"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
+
+// local lets the clients reach the loopback test servers.
+var local = egress.Policy{Rule: egress.LocalOnly}
 
 const answer = `{"content":[{"type":"text","text":"On it"},` +
 	`{"type":"tool_use","id":"t2","name":"read_file","input":{"path":"b"}}],` +
@@ -61,7 +65,7 @@ func TestReplyKeepsTextToolCallsAndUsage(t *testing.T) {
 
 	server, _ := serve(t)
 
-	reply, err := anthropic.New(server.URL+"/", "k").Complete(context.Background(), conversation())
+	reply, err := anthropic.New(server.URL+"/", "k", local).Complete(context.Background(), conversation())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +80,7 @@ func TestRequestSendsSystemPromptAndDropsBlankText(t *testing.T) {
 
 	server, seen := serve(t)
 
-	if _, err := anthropic.New(server.URL, "k").Complete(context.Background(), conversation()); err != nil {
+	if _, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), conversation()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -94,7 +98,7 @@ func TestToolResultsAreEncodedWithTheirCallID(t *testing.T) {
 
 	server, seen := serve(t)
 
-	if _, err := anthropic.New(server.URL, "k").Complete(context.Background(), conversation()); err != nil {
+	if _, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), conversation()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -119,7 +123,7 @@ func TestFailuresKeepTheProvidersMessageAndSayIfRetryingHelps(t *testing.T) {
 			_, _ = w.Write([]byte(`{"error":{"type":"x","message":"provider says no"}}`))
 		}))
 
-		_, err := anthropic.New(server.URL, "k").Complete(context.Background(), conversation())
+		_, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), conversation())
 		server.Close()
 
 		modelErr, ok := domain.AsModelError(err)
@@ -142,7 +146,7 @@ func TestRedirectsAreRefusedSoKeysStayHome(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := anthropic.New(server.URL, "k").Complete(context.Background(), conversation()); err == nil {
+	if _, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), conversation()); err == nil {
 		t.Fatal("a redirect must fail")
 	}
 }

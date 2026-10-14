@@ -29,8 +29,15 @@ backend-build:
 	@mkdir -p "$(BIN_DIR)"
 	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$(BIN_PATH)" ./cmd/workspace
 
+# Under systemd the server gets its own delegated cgroup, which is what lets it hold every
+# check to real CPU and memory limits. Without systemd it runs with SANDBOX_LIMITS=relaxed.
 run: build
-	PORT="$(PORT)" "./$(BIN_PATH)"
+	@if systemd-run --user --scope --quiet true 2>/dev/null; then \
+		PORT="$(PORT)" systemd-run --user --scope --quiet -p Delegate=yes "./$(BIN_PATH)"; \
+	else \
+		echo "systemd user session not found: running with weaker limits (SANDBOX_LIMITS=relaxed)"; \
+		PORT="$(PORT)" SANDBOX_LIMITS=relaxed "./$(BIN_PATH)"; \
+	fi
 
 guardrails:
 	MAX_FILE_LINES="$(MAX_FILE_LINES)" sh ./scripts/check-guardrails.sh

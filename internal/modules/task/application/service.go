@@ -33,7 +33,6 @@ type CreateInput struct {
 	Prompt     string
 	ProviderID string
 	Model      string
-	Mode       domain.Mode
 }
 
 // Create starts a task: it records the request and queues the agent.
@@ -60,7 +59,7 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 	now := s.deps.Now()
 	task := domain.Task{
 		ID: id, ProjectID: in.ProjectID, UserID: userID, Title: titleOf(prompt), ProviderID: providerID, Model: model,
-		Status: domain.StatusQueued, Mode: modeOf(in.Mode), CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
+		Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
 	}
 
 	if err := s.deps.Tasks.Create(ctx, task); err != nil {
