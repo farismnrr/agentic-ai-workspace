@@ -67,6 +67,49 @@ This checks the frontend, Go code, architecture guardrails, lint rules, tests, a
 
 Development happens on `dev`. A fast GitHub Actions workflow checks and builds every push to `dev`. A full workflow, started manually, repeats all checks, merges `dev` into `main`, and publishes the Linux release.
 
+## Connecting ChatGPT
+
+The server can act as a connector for AI apps such as ChatGPT. Each connector is a "space" with its own address, for example `https://your-domain.com/api/coding`. Give ChatGPT that address and it finds everything else on its own: how to sign in, which permissions exist, and how to register itself.
+
+Settings (environment variables):
+
+| Variable | Meaning |
+| --- | --- |
+| `PUBLIC_URL` | The public address of the app, such as `https://your-domain.com`. Defaults to `http://localhost:<PORT>`. ChatGPT needs a public `https` address. |
+| `ALLOWED_ORIGINS` | Comma-separated browser origins that may sign in and change data (CSRF protection). Defaults to `http://localhost:<PORT>,http://127.0.0.1:<PORT>`. `PUBLIC_URL` is always allowed too. Add a domain or IP here, for example `https://workspace.example.com,http://192.168.1.20:8081`. |
+| `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
+| `DATA_DIR` | Where accounts and connections are stored (default `data`). Keep it outside the coding folder. |
+| `CODING_WORKSPACE_ROOT` | A folder the coding space may read. The coding space is off when this is empty. |
+
+### What the coding space can do
+
+Each tool can be switched on or off under Settings, Spaces & tools. Looking around is on from the start; changing files and running tasks stay off until you turn them on.
+
+| Group | Tools |
+| --- | --- |
+| Look around (on) | list files, find files by name, read a file or some lines of it, search code, list tasks |
+| Change files (off) | edit, write, delete and move files |
+| Run tasks (off) | run a named task |
+
+Every step an AI app takes is listed under Settings, Activity. Before a file is edited, written over, deleted or moved, its old content is saved, and the Undo button there puts it back. Undo is refused if the file changed again afterwards, so it never overwrites newer work.
+
+Tasks are commands you approve in advance, in `.workspace/tasks.json` inside the workspace folder. The AI app can only ask for a task by name; it cannot see or change this file, and it cannot run anything else.
+
+```json
+{
+  "tasks": {
+    "test": { "description": "Run the tests", "command": ["go", "test", "./..."], "timeout_seconds": 300 },
+    "lint": { "description": "Check the code style", "command": ["npm", "run", "lint"] }
+  }
+}
+```
+
+A task runs with the same rights as the app itself, one at a time, with a time limit and only the last 64 KB of its output kept. Because an AI app that can change files could also change a script that a task runs, changing files and running tasks are separate permissions. Turn on only what you need.
+
+### Trying it from your computer
+
+To try it, run the app, expose it with a tunnel (for example `cloudflared tunnel --url http://localhost:8081`), and start the app with `PUBLIC_URL` set to the tunnel address. In ChatGPT, turn on developer mode, add a connector with `<PUBLIC_URL>/api/coding`, and sign in when asked. You can see and remove connected apps under Settings, Connected apps. The coding space can only read files; it never changes them and never shows `.env`, `.git`, or key files.
+
 ## Design system
 
 The UI uses the Masih Awam visual language through semantic daisyUI themes instead of copying the LMS implementation. The app ships a single light theme that defines the roles for actions, surfaces, and statuses.
@@ -75,7 +118,7 @@ See [docs/design-system.md](./docs/design-system.md) for the color roles, intera
 
 ## Pages
 
-The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens, and `/app` is the workspace preview: home, an inbox of things that need you, projects with their tasks, a task page (conversation plus plan, proof, and changes), and settings (models, rules, spaces and tools, usage, notifications, account). Press Ctrl/Cmd+K anywhere in the workspace to search and jump. These screens are UI only for now: they use sample data and do not talk to a server yet.
+The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens, and `/app` is the workspace preview: home, an inbox of things that need you, projects with their tasks, a task page (conversation plus plan, proof, and changes), and settings (models, rules, spaces and tools, usage, notifications, account). Press Ctrl/Cmd+K anywhere in the workspace to search and jump. Sign-in and account creation are real, and so are the Spaces and Connected apps settings. The rest of the workspace still uses sample data.
 
 ## Project structure
 
