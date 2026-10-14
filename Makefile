@@ -19,7 +19,7 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$
 help:
 	@echo "make build    - verify, then build the single static binary ($(BIN_PATH))"
 	@echo "make run      - build, then run the binary on PORT (default $(PORT))"
-	@echo "make image    - build the Docker image ($(IMAGE):latest, what compose uses)"
+	@echo "make image    - build the Docker image ($(IMAGE):latest and :dev, what the compose files use)"
 	@echo "make verify   - run every quality check (Go + frontend)"
 	@echo "make clean    - remove bin/, node_modules and generated frontend output"
 
@@ -36,7 +36,7 @@ run: build
 	@PORT="$(PORT)" "./$(BIN_PATH)"
 
 image:
-	docker build -t $(IMAGE):latest .
+	docker build -t $(IMAGE):latest -t $(IMAGE):dev .
 
 guardrails:
 	MAX_FILE_LINES="$(MAX_FILE_LINES)" sh ./scripts/check-guardrails.sh
