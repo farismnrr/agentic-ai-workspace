@@ -4,14 +4,14 @@
   import Marker from '../../shared/ui/Marker.svelte';
   import { authIllustrations } from './assets/illustrations';
   import AuthLayout from './AuthLayout.svelte';
-  import PasswordField from './components/PasswordField.svelte';
+  import PasswordField from '../../shared/forms/PasswordField.svelte';
   import PasswordStrength from './components/PasswordStrength.svelte';
   import TextField from './components/TextField.svelte';
   import { navigate } from '../../app/router';
   import { setUser } from '../../shared/session/session';
   import { registerCopy } from './content';
   import { createAccount, describeError, nextPath } from './logic/auth-api';
-  import { validateConfirm, validateEmail, validateName, validatePassword } from './validation';
+  import { validateConfirm, validateEmail, validateName, validatePassword } from '../../shared/forms/validation';
 
   let form: HTMLFormElement | undefined = $state();
   let name = $state('');

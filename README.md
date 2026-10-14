@@ -80,6 +80,7 @@ Settings (environment variables):
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
 | `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
 | `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits; without it every visitor behind a tunnel looks like one address. |
+| `SMTP_ADDR`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | A mail server (`host:port`) used to send password reset links. Without `SMTP_ADDR` the link is written to the server log instead, so the owner can pass it on. |
 | `DATA_DIR` | Where accounts and connections are stored (default `data`). Keep it outside the coding folder. |
 | `CODING_WORKSPACE_ROOT` | A folder the coding space may read. The coding space is off when this is empty. |
 

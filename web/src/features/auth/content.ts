@@ -18,6 +18,20 @@ export const errorCopy: Record<string, string> = {
   invalid_email: 'Enter an email like you@example.com.',
   invalid_name: 'Tell us what to call you.',
   weak_password: 'Use between 8 and 128 characters.',
+  wrong_password: 'That is not your current password.',
+  invalid_token: 'This reset link has expired or was already used. Ask for a new one.',
+};
+
+export const forgotCopy = {
+  subtitle: 'Enter your email and we will send you a link to choose a new one.',
+  caption: 'It happens to everyone.',
+  sent: 'If that address has an account, a reset link is on its way. It works for one hour.',
+};
+
+export const resetCopy = {
+  subtitle: 'Choose a new password. You will be signed out everywhere else.',
+  caption: 'A fresh start.',
+  missing: 'This page needs the link from your email. Ask for a new link.',
 };
 
 export const consentCopy = {

@@ -12,6 +12,8 @@ type UserStore interface {
 	Create(ctx context.Context, user domain.User, passwordHash string) error
 	ByEmail(ctx context.Context, email string) (domain.User, string, error)
 	ByID(ctx context.Context, id string) (domain.User, error)
+	PasswordHash(ctx context.Context, id string) (string, error)
+	SetPassword(ctx context.Context, id, passwordHash string) error
 }
 
 // SessionStore persists browser sessions keyed by the hash of the cookie token.
@@ -19,6 +21,21 @@ type SessionStore interface {
 	CreateSession(ctx context.Context, tokenHash, userID string, expiresAt time.Time) error
 	SessionUserID(ctx context.Context, tokenHash string, now time.Time) (string, error)
 	DeleteSession(ctx context.Context, tokenHash string) error
+	// DeleteSessionsExcept signs a person out everywhere except the session keep (empty keeps none).
+	DeleteSessionsExcept(ctx context.Context, userID, keepHash string) error
+}
+
+// ResetStore persists password reset links, keyed by the hash of the secret in the link.
+type ResetStore interface {
+	// CreateReset stores a link for the person, replacing any earlier one.
+	CreateReset(ctx context.Context, tokenHash, userID string, expiresAt time.Time) error
+	// ConsumeReset uses a link up and returns whose it was.
+	ConsumeReset(ctx context.Context, tokenHash string, now time.Time) (string, error)
+}
+
+// Mailer delivers the password reset link to a person.
+type Mailer interface {
+	SendPasswordReset(ctx context.Context, to, name, link string) error
 }
 
 // PasswordHasher hashes and verifies passwords.

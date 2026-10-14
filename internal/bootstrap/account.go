@@ -8,6 +8,7 @@ import (
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/account/adapter/argon2"
 	accounthttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/adapter/http"
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/account/adapter/mail"
 	accountsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/adapter/sqlite"
 	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
@@ -21,5 +22,16 @@ func newAccount(
 	store := accountsqlite.NewStore(db)
 	service := accountapp.NewService(store, store, argon2.Hasher{}, opaque.Generator{}, time.Now)
 
-	return service, accounthttp.NewHandler(service, cfg.CookieSecure).Mount(sameOrigin, limits)
+	recovery := accountapp.NewRecovery(service, store, newMailer(cfg), cfg.PublicURL)
+
+	return service, accounthttp.NewHandler(service, recovery, cfg.CookieSecure).Mount(sameOrigin, limits)
+}
+
+// newMailer sends through SMTP when SMTP_ADDR is set, otherwise into the log.
+func newMailer(cfg config.Config) accountapp.Mailer {
+	if cfg.SMTPAddr == "" {
+		return mail.Log{}
+	}
+
+	return mail.SMTP{Addr: cfg.SMTPAddr, User: cfg.SMTPUser, Password: cfg.SMTPPassword, From: cfg.SMTPFrom}
 }

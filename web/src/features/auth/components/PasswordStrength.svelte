@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scorePassword } from '../validation';
+  import { scorePassword } from '../../../shared/forms/validation';
 
   interface Props {
     password: string;

@@ -3,13 +3,13 @@
   import Marker from '../../shared/ui/Marker.svelte';
   import { authIllustrations } from './assets/illustrations';
   import AuthLayout from './AuthLayout.svelte';
-  import PasswordField from './components/PasswordField.svelte';
+  import PasswordField from '../../shared/forms/PasswordField.svelte';
   import TextField from './components/TextField.svelte';
   import { navigate } from '../../app/router';
   import { setUser } from '../../shared/session/session';
   import { loginCopy } from './content';
   import { describeError, nextPath, signIn } from './logic/auth-api';
-  import { validateEmail } from './validation';
+  import { validateEmail } from '../../shared/forms/validation';
 
   let form: HTMLFormElement | undefined = $state();
   let email = $state('');
@@ -50,7 +50,9 @@
 
   <form bind:this={form} class="mt-8 flex flex-col gap-5" novalidate {onsubmit}>
     <TextField id="email" label="Email" type="email" autocomplete="email" placeholder="you@example.com" bind:value={email} validate={validateEmail} {submitted} />
-    <PasswordField id="password" label="Password" autocomplete="current-password" placeholder="Your password" bind:value={password} validate={validatePassword} {submitted} />
+    <PasswordField id="password" label="Password" autocomplete="current-password" placeholder="Your password" bind:value={password} validate={validatePassword} {submitted}>
+      {#snippet labelAside()}<a class="link link-hover text-sm text-primary" href="/forgot">Forgot your password?</a>{/snippet}
+    </PasswordField>
     <button class="btn btn-primary btn-lg min-h-12 rounded-full" type="submit" disabled={busy}>Sign in</button>
     {#if error !== ''}
       <div class="alert alert-error alert-soft" role="alert">{error}</div>
