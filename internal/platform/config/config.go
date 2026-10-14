@@ -2,10 +2,12 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 )
 
 const (
+	defaultWorkers = 2
 	defaultPort    = "8080"
 	defaultDataDir = "data"
 )
@@ -25,6 +27,8 @@ type Config struct {
 	AllowedOrigins []string
 	// CORSOrigins are the origins browsers may call the OAuth endpoints from; defaults to AllowedOrigins.
 	CORSOrigins []string
+	// AgentWorkers is how many tasks the agent runs at the same time.
+	AgentWorkers int
 	// CookieSecure marks session cookies Secure; it follows PublicURL's scheme.
 	CookieSecure bool
 }
@@ -44,6 +48,7 @@ func Load() Config {
 		CodingRoot:     os.Getenv("CODING_WORKSPACE_ROOT"),
 		AllowedOrigins: allowed,
 		CORSOrigins:    list("CORS_ORIGINS", allowed),
+		AgentWorkers:   atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
 		CookieSecure:   strings.HasPrefix(publicURL, "https://"),
 	}
 }
@@ -77,4 +82,13 @@ func list(key string, fallback []string) []string {
 	}
 
 	return items
+}
+
+func atoi(value string, fallback int) int {
+	number, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || number < 1 {
+		return fallback
+	}
+
+	return number
 }

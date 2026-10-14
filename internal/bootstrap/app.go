@@ -25,10 +25,12 @@ func Run() error {
 
 	defer func() { _ = db.Close() }()
 
-	mounts, err := wire(db, cfg)
+	mounts, stop, err := wire(db, cfg)
 	if err != nil {
 		return err
 	}
+
+	defer stop()
 
 	app := httpserver.New(frontend, mounts...)
 	if err := app.Listen(cfg.Address()); err != nil {

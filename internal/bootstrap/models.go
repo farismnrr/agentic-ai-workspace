@@ -20,19 +20,24 @@ import (
 )
 
 // newModels wires the pages behind Settings: AI models (providers) and persona/rules (preferences).
-func newModels(
-	db *sql.DB, cfg config.Config, auth, sameOrigin fiber.Handler,
-) (*providerapp.Service, []httpserver.Mount, error) {
+// modelsWiring is what the agent needs from the settings pages.
+type modelsWiring struct {
+	providers *providerapp.Service
+	prefs     *prefapp.Service
+	mounts    []httpserver.Mount
+}
+
+func newModels(db *sql.DB, cfg config.Config, auth, sameOrigin fiber.Handler) (modelsWiring, error) {
 	cipher, err := aesgcm.Open(cfg.DataDir)
 	if err != nil {
-		return nil, nil, err //nolint:wrapcheck // already descriptive
+		return modelsWiring{}, err //nolint:wrapcheck // already descriptive
 	}
 
 	providers := providerapp.NewService(providersqlite.NewStore(db), cipher, probe.New(), opaque.Generator{}, time.Now)
 	prefs := prefapp.NewService(prefsqlite.NewStore(db), opaque.Generator{}, time.Now)
 
-	return providers, []httpserver.Mount{
+	return modelsWiring{providers: providers, prefs: prefs, mounts: []httpserver.Mount{
 		providerhttp.NewHandler(providers).Mount(auth, sameOrigin),
 		prefhttp.NewHandler(prefs).Mount(auth, sameOrigin),
-	}, nil
+	}}, nil
 }

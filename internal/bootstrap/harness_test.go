@@ -98,10 +98,12 @@ func newEnv(t *testing.T) testEnv {
 
 	t.Cleanup(func() { _ = db.Close() })
 
-	mounts, err := wire(db, cfg)
+	mounts, stop, err := wire(db, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	t.Cleanup(stop)
 
 	app := httpserver.New(fstest.MapFS{"index.html": {Data: []byte("<html>")}}, mounts...)
 

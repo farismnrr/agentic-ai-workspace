@@ -57,8 +57,8 @@ func toolOf(info domain.ToolInfo) *sdk.Tool {
 	}
 }
 
-// userFacing keeps domain errors readable for the model and hides everything else.
-func userFacing(err error) error {
+// UserFacing keeps domain errors readable for the model and hides everything else.
+func UserFacing(err error) error {
 	for _, known := range knownErrors {
 		if errors.Is(err, known) {
 			return known

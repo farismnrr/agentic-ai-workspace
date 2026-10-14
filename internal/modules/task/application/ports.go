@@ -67,7 +67,9 @@ type Described struct {
 // ToolResult is what running a tool produced. Tool failures are results, not Go errors,
 // so the model can read them and adapt.
 type ToolResult struct {
-	Run     *domain.RunInfo
+	Run *domain.RunInfo
+	// Note is a short extra for the technical line, such as an exit code.
+	Note    string
 	Output  string
 	Files   []string
 	Undo    []byte
