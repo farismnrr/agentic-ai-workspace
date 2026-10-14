@@ -2,8 +2,6 @@
   import { onMount } from 'svelte';
   import LandingPage from '../features/landing/LandingPage.svelte';
   import LoginPage from '../features/auth/LoginPage.svelte';
-  import ForgotPage from '../features/auth/ForgotPage.svelte';
-  import ResetPage from '../features/auth/ResetPage.svelte';
   import RegisterPage from '../features/auth/RegisterPage.svelte';
   import HomePage from '../features/workspace/home/HomePage.svelte';
   import InboxPage from '../features/workspace/inbox/InboxPage.svelte';
@@ -33,10 +31,6 @@
   <LoginPage />
 {:else if $route.name === 'register'}
   <RegisterPage />
-{:else if $route.name === 'forgot'}
-  <ForgotPage />
-{:else if $route.name === 'reset'}
-  <ResetPage />
 {:else if $route.name === 'consent'}
   <ConsentPage />
 {:else if $route.name === 'home'}

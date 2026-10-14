@@ -50,9 +50,7 @@
 
   <form bind:this={form} class="mt-8 flex flex-col gap-5" novalidate {onsubmit}>
     <TextField id="email" label="Email" type="email" autocomplete="email" placeholder="you@example.com" bind:value={email} validate={validateEmail} {submitted} />
-    <PasswordField id="password" label="Password" autocomplete="current-password" placeholder="Your password" bind:value={password} validate={validatePassword} {submitted}>
-      {#snippet labelAside()}<a class="link link-hover text-sm text-primary" href="/forgot">Forgot your password?</a>{/snippet}
-    </PasswordField>
+    <PasswordField id="password" label="Password" autocomplete="current-password" placeholder="Your password" bind:value={password} validate={validatePassword} {submitted} />
     <button class="btn btn-primary btn-lg min-h-12 rounded-full" type="submit" disabled={busy}>Sign in</button>
     {#if error !== ''}
       <div class="alert alert-error alert-soft" role="alert">{error}</div>

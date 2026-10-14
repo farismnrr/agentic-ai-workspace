@@ -6,8 +6,6 @@ export type Route =
   | { name: 'landing' }
   | { name: 'login' }
   | { name: 'register' }
-  | { name: 'forgot' }
-  | { name: 'reset' }
   | { name: 'consent' }
   | { name: 'home' }
   | { name: 'inbox'; taskId?: string }
@@ -24,8 +22,6 @@ const staticRoutes: Record<string, Route> = {
   '/': { name: 'landing' },
   '/login': { name: 'login' },
   '/register': { name: 'register' },
-  '/forgot': { name: 'forgot' },
-  '/reset': { name: 'reset' },
   '/oauth/consent': { name: 'consent' },
   '/app': { name: 'home' },
   '/app/inbox': { name: 'inbox' },

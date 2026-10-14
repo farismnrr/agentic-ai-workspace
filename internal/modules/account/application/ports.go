@@ -25,19 +25,6 @@ type SessionStore interface {
 	DeleteSessionsExcept(ctx context.Context, userID, keepHash string) error
 }
 
-// ResetStore persists password reset links, keyed by the hash of the secret in the link.
-type ResetStore interface {
-	// CreateReset stores a link for the person, replacing any earlier one.
-	CreateReset(ctx context.Context, tokenHash, userID string, expiresAt time.Time) error
-	// ConsumeReset uses a link up and returns whose it was.
-	ConsumeReset(ctx context.Context, tokenHash string, now time.Time) (string, error)
-}
-
-// Mailer delivers the password reset link to a person.
-type Mailer interface {
-	SendPasswordReset(ctx context.Context, to, name, link string) error
-}
-
 // PasswordHasher hashes and verifies passwords.
 type PasswordHasher interface {
 	Hash(password string) (string, error)

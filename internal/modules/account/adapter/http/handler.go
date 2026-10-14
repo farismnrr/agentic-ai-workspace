@@ -13,14 +13,13 @@ import (
 
 // Handler exposes the account use cases over JSON.
 type Handler struct {
-	service  *application.Service
-	recovery *application.Recovery
-	secure   bool
+	service *application.Service
+	secure  bool
 }
 
 // NewHandler builds the account HTTP adapter. secure marks cookies Secure.
-func NewHandler(service *application.Service, recovery *application.Recovery, secure bool) *Handler {
-	return &Handler{service: service, recovery: recovery, secure: secure}
+func NewHandler(service *application.Service, secure bool) *Handler {
+	return &Handler{service: service, secure: secure}
 }
 
 // Mount registers the /api/auth routes; sameOrigin guards the POSTs.
@@ -29,9 +28,6 @@ type Limits struct {
 	Register   fiber.Handler
 	LoginIP    fiber.Handler
 	LoginEmail fiber.Handler
-	Forgot     fiber.Handler
-	ForgotMail fiber.Handler
-	Reset      fiber.Handler
 }
 
 func (h *Handler) Mount(sameOrigin fiber.Handler, limits Limits) httpserver.Mount {
@@ -42,8 +38,6 @@ func (h *Handler) Mount(sameOrigin fiber.Handler, limits Limits) httpserver.Moun
 		auth.Post("/logout", h.logout)
 		auth.Get("/me", h.me)
 		auth.Post("/password", h.changePassword)
-		auth.Post("/forgot", limits.Forgot, limits.ForgotMail, h.forgot)
-		auth.Post("/reset", limits.Reset, h.reset)
 	}
 }
 
@@ -136,8 +130,6 @@ func (h *Handler) fail(c fiber.Ctx, err error) error {
 		return c.Status(fiber.StatusConflict).JSON(httpserver.Failure("email_taken"))
 	case errors.Is(err, domain.ErrWrongPassword):
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("wrong_password"))
-	case errors.Is(err, domain.ErrInvalidResetToken):
-		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_token"))
 	case errors.Is(err, domain.ErrInvalidCredentials):
 		return c.Status(fiber.StatusUnauthorized).JSON(httpserver.Failure("invalid_credentials"))
 	default:
