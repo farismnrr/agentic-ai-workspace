@@ -10,6 +10,9 @@ import (
 
 // Request is one conversation turn sent to a model.
 type Request struct {
+	// OnText, when set, asks the model to stream and is called with each piece of
+	// text as it arrives. The full reply is still returned at the end.
+	OnText   func(delta string)
 	Model    string
 	System   string
 	Messages []domain.Message

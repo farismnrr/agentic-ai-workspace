@@ -9,8 +9,8 @@ export const loaded = writable(false);
 /** The project the next task goes to; set when someone starts a task from a project page. */
 export const chosenProject = writable('');
 
-const quick = 2000;
-const slow = 10_000;
+const fallback = 30_000;
+const debounce = 150;
 
 /** Reloads projects and tasks; failures keep what is already shown. */
 export async function refresh(): Promise<void> {
@@ -20,31 +20,38 @@ export async function refresh(): Promise<void> {
     tasks.set(nextTasks);
     loaded.set(true);
   } catch {
-    // The next poll tries again; stale data is better than an error flash.
+    // The next change or fallback poll tries again; stale data is better than an error flash.
   }
 }
 
-const running = (list: Task[]): boolean => list.some((task) => ['queued', 'planning', 'working'].includes(task.status));
-
-/** Keeps the stores fresh: often while the agent is working, rarely otherwise. Returns a stop function. */
+/**
+ * Keeps the stores fresh: the server announces changes over an event stream, and a slow poll
+ * repairs anything missed (for example while the connection was down). Returns a stop function.
+ */
 export function watch(): () => void {
   let stopped = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let latest: Task[] = [];
-  const unsubscribe = tasks.subscribe((value) => {
-    latest = value;
-  });
+  let pending: ReturnType<typeof setTimeout> | undefined;
+  let poll: ReturnType<typeof setTimeout> | undefined;
+
+  const reload = (): void => {
+    if (pending !== undefined) clearTimeout(pending);
+    pending = setTimeout(() => void refresh(), debounce);
+  };
 
   const tick = async (): Promise<void> => {
     await refresh();
-    if (!stopped) timer = setTimeout(() => void tick(), running(latest) ? quick : slow);
+    if (!stopped) poll = setTimeout(() => void tick(), fallback);
   };
 
+  const source = new EventSource('/api/stream');
+  source.addEventListener('changed', reload);
+  source.addEventListener('open', reload);
   void tick();
 
   return () => {
     stopped = true;
-    unsubscribe();
-    if (timer !== undefined) clearTimeout(timer);
+    source.close();
+    if (pending !== undefined) clearTimeout(pending);
+    if (poll !== undefined) clearTimeout(poll);
   };
 }

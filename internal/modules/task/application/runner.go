@@ -47,6 +47,7 @@ type Deps struct {
 	Projects   Projects
 	Tools      ToolSet
 	IDs        IDs
+	Notify     Notifier
 	Now        func() time.Time
 }
 

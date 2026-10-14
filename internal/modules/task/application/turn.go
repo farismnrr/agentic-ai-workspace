@@ -20,7 +20,7 @@ func (r *Runner) turn(ctx context.Context, task domain.Task, transcript []domain
 	}
 
 	reply, err := r.ask(ctx, client, Request{
-		Model: task.Model, System: r.system(ctx, task), Messages: orderBlocks(transcript),
+		Model: task.Model, System: r.system(ctx, task), Messages: orderBlocks(transcript), OnText: r.streamTo(task.ID),
 		Tools: append(r.deps.Tools.Definitions(), agentTools()...),
 	})
 	if err != nil {
@@ -151,4 +151,13 @@ func orderBlocks(messages []domain.Message) []domain.Message {
 	}
 
 	return ordered
+}
+
+// streamTo forwards model text to whoever follows the task; nil when nobody can.
+func (r *Runner) streamTo(taskID string) func(string) {
+	if r.deps.Notify == nil {
+		return nil
+	}
+
+	return func(delta string) { r.deps.Notify.Delta(taskID, delta) }
 }

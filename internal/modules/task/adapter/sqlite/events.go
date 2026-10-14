@@ -124,9 +124,10 @@ func scanEvent(row scanner) (domain.Event, error) {
 		body  string
 		undo  []byte
 		tool  string
+		seq   int64
 	)
 
-	if err := row.Scan(&event.Seq, &event.ID, &at, &tool, &body, &undo); err != nil {
+	if err := row.Scan(&seq, &event.ID, &at, &tool, &body, &undo); err != nil {
 		return domain.Event{}, fmt.Errorf("scan event: %w", err)
 	}
 
@@ -134,7 +135,8 @@ func scanEvent(row scanner) (domain.Event, error) {
 		return domain.Event{}, fmt.Errorf("decode event: %w", err)
 	}
 
-	event.Time, event.ToolUseID, event.Undo = time.Unix(at, 0), tool, undo
+	// The stored body was written before the sequence number existed, so the column wins.
+	event.Seq, event.Time, event.ToolUseID, event.Undo = seq, time.Unix(at, 0), tool, undo
 
 	return event, nil
 }

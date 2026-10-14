@@ -11,6 +11,8 @@ import (
 
 // gateway is a fake OpenAI-compatible model that answers with a fixed script.
 type gateway struct {
+	// hold, when set, makes the model wait for it to close before answering.
+	hold     chan struct{}
 	server   *httptest.Server
 	steps    []string
 	requests []map[string]any
@@ -50,6 +52,16 @@ func (g *gateway) serve(w http.ResponseWriter, r *http.Request) {
 
 	if index >= len(g.steps) {
 		http.Error(w, `{"error":{"message":"script ran out"}}`, http.StatusInternalServerError)
+
+		return
+	}
+
+	if g.hold != nil {
+		<-g.hold
+	}
+
+	if streaming, _ := body["stream"].(bool); streaming {
+		streamStep(w, g.steps[index])
 
 		return
 	}
@@ -160,6 +172,7 @@ type threadEvent struct {
 	Kind    string   `json:"kind"`
 	Text    string   `json:"text"`
 	Files   []string `json:"files"`
+	Seq     int64    `json:"seq"`
 	CanUndo bool     `json:"canUndo"`
 }
 

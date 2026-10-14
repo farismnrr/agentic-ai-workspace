@@ -2,12 +2,11 @@ import { writable, type Readable } from 'svelte/store';
 import { loadEvents, loadTask } from './tasks-api';
 import type { Task, TaskEvent } from './task-types';
 
-const quick = 1200;
-const slow = 5000;
-
 export interface Thread {
   task: Readable<Task | undefined>;
   events: Readable<TaskEvent[]>;
+  /** Words the AI is writing right now; empty once they become a thread entry. */
+  draft: Readable<string>;
   /** True when the task could not be loaded at all. */
   missing: Readable<boolean>;
   /** Fetches right now, for example after the person pressed a button. */
@@ -15,49 +14,55 @@ export interface Thread {
   stop: () => void;
 }
 
-const active = (task: Task | undefined): boolean => task !== undefined && ['queued', 'planning', 'working'].includes(task.status);
+interface UpdatePayload {
+  task: Task;
+  events: TaskEvent[];
+}
 
-/** Follows one task: loads it with its thread and keeps polling while the agent works. */
+/** Follows one task over a server-sent event stream: thread entries arrive as they happen. */
 export function createThread(taskId: string): Thread {
   const task = writable<Task | undefined>(undefined);
   const events = writable<TaskEvent[]>([]);
+  const draft = writable('');
   const missing = writable(false);
   let current: Task | undefined;
   let seen: TaskEvent[] = [];
-  let stopped = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const apply = (nextTask: Task, fresh: TaskEvent[]): void => {
+    current = nextTask;
+    task.set(nextTask);
+    missing.set(false);
+    const last = seen.at(-1)?.seq ?? 0;
+    const added = fresh.filter((event) => event.seq > last);
+    if (added.length > 0) {
+      seen = [...seen, ...added];
+      events.set(seen);
+      draft.set('');
+    }
+  };
+
+  const source = new EventSource(`/api/tasks/${encodeURIComponent(taskId)}/stream`);
+  source.addEventListener('update', (event) => {
+    const payload = JSON.parse((event as MessageEvent<string>).data) as UpdatePayload;
+    apply(payload.task, payload.events);
+  });
+  source.addEventListener('delta', (event) => {
+    const { text } = JSON.parse((event as MessageEvent<string>).data) as { text: string };
+    draft.update((value) => value + text);
+  });
+  // A stream the server refuses (unknown task, signed out) is closed for good; temporary drops are retried by the browser.
+  source.onerror = (): void => {
+    if (source.readyState === EventSource.CLOSED && current === undefined) missing.set(true);
+  };
 
   const refresh = async (): Promise<void> => {
     try {
-      const last = seen.at(-1)?.seq ?? 0;
-      const [nextTask, fresh] = await Promise.all([loadTask(taskId), loadEvents(taskId, last)]);
-      current = nextTask;
-      task.set(nextTask);
-      missing.set(false);
-      if (fresh.length > 0) {
-        seen = [...seen, ...fresh];
-        events.set(seen);
-      }
+      const [nextTask, fresh] = await Promise.all([loadTask(taskId), loadEvents(taskId, seen.at(-1)?.seq ?? 0)]);
+      apply(nextTask, fresh);
     } catch {
       if (current === undefined) missing.set(true);
     }
   };
 
-  const tick = async (): Promise<void> => {
-    await refresh();
-    if (!stopped) timer = setTimeout(() => void tick(), active(current) ? quick : slow);
-  };
-
-  void tick();
-
-  return {
-    task,
-    events,
-    missing,
-    refresh,
-    stop: () => {
-      stopped = true;
-      if (timer !== undefined) clearTimeout(timer);
-    },
-  };
+  return { task, events, draft, missing, refresh, stop: () => { source.close(); } };
 }

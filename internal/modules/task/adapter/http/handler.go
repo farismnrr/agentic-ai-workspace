@@ -14,12 +14,13 @@ import (
 // Handler serves the task endpoints.
 type Handler struct {
 	service *application.Service
+	hub     *application.Hub
 	now     func() time.Time
 }
 
 // NewHandler builds the task HTTP adapter.
-func NewHandler(service *application.Service, now func() time.Time) *Handler {
-	return &Handler{service: service, now: now}
+func NewHandler(service *application.Service, hub *application.Hub, now func() time.Time) *Handler {
+	return &Handler{service: service, hub: hub, now: now}
 }
 
 // Mount registers the routes; auth guards all, sameOrigin the state-changing ones.
@@ -29,6 +30,8 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Post("/api/tasks", auth, sameOrigin, h.create)
 		app.Get("/api/tasks/:id", auth, h.get)
 		app.Get("/api/tasks/:id/events", auth, h.events)
+		app.Get("/api/tasks/:id/stream", auth, h.taskStream)
+		app.Get("/api/stream", auth, h.workspaceStream)
 		app.Post("/api/tasks/:id/messages", auth, sameOrigin, h.message)
 		app.Post("/api/tasks/:id/events/:event/answer", auth, sameOrigin, h.answer)
 		app.Post("/api/tasks/:id/events/:event/undo", auth, sameOrigin, h.undo)
