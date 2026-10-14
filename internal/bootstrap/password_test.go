@@ -1,15 +1,10 @@
 package bootstrap
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
-
-	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 )
-
-var resetLink = regexp.MustCompile(`/reset\?token=([A-Za-z0-9_-]+)`)
 
 func withCookie(cookie string) map[string]string {
 	return map[string]string{"Cookie": cookie, "Content-Type": "application/json"}
@@ -57,76 +52,5 @@ func TestChangingPasswordKeepsOnlyThisDevice(t *testing.T) {
 	old, fresh := passwordLogin(t, app, "correct horse"), passwordLogin(t, app, "battery staple")
 	if old != 401 || fresh != 200 {
 		t.Fatalf("only the new password may work: old %d, new %d", old, fresh)
-	}
-}
-
-func TestForgottenPasswordCanBeResetOnceByEmailLink(t *testing.T) {
-	t.Parallel()
-
-	addr, mails := fakeSMTP(t)
-	env := newEnvWith(t, func(c *config.Config) { c.SMTPAddr, c.SMTPFrom = addr, "Workspace <no-reply@example.test>" })
-	app := env.app
-	cookie, _ := signedInClient(t, app)
-
-	asked := do(t, app, "POST", "/api/auth/forgot", `{"email":"Sari@Example.com"}`, jsonHeaders())
-	if asked.Status != 202 {
-		t.Fatalf("forgot must answer 202, got %d", asked.Status)
-	}
-
-	match := resetLink.FindStringSubmatch(waitMail(t, mails))
-	if match == nil {
-		t.Fatal("the email must contain a reset link")
-	}
-
-	body := `{"token":"` + match[1] + `","password":"battery staple"}`
-	if got := do(t, app, "POST", "/api/auth/reset", body, jsonHeaders()).Status; got != 204 {
-		t.Fatalf("reset failed: %d", got)
-	}
-
-	if got := do(t, app, "POST", "/api/auth/reset", body, jsonHeaders()).Status; got != 400 {
-		t.Fatalf("a link must work only once, got %d", got)
-	}
-
-	if got := do(t, app, "GET", "/api/auth/me", "", withCookie(cookie)).Status; got != 401 {
-		t.Fatalf("old sessions must end after a reset, got %d", got)
-	}
-
-	if got := passwordLogin(t, app, "battery staple"); got != 200 {
-		t.Fatalf("the new password must work, got %d", got)
-	}
-}
-
-func TestForgotNeverRevealsWhetherAnAccountExists(t *testing.T) {
-	t.Parallel()
-
-	app := newApp(t)
-	signedInClient(t, app)
-
-	known := do(t, app, "POST", "/api/auth/forgot", `{"email":"sari@example.com"}`, jsonHeaders())
-	unknown := do(t, app, "POST", "/api/auth/forgot", `{"email":"nobody@example.com"}`, jsonHeaders())
-	junk := do(t, app, "POST", "/api/auth/forgot", `{"email":"not an email"}`, jsonHeaders())
-
-	if known.Status != 202 || unknown.Status != 202 || junk.Status != 202 {
-		t.Fatalf("all must look alike: %d %d %d", known.Status, unknown.Status, junk.Status)
-	}
-
-	bad := do(t, app, "POST", "/api/auth/reset", `{"token":"made-up","password":"battery staple"}`, jsonHeaders())
-	if bad.Status != 400 || bad.JSON(t)["error"] != "invalid_token" {
-		t.Fatalf("an unknown link must be refused: %d %s", bad.Status, bad.Body)
-	}
-}
-
-func TestForgotIsRateLimitedPerAddress(t *testing.T) {
-	t.Parallel()
-
-	app := newApp(t)
-	body := `{"email":"sari@example.com"}`
-
-	if got := do(t, app, "POST", "/api/auth/forgot", body, jsonHeaders()).Status; got != 202 {
-		t.Fatalf("first request: %d", got)
-	}
-
-	if got := do(t, app, "POST", "/api/auth/forgot", body, jsonHeaders()).Status; got != 429 {
-		t.Fatalf("asking again for the same address at once must be limited, got %d", got)
 	}
 }

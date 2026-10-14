@@ -14,8 +14,6 @@ const (
 	registerPerHour       = 5
 	loginFailuresPerIP    = 30
 	loginFailuresPerEmail = 8
-	forgotPerHour         = 5
-	resetPerHour          = 10
 	loginWindow           = 10 * time.Minute
 	authorizePerMinute    = 60
 	tokenPerMinute        = 120
@@ -27,9 +25,6 @@ func accountLimits() accounthttp.Limits {
 		Register:   httpserver.Limit(registerPerHour, time.Hour, nil, false),
 		LoginIP:    httpserver.Limit(loginFailuresPerIP, loginWindow, nil, true),
 		LoginEmail: httpserver.Limit(loginFailuresPerEmail, loginWindow, httpserver.EmailKey, true),
-		Forgot:     httpserver.Limit(forgotPerHour, time.Hour, nil, false),
-		ForgotMail: httpserver.Limit(1, time.Minute, httpserver.EmailKey, false),
-		Reset:      httpserver.Limit(resetPerHour, time.Hour, nil, false),
 	}
 }
 

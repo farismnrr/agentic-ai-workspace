@@ -28,35 +28,3 @@ func (h *Handler) changePassword(c fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
-
-// forgot always answers 202, so it never reveals which addresses have an account.
-func (h *Handler) forgot(c fiber.Ctx) error {
-	var body struct {
-		Email string `json:"email"`
-	}
-	if err := c.Bind().JSON(&body); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_body"))
-	}
-
-	if err := h.recovery.Request(c.Context(), body.Email); err != nil {
-		return h.fail(c, err)
-	}
-
-	return c.SendStatus(fiber.StatusAccepted)
-}
-
-func (h *Handler) reset(c fiber.Ctx) error {
-	var body struct {
-		Token    string `json:"token"`
-		Password string `json:"password"`
-	}
-	if err := c.Bind().JSON(&body); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_body"))
-	}
-
-	if err := h.recovery.Reset(c.Context(), body.Token, body.Password); err != nil {
-		return h.fail(c, err)
-	}
-
-	return c.SendStatus(fiber.StatusNoContent)
-}
