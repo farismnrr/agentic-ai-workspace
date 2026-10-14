@@ -67,3 +67,12 @@ jobs:
           channel: latest
           push: "true"
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/build-image
+        with:
+          suffix: -sandbox
+          dockerfile: sandbox/Dockerfile
+          smoke: scripts/smoke-test-sandbox.sh
+          channel: latest
+          push: "true"
+          token: ${{ secrets.GITHUB_TOKEN }}

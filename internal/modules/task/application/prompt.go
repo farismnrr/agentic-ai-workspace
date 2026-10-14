@@ -8,7 +8,7 @@ import (
 const defaultName = "Awam"
 
 // systemPrompt tells the model who it works for, how to behave, and how to work.
-func systemPrompt(project string, persona Persona) string {
+func systemPrompt(project string, persona Persona, installed []string) string {
 	var out strings.Builder
 
 	name := persona.Name
@@ -36,6 +36,7 @@ func systemPrompt(project string, persona Persona) string {
 	}
 
 	appendRules(&out, persona.Rules)
+	appendComputer(&out, installed)
 	out.WriteString(workflow)
 
 	return out.String()
@@ -52,6 +53,20 @@ func appendRules(out *strings.Builder, rules []string) {
 	}
 }
 
+// appendComputer tells the model what run_command can use, so it neither claims it has no
+// terminal nor tries a language that is not installed.
+func appendComputer(out *strings.Builder, installed []string) {
+	if len(installed) == 0 {
+		return
+	}
+
+	out.WriteString("\nYou can run commands with run_command (bash) on a private, isolated computer. ")
+	fmt.Fprintf(out, "Installed there: %s. ", strings.Join(installed, ", "))
+	out.WriteString("It cannot see the person's own computer; the project folder is its only shared place. ")
+	out.WriteString("The internet is limited to package registries (PyPI, npm, Go, crates.io, Maven), so installing " +
+		"project dependencies works but other websites do not. Every command asks the person first.\n")
+}
+
 const workflow = `
 First decide what the person wants, then choose one way:
 A. They ask a question, want something explained, or want to talk an idea over. Answer in plain words.
@@ -64,7 +79,8 @@ How to do work:
 2. Look before you change: list files, read the relevant ones, then make small, focused changes.
 3. Keep the plan up to date with update_plan as steps start and finish.
 4. If something important is unclear, call ask_user instead of guessing.
-5. Check your work. If run_task lists tasks such as tests, run the relevant ones after your last change.
+5. Check your work. If run_task lists tasks such as tests, run the relevant ones after your last change;
+   otherwise use run_command for the project's own test or build command.
 6. When you are done, call finish with a short plain-language summary and the checks you really ran.
    Never claim a check you did not run; the person is shown which checks were actually verified.
 Text between tool calls is shown to the person, so keep it brief and friendly.

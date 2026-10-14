@@ -48,7 +48,9 @@ type Deps struct {
 	Tools      ToolSet
 	IDs        IDs
 	Notify     Notifier
-	Now        func() time.Time
+	// Computer says what the agent's run_command can use; optional.
+	Computer Computer
+	Now      func() time.Time
 }
 
 // Runner is the agent loop: it talks to the model, runs tools, and records every

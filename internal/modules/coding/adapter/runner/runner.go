@@ -73,7 +73,9 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 		return finish(ctx, err, sandbox.Result{}, out, 0)
 	}
 
-	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command, Env: environment()}
+	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command}
+	r.engine.prepare(ctx, r.dir, &spec, docker)
+	spec.Env = environment(spec)
 	over := watchSize(ctx, r.dir, r.quota, cancel)
 
 	started := time.Now()
@@ -105,11 +107,6 @@ func finish(ctx context.Context, err error, res sandbox.Result, out *tail, took 
 	}
 
 	return result
-}
-
-// environment is fixed: server settings and the host's home never reach tasks.
-func environment() []string {
-	return []string{"LANG=C.UTF-8", "CI=1", "PATH=" + sandbox.Path, "HOME=/tmp", "TMPDIR=/tmp"}
 }
 
 // tail keeps the last limit bytes written to it.
