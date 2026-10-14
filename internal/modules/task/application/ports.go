@@ -99,6 +99,8 @@ type TaskStore interface {
 	Finish(ctx context.Context, id, summary string, proof *domain.Proof, at time.Time) error
 	// Running lists tasks left queued, planning or working, for recovery after a restart.
 	Running(ctx context.Context) ([]domain.Task, error)
+	// DeleteAll removes every task a person has, with its thread.
+	DeleteAll(ctx context.Context, userID string) error
 }
 
 // EventStore persists the thread.

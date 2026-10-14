@@ -32,6 +32,11 @@ func (s sessions) UserID(ctx context.Context, token string) (string, error) {
 	return user.ID, nil
 }
 
+// eraser lets a feature's delete-everything use case run when an account is deleted.
+type eraser func(ctx context.Context, userID string) error
+
+func (e eraser) Erase(ctx context.Context, userID string) error { return e(ctx, userID) }
+
 // directory lets the authorization server read profile claims.
 type directory struct {
 	account *accountapp.Service

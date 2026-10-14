@@ -12,14 +12,18 @@ import (
 type Store interface {
 	Create(ctx context.Context, p domain.Project) error
 	List(ctx context.Context, userID string) ([]domain.Project, error)
+	ListAll(ctx context.Context, userID string) ([]domain.Project, error)
 	Find(ctx context.Context, userID, id string) (domain.Project, error)
 	Update(ctx context.Context, userID, id, name, description string) error
 	Archive(ctx context.Context, userID, id string, at time.Time) error
+	// DeleteAll removes every project a person has, archived ones too, and returns their ids.
+	DeleteAll(ctx context.Context, userID string) ([]string, error)
 }
 
 // Folders creates the folder that holds a project's files.
 type Folders interface {
 	Create(id string) error
+	Remove(id string) error
 }
 
 // Check is a named command the AI may run to prove its work in a project.

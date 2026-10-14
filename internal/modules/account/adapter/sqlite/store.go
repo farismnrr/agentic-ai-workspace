@@ -91,6 +91,15 @@ func (s *Store) PasswordHash(ctx context.Context, id string) (string, error) {
 	return hash, nil
 }
 
+// Delete removes the account; sessions and other rows owned by it go with it.
+func (s *Store) Delete(ctx context.Context, id string) error {
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, id); err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+
+	return nil
+}
+
 // SetPassword replaces a person's password hash.
 func (s *Store) SetPassword(ctx context.Context, id, passwordHash string) error {
 	if _, err := s.db.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, passwordHash, id); err != nil {

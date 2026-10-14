@@ -24,6 +24,7 @@ type Service struct {
 	hasher   PasswordHasher
 	tokens   Tokens
 	now      func() time.Time
+	erasers  []Eraser
 }
 
 // NewService wires the account use cases.

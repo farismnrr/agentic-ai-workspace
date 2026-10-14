@@ -38,11 +38,24 @@ func (s *Store) Create(ctx context.Context, p domain.Project) error {
 	return nil
 }
 
+const (
+	newestFirst  = ` ORDER BY created_at DESC, rowid DESC`
+	selectAll    = `SELECT ` + columns + ` FROM projects WHERE user_id = ?` + newestFirst
+	selectActive = `SELECT ` + columns + ` FROM projects WHERE user_id = ? AND archived_at IS NULL` + newestFirst
+)
+
 // List returns a person's active projects, newest first.
 func (s *Store) List(ctx context.Context, userID string) ([]domain.Project, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT `+columns+` FROM projects WHERE user_id = ? AND archived_at IS NULL ORDER BY created_at DESC, rowid DESC`,
-		userID)
+	return s.list(ctx, selectActive, userID)
+}
+
+// ListAll returns every project a person has, archived ones too.
+func (s *Store) ListAll(ctx context.Context, userID string) ([]domain.Project, error) {
+	return s.list(ctx, selectAll, userID)
+}
+
+func (s *Store) list(ctx context.Context, query, userID string) ([]domain.Project, error) {
+	rows, err := s.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("select projects: %w", err)
 	}
@@ -89,6 +102,29 @@ func (s *Store) Update(ctx context.Context, userID, id, name, description string
 func (s *Store) Archive(ctx context.Context, userID, id string, at time.Time) error {
 	return s.exec(ctx, `UPDATE projects SET archived_at = ? WHERE user_id = ? AND id = ? AND archived_at IS NULL`,
 		at.Unix(), userID, id)
+}
+
+// DeleteAll removes a person's projects and returns their ids so folders can follow.
+func (s *Store) DeleteAll(ctx context.Context, userID string) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `DELETE FROM projects WHERE user_id = ? RETURNING id`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("delete projects: %w", err)
+	}
+
+	defer func() { _ = rows.Close() }()
+
+	var ids []string
+
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan project id: %w", err)
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, rows.Err() //nolint:wrapcheck // plain iteration error
 }
 
 func (s *Store) exec(ctx context.Context, query string, args ...any) error {

@@ -131,6 +131,10 @@ The app is a single-page Svelte app served by the Go binary: `/` is the landing 
 
 To let the app verify the AI's work, add **checks** on the project's Checks tab: named commands such as `go test ./...`. The AI can only run the checks you list, asks before running one, and "Proven to work" appears only when a check passed after its last change. Checks run on this computer with the app's rights, so add only commands you trust.
 
+## Your data
+
+Under Settings, Account you can change your password (other devices are signed out), download everything as a zip (settings, projects with their files, tasks with every step, usage; saved AI keys are never included), delete all tasks, or delete the account with its projects and files after confirming your password. Settings, Notifications can alert you in this browser, while the tab is in the background, when a task needs you or fails.
+
 ## Project structure
 
 ```text

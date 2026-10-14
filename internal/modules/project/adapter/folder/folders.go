@@ -56,6 +56,19 @@ func (f *Folders) Create(id string) error {
 	return nil
 }
 
+// Remove deletes a project's folder and everything in it.
+func (f *Folders) Remove(id string) error {
+	if !idPattern.MatchString(id) {
+		return errBadID
+	}
+
+	if err := f.root.RemoveAll(id); err != nil {
+		return fmt.Errorf("remove project folder: %w", err)
+	}
+
+	return nil
+}
+
 // Dir is the absolute path of a project's folder.
 func (f *Folders) Dir(id string) (string, error) {
 	if !idPattern.MatchString(id) {
