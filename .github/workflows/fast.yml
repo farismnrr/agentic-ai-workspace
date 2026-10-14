@@ -1,7 +1,8 @@
 name: Fast
 
 # Quick feedback loop for development: every quality gate in parallel, then one
-# binary build and smoke test. No merge and no publish; see full.yml for release.
+# binary build and smoke test, then the image. Pushes to dev publish the dev image to
+# GHCR; pull requests only build it. No merge; see full.yml for release.
 on:
   push:
     branches: [dev]
@@ -84,3 +85,20 @@ jobs:
           path: internal/platform/webassets/dist
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
       - run: sh scripts/smoke-test.sh bin/agentic-ai-workspace
+
+  image:
+    needs: [guardrails, frontend, backend-test, backend-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/build-image
+        with:
+          channel: dev
+          push: ${{ github.event_name == 'push' }}
+          token: ${{ secrets.GITHUB_TOKEN }}

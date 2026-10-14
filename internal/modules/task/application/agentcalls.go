@@ -54,9 +54,30 @@ func (r *Runner) updatePlan(ctx context.Context, task domain.Task, call Call) {
 func (r *Runner) finish(ctx context.Context, task domain.Task, call Call) outcome {
 	args := parseFinish(call.Input)
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+
+	if !workDone(events) {
+		r.result(ctx, task, call.ID, "Recorded.", false)
+
+		return r.answer(ctx, task, args.Summary)
+	}
+
 	r.result(ctx, task, call.ID, "Recorded. The person will review your work.", false)
 
 	return r.complete(ctx, task, args.Summary, buildProof(events, args.Checks))
+}
+
+// answer ends a run that changed nothing: the reply is plain conversation, so there is
+// no receipt and nothing to review. The thread stays open for the next message.
+func (r *Runner) answer(ctx context.Context, task domain.Task, text string) outcome {
+	if text == "" {
+		text = "Done."
+	}
+
+	r.say(ctx, task.ID, text)
+	_ = r.deps.Tasks.Finish(ctx, task.ID, text, nil, r.deps.Now())
+	_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, r.deps.Now())
+
+	return outcome{stop: stopFinished}
 }
 
 // complete hands the task to the person for review with its summary and proof.

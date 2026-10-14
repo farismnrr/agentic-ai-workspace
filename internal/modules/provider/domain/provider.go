@@ -11,18 +11,21 @@ import (
 // Kind is the wire format a provider speaks.
 type Kind string
 
-// Provider kinds. "compatible" is any OpenAI-compatible gateway, such as 9router.
+// Provider kinds. Gemini is spoken through Google's OpenAI-compatible endpoint, and
+// "compatible" is any other OpenAI-compatible gateway, such as 9router.
 const (
 	KindAnthropic  Kind = "anthropic"
 	KindOpenAI     Kind = "openai"
+	KindGemini     Kind = "gemini"
 	KindCompatible Kind = "compatible"
 )
 
 // Errors of the provider use cases.
 var (
-	ErrInvalidKind    = errors.New("provider kind must be anthropic, openai or compatible")
+	ErrInvalidKind    = errors.New("provider kind must be anthropic, openai, gemini or compatible")
 	ErrInvalidName    = errors.New("give the provider a name of up to 60 characters")
-	ErrInvalidBaseURL = errors.New("base URL must be an http(s) address, for example http://localhost:20128/v1")
+	ErrInvalidBaseURL = errors.New("address must be on this computer, for example http://localhost:20128/v1")
+	ErrAddressFixed   = errors.New("this provider has a fixed address; leave the address empty")
 	ErrInvalidKey     = errors.New("enter the API key")
 	ErrNotFound       = errors.New("provider not found")
 	ErrVerifyFailed   = errors.New("the provider did not accept this key")
@@ -59,7 +62,7 @@ type Credential struct {
 
 // Valid reports whether k is a known kind.
 func (k Kind) Valid() bool {
-	return k == KindAnthropic || k == KindOpenAI || k == KindCompatible
+	return k == KindAnthropic || k == KindOpenAI || k == KindGemini || k == KindCompatible
 }
 
 // DefaultBaseURL is where the hosted providers live.
@@ -69,6 +72,8 @@ func DefaultBaseURL(kind Kind) string {
 		return "https://api.anthropic.com"
 	case KindOpenAI:
 		return "https://api.openai.com/v1"
+	case KindGemini:
+		return "https://generativelanguage.googleapis.com/v1beta/openai"
 	case KindCompatible:
 		return ""
 	}
@@ -86,20 +91,44 @@ func NormalizeName(raw string) (string, error) {
 	return name, nil
 }
 
-// NormalizeBaseURL fills in the default address and validates a custom one.
+// CustomAddress reports whether people choose this kind's address themselves. Only
+// gateways do, and only ones running on this computer; hosted providers are fixed.
+func (k Kind) CustomAddress() bool {
+	return k == KindCompatible
+}
+
+// NormalizeBaseURL fills in a hosted provider's fixed address and validates a
+// gateway's. The server calls this address itself, so a gateway must be on this
+// computer (the connection is also checked when it is opened; see platform/egress).
 func NormalizeBaseURL(kind Kind, raw string) (string, error) {
 	raw = strings.TrimRight(strings.TrimSpace(raw), "/")
-	if raw == "" {
-		raw = DefaultBaseURL(kind)
+
+	if !kind.CustomAddress() {
+		if fixed := DefaultBaseURL(kind); raw == "" || raw == fixed {
+			return fixed, nil
+		}
+
+		return "", ErrAddressFixed
 	}
 
 	parsed, err := url.Parse(raw)
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") ||
-		parsed.User != nil || parsed.Fragment != "" || parsed.RawQuery != "" {
+	if err != nil || !isLocalGateway(parsed) {
 		return "", ErrInvalidBaseURL
 	}
 
 	return raw, nil
+}
+
+// isLocalGateway accepts a plain http(s) address on this computer, without credentials or extras.
+func isLocalGateway(parsed *url.URL) bool {
+	plain := parsed.User == nil && parsed.Fragment == "" && parsed.RawQuery == ""
+	web := parsed.Scheme == "http" || parsed.Scheme == "https"
+
+	return plain && web && isLocalHost(parsed.Hostname())
+}
+
+func isLocalHost(host string) bool {
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
 // KeyHint is the only part of a key that is ever shown again.

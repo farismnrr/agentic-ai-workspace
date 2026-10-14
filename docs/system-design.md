@@ -100,10 +100,10 @@ Business rules do not belong here.
 The binary also hosts its own sign-in and an OAuth 2.1 authorization server, so AI apps can connect to it without any extra service.
 
 - **Accounts** (`modules/account`): email and password (argon2id) with a cookie session. Data is kept in SQLite under `DATA_DIR`, using a pure-Go driver so the binary stays static.
-- **Spaces** (`modules/space`, `modules/coding`): each space is an MCP endpoint at `/api/<name>`. The first, `coding`, offers read-only tools to list, read, and search a folder you choose. Paths are confined with Go's `os.Root`, and secret files are never shown.
+- **Spaces** (`modules/space`, `modules/coding`): each space is an MCP endpoint at `/api/<name>`. The first, `coding`, offers tools to list, read, search, change files in, and run tasks in the caller's own workspace folder (`DATA_DIR/workspaces/<user id>`, created on first use and removed with the account). Each call resolves the folder from the verified token, so one person can never name another's files. Paths are confined with Go's `os.Root`, and secret files are never shown.
 - **Authorization server** (`modules/oauth`): issues opaque access tokens (stored hashed) tied to one space, plus rotating refresh tokens. A replayed code or refresh token revokes the whole connection.
 
-What an AI app discovers from `https://domain.com/api/coding`:
+What an AI app discovers from `CONNECTOR_URL/api/coding` (for example `https://domain.com/api/coding`):
 
 1. A call without a token gets `401` and a pointer to `/.well-known/oauth-protected-resource/api/coding`.
 2. That document names the authorization server and the permissions (`coding:read`).
@@ -112,11 +112,13 @@ What an AI app discovers from `https://domain.com/api/coding`:
 
 Each tool has a permission scope (`coding:read`, `coding:write`, `coding:exec`) and a switch the person controls in Settings. A call must pass the switch first, then the token's scope, and is always written to an activity log. Edits save the old content first (under `DATA_DIR/backups`), which is what the Undo button restores. Tasks are named commands from `.workspace/tasks.json`, run without a shell and one at a time; the tools can never read or write that folder.
 
+Tasks run inside `platform/sandbox`, which starts one throwaway Docker container per task through the Docker Engine API (the `moby/moby/client` module, so the binary stays static and needs no Docker CLI). The image is `SANDBOX_IMAGE` (default `node:24-bookworm`, pulled on first use). The container has no network, a read-only root filesystem, a private `/tmp` tmpfs, all capabilities dropped, `no-new-privileges`, Docker's default seccomp profile, an init process, and `memory` (swap off), `cpu`, `pids` and file-size limits. The person's workspace is mounted at `/workspace`: a bind mount when the server runs on the host, or the data volume narrowed with a volume `Subpath` (Engine API 1.45+) when the server itself runs in a container, so a task can never see another person's folder. The task runs as the server's own uid and gid, so files stay editable. Containers carry a label with an owner id derived from the data folder; at startup the server removes only the leftovers that carry its own owner id. Docker is opened lazily and warmed in the background: if the daemon is unreachable, checks fail with a plain reason and nothing else breaks. A shared pool (`MAX_SANDBOXES`) bounds how many containers run at once, and a watcher stops a task whose workspace grows past 2 GiB. `SANDBOX_RUNTIME` can select a hardened runtime such as gVisor. Not covered: disk quotas (the watcher polls once a second, so use filesystem quotas for a hard limit), the internet (tasks have none, so dependencies cannot be downloaded), and the host kernel and Docker daemon, which a container always shares with the host. Because the server needs the Docker socket, whoever controls it controls the host; Docker rootless mode is the recommended mitigation.
+
 ### The agent
 
-Projects support direct discussion via chat (`modules/chat`) with one-click task escalation. A task is one execution request in a project (`modules/task`). The agent loop sends the conversation to the chosen model, runs tools inside the project folder, and records plain-language steps and a provider-neutral transcript. Because the transcript is stored, a task can pause for approval and resume later.
+There is no separate chat: every message starts a thread in a project (`modules/task`), and the agent decides whether to answer directly or to plan and work. Reading is automatic; anything that changes files or runs a check waits for the person's yes. A run that changed nothing ends as an answer (status Done, no receipt) and the thread stays open for the next message. The agent loop sends the conversation to the chosen model, runs tools inside the project folder, and records plain-language steps and a provider-neutral transcript. Because the transcript is stored, a task can pause for approval and resume later.
 
-- **Models:** Anthropic Messages and OpenAI Chat Completions over plain HTTP; any compatible gateway works. API keys are sealed with AES-256-GCM using `DATA_DIR/secret.key`.
+- **Models:** Anthropic Messages and OpenAI Chat Completions over plain HTTP. Gemini is reached through Google's OpenAI-compatible endpoint (`/v1beta/openai`) with the same client, and a gateway works too if it runs on the same computer. Every outgoing model call goes through `platform/egress`, which checks the real IP when the connection opens: hosted providers may reach only public addresses, gateways only loopback and never this server's own port, with no redirects and no proxy variables. API keys are sealed with AES-256-GCM using `DATA_DIR/secret.key`.
 - **Approvals:** reads, searches and edits run on their own (edits are undoable); deleting, moving and running checks wait for a yes. A task can also ask before every change.
 - **Proof:** built only from checks the server ran after the last change. Claims the AI makes without running anything are listed as claimed.
 - **Checks:** a project's checks live in `.workspace/tasks.json` inside its folder, which the AI's tools can never read or write; only the Checks tab changes them.
@@ -183,11 +185,11 @@ Functions also have size and complexity limits enforced by linting.
 
 Work happens on the `dev` branch. Two GitHub Actions workflows run the same checks:
 
-- **Fast** runs on every push to `dev`. It verifies the code and builds the Linux binary quickly, so problems show up early.
-- **Full** is started manually from `dev`. It repeats every check from a clean checkout, then merges `dev` into `main` and publishes the verified binary as the rolling **Latest** GitHub release.
+- **Fast** runs on every push to `dev`. It verifies the code, builds the binary and the Docker image, smoke-tests both, and publishes the `dev` image to GHCR.
+- **Full** is started manually from `dev`. It repeats every check from a clean checkout, then merges `dev` into `main` and publishes the verified image to GHCR as `latest`.
 
 ## Deployment
 
-For normal use, deployment only needs the Linux binary and any environment variables required by the application.
+For normal use, deployment is the Docker image (`ghcr.io/farismnrr/agentic-ai-workspace`) run with `compose.latest.yaml` (or `compose.dev.yaml`), which mounts the Docker socket so checks can run in containers, plus any environment variables the application needs.
 
 There is no Node.js runtime, frontend server, or additional application port to deploy.

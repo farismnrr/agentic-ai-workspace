@@ -11,7 +11,8 @@ export interface KindChoice {
 export const kindChoices: KindChoice[] = [
   { value: 'anthropic', label: 'Anthropic (Claude)', name: 'Anthropic', baseUrlHint: 'https://api.anthropic.com', keyHelp: 'https://console.anthropic.com/settings/keys' },
   { value: 'openai', label: 'OpenAI', name: 'OpenAI', baseUrlHint: 'https://api.openai.com/v1', keyHelp: 'https://platform.openai.com/api-keys' },
-  { value: 'compatible', label: 'OpenAI-compatible (for example 9router)', name: '9router', baseUrlHint: 'http://localhost:20128/v1', keyHelp: '' },
+  { value: 'gemini', label: 'Google (Gemini)', name: 'Gemini', baseUrlHint: 'https://generativelanguage.googleapis.com/v1beta/openai', keyHelp: 'https://aistudio.google.com/apikey' },
+  { value: 'compatible', label: 'Gateway on this computer (for example 9router)', name: '9router', baseUrlHint: 'http://localhost:20128/v1', keyHelp: '' },
 ];
 
 export const kindLabel = (kind: ProviderKind): string => kindChoices.find((choice) => choice.value === kind)?.label ?? kind;
@@ -25,7 +26,8 @@ export const modelsCopy = {
   saved: 'Saved, but the provider did not accept this key. Check it and press Verify.',
   errors: {
     invalid_name: 'Give the provider a short name.',
-    invalid_base_url: 'Enter the address like http://localhost:20128/v1.',
+    invalid_base_url: 'The address must be on this computer, like http://localhost:20128/v1.',
+    address_fixed: 'This provider has a fixed address. Leave the address empty.',
     invalid_key: 'Enter the API key.',
     invalid_kind: 'Choose a provider.',
     too_many: 'You have too many providers. Remove one first.',

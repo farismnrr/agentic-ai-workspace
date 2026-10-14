@@ -112,3 +112,15 @@ func resultText(runs []domain.RunInfo, failed bool) string {
 
 	return "Verified"
 }
+
+// workDone reports whether the run changed files or ran a task. A run that only
+// read and talked is an answer, not work to review.
+func workDone(events []domain.Event) bool {
+	for _, event := range events {
+		if (len(event.Files) > 0 && !event.Undone) || event.Run != nil {
+			return true
+		}
+	}
+
+	return false
+}

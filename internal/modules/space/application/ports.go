@@ -25,7 +25,7 @@ type ActivityStore interface {
 // Undoer reverses a change recorded by one space's tools. A refusal (for
 // example because the file changed again) must wrap domain.ErrUndoRefused.
 type Undoer interface {
-	Undo(ctx context.Context, change []byte) error
+	Undo(ctx context.Context, userID string, change []byte) error
 }
 
 // IDs mints identifiers.

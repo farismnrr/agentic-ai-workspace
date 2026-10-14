@@ -1,10 +1,3 @@
-import type { ApprovalMode } from '../logic/task-types';
-
-export const askLevels: { value: ApprovalMode; label: string }[] = [
-  { value: 'risky', label: 'Only for risky steps' },
-  { value: 'always', label: 'Ask me before every change' },
-];
-
 export const taskErrors: Record<string, string> = {
   bad_request: 'Write what you need in a few words.',
   no_project: 'Choose a project first.',

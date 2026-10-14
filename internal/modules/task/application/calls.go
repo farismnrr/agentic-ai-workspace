@@ -44,7 +44,7 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, call Call) (outco
 func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
 
-	if risk := r.deps.Tools.Risk(call.Name); needsApproval(task.Mode, risk) {
+	if risk := r.deps.Tools.Risk(call.Name); needsApproval(risk) {
 		decision, wait := r.approval(ctx, task, call, risk, described)
 		if wait {
 			return outcome{stop: stopWaiting}, true
@@ -78,18 +78,10 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome
 	return outcome{}, false
 }
 
-// needsApproval is the approval policy: risky steps always ask, and in "always" mode so do edits.
-func needsApproval(mode domain.Mode, risk domain.Risk) bool {
-	switch risk {
-	case domain.RiskNone:
-		return false
-	case domain.RiskLow:
-		return mode == domain.ModeAlways
-	case domain.RiskMedium, domain.RiskHigh:
-		return true
-	}
-
-	return true
+// needsApproval is the approval policy: looking around (read tools) runs on its own,
+// anything that changes files or runs a command asks the person first.
+func needsApproval(risk domain.Risk) bool {
+	return risk != domain.RiskNone
 }
 
 // approval looks up (or creates) the approval event for a tool call. wait is

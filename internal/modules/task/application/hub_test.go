@@ -88,7 +88,7 @@ func TestEveryWriteWakesTheTaskAndItsOwner(t *testing.T) {
 	t.Parallel()
 
 	r := newRig(nil)
-	task := r.start(t, "Hello", domain.ModeRisky)
+	task := r.start(t, "Hello")
 	hub := application.NewHub()
 	watched := application.Observe(application.Deps{Tasks: r.mem, Events: r.mem}, hub)
 	task1, owner := hub.Subscribe(application.TaskTopic(task.ID)), hub.Subscribe(application.UserTopic("u1"))

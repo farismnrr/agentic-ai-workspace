@@ -74,23 +74,11 @@ func newEnv(t *testing.T) testEnv {
 func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
 	t.Helper()
 
-	root := t.TempDir()
-	for name, body := range map[string]string{
-		"hello.txt":             "hello from the workspace\n",
-		".workspace/tasks.json": `{"tasks":{"echo":{"description":"Say hello","command":["echo","hello task"]}}}`,
-	} {
-		full := filepath.Join(root, name)
-		if err := os.MkdirAll(filepath.Dir(full), 0o750); err != nil {
-			t.Fatal(err)
-		}
-
-		if err := os.WriteFile(full, []byte(body), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
+	root := filepath.Join(t.TempDir(), "workspaces")
 
 	cfg := config.Config{
-		Port: "0", PublicURL: publicURL, DataDir: t.TempDir(), CodingRoot: root, CookieSecure: true,
+		Port: "0", PublicURL: publicURL, DataDir: t.TempDir(), WorkspacesDir: root, CookieSecure: true,
+		SandboxImage: testImage, MaxSandboxes: 4,
 		AllowedOrigins: []string{"http://localhost:8081", "http://127.0.0.1:8081"},
 		CORSOrigins:    []string{"http://localhost:8081"},
 	}
@@ -114,6 +102,8 @@ func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
 	t.Cleanup(stop)
 
 	app := httpserver.New(fstest.MapFS{"index.html": {Data: []byte("<html>")}}, httpserver.Settings{}, mounts...)
+
+	workspaceRoots.Store(app, root)
 
 	return testEnv{app: app, root: root, dataDir: cfg.DataDir}
 }

@@ -5,6 +5,7 @@
 
 # Go build output
 bin/
+/agentic-ai-workspace
 *.exe
 *.out
 *.test

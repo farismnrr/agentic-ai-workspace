@@ -6,13 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"net/netip"
-	"syscall"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
 const (
@@ -21,15 +19,11 @@ const (
 )
 
 var (
-	errPrivateAddress = errors.New("client metadata host resolves to a non-public address")
-	errRedirected     = errors.New("client metadata document must not redirect")
-	errTooLarge       = errors.New("client metadata document is too large")
-	errMismatch       = errors.New("client_id in the document does not match its URL")
-	errNoRedirects    = errors.New("client metadata document has no valid redirect_uris")
-	errStatus         = errors.New("client metadata document request failed")
-
-	// carrierGradeNAT is 100.64.0.0/10, which netip does not treat as private.
-	carrierGradeNAT = netip.MustParsePrefix("100.64.0.0/10")
+	errRedirected  = errors.New("client metadata document must not redirect")
+	errTooLarge    = errors.New("client metadata document is too large")
+	errMismatch    = errors.New("client_id in the document does not match its URL")
+	errNoRedirects = errors.New("client metadata document has no valid redirect_uris")
+	errStatus      = errors.New("client metadata document request failed")
 )
 
 // Fetcher downloads Client ID Metadata Documents. The authorization server
@@ -41,11 +35,9 @@ type Fetcher struct {
 
 // NewFetcher builds a Fetcher with SSRF protections.
 func NewFetcher() *Fetcher {
-	dialer := &net.Dialer{Timeout: fetchTimeout, Control: publicOnly}
-
 	return &Fetcher{client: &http.Client{
 		Timeout:       fetchTimeout,
-		Transport:     &http.Transport{DialContext: dialer.DialContext, Proxy: nil},
+		Transport:     egress.Transport(egress.Policy{Rule: egress.PublicOnly}),
 		CheckRedirect: func(*http.Request, []*http.Request) error { return errRedirected },
 	}}
 }
@@ -114,28 +106,4 @@ func parseDocument(clientID string, body []byte) (domain.Client, error) {
 	}
 
 	return domain.Client{ID: clientID, Name: name, RedirectURIs: doc.RedirectURIs, Source: domain.SourceCIMD}, nil
-}
-
-// publicOnly is a net.Dialer control hook that rejects non-public destinations.
-func publicOnly(_, address string, _ syscall.RawConn) error {
-	return checkAddress(address)
-}
-
-func checkAddress(address string) error {
-	host, _, err := net.SplitHostPort(address)
-	if err != nil {
-		return fmt.Errorf("split address: %w", err)
-	}
-
-	ip, err := netip.ParseAddr(host)
-	if err != nil {
-		return fmt.Errorf("parse address: %w", err)
-	}
-
-	ip = ip.Unmap()
-	if !ip.IsGlobalUnicast() || ip.IsPrivate() || carrierGradeNAT.Contains(ip) {
-		return errPrivateAddress
-	}
-
-	return nil
 }

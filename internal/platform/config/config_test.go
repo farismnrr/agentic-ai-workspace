@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -33,5 +34,24 @@ func TestOriginsCanBeOverriddenAndCORSFollowsAllowed(t *testing.T) {
 
 	if got := Load().CORSOrigins; !reflect.DeepEqual(got, []string{"*"}) {
 		t.Fatalf("CORS_ORIGINS must be independent when set, got %v", got)
+	}
+}
+
+func TestTheConnectorAddressIsSeparateFromTheAppAddress(t *testing.T) {
+	t.Setenv("PUBLIC_URL", "http://localhost:8081")
+
+	if got := Load().Connector(); got != "http://localhost:8081" {
+		t.Fatalf("without CONNECTOR_URL the connector uses the app address, got %q", got)
+	}
+
+	t.Setenv("CONNECTOR_URL", "https://workspace.example.com/")
+
+	cfg := Load()
+	if cfg.Connector() != "https://workspace.example.com" || cfg.PublicURL != "http://localhost:8081" {
+		t.Fatalf("the two addresses must be independent: %q and %q", cfg.Connector(), cfg.PublicURL)
+	}
+
+	if !slices.Contains(cfg.AllowedOrigins, "https://workspace.example.com") || !cfg.CookieSecure {
+		t.Fatalf("sign-in on the connector address must be allowed and its cookie secure: %+v", cfg)
 	}
 }

@@ -1,0 +1,15 @@
+.git
+.github
+.claude
+bin
+data
+assets
+docs
+web/node_modules
+web/.vite
+web/.svelte-check
+internal/platform/webassets/dist/*
+!internal/platform/webassets/dist/placeholder.txt
+*.md
+.env
+.env.*

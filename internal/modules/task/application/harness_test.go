@@ -117,11 +117,11 @@ func newRig(model application.Model, steps ...step) *rig {
 	}
 }
 
-func (r *rig) start(t *testing.T, prompt string, mode domain.Mode) domain.Task {
+func (r *rig) start(t *testing.T, prompt string) domain.Task {
 	t.Helper()
 
 	task, err := r.service.Create(context.Background(), "u1", application.CreateInput{
-		ProjectID: "proj", Prompt: prompt, Mode: mode,
+		ProjectID: "proj", Prompt: prompt,
 	})
 	if err != nil {
 		t.Fatal(err)

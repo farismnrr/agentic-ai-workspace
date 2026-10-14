@@ -12,7 +12,11 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/openai"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
+
+// local lets the clients reach the loopback test servers.
+var local = egress.Policy{Rule: egress.LocalOnly}
 
 const answer = `{"choices":[{"message":{"content":null,"tool_calls":[` +
 	`{"id":"c9","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"b\"}"}},` +
@@ -66,7 +70,7 @@ func TestReplyKeepsToolCallsUsageAndRepairsBadArguments(t *testing.T) {
 
 	server, _ := serve(t)
 
-	reply, err := openai.New(server.URL+"/v1", "k").Complete(context.Background(), conversation())
+	reply, err := openai.New(server.URL+"/v1", "k", local).Complete(context.Background(), conversation())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +89,7 @@ func TestToolResultsBecomeToolMessagesBeforeTheUsersText(t *testing.T) {
 
 	server, seen := serve(t)
 
-	if _, err := openai.New(server.URL+"/v1", "k").Complete(context.Background(), conversation()); err != nil {
+	if _, err := openai.New(server.URL+"/v1", "k", local).Complete(context.Background(), conversation()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -112,12 +116,31 @@ func TestFailuresKeepTheProvidersMessageAndSayIfRetryingHelps(t *testing.T) {
 			_, _ = w.Write([]byte(`{"error":{"message":"gateway says no"}}`))
 		}))
 
-		_, err := openai.New(server.URL, "k").Complete(context.Background(), conversation())
+		_, err := openai.New(server.URL, "k", local).Complete(context.Background(), conversation())
 		server.Close()
 
 		modelErr, ok := domain.AsModelError(err)
 		if !ok || modelErr.Message != "gateway says no" || modelErr.Retryable != retryable {
 			t.Errorf("HTTP %d: got %+v (%v), want retryable=%v", status, modelErr, err, retryable)
 		}
+	}
+}
+
+func TestToolCallsWithoutAnIDGetOneSoResultsCanBeMatched(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":null,"tool_calls":[` +
+			`{"type":"function","function":{"name":"read_file","arguments":"{}"}}]}}]}`))
+	}))
+	t.Cleanup(server.Close)
+
+	reply, err := openai.New(server.URL, "k", local).Complete(context.Background(), conversation())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(reply.Blocks) != 1 || reply.Blocks[0].ID == "" {
+		t.Fatalf("a missing tool-call id must be replaced: %+v", reply.Blocks)
 	}
 }
