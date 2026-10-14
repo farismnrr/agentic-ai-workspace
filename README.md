@@ -118,7 +118,16 @@ See [docs/design-system.md](./docs/design-system.md) for the color roles, intera
 
 ## Pages
 
-The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens, and `/app` is the workspace preview: home, an inbox of things that need you, projects with their tasks, a task page (conversation plus plan, proof, and changes), and settings (models, rules, spaces and tools, usage, notifications, account). Press Ctrl/Cmd+K anywhere in the workspace to search and jump. Sign-in and account creation are real, and so are the Spaces and Connected apps settings. The rest of the workspace still uses sample data.
+The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens, and `/app` is the workspace: home, an inbox of things that need you, projects with their tasks, a task page (conversation plus plan, proof, and changes), and settings (models, persona and rules, connectors, usage, account). Press Ctrl/Cmd+K anywhere in the workspace to search and jump. Everything here is real except notifications and data export, which are marked as coming soon.
+
+## Working with the AI team
+
+1. **Add a model.** Under Settings, AI models, add Anthropic, OpenAI, or any OpenAI-compatible gateway such as [9router](http://localhost:20128/v1) (use its address and key). The key is stored encrypted and checked right away.
+2. **Create a project.** Each project gets its own folder under `DATA_DIR/projects`; the AI can only touch files inside it.
+3. **Describe what you need** on Home. The AI makes a plan, works step by step, and shows every step. Deleting or moving files and running checks need your OK first; choose "Ask me before every change" to be asked about edits too.
+4. **Review.** When it finishes you see what changed and what was checked. The proof says "Proven to work" only when the app itself ran a check that passed after the last change, and every change can be undone.
+
+To give the AI checks it can run, put a `.workspace/tasks.json` in the project's folder (same format as for connectors, below). `AGENT_WORKERS` sets how many tasks run at the same time (default 2; a project runs one at a time).
 
 ## Project structure
 
