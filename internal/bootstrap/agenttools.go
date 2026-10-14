@@ -90,7 +90,8 @@ func (a *agentTools) Risk(name string) taskdomain.Risk {
 	switch name {
 	case codingdomain.ToolEditFile.Name, codingdomain.ToolWriteFile.Name:
 		return taskdomain.RiskLow
-	case codingdomain.ToolDeleteFile.Name, codingdomain.ToolMoveFile.Name, codingdomain.ToolRunTask.Name:
+	case codingdomain.ToolDeleteFile.Name, codingdomain.ToolMoveFile.Name,
+		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name:
 		return taskdomain.RiskMedium
 	}
 
@@ -127,4 +128,26 @@ func (a *agentTools) Describe(call taskapp.Call) taskapp.Described {
 	_ = json.Unmarshal(call.Input, &in)
 
 	return describe(call.Name, in)
+}
+
+// forgetting removes a project's folder and then what its commands left outside it (package cache, proxy socket).
+type forgetting struct {
+	*folder.Folders
+	tools *agentTools
+}
+
+func (f forgetting) Remove(id string) error {
+	f.tools.forget(id)
+
+	return f.Folders.Remove(id) //nolint:wrapcheck // the project service words the failure
+}
+
+func (a *agentTools) forget(projectID string) {
+	a.mu.Lock()
+	delete(a.cache, projectID)
+	a.mu.Unlock()
+
+	if dir, err := a.folders.Dir(projectID); err == nil {
+		a.engine.Forget(dir)
+	}
 }

@@ -12,15 +12,29 @@ var ErrUnavailable = errors.New("docker is not available")
 // Workspace is where the writable folder appears inside the container.
 const Workspace = "/workspace"
 
-// Path is the only PATH a sandboxed command gets.
-const Path = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+// Cache is where the person's package caches appear; unlike the root filesystem it survives between commands.
+const Cache = "/cache"
+
+// Egress is where the folder holding the proxy socket appears.
+const Egress = "/run/egress"
+
+// Entry is the image's start script. It makes the proxy socket reachable as a local port, then runs the command.
+const Entry = "/usr/local/bin/sandbox-entry"
+
+// Path is the only PATH a sandboxed command gets: the image's toolchains, then the system.
+const Path = "/usr/local/go/bin:/opt/cargo/bin:/opt/java/openjdk/bin:/opt/maven/bin:" +
+	"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 // Spec describes one sandboxed command.
 type Spec struct {
 	// Workspace is the one writable folder, shown at /workspace (an absolute path).
 	Workspace string
-	Argv      []string
-	Env       []string
+	// Cache is an optional second writable folder for package downloads, shown at /cache.
+	Cache string
+	// Egress is an optional folder holding the proxy socket, shown read-only at /run/egress.
+	Egress string
+	Argv   []string
+	Env    []string
 }
 
 // Result is how a sandboxed command ended.

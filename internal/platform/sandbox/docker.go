@@ -3,6 +3,7 @@ package sandbox
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -35,8 +36,9 @@ type Config struct {
 
 // Docker starts one throwaway container per command.
 type Docker struct {
-	api *client.Client
-	cfg Config
+	api        *client.Client
+	toolchains []Toolchain
+	cfg        Config
 }
 
 // Open connects to the Docker daemon (DOCKER_HOST or the default socket), makes
@@ -60,6 +62,8 @@ func Open(ctx context.Context, cfg Config) (*Docker, error) {
 	if err = d.ensureImage(ctx); err != nil {
 		return nil, err
 	}
+
+	d.toolchains = d.readToolchains(ctx)
 
 	d.removeLeftovers(ctx)
 
@@ -105,4 +109,30 @@ func (d *Docker) remove(ctx context.Context, id string) {
 	defer cancel()
 
 	_, _ = d.api.ContainerRemove(ctx, id, client.ContainerRemoveOptions{Force: true})
+}
+
+// Toolchain is a language or build tool the task image carries.
+type Toolchain struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+// toolchainsLabel is the image label listing its toolchains as JSON.
+const toolchainsLabel = "io.masihawam.toolchains"
+
+// Toolchains lists what the task image offers; an image without the label offers nothing known.
+func (d *Docker) Toolchains() []Toolchain { return d.toolchains }
+
+func (d *Docker) readToolchains(ctx context.Context) []Toolchain {
+	res, err := d.api.ImageInspect(ctx, d.cfg.Image)
+	if err != nil || res.Config == nil {
+		return nil
+	}
+
+	var list []Toolchain
+	if json.Unmarshal([]byte(res.Config.Labels[toolchainsLabel]), &list) != nil {
+		return nil
+	}
+
+	return list
 }

@@ -7,6 +7,7 @@ import (
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
@@ -32,6 +33,11 @@ type runOutput struct {
 	Truncated  bool   `json:"truncated" jsonschema:"true when earlier output was dropped"`
 }
 
+type commandInput struct {
+	Command        string `json:"command" jsonschema:"shell command line, run with bash in the sandbox"`
+	TimeoutSeconds int    `json:"timeout_seconds,omitempty" jsonschema:"stop after this many seconds (max 600)"`
+}
+
 type whoamiOutput struct {
 	ID string `json:"id" jsonschema:"stable identifier of the signed-in account"`
 }
@@ -39,6 +45,36 @@ type whoamiOutput struct {
 func (t *tools) addExecTools(server *sdk.Server) {
 	sdk.AddTool(server, toolOf(domain.ToolRunTask), guarded(t.guard, domain.ToolRunTask,
 		func(in runInput) string { return "run " + in.Name }, t.runTask))
+	sdk.AddTool(server, toolOf(domain.ToolRunCommand), guarded(t.guard, domain.ToolRunCommand,
+		func(in commandInput) string { return "command: " + in.Command }, t.runCommand))
+}
+
+func (t *tools) runCommand(ctx context.Context, in commandInput) (runOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return runOutput{}, report{}, err
+	}
+
+	result, err := svc.Tasks.RunCommand(ctx, in.Command, in.TimeoutSeconds)
+	if err != nil {
+		return runOutput{}, report{}, fmt.Errorf("run command: %w", err)
+	}
+
+	return commandReport(result)
+}
+
+func commandReport(result application.RunResult) (runOutput, report, error) {
+	out := runOutput{
+		Name: "command", Output: result.Output, ExitCode: result.ExitCode, DurationMS: result.Duration.Milliseconds(),
+		TimedOut: result.TimedOut, Truncated: result.Truncated,
+	}
+	detail := fmt.Sprintf("exit code %d in %s", result.ExitCode, result.Duration.Round(time.Millisecond))
+
+	if result.TimedOut {
+		detail = "timed out"
+	}
+
+	return out, report{detail: detail, failed: result.ExitCode != 0}, nil
 }
 
 func (t *tools) listTasks(ctx context.Context, _ struct{}) (tasksOutput, report, error) {

@@ -67,10 +67,17 @@ var (
 	}
 )
 
+// ToolRunCommand runs any command in the sandbox, so the agent can use the installed languages.
+var ToolRunCommand = ToolInfo{
+	Name: "run_command", Title: "Run a command", Scope: ScopeExec, Group: GroupExec,
+	Description: "Run a shell command in the isolated sandbox (bash; Python, Node, Go, Rust and Java are installed; " +
+		"only package registries can be reached) and return its exit code and output.",
+}
+
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami,
-		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask,
+		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand,
 	}
 }

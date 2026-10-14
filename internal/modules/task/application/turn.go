@@ -122,7 +122,12 @@ func (r *Runner) system(ctx context.Context, task domain.Task) string {
 		project = "your project"
 	}
 
-	return systemPrompt(project, persona)
+	var installed []string
+	if r.deps.Computer != nil {
+		installed = r.deps.Computer.Toolchains(ctx)
+	}
+
+	return systemPrompt(project, persona, installed)
 }
 
 func truncate(text string, limit int) string {

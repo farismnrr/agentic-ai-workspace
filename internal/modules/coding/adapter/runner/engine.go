@@ -16,6 +16,8 @@ type EngineConfig struct {
 	// Open connects to Docker. It is retried until it works, so the server can start
 	// before Docker does and while the task image is still being downloaded.
 	Open func(context.Context) (*sandbox.Docker, error)
+	// Extras are the optional cache and proxy given to every command.
+	Extras Extras
 	// Size is how many containers may run at once across every workspace.
 	Size int
 }
@@ -28,12 +30,13 @@ type Engine struct {
 	lock   chan struct{}
 	docker *sandbox.Docker
 	open   func(context.Context) (*sandbox.Docker, error)
+	extras Extras
 }
 
 // NewEngine builds the shared infrastructure.
 func NewEngine(cfg EngineConfig) *Engine {
 	return &Engine{
-		places: make(chan struct{}, max(cfg.Size, 1)), lock: make(chan struct{}, 1), open: cfg.Open,
+		places: make(chan struct{}, max(cfg.Size, 1)), lock: make(chan struct{}, 1), open: cfg.Open, extras: cfg.Extras,
 	}
 }
 
@@ -58,6 +61,23 @@ func (e *Engine) Docker(ctx context.Context) (*sandbox.Docker, error) {
 	e.docker = docker
 
 	return docker, nil
+}
+
+// Toolchains lists what the task image carries. It never opens Docker: until the
+// connection is ready (or while it is being opened) the answer is empty.
+func (e *Engine) Toolchains() []sandbox.Toolchain {
+	select {
+	case e.lock <- struct{}{}:
+		defer func() { <-e.lock }()
+	default:
+		return nil
+	}
+
+	if e.docker == nil {
+		return nil
+	}
+
+	return e.docker.Toolchains()
 }
 
 // acquire waits for a free place and returns the function that gives it back.

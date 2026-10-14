@@ -102,3 +102,12 @@ jobs:
           channel: dev
           push: ${{ github.event_name == 'push' }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: ./.github/actions/build-image
+        with:
+          suffix: -sandbox
+          dockerfile: sandbox/Dockerfile
+          smoke: scripts/smoke-test-sandbox.sh
+          channel: dev
+          # The toolbox has no dev channel: fast only proves it builds; full publishes :latest.
+          push: "false"

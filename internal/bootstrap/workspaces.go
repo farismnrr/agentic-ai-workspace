@@ -99,6 +99,8 @@ func (w *workspaces) Erase(_ context.Context, userID string) error {
 	delete(w.cache, userID)
 	w.mu.Unlock()
 
+	w.engine.Forget(dir)
+
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("remove workspace: %w", err)
 	}
