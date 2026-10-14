@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -20,6 +21,7 @@ const (
 type Config struct {
 	Port            string
 	PublicURL       string
+	ConnectorURL    string
 	DataDir         string
 	WorkspacesDir   string
 	ClientIPHeader  string
@@ -40,14 +42,22 @@ func Load() Config {
 	port := getenv("PORT", defaultPort)
 	publicURL := strings.TrimRight(getenv("PUBLIC_URL", "http://localhost:"+port), "/")
 
+	connector := strings.TrimRight(strings.TrimSpace(os.Getenv("CONNECTOR_URL")), "/")
+
 	local := []string{"http://localhost:" + port, "http://127.0.0.1:" + port}
 	allowed := list("ALLOWED_ORIGINS", local)
+
+	// People sign in and approve connections on the connector's own address, so its origin is allowed too.
+	if connector != "" && !slices.Contains(allowed, connector) {
+		allowed = append(allowed, connector)
+	}
 
 	dataDir := getenv("DATA_DIR", defaultDataDir)
 
 	return Config{
 		Port:            port,
 		PublicURL:       publicURL,
+		ConnectorURL:    connector,
 		DataDir:         dataDir,
 		WorkspacesDir:   filepath.Join(dataDir, "workspaces"),
 		AllowedOrigins:  allowed,
@@ -60,8 +70,19 @@ func Load() Config {
 		SandboxMemoryMB: atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
 		SandboxCPUs:     atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
 		SandboxRelaxed:  strings.EqualFold(os.Getenv("SANDBOX_LIMITS"), "relaxed"),
-		CookieSecure:    strings.HasPrefix(publicURL, "https://"),
+		CookieSecure:    strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
 	}
+}
+
+// Connector is the public address AI apps such as ChatGPT use to reach this server: the root of the
+// connector addresses, of the sign-in they are sent through, and of the tokens they are given. It is
+// CONNECTOR_URL when set, so the app itself can stay on another address, and PUBLIC_URL otherwise.
+func (c Config) Connector() string {
+	if c.ConnectorURL != "" {
+		return c.ConnectorURL
+	}
+
+	return c.PublicURL
 }
 
 // Address returns the HTTP listen address.

@@ -92,10 +92,10 @@ func newSpaceMounts(
 	mounts := []httpserver.Mount{api.Mount(sameOrigin)}
 
 	space := codingSpace()
-	mounter := spacehttp.NewMounter(registry, cfg.PublicURL, cfg.PublicURL, verifier{oauth: oauth})
+	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
 	handler := codingHandler(coding, codingmcp.Options{
 		Gate: gate{permissions: permissions}, Recorder: recorder{log: log},
-		ResourceMetadataURL: cfg.PublicURL + space.MetadataPath(),
+		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 
 	return append(mounts, mounter.Mount(space, handler))
