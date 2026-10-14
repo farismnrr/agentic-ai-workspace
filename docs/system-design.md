@@ -146,9 +146,10 @@ Functions also have size and complexity limits enforced by linting.
 6. Go tests;
 7. strict Go linting and architecture rules.
 
-GitHub Actions runs the same checks on pushes and pull requests.
+Work happens on the `dev` branch. Two GitHub Actions workflows run the same checks:
 
-After a push to `main` passes every check, the verified Linux binary becomes the new rolling **Latest** GitHub release.
+- **Fast** runs on every push to `dev`. It verifies the code and builds the Linux binary quickly, so problems show up early.
+- **Full** is started manually from `dev`. It repeats every check from a clean checkout, then merges `dev` into `main` and publishes the verified binary as the rolling **Latest** GitHub release.
 
 ## Deployment
 

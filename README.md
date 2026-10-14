@@ -32,7 +32,7 @@ Use a different port with:
 PORT=9000 ./agentic-ai-workspace
 ```
 
-The GitHub release is a rolling build named **Latest**. After a new change reaches `main` and passes all checks, the Linux binary in that release is replaced automatically.
+The GitHub release is a rolling build named **Latest**. When a full release workflow succeeds, the Linux binary in that release is replaced.
 
 ## Building from source
 
@@ -65,7 +65,7 @@ make verify
 
 This checks the frontend, Go code, architecture guardrails, lint rules, tests, and production frontend build.
 
-GitHub Actions runs the same quality checks on every push and pull request. A Linux release is published only after all required checks pass.
+Development happens on `dev`. A fast GitHub Actions workflow checks and builds every push to `dev`. A full workflow, started manually, repeats all checks, merges `dev` into `main`, and publishes the Linux release.
 
 ## Design system
 
@@ -75,7 +75,7 @@ See [docs/design-system.md](./docs/design-system.md) for the color roles, intera
 
 ## Pages
 
-The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens. The account screens are UI only for now and do not talk to a server yet.
+The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens, and `/app` is the workspace preview: home, an inbox of things that need you, projects with their tasks, a task page (conversation plus plan, proof, and changes), and settings (models, rules, spaces and tools, usage, notifications, account). Press Ctrl/Cmd+K anywhere in the workspace to search and jump. These screens are UI only for now: they use sample data and do not talk to a server yet.
 
 ## Project structure
 
