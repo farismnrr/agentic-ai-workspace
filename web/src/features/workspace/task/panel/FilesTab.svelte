@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import type { Change } from '../../logic/task-types';
 
@@ -11,7 +12,7 @@
 </script>
 
 {#if files.length === 0}
-  <p class="rounded-lg border border-dashed border-[var(--brand-border-strong)] p-4 text-[var(--brand-text-secondary)]">No files touched by this task.</p>
+  <EmptyState compact bordered icon="file-text" title="No files touched" body="Files this task creates or edits are listed here." />
 {:else}
   <ul class="divide-y divide-[var(--brand-border)] rounded-xl border border-[var(--brand-border)] bg-base-100">
     {#each files as file (file)}

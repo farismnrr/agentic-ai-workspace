@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -10,7 +11,8 @@ import (
 )
 
 const (
-	cacheMode = 0o750
+	cacheMode   = 0o750
+	dirWritable = 0o700
 	// DefaultCacheBytes is how large one workspace's package cache may grow before it is emptied.
 	DefaultCacheBytes = 5 << 30
 	proxyAddress      = "http://127.0.0.1:3128"
@@ -35,7 +37,7 @@ func (e *Engine) prepare(ctx context.Context, dir string, spec *sandbox.Spec, do
 	if e.extras.CacheDir != "" {
 		cache := filepath.Join(e.extras.CacheDir, id)
 		if sizeOver(cache, DefaultCacheBytes) {
-			_ = os.RemoveAll(cache)
+			wipe(cache)
 		}
 
 		if os.MkdirAll(cache, cacheMode) == nil {
@@ -50,12 +52,32 @@ func (e *Engine) prepare(ctx context.Context, dir string, spec *sandbox.Spec, do
 	}
 }
 
+// wipe deletes a cache folder. Some tools (Go's module cache by default) make their files
+// read-only, which RemoveAll cannot delete, so folders are made writable first. The cache is
+// written by untrusted commands, so every chmod goes through os.Root and can never follow a
+// planted symlink out of the folder.
+func wipe(dir string) {
+	if root, err := os.OpenRoot(dir); err == nil {
+		_ = fs.WalkDir(root.FS(), ".", func(path string, entry fs.DirEntry, err error) error {
+			if err == nil && entry.IsDir() {
+				_ = root.Chmod(path, dirWritable)
+			}
+
+			return nil
+		})
+
+		_ = root.Close()
+	}
+
+	_ = os.RemoveAll(dir)
+}
+
 // Forget removes what a workspace left behind outside its own folder.
 func (e *Engine) Forget(dir string) {
 	id := filepath.Base(dir)
 
 	if e.extras.CacheDir != "" {
-		_ = os.RemoveAll(filepath.Join(e.extras.CacheDir, id))
+		wipe(filepath.Join(e.extras.CacheDir, id))
 	}
 
 	if e.extras.Proxy != nil {
@@ -68,7 +90,7 @@ func (e *Engine) Forget(dir string) {
 func environment(spec sandbox.Spec) []string {
 	env := []string{
 		"LANG=C.UTF-8", "CI=1", "PATH=" + sandbox.Path, "HOME=/tmp", "TMPDIR=/tmp",
-		"RUSTUP_HOME=/opt/rustup", "JAVA_HOME=/opt/java/openjdk",
+		"RUSTUP_HOME=/opt/rustup", "JAVA_HOME=/opt/java/openjdk", "GOFLAGS=-modcacherw -buildvcs=false",
 	}
 
 	if spec.Cache != "" {

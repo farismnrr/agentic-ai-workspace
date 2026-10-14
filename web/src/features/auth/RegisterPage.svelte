@@ -7,7 +7,7 @@
   import PasswordField from '../../shared/forms/PasswordField.svelte';
   import PasswordStrength from './components/PasswordStrength.svelte';
   import TextField from './components/TextField.svelte';
-  import { navigate } from '../../app/router';
+  import { goTo } from '../../app/router';
   import { setUser } from '../../shared/session/session';
   import { registerCopy } from './content';
   import { createAccount, describeError, nextPath } from './logic/auth-api';
@@ -37,7 +37,7 @@
     busy = true;
     try {
       setUser(await createAccount(name, email, password));
-      navigate(nextPath(window.location.search));
+      goTo(nextPath(window.location.search));
     } catch (failure) {
       error = describeError(failure);
     } finally {

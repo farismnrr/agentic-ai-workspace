@@ -14,6 +14,8 @@ type Store interface {
 	List(ctx context.Context, userID string) ([]domain.Project, error)
 	ListAll(ctx context.Context, userID string) ([]domain.Project, error)
 	Find(ctx context.Context, userID, id string) (domain.Project, error)
+	// FindByID loads one active project whoever owns it.
+	FindByID(ctx context.Context, id string) (domain.Project, error)
 	Update(ctx context.Context, userID, id, name, description string) error
 	Archive(ctx context.Context, userID, id string, at time.Time) error
 	// DeleteAll removes every project a person has, archived ones too, and returns their ids.
@@ -53,6 +55,8 @@ type Service struct {
 	checks  Checks
 	ids     IDs
 	now     func() time.Time
+	// onArchive runs after a project is archived, so what runs for it can be stopped.
+	onArchive func(ctx context.Context, id string)
 }
 
 // NewService wires the use cases.
@@ -124,7 +128,24 @@ func (s *Service) Archive(ctx context.Context, userID, id string) error {
 		return fmt.Errorf("archive project: %w", err)
 	}
 
+	if s.onArchive != nil {
+		s.onArchive(ctx, id)
+	}
+
 	return nil
+}
+
+// OnArchive registers what runs after a project is archived.
+func (s *Service) OnArchive(f func(ctx context.Context, id string)) { s.onArchive = f }
+
+// Owner returns who owns an active project and its name.
+func (s *Service) Owner(ctx context.Context, id string) (userID, name string, err error) {
+	project, err := s.store.FindByID(ctx, id)
+	if err != nil {
+		return "", "", fmt.Errorf("find project: %w", err)
+	}
+
+	return project.UserID, project.Name, nil
 }
 
 // Checks returns the commands the AI may run in one of the person's projects.

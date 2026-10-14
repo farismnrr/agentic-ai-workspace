@@ -72,7 +72,9 @@ type Described struct {
 type ToolResult struct {
 	Run *domain.RunInfo
 	// Note is a short extra for the technical line, such as an exit code.
-	Note    string
+	Note string
+	// Link, when set, is an address the person can open, such as a running site; the thread shows it.
+	Link    string
 	Output  string
 	Files   []string
 	Undo    []byte

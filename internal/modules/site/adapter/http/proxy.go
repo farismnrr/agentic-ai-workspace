@@ -1,0 +1,102 @@
+package http
+
+import (
+	"net/url"
+	"strings"
+
+	"github.com/gofiber/fiber/v3"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
+)
+
+// serve answers one request under /run/<name>/<token>/. Every answer, errors included,
+// carries the sandbox headers, and nothing is forwarded until the request is allowed.
+func (h *Handler) serve(c fiber.Ctx) error {
+	token := c.Params("token")
+
+	site, err := h.service.Resolve(c.Context(), token)
+	if err != nil {
+		return reply(c, fiber.StatusNotFound, "Not found")
+	}
+
+	ticket, rest := "", c.Params("*")
+	if site.Visibility == domain.Private {
+		ticket, rest = splitTicket(rest)
+	}
+
+	userID := h.userID(c)
+	valid := ticket != "" && h.service.ValidTicket(token, ticket)
+
+	switch site.Decide(domain.Access{UserID: userID, Page: isPage(c), Ticket: valid}) {
+	case domain.AskSignIn:
+		return signIn(c)
+	case domain.Deny:
+		return reply(c, fiber.StatusForbidden, "This app is private.")
+	case domain.Missing:
+		return reply(c, fiber.StatusNotFound, "Not found")
+	case domain.Allow:
+	}
+
+	return h.deliver(c, site, ticket, rest, valid, userID == site.UserID)
+}
+
+// deliver answers an allowed request: it redirects to the canonical address, which for a
+// private site carries a fresh ticket when the owner opens it, or forwards it to the app.
+func (h *Handler) deliver(c fiber.Ctx, site domain.Site, ticket, rest string, valid, owner bool) error {
+	if c.Get("Service-Worker") != "" {
+		return reply(c, fiber.StatusForbidden, "Service workers are not allowed here")
+	}
+
+	if c.Method() == fiber.MethodOptions && c.Get("Access-Control-Request-Method") != "" {
+		return preflight(c)
+	}
+
+	segment := ""
+	if site.Visibility == domain.Private {
+		switch {
+		case valid:
+			segment = ticketPrefix + ticket
+		case owner && isPage(c):
+			segment = ticketPrefix + h.service.Ticket(site.Token)
+		}
+	}
+
+	if h.needsRedirect(c, site, segment, ticket, valid) {
+		target := url.URL{
+			Path:     site.BasePath() + segmentPath(segment) + "/" + rest,
+			RawQuery: string(c.Request().URI().QueryString()),
+		}
+
+		return c.Redirect().Status(fiber.StatusFound).To(target.String())
+	}
+
+	return h.forward(c, site, "/"+rest, site.BasePath()+segmentPath(segment))
+}
+
+func segmentPath(segment string) string {
+	if segment == "" {
+		return ""
+	}
+
+	return "/" + segment
+}
+
+// needsRedirect reports whether the address is not the canonical one: the readable name is
+// only decoration, the folder must end in a slash for relative links to work, and a private
+// page opened by its owner without a (valid) ticket must be reopened with one.
+func (h *Handler) needsRedirect(c fiber.Ctx, site domain.Site, segment, ticket string, valid bool) bool {
+	path := string(c.Request().URI().PathOriginal())
+	bare := strings.HasSuffix(path, "/"+site.Token) || (valid && strings.HasSuffix(path, "/"+ticketPrefix+ticket))
+
+	return c.Params("name") != site.Slug || bare || (segment != "" && !valid)
+}
+
+func (h *Handler) userID(c fiber.Ctx) string {
+	id, err := h.auth.UserID(c.Context(), c.Cookies(httpserver.SessionCookieName))
+	if err != nil {
+		return ""
+	}
+
+	return id
+}

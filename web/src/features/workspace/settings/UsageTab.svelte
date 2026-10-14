@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import { loadUsage, type UsageRow } from '../logic/tasks-api';
   import SettingRow from './parts/SettingRow.svelte';
@@ -44,7 +45,7 @@
         <progress class="progress progress-secondary h-1.5 w-40" value={tokens(row)} max={Math.max(total, 1)} aria-label="{row.model} share of tokens"></progress>
       </SettingRow>
     {:else}
-      <p class="py-3 text-[var(--brand-text-secondary)]">Nothing used yet this month.</p>
+      <EmptyState compact icon="bar-chart" title="Nothing used yet this month" body="Usage by model appears here once your AI team has done some work." />
     {/each}
   </SettingsSection>
 {/if}

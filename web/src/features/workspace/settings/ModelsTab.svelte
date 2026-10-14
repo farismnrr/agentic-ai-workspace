@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
@@ -75,7 +76,7 @@
 {:else}
   <SettingsSection title="Default model" description={modelsCopy.defaultIntro}>
     {#if options.length === 0}
-      <p class="py-3 text-[var(--brand-text-secondary)]">{modelsCopy.noModels}</p>
+      <EmptyState compact icon="key" title={modelsCopy.noModels.title} body={modelsCopy.noModels.body} />
     {:else}
       <SettingRow label="Model" for="default-model">
         <select id="default-model" class="select select-sm w-72" value={chosen} onchange={(event) => pick(event.currentTarget.value)}>
@@ -92,7 +93,7 @@
     {/snippet}
     {#if notice !== ''}<p class="py-3 text-sm text-error" role="alert">{notice}</p>{/if}
     {#if providers.length === 0}
-      <p class="py-3 text-[var(--brand-text-secondary)]">{modelsCopy.none}</p>
+      <EmptyState compact icon="key" title={modelsCopy.none.title} body={modelsCopy.none.body} />
     {:else}
       <ul>
         {#each providers as provider (provider.id)}

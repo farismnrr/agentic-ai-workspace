@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import { connectedAppsCopy } from '../content/connected';
   import { loadConnectedApps, revokeApp, type ConnectedApp } from '../logic/connectors-api';
@@ -42,7 +43,9 @@
   {:else if failed}
     <p class="py-3 text-error" role="alert">{connectedAppsCopy.failed}</p>
   {:else if apps.length === 0}
-    <p class="py-3 text-[var(--brand-text-secondary)]">{connectedAppsCopy.empty}</p>
+    <EmptyState compact icon="link" title={connectedAppsCopy.empty.title} body={connectedAppsCopy.empty.body}>
+      <a class="btn btn-outline btn-sm rounded-lg" href="/app/settings/spaces">Open Spaces & tools</a>
+    </EmptyState>
   {:else}
     {#each apps as app (app.id)}
       <div class="flex flex-wrap items-start justify-between gap-3 py-3">

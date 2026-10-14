@@ -14,6 +14,7 @@ import (
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
+	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
@@ -24,6 +25,7 @@ import (
 type agentTools struct {
 	folders  *folder.Folders
 	engine   *codingrunner.Engine
+	sites    *siteapp.Service
 	backups  *codingbackup.Store
 	cache    map[string]codingmcp.Services
 	handlers map[string]toolHandler
@@ -82,16 +84,16 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 		}
 	}
 
-	return defs
+	return append(defs, siteDefinitions()...)
 }
 
 // Risk grades how careful the agent must be: edits are undoable (low), the rest ask by default.
 func (a *agentTools) Risk(name string) taskdomain.Risk {
 	switch name {
-	case codingdomain.ToolEditFile.Name, codingdomain.ToolWriteFile.Name:
+	case codingdomain.ToolEditFile.Name, codingdomain.ToolWriteFile.Name, toolStopSite:
 		return taskdomain.RiskLow
 	case codingdomain.ToolDeleteFile.Name, codingdomain.ToolMoveFile.Name,
-		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name:
+		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite:
 		return taskdomain.RiskMedium
 	}
 

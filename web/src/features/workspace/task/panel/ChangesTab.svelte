@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import type { Change } from '../../logic/task-types';
 
@@ -11,7 +12,7 @@
 </script>
 
 {#if changes.length === 0}
-  <p class="rounded-lg border border-dashed border-[var(--brand-border-strong)] p-4 text-[var(--brand-text-secondary)]">Nothing has been changed in this project yet.</p>
+  <EmptyState compact bordered icon="pencil" title="No changes yet" body="Edits the AI makes to this project show up here, and you can undo each one." />
 {:else}
   <ul class="flex flex-col gap-2">
     {#each changes as change (change.id)}
