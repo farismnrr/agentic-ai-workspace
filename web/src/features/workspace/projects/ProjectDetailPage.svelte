@@ -6,6 +6,7 @@
   import { chosenProject, projects } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import AboutTab from './AboutTab.svelte';
+  import ChatTab from './ChatTab.svelte';
   import ChecksTab from './ChecksTab.svelte';
   import TasksTab from './TasksTab.svelte';
 
@@ -13,16 +14,17 @@
     projectId: string;
   }
 
-  type Tab = 'tasks' | 'checks' | 'about';
+  type Tab = 'chat' | 'tasks' | 'checks' | 'about';
 
   const { projectId }: Props = $props();
   const project = $derived(findProject($projects, projectId));
   const tabs: { id: Tab; label: string }[] = [
+    { id: 'chat', label: 'Chat' },
     { id: 'tasks', label: 'Tasks' },
     { id: 'checks', label: 'Checks' },
     { id: 'about', label: 'About' },
   ];
-  let tab = $state<Tab>('tasks');
+  let tab = $state<Tab>('chat');
 
   function newTask(): void {
     chosenProject.set(projectId);
@@ -51,7 +53,7 @@
       {/each}
     </div>
     <div class="mt-4">
-      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'checks'}<ChecksTab {projectId} />{:else}<AboutTab {project} />{/if}
+      {#if tab === 'chat'}<ChatTab {projectId} />{:else if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'checks'}<ChecksTab {projectId} />{:else}<AboutTab {project} />{/if}
     </div>
   {/if}
 </AppShell>

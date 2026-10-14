@@ -70,13 +70,13 @@ func setup(t *testing.T) (*application.Service, domain.Client) {
 		Now: time.Now,
 	})
 
-	client, err := service.RegisterClient(context.Background(),
-		application.Registration{Name: "ChatGPT", RedirectURIs: []string{redirectURI}})
+	result, err := service.RegisterClient(context.Background(),
+		application.Registration{Name: "ChatGPT", RedirectURIs: []string{redirectURI}, AuthMethod: domain.AuthMethodNone})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return service, client
+	return service, result.Client
 }
 
 func seedUser(t *testing.T, db *sql.DB) {
@@ -124,4 +124,50 @@ func exchange(service *application.Service, client domain.Client, code string) (
 	}
 
 	return tokens, nil
+}
+
+func TestConfidentialClientFlow(t *testing.T) {
+	t.Parallel()
+
+	service, _ := setup(t)
+	ctx := context.Background()
+
+	reg, err := service.RegisterClient(ctx, application.Registration{
+		Name: "Google Gemini", RedirectURIs: []string{redirectURI},
+		AuthMethod: domain.AuthMethodClientSecretBasic,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reg.ClientSecret == "" || !reg.Client.IsConfidential() {
+		t.Fatalf("expected confidential client with secret: %+v", reg)
+	}
+
+	// Exchange with wrong secret must fail
+	code := approve(t, service, reg.Client)
+	_, err = service.ExchangeCode(ctx, application.ExchangeParams{
+		Code: code, RedirectURI: redirectURI, ClientID: reg.Client.ID, ClientSecret: "wrong",
+		CodeVerifier: verifier, Resource: resourceURI,
+	})
+	if err == nil {
+		t.Fatal("exchange with wrong secret must fail")
+	}
+
+	// Exchange with correct secret succeeds
+	code2 := approve(t, service, reg.Client)
+	tokens, err := service.ExchangeCode(ctx, application.ExchangeParams{
+		Code: code2, RedirectURI: redirectURI, ClientID: reg.Client.ID, ClientSecret: reg.ClientSecret,
+		CodeVerifier: verifier, Resource: resourceURI,
+	})
+	if err != nil {
+		t.Fatalf("exchange with secret should succeed: %v", err)
+	}
+
+	// Refresh with correct secret succeeds
+	_, err = service.Refresh(ctx, application.RefreshParams{
+		RefreshToken: tokens.RefreshToken, ClientID: reg.Client.ID, ClientSecret: reg.ClientSecret,
+	})
+	if err != nil {
+		t.Fatalf("refresh with secret should succeed: %v", err)
+	}
 }

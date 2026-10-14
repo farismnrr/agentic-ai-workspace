@@ -1,7 +1,7 @@
 SHELL := /bin/sh
 
 # Port the binary listens on when started with `make run`.
-PORT ?= 8080
+PORT ?= 8081
 
 APP_NAME := agentic-ai-workspace
 BIN_DIR := bin

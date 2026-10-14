@@ -13,12 +13,17 @@ type ExchangeParams struct {
 	Code         string
 	RedirectURI  string
 	ClientID     string
+	ClientSecret string
 	CodeVerifier string
 	Resource     string
 }
 
 // ExchangeCode trades an authorization code for tokens.
 func (s *Service) ExchangeCode(ctx context.Context, p ExchangeParams) (TokenResponse, error) {
+	if err := s.authenticateClient(ctx, p.ClientID, p.ClientSecret); err != nil {
+		return TokenResponse{}, err
+	}
+
 	code, err := s.Credentials.ConsumeCode(ctx, s.Tokens.Hash(p.Code), s.Now())
 	if errors.Is(err, domain.ErrCredentialReused) {
 		// A replayed code means it may have leaked: kill everything it produced (RFC 6749 §4.1.2).

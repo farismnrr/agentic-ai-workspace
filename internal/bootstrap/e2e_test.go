@@ -91,7 +91,8 @@ func TestAuthorizationServerAdvertisesRegistrationAndPKCE(t *testing.T) {
 	mustContain(t, body, `"issuer":"`+publicURL+`"`, `"client_id_metadata_document_supported":true`,
 		`"authorization_response_iss_parameter_supported":true`, `"registration_endpoint":"`+publicURL+`/oauth/register"`,
 		`"authorization_endpoint":"`+publicURL+`/oauth/authorize"`, `"jwks_uri":"`+publicURL+`/oauth/jwks.json"`,
-		`"code_challenge_methods_supported":["S256"]`, `"token_endpoint_auth_methods_supported":["none"]`, "coding:read")
+		`"code_challenge_methods_supported":["S256"]`,
+		`"token_endpoint_auth_methods_supported":["none","client_secret_basic","client_secret_post"]`, "coding:read")
 }
 
 func TestJWKSPublishesOneKey(t *testing.T) {

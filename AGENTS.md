@@ -162,7 +162,7 @@ web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ fe
 2. The server is its own OAuth 2.1 authorization server (`modules/oauth`) and hosts MCP spaces (`modules/space`; first is `modules/coding` at `/api/coding`). Tokens are opaque and stored hashed; a space accepts only tokens whose `resource` is its own URL. Features meet only in `internal/bootstrap/bridges.go`. Open endpoints (sign-in, sign-up, OAuth) stay rate limited via `bootstrap/limits.go`.
 3. Discovery contract: protected resource metadata at `/.well-known/oauth-protected-resource/api/<slug>`, server metadata at `/.well-known/oauth-authorization-server` and `openid-configuration`, CIMD (SSRF-guarded, public IPs only), DCR, PKCE S256, RFC 9207 `iss`. Keep `internal/bootstrap/e2e_test.go` passing when touching any of it.
 4. A new space is a `space.Space` plus a bootstrap mount, never an `oauth` special case; the coding space is off unless `CODING_WORKSPACE_ROOT` is set (keep `DATA_DIR` outside it). `coding/domain.Tools()` is the single tool catalogue; calls pass permission, then scope, then run, are always logged, and no tool may reach `.workspace/` (task definitions). Write and run stay separate scopes, Off by default.
-5. Adapters answer errors with `c.Status(n).JSON(httpserver.Failure(code))`; returning a wrapped error after writing a response makes Fiber overwrite it with a 500.
+5. Adapters answer errors with `c.Status(n).JSON(httpserver.Failure(code))`; returning a wrapped error after writing a response makes Fiber overwrite it with a 500. Direct Q&A uses `modules/chat` with SSE and one-click task escalation to `modules/task`.
 
 ## Frontend and routing lessons
 

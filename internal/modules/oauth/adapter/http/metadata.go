@@ -43,7 +43,7 @@ func newMetadata(issuer string, resources []application.Resource) serverMetadata
 		ResponseModesSupported:            []string{"query"},
 		GrantTypesSupported:               []string{"authorization_code", "refresh_token"},
 		CodeChallengeMethodsSupported:     []string{"S256"},
-		TokenEndpointAuthMethodsSupported: []string{"none"},
+		TokenEndpointAuthMethodsSupported: []string{"none", "client_secret_basic", "client_secret_post"},
 		SubjectTypesSupported:             []string{"public"},
 		IDTokenSigningAlgValuesSupported:  []string{"ES256"},
 		ClaimsSupported:                   []string{"sub", "iss", "aud", "exp", "iat", "email", "email_verified", "name"},

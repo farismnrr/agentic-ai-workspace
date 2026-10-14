@@ -114,7 +114,7 @@ Each tool has a permission scope (`coding:read`, `coding:write`, `coding:exec`) 
 
 ### The agent
 
-A task is one request in a project. The agent loop (`modules/task`) sends the conversation to the chosen model, runs the tools it asks for inside the project's folder, and records everything twice: as plain-language steps the person reads (the thread) and as a provider-neutral transcript used to rebuild the conversation. Because the transcript is stored, a task can stop to ask for approval or an answer and later continue, even after a restart.
+Projects support direct discussion via chat (`modules/chat`) with one-click task escalation. A task is one execution request in a project (`modules/task`). The agent loop sends the conversation to the chosen model, runs tools inside the project folder, and records plain-language steps and a provider-neutral transcript. Because the transcript is stored, a task can pause for approval and resume later.
 
 - **Models:** Anthropic Messages and OpenAI Chat Completions over plain HTTP; any compatible gateway works. API keys are sealed with AES-256-GCM using `DATA_DIR/secret.key`.
 - **Approvals:** reads, searches and edits run on their own (edits are undoable); deleting, moving and running checks wait for a yes. A task can also ask before every change.
