@@ -14,14 +14,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/database"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
-	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
 )
-
-// TestMain lets the test binary act as the sandbox init, as the server binary does.
-func TestMain(m *testing.M) {
-	sandbox.RunIfChild()
-	os.Exit(m.Run())
-}
 
 const (
 	publicURL     = "https://example.test"
@@ -85,7 +78,7 @@ func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
 
 	cfg := config.Config{
 		Port: "0", PublicURL: publicURL, DataDir: t.TempDir(), WorkspacesDir: root, CookieSecure: true,
-		SandboxDir: testSandboxDir(), SandboxRelaxed: true, MaxSandboxes: 4,
+		SandboxImage: testImage, MaxSandboxes: 4,
 		AllowedOrigins: []string{"http://localhost:8081", "http://127.0.0.1:8081"},
 		CORSOrigins:    []string{"http://localhost:8081"},
 	}

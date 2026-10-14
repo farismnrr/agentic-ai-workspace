@@ -15,26 +15,27 @@ const (
 	defaultSandboxCPUs     = 1
 	defaultPort            = "8081"
 	defaultDataDir         = "data"
+	defaultSandboxImage    = "node:24-bookworm"
 )
 
 // Config contains runtime process configuration.
 type Config struct {
-	Port            string
-	PublicURL       string
-	ConnectorURL    string
-	DataDir         string
-	WorkspacesDir   string
-	ClientIPHeader  string
-	SandboxDir      string
-	SandboxPackages string
-	AllowedOrigins  []string
-	CORSOrigins     []string
-	AgentWorkers    int
-	MaxSandboxes    int
-	SandboxMemoryMB int
-	SandboxCPUs     int
-	SandboxRelaxed  bool
-	CookieSecure    bool
+	Port              string
+	PublicURL         string
+	ConnectorURL      string
+	DataDir           string
+	WorkspacesDir     string
+	ClientIPHeader    string
+	SandboxImage      string
+	SandboxRuntime    string
+	SandboxDataVolume string
+	AllowedOrigins    []string
+	CORSOrigins       []string
+	AgentWorkers      int
+	MaxSandboxes      int
+	SandboxMemoryMB   int
+	SandboxCPUs       int
+	CookieSecure      bool
 }
 
 // Load reads runtime configuration from the environment.
@@ -55,22 +56,22 @@ func Load() Config {
 	dataDir := getenv("DATA_DIR", defaultDataDir)
 
 	return Config{
-		Port:            port,
-		PublicURL:       publicURL,
-		ConnectorURL:    connector,
-		DataDir:         dataDir,
-		WorkspacesDir:   filepath.Join(dataDir, "workspaces"),
-		AllowedOrigins:  allowed,
-		CORSOrigins:     list("CORS_ORIGINS", allowed),
-		ClientIPHeader:  strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),
-		AgentWorkers:    atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
-		MaxSandboxes:    atoi(getenv("MAX_SANDBOXES", strconv.Itoa(defaultSandboxes)), defaultSandboxes),
-		SandboxDir:      getenv("SANDBOX_DIR", filepath.Join(dataDir, "sandbox")),
-		SandboxPackages: strings.TrimSpace(os.Getenv("SANDBOX_PACKAGES")),
-		SandboxMemoryMB: atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
-		SandboxCPUs:     atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
-		SandboxRelaxed:  strings.EqualFold(os.Getenv("SANDBOX_LIMITS"), "relaxed"),
-		CookieSecure:    strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
+		Port:              port,
+		PublicURL:         publicURL,
+		ConnectorURL:      connector,
+		DataDir:           dataDir,
+		WorkspacesDir:     filepath.Join(dataDir, "workspaces"),
+		AllowedOrigins:    allowed,
+		CORSOrigins:       list("CORS_ORIGINS", allowed),
+		ClientIPHeader:    strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),
+		AgentWorkers:      atoi(getenv("AGENT_WORKERS", strconv.Itoa(defaultWorkers)), defaultWorkers),
+		MaxSandboxes:      atoi(getenv("MAX_SANDBOXES", strconv.Itoa(defaultSandboxes)), defaultSandboxes),
+		SandboxImage:      getenv("SANDBOX_IMAGE", defaultSandboxImage),
+		SandboxRuntime:    strings.TrimSpace(os.Getenv("SANDBOX_RUNTIME")),
+		SandboxDataVolume: strings.TrimSpace(os.Getenv("SANDBOX_DATA_VOLUME")),
+		SandboxMemoryMB:   atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
+		SandboxCPUs:       atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
+		CookieSecure:      strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
 	}
 }
 

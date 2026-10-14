@@ -1,10 +1,14 @@
 package bootstrap
 
 import (
-	"errors"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
+	"time"
 
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
@@ -14,26 +18,11 @@ import (
 const (
 	millisPerCore = 1000
 	mebibyte      = 1 << 20
+	warmTimeout   = 15 * time.Minute
 )
 
-// toolboxDir is the shared, read-only root every sandbox starts from.
-func toolboxDir(cfg config.Config) string {
-	dir, err := filepath.Abs(filepath.Join(cfg.SandboxDir, "general"))
-	if err != nil {
-		return filepath.Join(cfg.SandboxDir, "general")
-	}
-
-	return dir
-}
-
-// errLimitsOff is what a task is told when resource limits cannot be enforced.
-var errLimitsOff = errors.New("the server cannot enforce resource limits for checks, so it will not run them; " +
-	"its owner can fix this by running the server as a systemd service with Delegate=yes, " +
-	"or accept weaker limits with SANDBOX_LIMITS=relaxed")
-
-// newSandboxEngine builds the infrastructure all runners share. When cgroups are not available the
-// default is to refuse to run checks rather than run them without real CPU and memory limits.
-func newSandboxEngine(cfg config.Config) *codingrunner.Engine {
+// sandboxConfig turns the server settings into what the Docker sandbox needs.
+func sandboxConfig(cfg config.Config) sandbox.Config {
 	limits := sandbox.DefaultLimits()
 	if cfg.SandboxMemoryMB > 0 {
 		limits.MemoryBytes = uint64(cfg.SandboxMemoryMB) * mebibyte
@@ -43,25 +32,50 @@ func newSandboxEngine(cfg config.Config) *codingrunner.Engine {
 		limits.CPUMillis = uint64(cfg.SandboxCPUs) * millisPerCore
 	}
 
-	engine := codingrunner.EngineConfig{Toolbox: toolboxDir(cfg), Limits: limits, Size: cfg.MaxSandboxes}
-
-	cgroups, err := sandbox.OpenCgroups()
-
-	switch {
-	case err == nil:
-		engine.Cgroups = cgroups
-		log.Printf("sandbox: cgroup limits on (%d MB, %d CPU per check, %d at a time)",
-			limits.MemoryBytes/mebibyte, limits.CPUMillis/millisPerCore, cfg.MaxSandboxes)
-	case cfg.SandboxRelaxed:
-		log.Printf("sandbox: WARNING: %v; running checks with weaker limits because SANDBOX_LIMITS=relaxed", err)
-	default:
-		engine.Refuse = fmt.Errorf("%w (%w)", errLimitsOff, err)
-		log.Printf("sandbox: %v; checks are refused until this is fixed", err)
+	dataDir, err := filepath.Abs(cfg.DataDir)
+	if err != nil {
+		dataDir = cfg.DataDir
 	}
 
-	if err := sandbox.ToolboxReady(engine.Toolbox); err != nil {
-		log.Printf("sandbox: %v", err)
-	}
+	owner := sha256.Sum256([]byte(dataDir + "|" + cfg.SandboxDataVolume))
 
-	return codingrunner.NewEngine(engine)
+	return sandbox.Config{
+		Owner: hex.EncodeToString(owner[:6]), Image: cfg.SandboxImage, Runtime: cfg.SandboxRuntime,
+		DataVolume: cfg.SandboxDataVolume, DataDir: dataDir, Limits: limits, UID: os.Getuid(), GID: os.Getgid(),
+	}
+}
+
+// newSandboxEngine builds the infrastructure all runners share. Docker is reached lazily and
+// warmed in the background, so a missing daemon never keeps the server from starting; checks
+// are answered with a plain reason until it works.
+func newSandboxEngine(cfg config.Config) *codingrunner.Engine {
+	conf := sandboxConfig(cfg)
+
+	engine := codingrunner.NewEngine(codingrunner.EngineConfig{
+		Size: cfg.MaxSandboxes,
+		Open: func(ctx context.Context) (*sandbox.Docker, error) {
+			docker, err := sandbox.Open(ctx, conf)
+			if err != nil {
+				return nil, fmt.Errorf("checks need Docker, which the server cannot use yet: %w", err)
+			}
+
+			return docker, nil
+		},
+	})
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), warmTimeout)
+		defer cancel()
+
+		if _, err := engine.Docker(ctx); err != nil {
+			log.Printf("sandbox: %v", err)
+
+			return
+		}
+
+		log.Printf("sandbox: Docker ready (image %s, %d MB and %d CPU per check, %d at a time)",
+			conf.Image, conf.Limits.MemoryBytes/mebibyte, conf.Limits.CPUMillis/millisPerCore, cfg.MaxSandboxes)
+	}()
+
+	return engine
 }
