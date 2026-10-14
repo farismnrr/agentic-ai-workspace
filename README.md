@@ -75,7 +75,8 @@ Settings (environment variables):
 
 | Variable | Meaning |
 | --- | --- |
-| `PUBLIC_URL` | The public address of the app, such as `https://your-domain.com`. Defaults to `http://localhost:<PORT>`. ChatGPT needs a public `https` address. |
+| `PUBLIC_URL` | The address you open the app on, such as `http://localhost:8081`. Defaults to `http://localhost:<PORT>`. It decides which browser origins may sign in and whether cookies are marked Secure. |
+| `CONNECTOR_URL` | The public `https` address AI apps such as ChatGPT use to reach the server, for example `https://workspace.example.com`. This is the address shown under Settings, Spaces & tools, the issuer of the sign-in they are sent through, and the audience of their tokens. Defaults to `PUBLIC_URL`. Point your tunnel or reverse proxy for this address at the server. |
 | `ALLOWED_ORIGINS` | Comma-separated browser origins that may sign in and change data (CSRF protection). Defaults to `http://localhost:<PORT>,http://127.0.0.1:<PORT>`. `PUBLIC_URL` is always allowed too. Add a domain or IP here, for example `https://workspace.example.com,http://192.168.1.20:8081`. |
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
 | `SANDBOX_DIR` | Where the toolbox lives (default `DATA_DIR/sandbox`; the toolbox is its `general` folder). |
@@ -141,7 +142,7 @@ A task runs with the same rights as the app itself, one at a time, with a time l
 
 ### Trying it from your computer
 
-To try it, run the app, expose it with a tunnel (for example `cloudflared tunnel --url http://localhost:8081`), and start the app with `PUBLIC_URL` set to the tunnel address. In ChatGPT, turn on developer mode, add a connector with `<PUBLIC_URL>/api/coding`, and sign in when asked. You can see and remove connected apps under Settings, Connected apps. Each tool has a switch under Settings, Spaces & tools; looking at files is on from the start and changing files or running checks stay off until you turn them on. The coding space never shows `.env`, `.git`, or key files.
+To try it, run the app, expose it with a tunnel (for example `cloudflared tunnel --url http://localhost:8081`), and start the app with `CONNECTOR_URL` set to the tunnel address. In ChatGPT, turn on developer mode, add a connector with `<CONNECTOR_URL>/api/coding`, and sign in when asked. You can see and remove connected apps under Settings, Connected apps. Each tool has a switch under Settings, Spaces & tools; looking at files is on from the start and changing files or running checks stay off until you turn them on. The coding space never shows `.env`, `.git`, or key files.
 
 ## Design system
 

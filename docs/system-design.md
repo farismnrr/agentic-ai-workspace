@@ -103,7 +103,7 @@ The binary also hosts its own sign-in and an OAuth 2.1 authorization server, so 
 - **Spaces** (`modules/space`, `modules/coding`): each space is an MCP endpoint at `/api/<name>`. The first, `coding`, offers tools to list, read, search, change files in, and run tasks in the caller's own workspace folder (`DATA_DIR/workspaces/<user id>`, created on first use and removed with the account). Each call resolves the folder from the verified token, so one person can never name another's files. Paths are confined with Go's `os.Root`, and secret files are never shown.
 - **Authorization server** (`modules/oauth`): issues opaque access tokens (stored hashed) tied to one space, plus rotating refresh tokens. A replayed code or refresh token revokes the whole connection.
 
-What an AI app discovers from `https://domain.com/api/coding`:
+What an AI app discovers from `CONNECTOR_URL/api/coding` (for example `https://domain.com/api/coding`):
 
 1. A call without a token gets `401` and a pointer to `/.well-known/oauth-protected-resource/api/coding`.
 2. That document names the authorization server and the permissions (`coding:read`).
