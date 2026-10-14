@@ -6,7 +6,7 @@
 #   DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose -f compose.latest.yaml up -d
 #
 # Settings come from the shell or a .env file next to this one (PUBLIC_URL, CONNECTOR_URL,
-# ALLOWED_ORIGINS, ...), see the README.
+# ALLOWED_ORIGINS, ...), see docs/deployment.md.
 # The image is pulled from GHCR. To use a local build instead, run `make image` first.
 services:
   # The toolbox the AI's commands run in. It is never a long-running service: it exists so that
