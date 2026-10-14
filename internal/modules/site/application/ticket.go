@@ -11,22 +11,24 @@ import (
 )
 
 // TicketTTL is how long a ticket works after the owner's visit.
-const TicketTTL = 12 * time.Hour
+const TicketTTL = 4 * time.Hour
 
 const macBytes = 16
 
 // Ticket returns a signed, expiring pass for one site address. The owner's page visit puts it in
 // the address, so what the sandboxed page loads next is allowed without the person's login.
-// It is bound to the token, so it dies when the site is started again, and the key is renewed on
-// every server start, which also stops every site.
-func (s *Service) Ticket(token string) string {
+// It is bound to the token, so it dies when the site is started again, to the holder (the
+// visitor's browser and, when the server can see it, network address), so a copied address does
+// not work from another machine, and the key is renewed on every server start, which also
+// stops every site.
+func (s *Service) Ticket(token, holder string) string {
 	expires := s.deps.Now().Add(TicketTTL).Unix()
 
-	return fmt.Sprintf("%d.%s", expires, s.mac(token, expires))
+	return fmt.Sprintf("%d.%s", expires, s.mac(token, holder, expires))
 }
 
-// ValidTicket checks a ticket against a site address token.
-func (s *Service) ValidTicket(token, ticket string) bool {
+// ValidTicket checks a ticket against a site address token and the holder presenting it.
+func (s *Service) ValidTicket(token, holder, ticket string) bool {
 	text, mac, found := strings.Cut(ticket, ".")
 	if !found {
 		return false
@@ -37,12 +39,12 @@ func (s *Service) ValidTicket(token, ticket string) bool {
 		return false
 	}
 
-	return hmac.Equal([]byte(mac), []byte(s.mac(token, expires)))
+	return hmac.Equal([]byte(mac), []byte(s.mac(token, holder, expires)))
 }
 
-func (s *Service) mac(token string, expires int64) string {
+func (s *Service) mac(token, holder string, expires int64) string {
 	h := hmac.New(sha256.New, s.deps.Secret)
-	_, _ = fmt.Fprintf(h, "site-ticket|%s|%d", token, expires)
+	_, _ = fmt.Fprintf(h, "site-ticket|%s|%q|%d", token, holder, expires)
 
 	return hex.EncodeToString(h.Sum(nil)[:macBytes])
 }
