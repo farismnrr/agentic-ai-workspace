@@ -1,0 +1,71 @@
+package domain
+
+import "time"
+
+// EventKind is what a thread entry is. These are what the person reads.
+type EventKind string
+
+// Event kinds.
+const (
+	EventRequest  EventKind = "request"
+	EventMessage  EventKind = "message"
+	EventAction   EventKind = "action"
+	EventQuestion EventKind = "question"
+	EventApproval EventKind = "approval"
+	EventError    EventKind = "error"
+	EventReceipt  EventKind = "receipt"
+)
+
+// Risk grades how careful the agent must be before a step.
+type Risk string
+
+// Risk levels; RiskNone steps never need approval.
+const (
+	RiskNone   Risk = ""
+	RiskLow    Risk = "low"
+	RiskMedium Risk = "medium"
+	RiskHigh   Risk = "high"
+)
+
+// Resolution of an approval.
+const (
+	Allowed = "allowed"
+	Denied  = "denied"
+)
+
+// RunInfo records a task the server ran for the agent; proof is built from these.
+type RunInfo struct {
+	Name     string `json:"name"`
+	ExitCode int    `json:"exitCode"`
+	TimedOut bool   `json:"timedOut,omitempty"`
+}
+
+// Event is one entry of a task's thread. Fields beyond Kind and Text only
+// apply to some kinds, matching what the thread renders.
+type Event struct {
+	Time      time.Time `json:"time"`
+	Run       *RunInfo  `json:"run,omitempty"`
+	ID        string    `json:"id"`
+	Kind      EventKind `json:"kind"`
+	Text      string    `json:"text"`
+	Technical string    `json:"technical,omitempty"`
+	Action    string    `json:"action,omitempty"`
+	Risk      Risk      `json:"risk,omitempty"`
+	Resolved  string    `json:"resolved,omitempty"`
+	Answered  string    `json:"answered,omitempty"`
+	Hint      string    `json:"hint,omitempty"`
+	// ToolUseID links an approval or question to the model's pending tool call.
+	ToolUseID string   `json:"-"`
+	Options   []string `json:"options,omitempty"`
+	Files     []string `json:"files,omitempty"`
+	// Undo describes how to reverse the step; only the owning tools understand it.
+	Undo   []byte `json:"-"`
+	Undone bool   `json:"undone,omitempty"`
+	// Seq orders events within a task and is the cursor for polling.
+	Seq int64 `json:"seq"`
+}
+
+// CanUndo reports whether the step made a reversible change that still stands.
+func (e Event) CanUndo() bool {
+	return len(e.Undo) > 0 && !e.Undone
+}

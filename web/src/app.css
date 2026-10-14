@@ -89,6 +89,18 @@
     font: inherit;
   }
 
+  /* Signed-in app scale: compact type, tighter radii, sans headings. Colors stay in the theme. */
+  .app-ui {
+    --radius-box: 0.75rem;
+    --radius-field: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+  }
+
+  .app-ui :is(h1, h2, h3, h4) {
+    font-family: var(--font-sans);
+  }
+
   ::selection {
     color: var(--color-primary-content);
     background: var(--color-primary);

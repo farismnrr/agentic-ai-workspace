@@ -1,4 +1,4 @@
-import type { IconName } from '../../shared/ui/Icon.svelte';
+import type { IconName } from '../../shared/ui/icon-names';
 
 export const REPO_URL = 'https://github.com/farismnrr/agentic-ai-workspace';
 
