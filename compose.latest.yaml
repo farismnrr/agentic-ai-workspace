@@ -9,7 +9,17 @@
 # ALLOWED_ORIGINS, ...), see the README.
 # The image is pulled from GHCR. To use a local build instead, run `make image` first.
 services:
+  # The toolbox the AI's commands run in. It is never a long-running service: it exists so that
+  # `docker compose pull` and `up` fetch the image with the app, and the app starts only once it is present.
+  sandbox:
+    image: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
+    entrypoint: ["true"]
+    network_mode: none
+    restart: "no"
   app:
+    depends_on:
+      sandbox:
+        condition: service_completed_successfully
     image: ghcr.io/farismnrr/agentic-ai-workspace:latest
     # The host's network, so "localhost" in Settings means this computer: a model gateway
     # that listens on the host's loopback is then reachable (the egress rule allows only
