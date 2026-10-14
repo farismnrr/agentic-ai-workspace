@@ -1,7 +1,11 @@
 export const sitesCopy = {
   title: 'Sites',
   intro: 'Web apps your AI started. Open one to try it. They stop when you press Stop or when the server restarts.',
-  none: 'No apps yet. Ask the AI to build a web page or app and run it, and it will show up here.',
+  empty: {
+    title: 'No apps yet',
+    body: 'Ask the AI to build a web page or app and run it. It shows up here, where you can open, share or stop it.',
+    action: 'Ask the AI',
+  },
   running: 'Running',
   stopped: 'Stopped',
   open: 'Open',

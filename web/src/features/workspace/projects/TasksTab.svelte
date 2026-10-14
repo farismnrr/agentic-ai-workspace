@@ -1,4 +1,6 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
+  import { projectsCopy } from '../content/projects-copy';
   import { statusMeta, statusOrder } from '../content/status';
   import { tasksOf } from '../logic/derive';
   import type { Task, TaskStatus } from '../logic/task-types';
@@ -35,5 +37,13 @@
   {/each}
 </div>
 <div class="mt-3 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
-  {#each rows as task (task.id)}<TaskRow {task} />{:else}<p class="p-5 text-[var(--brand-text-secondary)]">Nothing here yet. Start a task from Home or with New task.</p>{/each}
+  {#each rows as task (task.id)}<TaskRow {task} />{:else}
+    {#if all.length === 0}
+      <EmptyState compact icon="check-square" title={projectsCopy.noTasks.title} body={projectsCopy.noTasks.body}>
+        <a class="btn btn-primary btn-sm rounded-lg" href="/app">New task</a>
+      </EmptyState>
+    {:else}
+      <EmptyState compact icon="search" title="Nothing in “{labels[filter]}”" body="Pick another filter to see the rest of this project's tasks." />
+    {/if}
+  {/each}
 </div>

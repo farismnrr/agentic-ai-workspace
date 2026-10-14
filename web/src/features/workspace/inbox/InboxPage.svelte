@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { navigate, route } from '../../../app/router';
   import { inboxItems } from '../logic/derive';
   import { tasks } from '../logic/workspace-store';
@@ -26,7 +27,9 @@
 
 <AppShell crumbs={[{ label: 'Inbox' }]} width="split">
   {#if items.length === 0}
-    <div class="grid flex-1 place-items-center p-8 text-center"><div><h1 class="text-xl">You're all caught up</h1><p class="mt-2 text-[var(--brand-text-secondary)]">Nothing is waiting for you right now.</p></div></div>
+    <div class="grid flex-1 place-items-center p-8">
+      <EmptyState icon="check-circle" title="You're all caught up" body="Nothing is waiting for you right now. When the AI needs an answer or your OK, it shows up here." />
+    </div>
   {:else}
     <div class="flex flex-1 lg:h-[calc(100dvh-3rem)]">
       <section class="w-full flex-col overflow-y-auto border-r border-[var(--brand-border)] lg:flex lg:w-96 lg:flex-none {routeId === undefined ? 'flex' : 'hidden'}" aria-label="Inbox list">

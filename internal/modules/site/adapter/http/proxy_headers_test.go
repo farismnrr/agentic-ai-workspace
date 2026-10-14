@@ -12,7 +12,7 @@ import (
 )
 
 func TestAppSeesNeitherTheLoginNorThePrefix(t *testing.T) {
-	app, seen := newApp(t, domain.Private, domain.Running)
+	app, seen := newApp(t, domain.Public, domain.Running)
 	headers := as("document", "owner-session")
 	headers["Authorization"] = "Bearer abc"
 	headers["X-Forwarded-For"] = "6.6.6.6"

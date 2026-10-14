@@ -64,6 +64,15 @@ const resolve = (url: string): Route => matchRoute(pathOf(url)) ?? { name: 'land
 
 export const route = writable<Route>(resolve(window.location.pathname));
 
+/**
+ * Goes to a same-site path after sign-in. App routes stay inside the page; anything else, such as an
+ * app under /run, is a real page load because the server (not the SPA) answers it.
+ */
+export function goTo(path: string): void {
+  if (matchRoute(pathOf(path)) !== undefined) navigate(path);
+  else window.location.assign(path);
+}
+
 /** Moves to a same-site URL (query allowed); `replace` skips adding a history entry. */
 export function navigate(path: string, replace = false): void {
   if (replace) window.history.replaceState({}, '', path);

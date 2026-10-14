@@ -1,4 +1,5 @@
 <script lang="ts">
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import { ApiError } from '../../../shared/api/http';
   import { activityCopy } from '../content/connected';
@@ -54,7 +55,7 @@
   {:else if failed}
     <p class="py-3 text-error" role="alert">{activityCopy.failed}</p>
   {:else if entries.length === 0}
-    <p class="py-3 text-[var(--brand-text-secondary)]">{activityCopy.empty}</p>
+    <EmptyState compact icon="activity" title={activityCopy.empty.title} body={activityCopy.empty.body} />
   {:else}
     {#each entries as entry (entry.id)}
       <div class="flex flex-wrap items-center justify-between gap-3 py-2.5">

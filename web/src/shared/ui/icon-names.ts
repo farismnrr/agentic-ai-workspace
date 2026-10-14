@@ -40,5 +40,9 @@ export type IconName =
   | 'x'
   | 'send'
   | 'square'
+  | 'link'
+  | 'key'
+  | 'activity'
+  | 'bar-chart'
   | 'external-link'
   | 'user';

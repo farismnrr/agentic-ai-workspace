@@ -5,7 +5,7 @@
   import AuthLayout from './AuthLayout.svelte';
   import PasswordField from '../../shared/forms/PasswordField.svelte';
   import TextField from './components/TextField.svelte';
-  import { navigate } from '../../app/router';
+  import { goTo } from '../../app/router';
   import { setUser } from '../../shared/session/session';
   import { loginCopy } from './content';
   import { describeError, nextPath, signIn } from './logic/auth-api';
@@ -33,7 +33,7 @@
     busy = true;
     try {
       setUser(await signIn(email, password));
-      navigate(nextPath(window.location.search));
+      goTo(nextPath(window.location.search));
     } catch (failure) {
       error = describeError(failure);
     } finally {

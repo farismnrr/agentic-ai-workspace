@@ -20,6 +20,8 @@ type Service interface {
 	SetVisibility(ctx context.Context, userID, projectID, value string) error
 	Resolve(ctx context.Context, token string) (domain.Site, error)
 	Socket(projectID string) string
+	Ticket(token string) string
+	ValidTicket(token, ticket string) bool
 }
 
 // Handler serves /api/sites and /run.
