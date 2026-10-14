@@ -62,7 +62,7 @@
       {/if}
     </div>
   {:else}
-    <div class="flex flex-1 flex-col lg:h-[calc(100dvh-3rem)]">
+    <div class="flex flex-1 flex-col h-[calc(100dvh-3rem)]">
       <TaskHeader task={$task} onstop={controller.stop} onretry={controller.retry} />
       <div role="tablist" class="tabs tabs-border overflow-x-auto border-b border-[var(--brand-border)] bg-base-100 px-2 lg:hidden" aria-label="Task sections">
         {#each views as item (item.id)}
