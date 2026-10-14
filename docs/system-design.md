@@ -122,6 +122,8 @@ A task is one request in a project. The agent loop (`modules/task`) sends the co
 - **Checks:** a project's checks live in `.workspace/tasks.json` inside its folder, which the AI's tools can never read or write; only the Checks tab changes them.
 - **Limits:** 40 model turns, 15 minutes and a token budget per run; a project runs one task at a time; interrupted tasks are marked and can be continued.
 
+Your data (`modules/mydata`): `GET /api/account/export` streams a zip built from sections that bootstrap assembles from the other features (`bootstrap/export.go`). `DELETE /api/tasks` clears a person's tasks, cancelling running ones. `POST /api/auth/delete` checks the password, then runs the erasers other features registered (tasks, then projects and their folders) before deleting the user row; remaining rows go with it through foreign-key cascades.
+
 Task pages and the workspace follow changes live over server-sent events (`GET /api/tasks/:id/stream` for steps and streamed text, `GET /api/stream` for list changes); a client that reconnects resumes from `Last-Event-ID`, and the workspace falls back to a slow poll.
 
 Sign-in, sign-up and the open OAuth endpoints are rate limited per visitor address (failed sign-ins also per account and address, so someone else's wrong guesses never lock you out). Expired sessions, codes, tokens and unused clients are swept away every hour.

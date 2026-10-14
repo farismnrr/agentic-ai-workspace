@@ -49,6 +49,15 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 	return nil
 }
 
+// DeleteAll removes a person's tasks; their events, messages and usage go with them.
+func (s *Store) DeleteAll(ctx context.Context, userID string) error {
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM tasks WHERE user_id = ?`, userID); err != nil {
+		return fmt.Errorf("delete tasks: %w", err)
+	}
+
+	return nil
+}
+
 // Find loads a task; an empty userID skips the ownership check.
 func (s *Store) Find(ctx context.Context, userID, id string) (domain.Task, error) {
 	query, args := `SELECT `+taskColumns+` FROM tasks WHERE id = ?`, []any{id}

@@ -42,9 +42,11 @@ export const personaCopy = {
   failed: 'We could not save that. Please try again.',
 };
 
-export const comingSoon = {
-  label: 'Coming soon',
-  notifications: 'Choose when you want to hear from your AI team. This is not available yet.',
-  export: 'Download everything as a file. Not available yet.',
-  delete: 'Remove every task and its history. Not available yet.',
+export const notificationsCopy = {
+  description: 'Alerts only appear while this tab is in the background, and only on this device.',
+  ask: 'Your browser will ask for permission.',
+  blocked: 'Notifications are blocked for this site. Allow them in your browser settings, then reload.',
+  unsupported: 'This browser does not support notifications.',
+  asks: 'A task needs your answer or is ready for your review.',
+  problems: 'A task failed or had to stop.',
 };

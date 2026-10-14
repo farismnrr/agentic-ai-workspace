@@ -22,7 +22,7 @@ import (
 func newAgent(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
 	auth, sameOrigin fiber.Handler,
-) (httpserver.Mount, func(), error) {
+) (*taskapp.Service, httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStore(db, opaque.Generator{})
 	hub := taskapp.NewHub()
 	deps := taskapp.Observe(taskapp.Deps{
@@ -38,7 +38,7 @@ func newAgent(
 	service := taskapp.NewService(deps, scheduler)
 
 	if err := service.Recover(context.Background()); err != nil {
-		return nil, nil, fmt.Errorf("recover interrupted tasks: %w", err)
+		return nil, nil, nil, fmt.Errorf("recover interrupted tasks: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -50,5 +50,5 @@ func newAgent(
 		hub.Close()
 	}
 
-	return taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
+	return service, taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
 }

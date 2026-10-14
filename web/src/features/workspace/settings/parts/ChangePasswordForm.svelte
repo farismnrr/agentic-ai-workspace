@@ -1,7 +1,7 @@
 <script lang="ts">
   import PasswordField from '../../../../shared/forms/PasswordField.svelte';
   import { validatePassword } from '../../../../shared/forms/validation';
-  import { changePassword, describePasswordError } from '../../logic/account-api';
+  import { changePassword, describeAccountError } from '../../logic/account-api';
 
   let current = $state('');
   let next = $state('');
@@ -26,7 +26,7 @@
       next = '';
       submitted = false;
     } catch (failure) {
-      error = describePasswordError(failure);
+      error = describeAccountError(failure);
     } finally {
       busy = false;
     }

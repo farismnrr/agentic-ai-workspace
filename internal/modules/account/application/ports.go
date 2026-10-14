@@ -14,6 +14,12 @@ type UserStore interface {
 	ByID(ctx context.Context, id string) (domain.User, error)
 	PasswordHash(ctx context.Context, id string) (string, error)
 	SetPassword(ctx context.Context, id, passwordHash string) error
+	Delete(ctx context.Context, id string) error
+}
+
+// Eraser removes what a feature keeps for a person, when their account is deleted.
+type Eraser interface {
+	Erase(ctx context.Context, userID string) error
 }
 
 // SessionStore persists browser sessions keyed by the hash of the cookie token.

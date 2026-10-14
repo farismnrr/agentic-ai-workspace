@@ -38,6 +38,7 @@ func (h *Handler) Mount(sameOrigin fiber.Handler, limits Limits) httpserver.Moun
 		auth.Post("/logout", h.logout)
 		auth.Get("/me", h.me)
 		auth.Post("/password", h.changePassword)
+		auth.Post("/delete", h.deleteAccount)
 	}
 }
 
