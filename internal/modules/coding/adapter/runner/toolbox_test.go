@@ -30,7 +30,9 @@ func toolboxEngine(t *testing.T) *runner.Engine {
 
 	t.Cleanup(func() { _ = os.RemoveAll(short) })
 
-	hub := egressproxy.NewHub(short, egressproxy.New([]string{"pypi.org"}))
+	hub := egressproxy.NewHub(short, egressproxy.New([]string{
+		"pypi.org", "files.pythonhosted.org", "registry.npmjs.org", "proxy.golang.org", "sum.golang.org",
+	}))
 	t.Cleanup(hub.Close)
 
 	return runner.NewEngine(runner.EngineConfig{
@@ -109,5 +111,21 @@ func TestEachWorkspaceHasItsOwnCache(t *testing.T) {
 
 	if out := runCommand(t, eng, a, "cat /cache/marker"); !strings.Contains(out, "mine") {
 		t.Fatalf("a cache must survive between commands: %q", out)
+	}
+}
+
+func TestPackageManagersInstallThroughTheProxy(t *testing.T) {
+	eng := toolboxEngine(t)
+	script := `set -e
+cd /workspace
+pip install --quiet --target pylib six && ls pylib | grep -q six.py && echo pip-ok
+npm install --silent --no-audit --no-fund is-odd && test -d node_modules/is-odd && echo npm-ok
+go mod init demo >/dev/null 2>&1 && go get rsc.io/quote@v1.5.2 >/dev/null 2>&1 && echo go-ok`
+
+	out := runCommand(t, eng, t.TempDir(), script)
+	for _, want := range []string{"pip-ok", "npm-ok", "go-ok"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
 	}
 }
