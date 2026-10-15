@@ -134,7 +134,7 @@ func rigOn(t *testing.T, env testEnv, steps ...string) agentRig {
 
 	// The agent obeys the same switches as connected apps; most tests need the changing tools on.
 	changing := []string{
-		"edit_file", "write_file", "delete_file", "move_file", "run_task", "run_command", "start_site", "stop_site",
+		"edit_file", "write_file", "delete_file", "move_file", "run_task", "run_command",
 	}
 
 	for _, tool := range changing {

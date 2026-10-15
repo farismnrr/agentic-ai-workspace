@@ -74,7 +74,8 @@ var ToolRunCommand = ToolInfo{
 		"only package registries can be reached) and return its exit code and output.",
 }
 
-// The site tools start and stop the project's web app, so the person can open it in a browser.
+// The site tools start and stop the project's web app. They have no switch of their own: they are allowed
+// exactly when run_command is, because starting an app is running a command (see SwitchOf).
 var (
 	ToolStartSite = ToolInfo{
 		Name: "start_site", Title: "Start the web app", Scope: ScopeExec, Group: GroupExec,
@@ -95,6 +96,15 @@ func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami,
 		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand,
-		ToolStartSite, ToolStopSite,
 	}
+}
+
+// SwitchOf names the switch that governs a tool. Most tools have their own; starting and stopping the web
+// app follow run_command.
+func SwitchOf(tool string) string {
+	if tool == ToolStartSite.Name || tool == ToolStopSite.Name {
+		return ToolRunCommand.Name
+	}
+
+	return tool
 }
