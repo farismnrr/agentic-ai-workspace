@@ -150,3 +150,31 @@ func TestRedirectsAreRefusedSoKeysStayHome(t *testing.T) {
 		t.Fatal("a redirect must fail")
 	}
 }
+
+func TestEffortGoesInOutputConfigOnlyWhenChosen(t *testing.T) {
+	t.Parallel()
+
+	server, seen := serve(t)
+	request := conversation()
+	request.Effort = domain.EffortXHigh
+
+	if _, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+
+	config, _ := (*seen)["output_config"].(map[string]any)
+	if config["effort"] != "xhigh" {
+		t.Fatalf("output_config = %v, want effort xhigh", (*seen)["output_config"])
+	}
+
+	request.Effort = domain.EffortDefault
+	*seen = map[string]any{}
+
+	if _, err := anthropic.New(server.URL, "k", local).Complete(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, present := (*seen)["output_config"]; present {
+		t.Fatal("no effort chosen must leave output_config out")
+	}
+}

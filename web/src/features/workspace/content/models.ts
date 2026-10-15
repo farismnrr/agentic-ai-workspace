@@ -19,6 +19,7 @@ export const kindLabel = (kind: ProviderKind): string => kindChoices.find((choic
 
 export const modelsCopy = {
   defaultIntro: 'Used for every new task unless you pick another when you start it.',
+  effortIntro: 'How hard the AI thinks before it answers. Higher is slower and costs more; a model that does not take a level will say so.',
   providersIntro: 'Your own keys. Tasks are billed by the provider, not by us.',
   none: { title: 'Add your first AI model', body: 'Add a provider with your own key so your AI team has a model to work with. Use Add above.' },
   noModels: { title: 'No models to choose from yet', body: 'Add a provider and verify its key, then pick a model here.' },

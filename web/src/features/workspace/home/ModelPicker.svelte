@@ -1,0 +1,47 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { effortChoices } from '../logic/effort';
+  import { loadPreferences, type Preferences } from '../logic/preferences-api';
+  import { loadModels, loadProviders, type ModelOption, type Provider } from '../logic/providers-api';
+
+  interface Props {
+    /** "providerId::model", or empty for the default model. */
+    model?: string | undefined;
+    effort?: string | undefined;
+    disabled?: boolean | undefined;
+  }
+
+  let { model = $bindable(''), effort = $bindable(''), disabled = false }: Props = $props();
+  let options: ModelOption[] = $state([]);
+  let providers: Provider[] = $state([]);
+  let prefs: Preferences | undefined = $state();
+
+  const preferred = $derived(prefs !== undefined && prefs.defaultProviderId !== '' ? prefs.defaultProviderId : options[0]?.providerId);
+  const providerId = $derived(model === '' ? preferred : model.split('::')[0]);
+  const choices = $derived(effortChoices(providers.find((item) => item.id === providerId)?.kind));
+
+  // A level the newly chosen model's provider does not take falls back to the default.
+  $effect(() => {
+    if (effort !== '' && !choices.some((choice) => choice.value === effort)) effort = '';
+  });
+
+  onMount(async () => {
+    try {
+      [options, providers, prefs] = await Promise.all([loadModels(), loadProviders(), loadPreferences()]);
+    } catch {
+      options = [];
+    }
+  });
+</script>
+
+{#if options.length > 0}
+  <label class="sr-only" for="composer-model">Model</label>
+  <select id="composer-model" class="select select-ghost select-sm w-auto max-w-44 rounded-full {model === '' ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}" bind:value={model} {disabled}>
+    <option value="">Default model</option>
+    {#each options as option (`${option.providerId}::${option.model}`)}<option value="{option.providerId}::{option.model}">{option.model}</option>{/each}
+  </select>
+  <label class="sr-only" for="composer-effort">Effort</label>
+  <select id="composer-effort" class="select select-ghost select-sm w-auto rounded-full {effort === '' ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}" bind:value={effort} {disabled}>
+    {#each choices as choice (choice.value)}<option value={choice.value}>{choice.value === '' ? 'Default effort' : `${choice.label} effort`}</option>{/each}
+  </select>
+{/if}

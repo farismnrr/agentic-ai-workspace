@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import type { Project } from '../logic/task-types';
 
@@ -12,6 +13,8 @@
     busy?: boolean | undefined;
     disabled?: boolean | undefined;
     error?: string | undefined;
+    /** Extra controls in the toolbar, before the send button. */
+    tools?: Snippet | undefined;
     onsend: (text: string, project: string) => void;
   }
 
@@ -24,6 +27,7 @@
     busy = false,
     disabled = false,
     error = '',
+    tools,
     onsend,
   }: Props = $props();
 
@@ -59,6 +63,7 @@
           {#each projects as item (item.id)}<option value={item.id}>{item.name}</option>{/each}
         </select>
       {/if}
+      {#if tools !== undefined}{@render tools()}{/if}
       <button class="btn btn-primary btn-circle btn-sm ml-auto" type="submit" aria-label="Send" disabled={!canSend}>
         {#if busy}<span class="loading loading-spinner loading-xs"></span>{:else}<Icon name="arrow-right" class="size-4" />{/if}
       </button>

@@ -30,7 +30,7 @@ func (r *Runner) turn(
 	messages := r.compactIfNeeded(ctx, task, state, compaction{client: client, system: system, tools: offered}, transcript)
 
 	reply, err := r.ask(ctx, client, Request{
-		Model: task.Model, System: system, Messages: orderBlocks(messages), OnText: r.streamTo(task.ID),
+		Model: task.Model, System: system, Effort: task.Effort, Messages: orderBlocks(messages), OnText: r.streamTo(task.ID),
 		Tools: offered,
 	})
 	if err != nil {

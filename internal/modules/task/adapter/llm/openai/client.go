@@ -55,9 +55,11 @@ type streamOptions struct {
 type request struct {
 	StreamOptions *streamOptions `json:"stream_options,omitempty"`
 	Model         string         `json:"model"`
-	Messages      []message      `json:"messages"`
-	Tools         []toolDef      `json:"tools,omitempty"`
-	Stream        bool           `json:"stream,omitempty"`
+	// ReasoningEffort is the OpenAI-style effort; gateways such as 9router pass it on.
+	ReasoningEffort string    `json:"reasoning_effort,omitempty"`
+	Messages        []message `json:"messages"`
+	Tools           []toolDef `json:"tools,omitempty"`
+	Stream          bool      `json:"stream,omitempty"`
 }
 
 type response struct {
@@ -107,7 +109,7 @@ func (c *Client) Complete(ctx context.Context, in application.Request) (applicat
 }
 
 func encode(in application.Request) request {
-	out := request{Model: in.Model}
+	out := request{Model: in.Model, ReasoningEffort: string(in.Effort)}
 
 	if in.System != "" {
 		out.Messages = append(out.Messages, message{Role: "system", Content: &in.System})

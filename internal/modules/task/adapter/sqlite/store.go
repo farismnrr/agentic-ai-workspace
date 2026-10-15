@@ -17,7 +17,7 @@ import (
 const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
-	`created_at, updated_at, source, context_used, context_window`
+	`created_at, updated_at, source, context_used, context_window, effort`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -43,9 +43,9 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 
 	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO tasks (id, project_id, user_id, title, summary, status, mode, provider_id, model, plan,
-		   created_at, updated_at, source) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?)`,
+		   created_at, updated_at, source, effort) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		t.ID, t.ProjectID, t.UserID, t.Title, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
-		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source)
+		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort))
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
 	}
@@ -167,17 +167,18 @@ func scanTask(row scanner) (domain.Task, error) {
 	var (
 		t                domain.Task
 		status, plan     string
+		effort           string
 		proof            sql.NullString
 		created, updated int64
 	)
 
 	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
-		&plan, &proof, &created, &updated, &t.Source, &t.ContextUsed, &t.ContextWindow)
+		&plan, &proof, &created, &updated, &t.Source, &t.ContextUsed, &t.ContextWindow, &effort)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}
 
-	t.Status = domain.Status(status)
+	t.Status, t.Effort = domain.Status(status), domain.Effort(effort)
 	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0), time.Unix(updated, 0)
 
 	if err := json.Unmarshal([]byte(plan), &t.Plan); err != nil {

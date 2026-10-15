@@ -29,9 +29,10 @@ func (s *Store) Load(ctx context.Context, userID string) (domain.Preferences, er
 	)
 
 	err := s.db.QueryRowContext(ctx,
-		`SELECT default_provider_id, default_model, persona_name, talk_style, language, about, rules
-		 FROM preferences WHERE user_id = ?`, userID).
-		Scan(&p.DefaultProviderID, &p.DefaultModel, &p.PersonaName, &p.TalkStyle, &p.Language, &p.About, &rules)
+		`SELECT default_provider_id, default_model, default_effort, persona_name, talk_style, language,
+		   about, rules FROM preferences WHERE user_id = ?`, userID).
+		Scan(&p.DefaultProviderID, &p.DefaultModel, &p.DefaultEffort, &p.PersonaName, &p.TalkStyle, &p.Language,
+			&p.About, &rules)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Preferences{Rules: []domain.Rule{}}, nil
 	}
@@ -55,14 +56,14 @@ func (s *Store) Save(ctx context.Context, userID string, p domain.Preferences, a
 	}
 
 	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO preferences (user_id, default_provider_id, default_model, persona_name, talk_style, language,
-		   about, rules, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO preferences (user_id, default_provider_id, default_model, default_effort, persona_name,
+		   talk_style, language, about, rules, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT (user_id) DO UPDATE SET default_provider_id = excluded.default_provider_id,
-		   default_model = excluded.default_model, persona_name = excluded.persona_name,
-		   talk_style = excluded.talk_style, language = excluded.language, about = excluded.about,
-		   rules = excluded.rules, updated_at = excluded.updated_at`,
-		userID, p.DefaultProviderID, p.DefaultModel, p.PersonaName, p.TalkStyle, p.Language, p.About, string(rules),
-		at.Unix())
+		   default_model = excluded.default_model, default_effort = excluded.default_effort,
+		   persona_name = excluded.persona_name, talk_style = excluded.talk_style, language = excluded.language,
+		   about = excluded.about, rules = excluded.rules, updated_at = excluded.updated_at`,
+		userID, p.DefaultProviderID, p.DefaultModel, p.DefaultEffort, p.PersonaName, p.TalkStyle, p.Language,
+		p.About, string(rules), at.Unix())
 	if err != nil {
 		return fmt.Errorf("upsert preferences: %w", err)
 	}

@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
+  import { effortChoices } from '../logic/effort';
   import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, removeProvider, type ModelOption, type Provider } from '../logic/providers-api';
   import { describeProviderError } from '../logic/provider-errors';
@@ -46,6 +47,17 @@
     }
   }
 
+  const defaultKind = $derived(providers.find((provider) => provider.id === prefs?.defaultProviderId)?.kind);
+
+  async function pickEffort(value: string): Promise<void> {
+    if (prefs === undefined) return;
+    try {
+      prefs = await savePreferences({ ...prefs, defaultEffort: value });
+    } catch (error) {
+      notice = describeProviderError(error);
+    }
+  }
+
   async function confirmRemove(): Promise<void> {
     const target = pending;
     pending = undefined;
@@ -83,6 +95,11 @@
         <select id="default-model" class="select select-sm w-72" value={chosen} onchange={(event) => pick(event.currentTarget.value)}>
           <option value="">Choose when I start a task</option>
           {#each options as option (encode(option))}<option value={encode(option)}>{option.model} · {option.providerName}</option>{/each}
+        </select>
+      </SettingRow>
+      <SettingRow label="Effort" description={modelsCopy.effortIntro} for="default-effort">
+        <select id="default-effort" class="select select-sm w-40" value={prefs?.defaultEffort ?? ''} onchange={(event) => pickEffort(event.currentTarget.value)}>
+          {#each effortChoices(defaultKind) as choice (choice.value)}<option value={choice.value}>{choice.label}</option>{/each}
         </select>
       </SettingRow>
     {/if}

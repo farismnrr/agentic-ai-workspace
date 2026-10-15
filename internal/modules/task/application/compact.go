@@ -93,7 +93,7 @@ func (r *Runner) saveContext(ctx context.Context, task domain.Task, state *runSt
 // compact asks the model for a summary and records it; false means none came back.
 func (r *Runner) compact(ctx context.Context, task domain.Task, c compaction, messages []domain.Message) bool {
 	reply, err := r.ask(ctx, c.client, Request{
-		Model: task.Model, System: c.system, Messages: orderBlocks(withAsk(messages)), Tools: c.tools,
+		Model: task.Model, System: c.system, Effort: task.Effort, Messages: orderBlocks(withAsk(messages)), Tools: c.tools,
 	})
 	if err != nil {
 		return false
