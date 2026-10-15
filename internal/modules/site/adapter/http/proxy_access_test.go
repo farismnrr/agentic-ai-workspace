@@ -39,16 +39,17 @@ func TestPrivatePagesNeedTheOwnerAndAskOthersToSignIn(t *testing.T) {
 		headers map[string]string
 		want    int
 	}{
-		"anonymous":                {as("document", ""), 403},
-		"someone else":             {as("document", "other-session"), 403},
-		"older browser, anonymous": {nil, 403},
+		"anonymous":                {as("document", ""), 302},
+		"someone else":             {as("document", "other-session"), 302},
+		"older browser, anonymous": {nil, 302},
 	}
 
 	for name, c := range cases {
 		status, header, body := (call{path: ticketRoot + "echo", headers: c.headers}).do(t, app)
 		sandboxed := strings.HasPrefix(header.Get("Content-Security-Policy"), "sandbox")
-		if status != c.want || !strings.Contains(body, "/login?next=") || !sandboxed {
-			t.Errorf("%s: status %d, body %q", name, status, body)
+		toSignIn := strings.HasPrefix(header.Get("Location"), "/forbidden?next=%2Frun%2Fsensio%2Ftok%2F")
+		if status != c.want || !toSignIn || !sandboxed {
+			t.Errorf("%s: status %d, location %q, body %q", name, status, header.Get("Location"), body)
 		}
 	}
 }
@@ -57,14 +58,17 @@ func TestPrivateSiteIgnoresForgedHeadersAndAddressAlone(t *testing.T) {
 	app, seen := newApp(t, domain.Private, domain.Running)
 
 	// curl can send any Sec-Fetch-* header, and the uuid in the address is all an outsider may know.
-	for name, headers := range map[string]map[string]string{
-		"claims to be a script": as("script", ""),
-		"claims to be fetch":    as("empty", ""),
-		"someone else's login":  as("script", "other-session"),
-		"no metadata":           nil,
+	for name, c := range map[string]struct {
+		headers map[string]string
+		want    int
+	}{
+		"claims to be a script": {as("script", ""), 403},
+		"claims to be fetch":    {as("empty", ""), 403},
+		"someone else's login":  {as("script", "other-session"), 403},
+		"no metadata":           {nil, 302}, // an older browser's page: sent to the sign-in screen
 	} {
-		if got, _, _ := (call{path: siteRoot + "echo", headers: headers}).do(t, app); got != 403 {
-			t.Errorf("%s: status %d, want 403", name, got)
+		if got, _, _ := (call{path: siteRoot + "echo", headers: c.headers}).do(t, app); got != c.want {
+			t.Errorf("%s: status %d, want %d", name, got, c.want)
 		}
 	}
 
@@ -106,8 +110,8 @@ func TestATicketServesWhatThePageLoadsButNeverThePageItself(t *testing.T) {
 	}
 
 	// But a page never opens on a ticket alone, so a copied address is useless without the login.
-	if got, _, _ := (call{path: ticketRoot + "echo", headers: as("document", "")}).do(t, app); got != 403 {
-		t.Errorf("a page with a ticket but no login: status %d, want 403", got)
+	if got, _, _ := (call{path: ticketRoot + "echo", headers: as("document", "")}).do(t, app); got != 302 {
+		t.Errorf("a page with a ticket but no login: status %d, want a redirect to sign in", got)
 	}
 
 	// A form post from the page has no login either (cookies are not sent), so the ticket serves.
@@ -146,8 +150,12 @@ func TestUnknownAndStoppedSitesAreNotFoundAndNeverFallIntoTheApp(t *testing.T) {
 
 	for name, c := range paths {
 		status, header, body := (call{path: c.path, headers: as("document", "owner-session")}).do(t, c.app)
-		if status != 404 || strings.Contains(body, "SPA") {
-			t.Errorf("%s: status %d body %q", name, status, body)
+		if status != 302 || header.Get("Location") != "/not-found" || strings.Contains(body, "SPA") {
+			t.Errorf("%s: status %d location %q body %q", name, status, header.Get("Location"), body)
+		}
+
+		if status, _, _ = (call{path: c.path, headers: as("script", "")}).do(t, c.app); status != 404 {
+			t.Errorf("%s: what a page loads must get a plain 404, got %d", name, status)
 		}
 
 		if !strings.HasPrefix(header.Get("Content-Security-Policy"), "sandbox") {

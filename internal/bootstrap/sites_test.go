@@ -13,8 +13,9 @@ func TestSitesAreMountedAndNeverFallIntoTheApp(t *testing.T) {
 	page := map[string]string{"Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document"}
 	res := do(t, app, "GET", "/run/demo/00000000-0000-4000-8000-000000000000/", "", page)
 
-	if res.Status != 404 || strings.Contains(strings.ToLower(string(res.Body)), "<html") {
-		t.Fatalf("an unknown site must be a plain 404, got %d %s", res.Status, res.Body)
+	sentAway := res.Status == 302 && res.Header.Get("Location") == "/not-found"
+	if !sentAway || strings.Contains(strings.ToLower(string(res.Body)), "<html") {
+		t.Fatalf("an unknown site's page must lead to the not-found screen, got %d %s", res.Status, res.Body)
 	}
 
 	if csp := res.Header.Get("Content-Security-Policy"); !strings.HasPrefix(csp, "sandbox") {

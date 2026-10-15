@@ -17,7 +17,7 @@ func (h *Handler) serve(c fiber.Ctx) error {
 
 	site, err := h.service.Resolve(c.Context(), token)
 	if err != nil {
-		return reply(c, fiber.StatusNotFound, "Not found")
+		return missing(c)
 	}
 
 	ticket, rest := "", c.Params("*")
@@ -34,7 +34,7 @@ func (h *Handler) serve(c fiber.Ctx) error {
 	case domain.Deny:
 		return reply(c, fiber.StatusForbidden, "This app is private.")
 	case domain.Missing:
-		return reply(c, fiber.StatusNotFound, "Not found")
+		return missing(c)
 	case domain.Allow:
 	}
 
