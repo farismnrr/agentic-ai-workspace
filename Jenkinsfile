@@ -20,12 +20,8 @@ pipeline {
   stages {
     stage('Checkout main') {
       steps {
-        checkout scm
-        sh '''
-          set -eu
-          git fetch --no-tags origin main
-          git checkout -B main origin/main
-        '''
+        // Explicit URL instead of `checkout scm`, so it also works as an inline "Pipeline script" job.
+        git url: 'https://github.com/farismnrr/agentic-ai-workspace.git', branch: 'main'
         script {
           env.SHORT_SHA = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
         }
