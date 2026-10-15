@@ -44,22 +44,39 @@ type providerPayload struct {
 	KeyHint string `json:"keyHint"`
 	// ContextWindows maps every model to its context window in tokens (chosen or default).
 	ContextWindows map[string]int64 `json:"contextWindows"`
-	Models         []string         `json:"models"`
-	Verified       bool             `json:"verified"`
-	Enabled        bool             `json:"enabled"`
+	// Efforts maps every model to the effort levels worth offering for it; empty when it does not reason.
+	Efforts  map[string][]string `json:"efforts"`
+	Models   []string            `json:"models"`
+	Verified bool                `json:"verified"`
+	Enabled  bool                `json:"enabled"`
 }
 
 func toPayload(p domain.Provider) providerPayload {
 	return providerPayload{
 		ID: p.ID, Kind: string(p.Kind), Name: p.Name, BaseURL: p.BaseURL, KeyHint: p.KeyHint,
 		Models: p.Models, Verified: p.Verified, Enabled: p.Enabled, ContextWindows: windows(p),
+		Efforts: efforts(p),
 	}
+}
+
+func efforts(p domain.Provider) map[string][]string {
+	all := make(map[string][]string, len(p.Models))
+	for _, model := range p.Models {
+		info, ok := p.Catalog[model]
+		if !ok {
+			info = domain.ModelInfo{Name: model}
+		}
+
+		all[model] = domain.EffortLevels(p.Kind, info)
+	}
+
+	return all
 }
 
 func windows(p domain.Provider) map[string]int64 {
 	all := make(map[string]int64, len(p.Models))
 	for _, model := range p.Models {
-		all[model] = domain.ContextWindow(model, p.ContextWindows, p.ReportedWindows)
+		all[model] = domain.ContextWindow(model, p.ContextWindows, p.Catalog)
 	}
 
 	return all

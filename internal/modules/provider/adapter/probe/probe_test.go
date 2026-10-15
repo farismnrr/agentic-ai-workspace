@@ -69,13 +69,54 @@ func TestTheContextWindowIsReadFromWhicheverFieldTheProviderUses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []domain.ModelInfo{
-		{Name: "cx/gpt-6-luna[1m]", ContextWindow: 872000},
-		{Name: "claude-x", ContextWindow: 1_000_000},
-		{Name: "router/x", ContextWindow: 131072},
-		{Name: "plain"},
+	want := map[string]int64{"cx/gpt-6-luna[1m]": 872000, "claude-x": 1_000_000, "router/x": 131072, "plain": 0}
+	if len(got) != len(want) {
+		t.Fatalf("got %d models, want %d", len(got), len(want))
 	}
-	if !slices.Equal(got, want) {
-		t.Fatalf("got %v, want %v", got, want)
+
+	for _, model := range got {
+		if model.ContextWindow != want[model.Name] {
+			t.Fatalf("%s: window %d, want %d", model.Name, model.ContextWindow, want[model.Name])
+		}
+	}
+}
+
+// sameThinking compares what two reports say about a model's thinking.
+func sameThinking(a, b domain.Thinking) bool {
+	return slices.Equal(a.Levels, b.Levels) && a.Reported == b.Reported && a.Reasoning == b.Reasoning &&
+		a.CanDisable == b.CanDisable
+}
+
+func TestWhatAGatewayReportsAboutThinkingIsKept(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[` +
+			`{"id":"cx/gpt","capabilities":{"reasoning":true,"thinkingCanDisable":true}},` +
+			`{"id":"cc/claude","capabilities":{"reasoning":true,"thinkingCanDisable":false}},` +
+			`{"id":"cx/review","capabilities":{"reasoning":false}},` +
+			`{"id":"listed","capabilities":{"reasoningEffort":["low","high"]}},` +
+			`{"id":"silent"}]}`))
+	}))
+	t.Cleanup(server.Close)
+
+	got, err := probe.New(local, local).Models(context.Background(),
+		domain.Credential{Kind: domain.KindCompatible, BaseURL: server.URL, APIKey: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []domain.Thinking{
+		{Reported: true, Reasoning: true, CanDisable: true},
+		{Reported: true, Reasoning: true},
+		{Reported: true, CanDisable: true},
+		{Reported: true, Reasoning: true, CanDisable: true, Levels: []string{"low", "high"}},
+		{},
+	}
+
+	for i, model := range got {
+		if !sameThinking(model.Thinking, want[i]) {
+			t.Fatalf("%s: got %+v, want %+v", model.Name, model.Thinking, want[i])
+		}
 	}
 }

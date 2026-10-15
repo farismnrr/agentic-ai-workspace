@@ -2,15 +2,14 @@ package sqlite
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/domain"
 )
 
-// SetVerified records the result of a verification, the models found and the context windows the provider
-// reported for them. The previous list and sizes are replaced, so a model that went away does not linger.
+// SetVerified records the result of a verification, the models found and what the provider reported about them
+// (context window, how they think). The previous list is replaced, so a model that went away does not linger.
 func (s *Store) SetVerified(ctx context.Context, userID, id string, verified bool, models []domain.ModelInfo) error {
 	names := make([]string, 0, len(models))
 	for _, model := range models {
@@ -39,33 +38,12 @@ func (s *Store) SetVerified(ctx context.Context, userID, id string, verified boo
 		return err
 	}
 
-	if err := replaceWindows(ctx, tx, id, models); err != nil {
+	if err := replaceCatalog(ctx, tx, id, models); err != nil {
 		return err
 	}
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit verification: %w", err)
-	}
-
-	return nil
-}
-
-// replaceWindows swaps the sizes a provider reported for the ones just read.
-func replaceWindows(ctx context.Context, tx *sql.Tx, id string, models []domain.ModelInfo) error {
-	if _, err := tx.ExecContext(ctx, `DELETE FROM model_windows WHERE provider_id = ?`, id); err != nil {
-		return fmt.Errorf("clear reported windows: %w", err)
-	}
-
-	for _, model := range models {
-		if model.ContextWindow <= 0 {
-			continue
-		}
-
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO model_windows (provider_id, model, context_window) VALUES (?, ?, ?)`,
-			id, model.Name, model.ContextWindow); err != nil {
-			return fmt.Errorf("save reported window: %w", err)
-		}
 	}
 
 	return nil

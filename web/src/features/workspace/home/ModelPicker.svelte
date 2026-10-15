@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { effortChoices } from '../logic/effort';
+  import { effortChoices, hasEffortChoice } from '../logic/effort';
   import { loadPreferences, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, type ModelOption, type Provider } from '../logic/providers-api';
 
@@ -16,9 +16,18 @@
   let providers: Provider[] = $state([]);
   let prefs: Preferences | undefined = $state();
 
-  const preferred = $derived(prefs !== undefined && prefs.defaultProviderId !== '' ? prefs.defaultProviderId : options[0]?.providerId);
-  const providerId = $derived(model === '' ? preferred : model.split('::')[0]);
-  const choices = $derived(effortChoices(providers.find((item) => item.id === providerId)?.kind));
+  // The model the task will run on: the one picked, else the person's default, else the first one offered.
+  const target = $derived.by(() => {
+    if (model !== '') {
+      const [id = '', name = ''] = model.split('::');
+      return { id, name };
+    }
+    if (prefs !== undefined && prefs.defaultModel !== '') return { id: prefs.defaultProviderId, name: prefs.defaultModel };
+    const first = options[0];
+    return first === undefined ? undefined : { id: first.providerId, name: first.model };
+  });
+  const levels = $derived(target === undefined ? undefined : providers.find((item) => item.id === target.id)?.efforts[target.name]);
+  const choices = $derived(effortChoices(levels));
 
   // A level the newly chosen model's provider does not take falls back to the default.
   $effect(() => {
@@ -40,8 +49,10 @@
     <option value="">Default model</option>
     {#each options as option (`${option.providerId}::${option.model}`)}<option value="{option.providerId}::{option.model}">{option.model}</option>{/each}
   </select>
-  <label class="sr-only" for="composer-effort">Effort</label>
-  <select id="composer-effort" class="select select-ghost select-sm w-auto rounded-full {effort === '' ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}" bind:value={effort} {disabled}>
-    {#each choices as choice (choice.value)}<option value={choice.value}>{choice.value === '' ? 'Default effort' : `${choice.label} effort`}</option>{/each}
-  </select>
+  {#if hasEffortChoice(levels)}
+    <label class="sr-only" for="composer-effort">Effort</label>
+    <select id="composer-effort" class="select select-ghost select-sm w-auto rounded-full {effort === '' ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}" bind:value={effort} {disabled}>
+      {#each choices as choice (choice.value)}<option value={choice.value}>{choice.value === '' ? 'Default effort' : `${choice.label} effort`}</option>{/each}
+    </select>
+  {/if}
 {/if}

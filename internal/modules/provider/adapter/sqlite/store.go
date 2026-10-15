@@ -93,19 +93,19 @@ func (s *Store) Find(ctx context.Context, userID, id string) (domain.Provider, s
 func (s *Store) withWindows(
 	ctx context.Context, userID string, providers []domain.Provider,
 ) ([]domain.Provider, error) {
-	chosen, err := s.loadWindows(ctx, userID, chosenWindows)
+	chosen, err := s.loadWindows(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	reported, err := s.loadWindows(ctx, userID, reportedWindows)
+	catalog, err := s.loadCatalog(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	for i := range providers {
 		providers[i].ContextWindows = chosen[providers[i].ID]
-		providers[i].ReportedWindows = reported[providers[i].ID]
+		providers[i].Catalog = catalog[providers[i].ID]
 	}
 
 	return providers, nil
