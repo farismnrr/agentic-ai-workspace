@@ -102,12 +102,25 @@ func (r *Runner) report(ctx context.Context, task domain.Task, call Call, descri
 	}
 
 	r.action(ctx, task, event)
+	r.logStep(ctx, task, call, event, result.IsError)
 
 	if result.Link != "" && !result.IsError {
 		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
 			Kind: domain.EventSite, Text: "Your app is running", URL: result.Link, Time: r.deps.Now(),
 		})
 	}
+}
+
+// logStep tells the activity log about a step that changed or ran something; looking around is not logged.
+func (r *Runner) logStep(ctx context.Context, task domain.Task, call Call, event domain.Event, failed bool) {
+	if r.deps.Activity == nil || r.deps.Tools.Risk(call.Name) == domain.RiskNone {
+		return
+	}
+
+	r.deps.Activity.Step(ctx, Step{
+		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID, Tool: call.Name,
+		Summary: event.Text, Detail: event.Technical, Failed: failed,
+	})
 }
 
 // needsApproval is the approval policy: looking around (read tools) runs on its own,

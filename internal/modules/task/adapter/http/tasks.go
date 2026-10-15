@@ -21,13 +21,15 @@ type taskPayload struct {
 	Status     domain.Status     `json:"status"`
 	ProviderID string            `json:"providerId"`
 	Model      string            `json:"model"`
+	Source     string            `json:"source"`
 	Plan       []domain.PlanStep `json:"plan"`
 }
 
 func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
-		ProviderID: t.ProviderID, Model: t.Model, Plan: append([]domain.PlanStep{}, t.Plan...), Proof: t.Proof,
+		ProviderID: t.ProviderID, Model: t.Model, Source: t.Source, Proof: t.Proof,
+		Plan:      append([]domain.PlanStep{}, t.Plan...),
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
 	}
 }

@@ -81,6 +81,13 @@ func (f *fakeModels) Default(context.Context, string) (string, string, error) {
 	return "prov", "model-x", nil
 }
 
+const defaultWindow = 200_000
+
+// fakeWindows gives every model the same context window.
+type fakeWindows struct{ tokens int64 }
+
+func (f *fakeWindows) ContextWindow(context.Context, string, string, string) int64 { return f.tokens }
+
 type rig struct {
 	mem     *memory
 	models  *fakeModels
@@ -90,6 +97,7 @@ type rig struct {
 	runner  *application.Runner
 	service *application.Service
 	disp    *fakeDispatcher
+	windows *fakeWindows
 }
 
 func newRig(model application.Model, steps ...step) *rig {
@@ -103,19 +111,20 @@ func newRig(model application.Model, steps ...step) *rig {
 	models := &fakeModels{model: model}
 	gate := &fakeGate{off: map[string]bool{}}
 	tools := &fakeTools{risks: map[string]domain.Risk{}, results: map[string]application.ToolResult{}}
+	windows := &fakeWindows{tokens: defaultWindow}
 	deps := application.Deps{
 		Tasks: mem, Events: mem, Transcript: mem, Usage: mem, Models: models, Persona: fakePersona{},
-		Projects: fakeProjects{}, Tools: tools, Gate: gate, IDs: mem, Now: time.Now,
+		Windows: windows, Projects: fakeProjects{}, Tools: tools, Gate: gate, IDs: mem, Now: time.Now,
 	}
 	limits := application.Limits{
-		Backoff: func(int) time.Duration { return 0 }, WallTime: 5 * time.Second, TokenCap: 1000, MaxSteps: 10,
+		Backoff: func(int) time.Duration { return 0 }, WallTime: 5 * time.Second, MaxSteps: 10,
 		Retries: 2, MaxResult: 24000,
 	}
 	disp := &fakeDispatcher{}
 
 	return &rig{
 		mem: mem, models: models, model: script, tools: tools, gate: gate, runner: application.NewRunner(deps, limits),
-		service: application.NewService(deps, disp), disp: disp,
+		service: application.NewService(deps, disp), disp: disp, windows: windows,
 	}
 }
 

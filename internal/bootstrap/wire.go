@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
@@ -16,6 +17,7 @@ import (
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spacesqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/sqlite"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
+	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
@@ -30,9 +32,8 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	sess := sessions{account: account}
 	registry := newRegistry(cfg)
 
-	users := directory{account: account}
-
-	oauth, oauthMount, err := newOAuth(db, cfg, registry, sess, users, sameOrigin, cors, oauthLimits())
+	oauth, oauthMount, err := newOAuth(
+		db, cfg, registry, sess, directory{account: account}, sameOrigin, cors, oauthLimits())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -65,17 +66,18 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
+	log := newActivityLog(spaceStore, tools)
+
 	tasks, sites, agentMounts, stop, err := newAgentAndSites(
-		db, cfg, models, projects, tools, folders, toolGate{permissions: permissions}, sess, auth, sameOrigin)
+		db, cfg, models, projects, tools, folders, toolGate{permissions: permissions}, agentSteps{log: log}, sess, auth,
+		sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	for _, erase := range []eraser{sites.StopUser, tasks.DeleteAll, projects.DeleteAll} {
-		account.AddEraser(erase)
-	}
+	eraseOnDelete(account, sites.StopUser, tasks.DeleteAll, projects.DeleteAll)
 
-	spaceMounts := newSpaceMounts(cfg, projects, tools, registry, spaceStore, permissions, oauth, sess, sameOrigin)
+	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, registry, log, permissions, oauth, sess, sameOrigin)
 
 	mounts := joinMounts(
 		[]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts,
@@ -83,6 +85,20 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		models.mounts, []httpserver.Mount{githubMount}, spaceMounts)
 
 	return mounts, func() { stop(); closeProxy() }, nil
+}
+
+// newActivityLog records tool calls and knows how to undo the ones the coding space made.
+func newActivityLog(store spaceapp.ActivityStore, tools *agentTools) *spaceapp.ActivityLog {
+	undoers := map[string]spaceapp.Undoer{"coding": undoer{tools: tools}}
+
+	return spaceapp.NewActivityLog(store, opaque.Generator{}, undoers, time.Now)
+}
+
+// eraseOnDelete has the account remove each feature's data when a person deletes their account.
+func eraseOnDelete(account *accountapp.Service, erasers ...eraser) {
+	for _, erase := range erasers {
+		account.AddEraser(erase)
+	}
 }
 
 // joinMounts keeps the route groups in registration order.
@@ -98,19 +114,17 @@ func joinMounts(groups ...[]httpserver.Mount) []httpserver.Mount {
 
 // newSpaceMounts wires the activity log, the app API and each hosted space.
 func newSpaceMounts(
-	cfg config.Config, projects *projectapp.Service, tools *agentTools, registry *spaceapp.Registry,
-	store *spacesqlite.Store, permissions *spaceapp.Permissions, oauth *oauthapp.Service, sess sessions,
-	sameOrigin fiber.Handler,
+	cfg config.Config, projects *projectapp.Service, tools *agentTools, tasks *taskapp.Service,
+	registry *spaceapp.Registry, log *spaceapp.ActivityLog, permissions *spaceapp.Permissions, oauth *oauthapp.Service,
+	sess sessions, sameOrigin fiber.Handler,
 ) []httpserver.Mount {
-	undoers := map[string]spaceapp.Undoer{"coding": undoer{tools: tools}}
-	log := spaceapp.NewActivityLog(store, opaque.Generator{}, undoers, time.Now)
 	api := spacehttp.NewAPI(registry, sess, permissions, log)
 	mounts := []httpserver.Mount{api.Mount(sameOrigin)}
 
 	space := codingSpace()
 	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
 	handler := codingHandler(appWorkspaces{projects: projects, tools: tools}, codingmcp.Options{
-		Gate: gate{permissions: permissions}, Recorder: recorder{log: log},
+		Gate: gate{permissions: permissions}, Recorder: recorder{log: log}, Tasks: appThreads{tasks: tasks},
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 

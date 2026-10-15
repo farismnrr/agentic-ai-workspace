@@ -77,20 +77,6 @@ func (s *Store) AddUsage(ctx context.Context, r application.UsageRecord) error {
 	return nil
 }
 
-// TotalUsage sums the tokens a task has used.
-func (s *Store) TotalUsage(ctx context.Context, taskID string) (domain.Usage, error) {
-	var usage domain.Usage
-
-	err := s.db.QueryRowContext(ctx,
-		`SELECT COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0) FROM task_usage WHERE task_id = ?`,
-		taskID).Scan(&usage.Input, &usage.Output)
-	if err != nil {
-		return domain.Usage{}, fmt.Errorf("sum usage: %w", err)
-	}
-
-	return usage, nil
-}
-
 // UsageSummary sums a person's usage per model since a date.
 func (s *Store) UsageSummary(ctx context.Context, userID string, since time.Time) ([]application.UsageRow, error) {
 	rows, err := s.db.QueryContext(ctx,

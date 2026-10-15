@@ -114,22 +114,6 @@ func (m *memory) AddUsage(_ context.Context, record application.UsageRecord) err
 	return nil
 }
 
-func (m *memory) TotalUsage(_ context.Context, taskID string) (domain.Usage, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var total domain.Usage
-
-	for _, record := range m.usage {
-		if record.TaskID == taskID {
-			total.Input += record.Usage.Input
-			total.Output += record.Usage.Output
-		}
-	}
-
-	return total, nil
-}
-
 func (m *memory) UsageSummary(context.Context, string, time.Time) ([]application.UsageRow, error) {
 	return nil, nil
 }

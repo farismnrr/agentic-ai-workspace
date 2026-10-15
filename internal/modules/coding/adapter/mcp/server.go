@@ -26,6 +26,8 @@ type Services struct {
 type Options struct {
 	Gate     Gate
 	Recorder Recorder
+	// Tasks, when set, keeps what the app does as a thread the person can read.
+	Tasks TaskLog
 	// ResourceMetadataURL is advertised in scope challenges.
 	ResourceMetadataURL string
 }
@@ -53,18 +55,23 @@ func (t *tools) services(ctx context.Context) (Services, error) {
 		return Services{}, fmt.Errorf("open workspace: %w", err)
 	}
 
+	if state, ok := ctx.Value(stateKey{}).(*callState); ok {
+		state.project = services.ProjectID
+	}
+
 	return services, nil
 }
 
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"}, nil)
-	g := &guard{gate: opts.Gate, recorder: opts.Recorder, metadataURL: opts.ResourceMetadataURL}
+	g := &guard{gate: opts.Gate, recorder: opts.Recorder, tasks: opts.Tasks, metadataURL: opts.ResourceMetadataURL}
 	t := &tools{workspaces: workspaces, guard: g}
 
 	t.addReadTools(server)
 	t.addWriteTools(server)
 	t.addExecTools(server)
+	t.addLogTools(server)
 	t.addSiteTools(server)
 
 	return server
@@ -101,5 +108,5 @@ var knownErrors = []error{
 	domain.ErrDenied, domain.ErrNotFound, domain.ErrIsDir, domain.ErrNotDir, domain.ErrBinary, domain.ErrEmptyQuery,
 	domain.ErrTooLarge, domain.ErrExists, domain.ErrNotUnique, domain.ErrNoMatch, domain.ErrBadRange,
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
-	domain.ErrServerBusy,
+	domain.ErrServerBusy, errBadMessage,
 }

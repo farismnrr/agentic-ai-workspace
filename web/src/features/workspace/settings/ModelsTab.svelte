@@ -10,6 +10,7 @@
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
+  import ContextWindows from './ContextWindows.svelte';
   import ProviderRow from './ProviderRow.svelte';
 
   let providers: Provider[] = $state([]);
@@ -86,6 +87,8 @@
       </SettingRow>
     {/if}
   </SettingsSection>
+
+  <ContextWindows {providers} onchange={refresh} onerror={showNotice} />
 
   <SettingsSection title="Connected providers" description={modelsCopy.providersIntro}>
     {#snippet action()}

@@ -66,7 +66,7 @@ func (s *Store) List(ctx context.Context, userID string) ([]domain.Provider, err
 		return nil, fmt.Errorf("read providers: %w", err)
 	}
 
-	return providers, nil
+	return s.withWindows(ctx, userID, providers)
 }
 
 // Find loads one provider and its sealed key.
@@ -77,7 +77,32 @@ func (s *Store) Find(ctx context.Context, userID, id string) (domain.Provider, s
 		return domain.Provider{}, "", domain.ErrNotFound
 	}
 
-	return provider, sealed, err
+	if err != nil {
+		return provider, sealed, err
+	}
+
+	withWindows, err := s.withWindows(ctx, userID, []domain.Provider{provider})
+	if err != nil {
+		return domain.Provider{}, "", err
+	}
+
+	return withWindows[0], sealed, nil
+}
+
+// withWindows attaches each provider's chosen context windows.
+func (s *Store) withWindows(
+	ctx context.Context, userID string, providers []domain.Provider,
+) ([]domain.Provider, error) {
+	byID := map[string]map[string]int64{}
+	if err := s.loadWindows(ctx, userID, byID); err != nil {
+		return nil, err
+	}
+
+	for i := range providers {
+		providers[i].ContextWindows = byID[providers[i].ID]
+	}
+
+	return providers, nil
 }
 
 // SetVerified records the result of a verification and the models found.
@@ -107,6 +132,10 @@ func (s *Store) exec(ctx context.Context, query string, args ...any) error {
 		return fmt.Errorf("update providers: %w", err)
 	}
 
+	return notFoundIfNone(result)
+}
+
+func notFoundIfNone(result sql.Result) error {
 	if changed, err := result.RowsAffected(); err == nil && changed == 0 {
 		return domain.ErrNotFound
 	}

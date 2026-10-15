@@ -52,7 +52,13 @@ var (
 		"Find lines containing some text across the coding workspace.")
 	ToolListTasks = readTool("list_tasks", "List tasks",
 		"List the named tasks (such as tests) that run_task can run.")
-	ToolWhoami = readTool("whoami", "Current account", "Return the signed-in account's stable id.")
+	ToolWhoami     = readTool("whoami", "Current account", "Return the signed-in account's stable id.")
+	ToolLogMessage = ToolInfo{
+		Name: "log_message", Title: "Save the conversation", Scope: ScopeRead, Group: GroupRead, DefaultOn: true,
+		Description: "Save a message of this conversation in the person's tasks, so they can read it later in the app. " +
+			"Call it with role \"user\" for what the person asked, then do the work, then with role \"assistant\" for " +
+			"a short summary of your answer. Never include passwords or keys.",
+	}
 
 	ToolEditFile = writeTool("edit_file", "Edit a file",
 		"Replace old_text with new_text in a file. Fails if old_text is missing or not unique unless replace_all is set.")
@@ -94,7 +100,7 @@ var (
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {
 	return []ToolInfo{
-		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami,
+		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolLogMessage,
 		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand,
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -20,6 +21,8 @@ const (
 type Service struct {
 	deps       Deps
 	dispatcher Dispatcher
+	// recording keeps two calls from a connected app from starting two threads.
+	recording sync.Mutex
 }
 
 // NewService wires the use cases to the same collaborators as the runner.
@@ -106,6 +109,8 @@ func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) err
 	}
 
 	switch {
+	case task.Source != "":
+		return domain.ErrWrongState
 	case task.Status.Running():
 		return domain.ErrBusy
 	case task.Status == domain.StatusNeedsInput:

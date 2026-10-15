@@ -30,27 +30,39 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Post("/api/providers", auth, sameOrigin, h.add)
 		app.Post("/api/providers/:id/verify", auth, sameOrigin, h.verify)
 		app.Put("/api/providers/:id", auth, sameOrigin, h.setEnabled)
+		app.Put("/api/providers/:id/context", auth, sameOrigin, h.setContext)
 		app.Delete("/api/providers/:id", auth, sameOrigin, h.remove)
 		app.Get("/api/models", auth, h.models)
 	}
 }
 
 type providerPayload struct {
-	ID       string   `json:"id"`
-	Kind     string   `json:"kind"`
-	Name     string   `json:"name"`
-	BaseURL  string   `json:"baseUrl"`
-	KeyHint  string   `json:"keyHint"`
-	Models   []string `json:"models"`
-	Verified bool     `json:"verified"`
-	Enabled  bool     `json:"enabled"`
+	ID      string `json:"id"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	BaseURL string `json:"baseUrl"`
+	KeyHint string `json:"keyHint"`
+	// ContextWindows maps every model to its context window in tokens (chosen or default).
+	ContextWindows map[string]int64 `json:"contextWindows"`
+	Models         []string         `json:"models"`
+	Verified       bool             `json:"verified"`
+	Enabled        bool             `json:"enabled"`
 }
 
 func toPayload(p domain.Provider) providerPayload {
 	return providerPayload{
 		ID: p.ID, Kind: string(p.Kind), Name: p.Name, BaseURL: p.BaseURL, KeyHint: p.KeyHint,
-		Models: p.Models, Verified: p.Verified, Enabled: p.Enabled,
+		Models: p.Models, Verified: p.Verified, Enabled: p.Enabled, ContextWindows: windows(p),
 	}
+}
+
+func windows(p domain.Provider) map[string]int64 {
+	all := make(map[string]int64, len(p.Models))
+	for _, model := range p.Models {
+		all[model] = domain.ContextWindow(model, p.ContextWindows)
+	}
+
+	return all
 }
 
 func (h *Handler) list(c fiber.Ctx) error {
@@ -150,6 +162,7 @@ var badInput = []struct {
 	{domain.ErrAddressFixed, "address_fixed"},
 	{domain.ErrInvalidKey, "invalid_key"},
 	{domain.ErrTooMany, "too_many"},
+	{domain.ErrInvalidContext, "invalid_context"},
 }
 
 func fail(c fiber.Ctx, err error) error {
