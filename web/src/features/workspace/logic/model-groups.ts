@@ -1,3 +1,4 @@
+import { gatewayProviderNames } from '../content/models';
 import type { ModelOption } from './providers-api';
 
 export interface ModelGroup {
@@ -8,13 +9,13 @@ export interface ModelGroup {
 
 /**
  * Models in groups, in the order the server listed them. A gateway such as 9router serves many providers' models
- * and reports who serves each (cc, cx, kr, ...), so they are split by that; nothing here knows the names, so a
- * provider added behind the gateway shows up as its own group.
+ * and reports who serves each (cc, cx, kr, ...), so they are split by that. The few best-known providers get a proper
+ * name; any other one shows up as its own group under the alias it reported.
  */
 export function groupModels(options: ModelOption[]): ModelGroup[] {
   const groups = new Map<string, ModelGroup>();
   for (const option of options) {
-    const label = option.group === '' ? option.providerName : `${option.providerName} · ${option.group}`;
+    const label = option.group === '' ? option.providerName : `${option.providerName} · ${gatewayProviderNames[option.group] ?? option.group}`;
     const group = groups.get(label) ?? { label, models: [] };
     group.models.push(option);
     groups.set(label, group);

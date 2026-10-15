@@ -17,6 +17,18 @@ export const kindChoices: KindChoice[] = [
 
 export const kindLabel = (kind: ProviderKind): string => kindChoices.find((choice) => choice.value === kind)?.label ?? kind;
 
+/**
+ * Names for the three providers people use most behind a gateway, as 9router's own dashboard calls them. A gateway
+ * only reports a short alias (cx, cc, oc) and its dashboard API needs a login, so just these are named here; any other
+ * provider shows the alias it reported. Only providers are named: their models always come from the gateway and are
+ * never listed in the code, because they change.
+ */
+export const gatewayProviderNames: Record<string, string> = {
+  cx: 'OpenAI Codex',
+  cc: 'Claude Code',
+  oc: 'OpenCode Free',
+};
+
 export const modelsCopy = {
   defaultIntro: 'Used for every new task unless you pick another when you start it.',
   effortIntro: 'How hard the AI thinks before it answers. Higher is slower and costs more; a model that does not take a level will say so.',
