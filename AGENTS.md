@@ -11,6 +11,7 @@ Three audiences, three places. Never mix them.
 3. `agents/` (and this file) is for agents only: self-improvement, repository memory, lessons, notes and knowledge. Never put agent prompts, hidden workflow instructions or agent memory in `README.md` or `docs/`.
 4. When a durable project rule changes, update `AGENTS.md` or the right `agents/` file in the same task so future agents inherit the current truth.
 5. When user-visible behavior changes, update the matching file in `docs/` (and `README.md` only if the quick start or the doc list changes).
+6. Docs for people stay short and scannable: one idea per bullet or paragraph, the key point first, tables for facts, numbered steps for procedures. No line over about 45 words; `scripts/check-guardrails.sh` fails at 60. Long, exact detail goes in `agents/`, where agents (not people) read it.
 
 ## Read and research before coding
 
@@ -102,7 +103,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 
 ## Size and complexity limits
 
-1. Every human-authored source, config, script, markup, and documentation file is limited to 200 lines.
+1. Every human-authored source, config, script, and markup file is limited to 200 lines. `README.md`, `AGENTS.md`, `agents/` and `docs/` are exempt: keep each page whole, clear and unambiguous, and never cut information just to fit a line count.
 2. Generated output and dependency lockfiles are exempt.
 3. Go functions are limited by lint to 60 lines / 40 statements and strict complexity thresholds.
 4. Frontend functions are limited by ESLint to 60 lines and complexity 10.
@@ -153,7 +154,7 @@ agents/                                   self-improvement, memory and notes for
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
 10. Permissions default to read-only; `packages: write` belongs only to the image jobs, and merge rights only to the full publish job.
 11. A change is incomplete while CI is failing.
-12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` and confirm `/api/health` on port 8081. Never run a plain `docker compose pull`, and never pull the sandbox image: only Full publishes `-sandbox:latest`, so a pull replaces the locally built toolbox (`make sandbox-image`) with an older one that can lack tools such as `gh`. Never restart the local app from an unpushed or red build, and say when a step was skipped.
+12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` and confirm `/api/health` on port 8081. Never run a plain `docker compose pull`, and never pull the sandbox image: only Full publishes `-sandbox:latest`, so a pull replaces the locally built toolbox (`make sandbox-image`) with an older one that can lack tools such as `gh`. Never restart the local app from an unpushed or red build, and say when a step was skipped. Exception: a change that touches no Go, web, script, guardrail, Dockerfile or migration file (only `docs/`, `README.md`, `AGENTS.md`, `agents/` or the Jenkinsfile) is pushed to `dev` and the task ends there: Fast skips it, so there is no CI wait and no redeploy.
 
 ## Container image
 
@@ -176,3 +177,4 @@ Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read th
 - `agents/self-improvement.md`: the observe -> codify loop and how to maintain repository memory (read for every meaningful task).
 - `agents/memory-backend.md`: platform lessons for Go, OAuth/MCP, sandbox, migrations and the agent loop.
 - `agents/memory-frontend.md`: lessons for the Svelte app, routing, workspace UI and status looks.
+- `agents/implementation-notes.md`: long, exact backend detail (sandbox, agent loop, models and effort, connectors, data, workspace screens) that `docs/` only summarizes.

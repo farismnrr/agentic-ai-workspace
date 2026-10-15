@@ -23,9 +23,12 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 
 A site shares the domain with the main app. These protections are always on:
 
-1. Every `/run` response sends `Content-Security-Policy: sandbox` without `allow-same-origin`. The page gets an opaque origin, so it can't read your cookies or storage, and its requests carry no login.
+1. Every `/run` response sends `Content-Security-Policy: sandbox`, without `allow-same-origin`.
+   - The page gets an opaque origin.
+   - It can't read your cookies or storage, and its requests carry no login.
 2. Endpoints that need your session refuse cross-site requests (`Sec-Fetch-Site: cross-site`), except plain navigations.
-3. The proxy never forwards your session cookie or `Authorization` header. It drops `Set-Cookie`, `Clear-Site-Data`, `Service-Worker-Allowed` and similar headers from the app's responses.
+3. The proxy never forwards your session cookie or `Authorization` header.
+   - It also drops `Set-Cookie`, `Clear-Site-Data`, `Service-Worker-Allowed` and similar headers from the app's responses.
 4. The proxy talks only to the app's Unix socket. The container has no network, so the address can't point anywhere else.
 5. Unknown, stopped or replaced addresses return 404. A private site returns 403 to anyone without your login or a valid ticket.
 
@@ -35,11 +38,9 @@ A sandboxed page can't send your login, so the server uses a ticket instead:
 
 1. You open a private site. The server checks your login.
 2. It redirects you to `/run/<name>/<uuid>/~<ticket>/`. Relative links keep the ticket.
-3. The ticket lasts 4 hours. It works only for that site address and that browser (and that IP when `CLIENT_IP_HEADER` is set).
+3. The ticket lasts 4 hours.
+   - It works only for that site address and that browser.
+   - It also checks the IP when `CLIENT_IP_HEADER` is set.
 4. It stops working when the site restarts or the server restarts.
 
 An address copied to another machine won't work. Still, treat an address with a ticket like a password while it's valid.
-
-## Technical notes
-
-The sandbox exposes the app's port as a Unix socket (`socat`, started by `sandbox-entry` when `SITE_PORT` is set) in `DATA_DIR/sites`, mounted at `/run/site`. The server proxies `/run/<name>/<uuid>/*` to it from the same process and port. Sites are stored in the `sites` table and reset at startup, because containers don't survive a restart.
