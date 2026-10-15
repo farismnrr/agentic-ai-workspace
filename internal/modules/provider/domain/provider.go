@@ -48,9 +48,13 @@ type Provider struct {
 	BaseURL   string
 	KeyHint   string
 	Kind      Kind
-	Models    []string
-	Verified  bool
-	Enabled   bool
+	// ContextWindows holds the sizes a person chose per model; see ContextWindow.
+	ContextWindows map[string]int64
+	// Catalog is what the provider reported about each model when its key was verified.
+	Catalog  map[string]ModelInfo
+	Models   []string
+	Verified bool
+	Enabled  bool
 }
 
 // Credential is what a model client needs to call the provider.

@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
-  import { kindLabel } from '../content/models';
+  import { kindLabel, modelsCopy } from '../content/models';
   import { describeProviderError } from '../logic/provider-errors';
   import { setProviderEnabled, verifyProvider, type Provider } from '../logic/providers-api';
 
@@ -35,6 +35,7 @@
   </span>
   {#if provider.verified}
     <span class="flex items-center gap-1 text-xs"><Icon name="check-circle" class="size-4 text-success" /> Verified</span>
+    <button class="btn btn-ghost btn-xs" type="button" disabled={busy} title={modelsCopy.refreshTip} onclick={() => run(() => verifyProvider(provider.id))}>Refresh</button>
   {:else}
     <button class="btn btn-outline btn-xs" type="button" disabled={busy} onclick={() => run(() => verifyProvider(provider.id))}>Verify key</button>
   {/if}

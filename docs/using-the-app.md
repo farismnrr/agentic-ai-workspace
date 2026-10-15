@@ -2,29 +2,74 @@
 
 ## Pages
 
-The app is a single-page Svelte app served by the Go binary: `/` is the landing page, `/login` and `/register` are the sign-in and create-account screens, and `/app` is the workspace: home, an inbox of things that need you, projects with their tasks, a task page (conversation plus plan, proof, and changes), and settings (models, persona and rules, connectors, usage, account). Press Ctrl/Cmd+K anywhere in the workspace to search and jump. Everything here is real except notifications and data export, which are marked as coming soon.
+| Address | What it is |
+| --- | --- |
+| `/` | Landing page |
+| `/login`, `/register` | Sign in, create an account |
+| `/app` | Your workspace: home, inbox, projects, tasks and settings |
 
-## Working with the AI team
+Press Ctrl/Cmd+K anywhere in the workspace to search. Everything works except notifications and data export, which are marked "coming soon".
 
-1. **Add a model.** Under Settings, AI models, add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https://aistudio.google.com/apikey)), or an OpenAI-compatible gateway such as [9router](http://localhost:20128/v1) (use its address and key). Hosted providers use their fixed official address, and a gateway must run on the same computer as this app (`localhost`); the app refuses to connect to any other address, so nobody can point the server at your internal network. The key is stored encrypted and checked right away.
-2. **Create a project.** Each project gets its own folder under `DATA_DIR/projects`; the AI can only touch files inside it.
-3. **Describe what you need** on Home. The AI makes a plan, works step by step, and shows every step. Editing, deleting or moving files, running commands and starting a web app need your OK first, unless you turn on **Skip approvals** (see below).
-4. **Review.** When it finishes you see what changed and what was checked. The proof says "Proven to work" only when the app itself ran a check that passed after the last change, and every change can be undone.
+## Your first task
 
-To let the app verify the AI's work, add **checks** on the project's Checks tab: named commands such as `go test ./...`. The AI can run the checks you list and, when you allow it, any command in the sandbox once you switch **Run a command** on. It asks before every run, and "Proven to work" appears only when a check passed after its last change. Checks run on this computer with the app's rights, so add only commands you trust.
+1. Add a model under Settings, AI models (see below).
+2. Create a project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.
+3. Describe what you need on Home. The AI makes a plan and shows every step. It asks before it edits, deletes or moves files, runs commands, or starts a web app.
+4. Review the result. You see what changed and what was checked. Every change can be undone.
 
-## One set of switches
+"Proven to work" appears only when a check the app ran itself passed after the last change.
 
-Settings, **Spaces & tools** is the single list of tools, and it applies to the tasks in this app and to the AI apps you connect (ChatGPT, Gemini and others) alike. A tool that is off cannot be used by anyone: the AI in a task is not even told it exists. A tool that is on is allowed, and the AI still asks you before risky steps in a task.
+## Models
 
-**Skip approvals** (at the top of each space) lets the AI use every tool that is on in that space without asking you first. It never turns a tool on: a tool that is off stays off. Looking around is on from the start; changing files, running commands and starting a web app stay off until you turn them on, so a new account has to switch them on before tasks can change files.
+You can add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https://aistudio.google.com/apikey)), or an OpenAI-compatible gateway such as 9router.
 
-Each AI app you connect works in a project of its own named after it, so ChatGPT's work is in a project called ChatGPT and Gemini's in one called Gemini. They are ordinary projects: you can open them, see their files and run tasks in them, and they are marked "Connected app" in the list. Settings, Activity shows which app did what.
+- A gateway must run on the same computer as the app (`localhost`). The app refuses any other address, so nobody can point it at your internal network.
+- Keys are stored encrypted and checked right away.
+- Models are grouped by provider. With a gateway, each provider it serves becomes its own group. Codex, Claude Code and OpenCode get their names; others keep the gateway's short name, such as `kr`. A new provider in the gateway shows up within about 30 seconds, or right away when you press Refresh.
+
+Settings you can change:
+
+| Setting | What it does |
+| --- | --- |
+| Effort | How hard the AI thinks before answering, from None up to Max. Higher is slower and costs more. Default leaves it to the provider. You can also set it for one task. |
+| Context window | How much a model keeps in mind at once. It defaults to what the provider reports, else 200K, or 1M for names ending in `[1m]`. Near the limit, the AI summarizes its notes and keeps going. The task page shows how full it is. |
+
+## Checks
+
+Add checks on a project's Checks tab, such as `go test ./...`. The AI can run them to prove its work. They run on this computer with the app's rights, so add only commands you trust.
+
+The AI can also run any command in the sandbox once you turn on "Run a command". It asks before every run.
+
+## Tools and approvals
+
+Settings, Spaces & tools has one list of tools. It applies to tasks in this app and to the AI apps you connect, like ChatGPT and Gemini.
+
+- A tool that's off can't be used. The AI isn't even told it exists.
+- A tool that's on is allowed, but the AI still asks before risky steps.
+- "Skip approvals" lets the AI use every tool that's on without asking. It never turns a tool on.
+- On a new account, only looking around is on. Changing files, running commands and starting a web app stay off until you turn them on.
+
+Each connected AI app works in its own project, named after it (ChatGPT works in "ChatGPT"). These projects are marked "Connected app". Settings, Activity shows what each app did.
+
+## GitHub
+
+Under Settings, Integrations, press Connect GitHub, approve, and choose which repositories the app may reach.
+
+After that, the AI's commands in your projects act as you: they can clone those repos, commit under your name and push. The AI pushes only when you ask. No one else's projects can use your connection, and web apps never can. Disconnect removes it at once.
+
+If you see "not set up", the server's owner has to add a GitHub App first (see [deployment.md](./deployment.md#github)).
 
 ## Sites
 
-When the AI builds a web app and runs it, whether in a task here or from a connected app such as ChatGPT, it appears under **Sites** (and in the sidebar while it runs). Starting a web app has no switch of its own: it is allowed when **Run a command** is on, and you can always stop it yourself from Sites. Open it from there or from the link in the task, make it public if you want to share it, and press Stop when you are done. See [sites.md](./sites.md).
+When the AI builds a web app and runs it, the app appears under Sites and in the sidebar. Starting one is allowed when "Run a command" is on. You can open it, make it public, or stop it. See [sites.md](./sites.md).
 
 ## Your data
 
-Under Settings, Account you can change your password (other devices are signed out), download everything as a zip (settings, projects with their files, tasks with every step, usage; saved AI keys are never included), delete all tasks, or delete the account with its projects and files after confirming your password. Settings, Notifications can alert you in this browser, while the tab is in the background, when a task needs you or fails.
+Under Settings, Account you can:
+
+- change your password (this signs out other devices)
+- download everything as a zip (saved AI keys are never included)
+- delete all tasks
+- delete your account, with its projects and files
+
+Settings, Notifications can alert you in the browser when a task needs you or fails.

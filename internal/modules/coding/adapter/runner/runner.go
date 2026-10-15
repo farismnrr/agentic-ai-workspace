@@ -17,6 +17,7 @@ import (
 type Runner struct {
 	engine *Engine
 	slot   chan struct{}
+	git    GitSource
 	dir    string
 	quota  int64
 }
@@ -29,6 +30,14 @@ func New(dir string, engine *Engine) *Runner {
 // WithWorkspaceLimit stops a task whose workspace grows past bytes.
 func (r *Runner) WithWorkspaceLimit(bytes int64) *Runner {
 	r.quota = bytes
+
+	return r
+}
+
+// WithGit lets commands act as the workspace owner on GitHub. Tasks and commands get it; the
+// web apps a workspace serves never do.
+func (r *Runner) WithGit(source GitSource) *Runner {
+	r.git = source
 
 	return r
 }
@@ -74,8 +83,20 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 	}
 
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command}
-	r.engine.prepare(ctx, r.dir, &spec, docker)
+	git, hasGit := r.credentials(ctx)
+
+	var hosts []string
+	if hasGit {
+		hosts = githubHosts
+	}
+
+	r.engine.prepare(ctx, r.dir, &spec, docker, hosts...)
 	spec.Env = environment(spec)
+
+	if hasGit && spec.Egress != "" {
+		spec.Env = append(spec.Env, gitEnvironment(git)...)
+	}
+
 	over := watchSize(ctx, r.dir, r.quota, cancel)
 
 	started := time.Now()
@@ -92,6 +113,14 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 	}
 
 	return result
+}
+
+func (r *Runner) credentials(ctx context.Context) (Git, bool) {
+	if r.git == nil {
+		return Git{}, false
+	}
+
+	return r.git(ctx)
 }
 
 func finish(ctx context.Context, err error, res sandbox.Result, out *tail, took time.Duration) application.RunResult {

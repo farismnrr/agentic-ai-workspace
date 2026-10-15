@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -20,6 +21,8 @@ const (
 type Service struct {
 	deps       Deps
 	dispatcher Dispatcher
+	// recording keeps two calls from a connected app from starting two threads.
+	recording sync.Mutex
 }
 
 // NewService wires the use cases to the same collaborators as the runner.
@@ -33,6 +36,8 @@ type CreateInput struct {
 	Prompt     string
 	ProviderID string
 	Model      string
+	// Effort is how hard the model should think; empty uses the person's default.
+	Effort domain.Effort
 }
 
 // Create starts a task: it records the request and queues the agent.
@@ -51,6 +56,11 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 		return domain.Task{}, err
 	}
 
+	effort, err := s.chooseEffort(ctx, userID, in.Effort)
+	if err != nil {
+		return domain.Task{}, err
+	}
+
 	id, err := s.deps.IDs.ID()
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("new task id: %w", err)
@@ -58,8 +68,8 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 
 	now := s.deps.Now()
 	task := domain.Task{
-		ID: id, ProjectID: in.ProjectID, UserID: userID, Title: titleOf(prompt), ProviderID: providerID, Model: model,
-		Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
+		ID: id, ProjectID: in.ProjectID, UserID: userID, Title: titleOf(prompt), ProviderID: providerID,
+		Model: model, Effort: effort, Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
 	}
 
 	if err := s.deps.Tasks.Create(ctx, task); err != nil {
@@ -73,6 +83,23 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 	s.dispatcher.Enqueue(task.ID, task.ProjectID)
 
 	return task, nil
+}
+
+// chooseEffort uses the requested level, or the person's default when none was asked for.
+func (s *Service) chooseEffort(ctx context.Context, userID string, asked domain.Effort) (domain.Effort, error) {
+	if !asked.Valid() {
+		return "", domain.ErrBadEffort
+	}
+
+	if asked != domain.EffortDefault {
+		return asked, nil
+	}
+
+	if preferred := s.deps.Models.DefaultEffort(ctx, userID); preferred.Valid() {
+		return preferred, nil
+	}
+
+	return domain.EffortDefault, nil
 }
 
 // chooseModel uses the requested model, or the person's default, and checks it can be reached.
@@ -106,6 +133,8 @@ func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) err
 	}
 
 	switch {
+	case task.Source != "":
+		return domain.ErrWrongState
 	case task.Status.Running():
 		return domain.ErrBusy
 	case task.Status == domain.StatusNeedsInput:
@@ -121,7 +150,12 @@ func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) err
 
 // Get returns one of the person's tasks.
 func (s *Service) Get(ctx context.Context, userID, taskID string) (domain.Task, error) {
-	return s.owned(ctx, userID, taskID)
+	task, err := s.owned(ctx, userID, taskID)
+	if err != nil {
+		return domain.Task{}, err
+	}
+
+	return s.withWindow(ctx, task), nil
 }
 
 // List returns the person's tasks, newest first; projectID may be empty.
@@ -129,6 +163,10 @@ func (s *Service) List(ctx context.Context, userID, projectID string) ([]domain.
 	tasks, err := s.deps.Tasks.List(ctx, userID, projectID, listLimit)
 	if err != nil {
 		return nil, fmt.Errorf("list tasks: %w", err)
+	}
+
+	for i := range tasks {
+		tasks[i] = s.withWindow(ctx, tasks[i])
 	}
 
 	return tasks, nil

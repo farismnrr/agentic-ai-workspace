@@ -1,22 +1,44 @@
 # Connecting AI apps
 
-The server can act as a connector for AI apps such as ChatGPT. Each connector is a "space" with its own address, for example `https://your-domain.com/api/coding`. Give ChatGPT that address and it finds everything else on its own: how to sign in, which permissions exist, and how to register itself.
+The server can be a connector for AI apps like ChatGPT. Each connector has its own address, such as `https://your-domain.com/api/coding`. Give that address to ChatGPT. It finds out how to sign in, what it may do, and registers itself.
 
-## What the coding space can do
+## Try it from your computer
 
-Every AI app you connect works in a project of its own, named after the app (ChatGPT works in a project called ChatGPT). It is an ordinary project in your list, so you can open its files and run tasks in it; nobody can read or change anyone else's projects, and the projects are deleted with the account. Every check runs in its own throwaway Docker container, removed when the check ends. It sees only that project's folder (as `/workspace`, the one place it can write), a private `/tmp`, a private download cache, and the programs in the sandbox image, which every person shares (each tool is stored once on disk). It can reach package registries only, cannot see your other files or processes, runs without privileges and with Docker's default system-call filter, and is held to a memory, CPU, process, file-size and workspace-size limit.
+1. Run the app and expose it with a tunnel, for example `cloudflared tunnel --url http://localhost:8081`.
+2. Start the app with `CONNECTOR_URL` set to the tunnel address.
+3. In ChatGPT, turn on developer mode and add a connector with `<CONNECTOR_URL>/api/coding`.
+4. Sign in when asked.
 
-Each tool can be switched on or off under Settings, Spaces & tools, and the same switches apply to the tasks you run in the app. **Skip approvals** there lets the AI use every tool that is on without asking; it never turns a tool on. Looking around is on from the start; changing files, running commands and starting a web app stay off until you turn them on.
+You can see and remove connected apps under Settings, Connected apps.
 
-| Group | Tools |
-| --- | --- |
-| Look around (on) | list files, find files by name, read a file or some lines of it, search code, list tasks |
-| Change files (off) | edit, write, delete and move files |
-| Run things (off) | run a named check, run a command; starting the web app it builds comes with running commands |
+## Where the AI app works
 
-Every step an AI app takes is listed under Settings, Activity. Before a file is edited, written over, deleted or moved, its old content is saved, and the Undo button there puts it back. Undo is refused if the file changed again afterwards, so it never overwrites newer work.
+Each connected app works in its own project, named after it (ChatGPT works in "ChatGPT"). It's a normal project: you can open its files and run tasks in it. No one can see anyone else's projects, and projects are deleted with the account.
 
-Tasks are commands you approve in advance, in `.workspace/tasks.json` inside the workspace folder. The AI app can only ask for a task by name; it cannot see or change this file, and it cannot run anything else.
+Every check runs in its own throwaway container, which:
+
+- sees only that project's folder, as `/workspace`, plus a private `/tmp` and download cache
+- reaches only package registries (and GitHub, if you connected it)
+- can't see your other files or processes
+- runs without privileges, with limits on memory, CPU, processes, file size and workspace size
+
+The coding space never shows `.env`, `.git` or key files.
+
+## Tools
+
+Turn each tool on or off under Settings, Spaces & tools. The same switches apply to tasks in the app. "Skip approvals" lets the AI use every tool that's on without asking.
+
+| Group | Tools | Default |
+| --- | --- | --- |
+| Look around | List, find and read files, search code, list tasks | On |
+| Change files | Edit, write, delete and move files | Off |
+| Run things | Run a named check or a command, start the web app it builds | Off |
+
+Settings, Activity lists every step an AI app takes. Before a file is changed, deleted or moved, the old content is saved, and Undo puts it back. Undo is refused if the file changed again since, so it never overwrites newer work.
+
+## Tasks
+
+Tasks are commands you approve in advance, in `.workspace/tasks.json` in the project folder. The AI app can run a task by name. It can't see or change this file, and it can't run anything else.
 
 ```json
 {
@@ -27,8 +49,6 @@ Tasks are commands you approve in advance, in `.workspace/tasks.json` inside the
 }
 ```
 
-A task runs with the same rights as the app itself, one at a time, with a time limit and only the last 64 KB of its output kept. Because an AI app that can change files could also change a script that a task runs, changing files and running tasks are separate permissions. Turn on only what you need.
+Tasks run one at a time, with the app's rights and a time limit. Only the last 64 KB of output is kept.
 
-### Trying it from your computer
-
-To try it, run the app, expose it with a tunnel (for example `cloudflared tunnel --url http://localhost:8081`), and start the app with `CONNECTOR_URL` set to the tunnel address. In ChatGPT, turn on developer mode, add a connector with `<CONNECTOR_URL>/api/coding`, and sign in when asked. You can see and remove connected apps under Settings, Connected apps. Each tool has a switch under Settings, Spaces & tools; looking at files is on from the start and changing files or running checks stay off until you turn them on. The coding space never shows `.env`, `.git`, or key files.
+An app that can change files could also change a script a task runs. That's why changing files and running tasks are separate permissions. Turn on only what you need.

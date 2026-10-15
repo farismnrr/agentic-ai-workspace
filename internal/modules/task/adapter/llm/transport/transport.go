@@ -24,6 +24,11 @@ const (
 
 var errRedirect = errors.New("the model address redirects elsewhere")
 
+// ErrEventStream means the provider answered with server-sent events although a single JSON answer was asked for.
+// Some gateways do this for every request to certain models (9router does for Claude), so the caller can read
+// the answer as a stream instead.
+var ErrEventStream = errors.New("the model answered with an event stream")
+
 // Client posts JSON to a model provider and maps failures to domain.ModelError.
 type Client struct {
 	http *http.Client
@@ -55,6 +60,10 @@ func (c *Client) Post(ctx context.Context, url string, headers map[string]string
 
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		return statusError(response.StatusCode, data)
+	}
+
+	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("data:")) {
+		return ErrEventStream
 	}
 
 	if err := json.Unmarshal(data, out); err != nil {

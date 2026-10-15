@@ -5,20 +5,28 @@ import "github.com/gofiber/fiber/v3"
 const bodyLimit = 1 << 20
 
 type healthPayload struct {
-	Status string `json:"status"`
+	Status  string `json:"status"`
+	Version string `json:"version"`
 }
 
 type errorPayload struct {
 	Error string `json:"error"`
 }
 
-func registerAPI(app *fiber.App) {
+func registerAPI(app *fiber.App, version string) {
 	api := app.Group("/api")
-	api.Get("/health", health)
+	api.Get("/health", func(c fiber.Ctx) error {
+		return c.JSON(healthPayload{Status: "ok", Version: version})
+	})
 }
 
-func health(c fiber.Ctx) error {
-	return c.JSON(healthPayload{Status: "ok"})
+// stampVersion names the running build on every response, the SPA shell at / included.
+func stampVersion(version string) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		c.Set("X-App-Version", version)
+
+		return c.Next()
+	}
 }
 
 // apiNotFound keeps unknown API paths from falling through to the SPA shell.

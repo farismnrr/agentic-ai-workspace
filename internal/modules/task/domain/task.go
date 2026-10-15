@@ -74,6 +74,14 @@ type Task struct {
 	Summary    string
 	ProviderID string
 	Model      string
-	Status     Status
-	Plan       []PlanStep
+	// Source names the connected app the thread was recorded from; empty for tasks the agent ran.
+	Source string
+	// Effort is how hard the model was asked to think; empty is the provider's default.
+	Effort Effort
+	Status Status
+	Plan   []PlanStep
+	// ContextUsed and ContextWindow are tokens: what the last model call carried and what the model can hold.
+	// Zero until the first call.
+	ContextUsed   int64
+	ContextWindow int64
 }

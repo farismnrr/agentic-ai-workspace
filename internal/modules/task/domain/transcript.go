@@ -32,6 +32,8 @@ type Block struct {
 	Name    string          `json:"name,omitempty"`
 	Input   json.RawMessage `json:"input,omitempty"`
 	IsError bool            `json:"isError,omitempty"`
+	// Summary marks the notes that replace everything before them once a long task is compacted.
+	Summary bool `json:"summary,omitempty"`
 }
 
 // Message is a turn of the conversation with the model.

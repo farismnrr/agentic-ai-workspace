@@ -1,4 +1,4 @@
-package aesgcm
+package secretbox
 
 import (
 	"crypto/aes"

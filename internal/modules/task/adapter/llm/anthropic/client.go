@@ -51,12 +51,18 @@ type tool struct {
 }
 
 type request struct {
-	Model     string    `json:"model"`
-	System    string    `json:"system,omitempty"`
-	Messages  []message `json:"messages"`
-	Tools     []tool    `json:"tools,omitempty"`
-	MaxTokens int       `json:"max_tokens"`
-	Stream    bool      `json:"stream,omitempty"`
+	Model  string `json:"model"`
+	System string `json:"system,omitempty"`
+	// OutputConfig carries the effort level; it is left out to use the model's own default.
+	OutputConfig *outputConfig `json:"output_config,omitempty"`
+	Messages     []message     `json:"messages"`
+	Tools        []tool        `json:"tools,omitempty"`
+	MaxTokens    int           `json:"max_tokens"`
+	Stream       bool          `json:"stream,omitempty"`
+}
+
+type outputConfig struct {
+	Effort string `json:"effort"`
 }
 
 type response struct {
@@ -98,6 +104,9 @@ func (c *Client) Complete(ctx context.Context, in application.Request) (applicat
 
 func encode(in application.Request) request {
 	out := request{Model: in.Model, System: in.System, MaxTokens: maxTokens}
+	if in.Effort != domain.EffortDefault {
+		out.OutputConfig = &outputConfig{Effort: string(in.Effort)}
+	}
 
 	for _, def := range in.Tools {
 		out.Tools = append(out.Tools, tool{

@@ -28,23 +28,25 @@ type Rule struct {
 type Preferences struct {
 	DefaultProviderID string
 	DefaultModel      string
-	PersonaName       string
-	TalkStyle         string
-	Language          string
-	About             string
-	Rules             []Rule
+	// DefaultEffort is how hard the model should think when a task does not say; empty is the provider's default.
+	DefaultEffort string
+	PersonaName   string
+	TalkStyle     string
+	Language      string
+	About         string
+	Rules         []Rule
 }
 
 // Normalize trims fields and validates their sizes.
 func (p Preferences) Normalize() (Preferences, error) {
-	short := []*string{&p.DefaultProviderID, &p.DefaultModel, &p.PersonaName, &p.TalkStyle, &p.Language}
+	short := []*string{&p.DefaultProviderID, &p.DefaultModel, &p.DefaultEffort, &p.PersonaName, &p.TalkStyle, &p.Language}
 	for _, field := range short {
 		*field = strings.TrimSpace(*field)
 	}
 
 	p.About = strings.TrimSpace(p.About)
 
-	if tooLong(MaxShort, p.DefaultProviderID, p.DefaultModel, p.PersonaName, p.TalkStyle, p.Language) ||
+	if tooLong(MaxShort, p.DefaultProviderID, p.DefaultModel, p.DefaultEffort, p.PersonaName, p.TalkStyle, p.Language) ||
 		tooLong(MaxAbout, p.About) || len(p.Rules) > MaxRules {
 		return Preferences{}, ErrInvalid
 	}

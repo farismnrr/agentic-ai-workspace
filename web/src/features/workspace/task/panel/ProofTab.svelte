@@ -27,7 +27,8 @@
   </dl>
   <h3 class="mt-5 font-sans text-sm font-medium">What was checked</h3>
   <ul class="mt-2 flex flex-col gap-2 text-sm">
-    {#each proof.checks as check (check.text)}
+    <!-- Keyed by position: the same command can run twice, and two checks with the same text must not share a key. -->
+    {#each proof.checks as check, index (index)}
       <li class="flex items-start gap-2">
         <Icon name={check.verified ? (check.passed ? 'check-circle' : 'x-circle') : 'info'} class="mt-0.5 size-4 shrink-0 {check.verified ? (check.passed ? 'text-success' : 'text-error') : 'text-[var(--brand-text-tertiary)]'}" />
         <span class="flex-1">{check.text}</span>

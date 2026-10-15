@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
+  import { effortChoices, hasEffortChoice } from '../logic/effort';
+  import { groupModels, modelValue } from '../logic/model-groups';
   import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, removeProvider, type ModelOption, type Provider } from '../logic/providers-api';
   import { describeProviderError } from '../logic/provider-errors';
@@ -10,6 +12,7 @@
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
+  import ContextWindows from './ContextWindows.svelte';
   import ProviderRow from './ProviderRow.svelte';
 
   let providers: Provider[] = $state([]);
@@ -21,7 +24,6 @@
   let notice = $state('');
   let failed = $state(false);
 
-  const encode = (option: ModelOption): string => `${option.providerId}::${option.model}`;
   const chosen = $derived(prefs === undefined || prefs.defaultModel === '' ? '' : `${prefs.defaultProviderId}::${prefs.defaultModel}`);
 
   async function refresh(): Promise<void> {
@@ -40,6 +42,17 @@
     const [providerId = '', model = ''] = value.split('::');
     try {
       prefs = await savePreferences({ ...prefs, defaultProviderId: providerId, defaultModel: model });
+    } catch (error) {
+      notice = describeProviderError(error);
+    }
+  }
+
+  const defaultLevels = $derived(providers.find((provider) => provider.id === prefs?.defaultProviderId)?.efforts[prefs?.defaultModel ?? '']);
+
+  async function pickEffort(value: string): Promise<void> {
+    if (prefs === undefined) return;
+    try {
+      prefs = await savePreferences({ ...prefs, defaultEffort: value });
     } catch (error) {
       notice = describeProviderError(error);
     }
@@ -81,11 +94,24 @@
       <SettingRow label="Model" for="default-model">
         <select id="default-model" class="select select-sm w-72" value={chosen} onchange={(event) => pick(event.currentTarget.value)}>
           <option value="">Choose when I start a task</option>
-          {#each options as option (encode(option))}<option value={encode(option)}>{option.model} · {option.providerName}</option>{/each}
+          {#each groupModels(options) as group (group.label)}
+            <optgroup label={group.label}>
+              {#each group.models as option (modelValue(option))}<option value={modelValue(option)}>{option.model}</option>{/each}
+            </optgroup>
+          {/each}
         </select>
       </SettingRow>
+      {#if hasEffortChoice(defaultLevels)}
+        <SettingRow label="Effort" description={modelsCopy.effortIntro} for="default-effort">
+          <select id="default-effort" class="select select-sm w-40" value={prefs?.defaultEffort ?? ''} onchange={(event) => pickEffort(event.currentTarget.value)}>
+            {#each effortChoices(defaultLevels) as choice (choice.value)}<option value={choice.value}>{choice.label}</option>{/each}
+          </select>
+        </SettingRow>
+      {/if}
     {/if}
   </SettingsSection>
+
+  <ContextWindows {options} {providers} onchange={refresh} onerror={showNotice} />
 
   <SettingsSection title="Connected providers" description={modelsCopy.providersIntro}>
     {#snippet action()}

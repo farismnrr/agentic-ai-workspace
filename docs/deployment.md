@@ -1,158 +1,170 @@
 # Deployment
 
-How to run, configure and release the app. For what the app does, see [using-the-app.md](./using-the-app.md); for how it is built, see [system-design.md](./system-design.md).
+Install, update and configure the app. To learn what it does, read [using-the-app.md](./using-the-app.md).
 
-## Pick how you want to run it
+## Choose a way to run it
 
-| I want to... | Choose | Needs |
+| You want to | Use | You need |
 | --- | --- | --- |
-| Just use it, as fast as possible | **A. Pull the ready-made image** | Docker |
-| Run my own changes, still in Docker | **B. Build the image yourself** | Docker, Git |
-| Run it without Docker for the app itself | **C. Build the program and run it** | Go, Node.js, Docker |
+| Start fast | A. Pull the image | Docker |
+| Run your own changes in Docker | B. Build the image | Docker, Git |
+| Run the binary directly | C. Build and run | Go, Node.js, Docker |
 
-Every option needs Docker, because the commands the AI runs on your project (checks) run in short-lived Docker containers. If Docker is not reachable, the rest of the app still works and checks say so plainly.
+All three need Docker, because the AI's commands run in short-lived containers. Without Docker the app still works, but checks can't run. The app opens on `http://localhost:8081`.
 
-The app opens on `http://localhost:8081` in all three. Go slowly: each option below is a few small steps, and you can stop after any step.
+Before you start:
 
-### Before you start (all options)
+```bash
+docker version          # shows Client and Server
+docker compose version
+ss -ltn | grep 8081     # prints nothing if the port is free
+```
 
-1. Check Docker works: `docker version` should print a Client and a Server section. If it says "permission denied", add yourself to the `docker` group or use rootless Docker.
-2. Check Compose works: `docker compose version`.
-3. Check port 8081 is free (`ss -ltn | grep 8081` prints nothing). If it is taken, pick another one later with `PORT=9000`.
+If `docker version` says "permission denied", add yourself to the `docker` group or use rootless Docker.
 
-### A. Pull the ready-made image (easiest)
+### A. Pull the image
 
-**Guided (recommended):** one script asks for each setting one by one (with an example and a default; press Enter to keep it), saves them in `.env`, and only then downloads the compose file and starts the app:
+The installer asks for each setting, saves them in `.env`, and starts the app:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/scripts/install.sh | sh
 ```
 
-It creates the folder `~/agentic-ai-workspace/` (your home folder, whatever directory you run it from) waits until the app answers (up to 60 seconds, showing the logs if it does not), lists both containers, and tells you how to read logs and stop the app. The `sandbox` container showing `Exited (0)` is normal: it only downloads the toolbox image and stops. Use `CHANNEL=dev` before `sh` for the dev image, or `INSTALL_DIR=/opt/workspace` to choose the folder. Running it again is safe: it asks before replacing an existing `.env` (the old one is kept as `.env.bak`).
+- It installs to `~/agentic-ai-workspace/`. Set `INSTALL_DIR=/opt/workspace` to change that.
+- Set `CHANNEL=dev` to get the dev image.
+- It's safe to run again. Your old `.env` is kept as `.env.bak`.
 
-**By hand:** the same thing in four steps.
+To do the same by hand:
 
 ```bash
-# 1. Get the compose file
 curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.latest.yaml
-
-# 2. Tell the app which group owns the Docker socket (it needs this to start checks)
-export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
-
-# 3. Download the images and start the app in the background
+export DOCKER_GID=$(stat -c %g /var/run/docker.sock)   # lets the app start checks
 docker compose -f compose.latest.yaml up -d
-
-# 4. Look at it
-docker compose -f compose.latest.yaml ps
 docker compose -f compose.latest.yaml logs -f app
 ```
 
-The first start downloads two images (the app and the toolbox the AI's commands run in), so it can take a few minutes. Then open `http://localhost:8081` and create your account.
+The first start downloads two images, so it can take a few minutes. The `sandbox` container shows `Exited (0)`. That is normal: it only downloads the toolbox and stops.
 
-Two compose files exist: `compose.latest.yaml` runs the image published from `main` (the stable one), and `compose.dev.yaml` runs the one published from `dev` (newest, less tested). Use one at a time, since they share a port and a data volume. Images live at `ghcr.io/farismnrr/agentic-ai-workspace`: `latest` is the last release, `dev` follows the `dev` branch, and `sha-<commit>` pins an exact build.
+| Compose file | Image | Use for |
+| --- | --- | --- |
+| `compose.latest.yaml` | `latest`, from `main` | Stable |
+| `compose.dev.yaml` | `dev`, from `dev` | Newest, less tested |
 
-### B. Build the image yourself
+Run only one of them at a time, because they share a port and a data volume. You can pin an exact build with `sha-<commit>`.
 
-Use this when you changed the code, or want to run exactly what is in your checkout.
+### B. Build the image
 
 ```bash
-# 1. Get the code
 git clone https://github.com/farismnrr/agentic-ai-workspace.git
 cd agentic-ai-workspace
-
-# 2. Build the app image (tagged latest and dev, the names the compose files use)
-make image
-
-# 3. Build the toolbox image the AI's commands run in
-make sandbox-image
-
-# 4. Start, using only the images you just built (never download)
+make image            # the app
+make sandbox-image    # the toolbox the AI's commands run in
 export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
 docker compose -f compose.latest.yaml up -d --pull never
 ```
 
-`--pull never` is what keeps your local build in use. Do not run `docker compose pull` here: it would replace your build with the published image.
+`--pull never` keeps your local build. Don't run `docker compose pull` here, or it replaces your build with the published one.
 
-### C. Build the program and run it
-
-No Docker image for the app: one static binary runs on your computer. Docker is still needed for checks.
+### C. Build and run the binary
 
 ```bash
-make run                 # verifies, builds, then starts on port 8081
-make run PORT=9000       # same, on another port
+make run              # verify, build, start on port 8081
+make run PORT=9000    # another port
 ```
 
-Or in two steps: `make build`, then `./bin/agentic-ai-workspace`. `make help` lists every command. There is intentionally no development server or hot reload: always build first, then run.
+You can also run `make build` and then `./bin/agentic-ai-workspace`. There is no dev server or hot reload, so always build first. `make help` lists every command.
 
-## Everyday tasks (options A and B)
+## Everyday commands
 
-Replace the file name with `compose.dev.yaml` if you use the dev channel.
+Use `compose.dev.yaml` instead if you're on the dev channel.
 
-| I want to... | Command |
+| Task | Command |
 | --- | --- |
-| See if it is running and healthy | `docker compose -f compose.latest.yaml ps` (the app shows `Up ... (healthy)` about 10 seconds after it starts; `sandbox` shows `Exited (0)`, which is normal) |
-| Read the logs | `docker compose -f compose.latest.yaml logs -f app` |
-| Stop it (data stays) | `docker compose -f compose.latest.yaml down` |
-| Start it again | `docker compose -f compose.latest.yaml up -d` |
-| Update to the newest published image (A) | `docker compose -f compose.latest.yaml pull` then `docker compose -f compose.latest.yaml up -d` |
-| Update after rebuilding yourself (B) | `make image` then `docker compose -f compose.latest.yaml up -d --pull never --force-recreate` |
-| Use another port | `PORT=9000 docker compose -f compose.latest.yaml up -d` |
-| Delete everything, including accounts and projects | `docker compose -f compose.latest.yaml down -v` (cannot be undone) |
+| Check status | `docker compose -f compose.latest.yaml ps` (the app shows `healthy` after about 10 seconds) |
+| Read logs | `docker compose -f compose.latest.yaml logs -f app` |
+| Stop (keeps data) | `docker compose -f compose.latest.yaml down` |
+| Start | `docker compose -f compose.latest.yaml up -d` |
+| Update (A) | `docker compose -f compose.latest.yaml pull && docker compose -f compose.latest.yaml up -d` |
+| Update (B) | `make image && docker compose -f compose.latest.yaml up -d --pull never --force-recreate` |
+| Change the port | `PORT=9000 docker compose -f compose.latest.yaml up -d` |
+| Delete everything | `docker compose -f compose.latest.yaml down -v` (this cannot be undone) |
 
-Your accounts, projects and settings live in the Docker volume `agentic-data`. Stopping, updating and recreating the app keeps it; only `down -v` or `docker volume rm agentic-data` removes it. To back it up while the app is stopped:
+Your data lives in the Docker volume `agentic-data`. Only `down -v` or `docker volume rm` deletes it. Back it up while the app is stopped:
 
 ```bash
 docker run --rm -v agentic-data:/data -v "$PWD":/backup alpine tar czf /backup/agentic-data.tar.gz -C /data .
 ```
 
-## If something goes wrong
+## Troubleshooting
 
-| What you see | What to do |
+| Problem | Fix |
 | --- | --- |
-| `DOCKER_GID` is required | Run `export DOCKER_GID=$(stat -c %g /var/run/docker.sock)` in the same terminal, or put `DOCKER_GID=...` in `.env`. |
-| Port already in use | Set another `PORT` (and `PUBLIC_URL` to match). |
-| The app says Docker is not reachable | Check `docker ps` works and the socket path is `/var/run/docker.sock`. |
-| Sign-in is refused from a domain or IP | Add it to `ALLOWED_ORIGINS` or set `PUBLIC_URL` (see below), then recreate the app. |
-| Image not found with `--pull never` | Run `make image` and `make sandbox-image` first. |
-| Still stuck | Read `docker compose -f compose.latest.yaml logs app`. |
+| `DOCKER_GID` is required | `export DOCKER_GID=$(stat -c %g /var/run/docker.sock)`, or add it to `.env` |
+| Port already in use | Set another `PORT`, and update `PUBLIC_URL` to match |
+| Docker is not reachable | Make sure `docker ps` works and the socket is at `/var/run/docker.sock` |
+| Sign-in refused from a domain or IP | Add it to `ALLOWED_ORIGINS` or set `PUBLIC_URL`, then recreate the app |
+| Image not found with `--pull never` | Run `make image` and `make sandbox-image` first |
+| Something else | Read `docker compose -f compose.latest.yaml logs app` |
 
-## Configuration
+## Settings
 
-Settings are environment variables, set in the shell or in a `.env` file next to the compose file (for example `PUBLIC_URL=https://workspace.example.com`). You usually need none of them for a local try-out. After changing one, run the `up -d` command again so the app restarts with it. Lines starting with `#` in `.env` are ignored.
+Set these as environment variables or in `.env` next to the compose file. A local try-out needs none of them. After a change, run `up -d` again.
 
-| Variable | Meaning |
-| --- | --- |
-| `PUBLIC_URL` | The address you open the app on, such as `http://localhost:8081`. Defaults to `http://localhost:<PORT>`. It decides which browser origins may sign in and whether cookies are marked Secure. |
-| `CONNECTOR_URL` | The public `https` address AI apps such as ChatGPT use to reach the server, for example `https://workspace.example.com`. This is the address shown under Settings, Spaces & tools, the issuer of the sign-in they are sent through, and the audience of their tokens. Defaults to `PUBLIC_URL`. Point your tunnel or reverse proxy for this address at the server. |
-| `ALLOWED_ORIGINS` | Comma-separated browser origins that may sign in and change data (CSRF protection). Defaults to `http://localhost:<PORT>,http://127.0.0.1:<PORT>`. `PUBLIC_URL` is always allowed too. Add a domain or IP here, for example `https://workspace.example.com,http://192.168.1.20:8081`. |
-| `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
-| `SANDBOX_IMAGE` | The Docker image checks and commands run in (default `ghcr.io/<owner>/agentic-ai-workspace-sandbox`, which has Python, Node.js, Go, Rust, Java, Maven, Git, Bash and a C compiler). `make sandbox-image` builds it locally. Any image works, but only the default one gets the registry proxy and the toolchain list. The compose files pull it together with the app (a `sandbox` service that exits at once), so it is ready before the app starts. |
-| `SANDBOX_EGRESS_HOSTS` | Comma-separated hostnames commands may reach over HTTPS (default: PyPI, npm, the Go module proxy, crates.io and Maven Central). Everything else, including your computer and network, stays unreachable. |
-| `SANDBOX_RUNTIME` | Optional hardened container runtime, such as `runsc` (gVisor), for extra isolation. |
-| `SANDBOX_DATA_VOLUME` | Set automatically by the compose files: the Docker volume that holds `DATA_DIR`, so check containers can mount a person's folder. Leave empty when the app runs directly on the host. |
-| `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Memory (default 2048) and CPU cores (default 1) one check may use. |
-| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | How many web apps (see [sites.md](./sites.md)) one person (default 2) and the whole server (default 6) may keep running. Apps run until stopped. |
-| `MAX_SANDBOXES` | How many checks may run at the same time across all people (default 4). Extra ones wait up to 30 seconds, then are told the server is busy. |
-| `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
-| `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits and to tie private site tickets to the visitor's address; without it every visitor behind a tunnel looks like one address. |
-| `DATA_DIR` | Where accounts and connections are stored (default `data`). Projects, including the ones connected AI apps work in, live inside it, under `projects/`. |
+| Variable | What it does | Default |
+| --- | --- | --- |
+| `PUBLIC_URL` | The address you open the app on. Controls which origins can sign in and whether cookies are Secure. | `http://localhost:<PORT>` |
+| `CONNECTOR_URL` | Public `https` address AI apps like ChatGPT use. Point your tunnel or proxy here. | `PUBLIC_URL` |
+| `ALLOWED_ORIGINS` | Comma-separated origins that can sign in and change data (CSRF). `PUBLIC_URL` is always allowed. | localhost and 127.0.0.1 on `PORT` |
+| `CORS_ORIGINS` | Origins browser-based AI tools can call the sign-in endpoints from. `*` allows any. | `ALLOWED_ORIGINS` |
+| `SANDBOX_IMAGE` | Image the AI's commands run in. The default has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
+| `SANDBOX_EGRESS_HOSTS` | Hosts commands can reach over HTTPS. Everything else is blocked. | PyPI, npm, Go proxy, crates.io, Maven Central |
+| `SANDBOX_RUNTIME` | Hardened runtime such as `runsc` (gVisor) | none |
+| `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check | 2048 / 1 |
+| `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it; leave it empty when you run the binary directly. | set by compose |
+| `MAX_SANDBOXES` | Checks running at once. Extra ones wait 30 seconds, then get "busy". | 4 |
+| `AGENT_WORKERS` | Tasks the AI runs at once (one per project) | 2 |
+| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person / per server | 2 / 6 |
+| `CLIENT_IP_HEADER` | Header with the real visitor IP behind a proxy, e.g. `CF-Connecting-IP` | none |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_APP_SLUG` | The GitHub App (see below). Leave all three empty to turn GitHub off. | empty |
+| `DATA_DIR` | Where accounts, settings and projects are stored | `data` |
 
-## Docker and the sandbox
+## GitHub
 
-Checks need access to a Docker daemon (`DOCKER_HOST`, or the default socket). If Docker is not reachable, checks say so plainly and the rest of the app keeps working. Commands have no network of their own. They reach only the package registries in `SANDBOX_EGRESS_HOSTS`, through a proxy inside the app, so `npm install`, `pip install` (or `uv pip install`), `cargo fetch`, `go mod download` and `mvn` work while other websites do not. Downloads are cached per person (up to 5 GB, emptied when over) in `DATA_DIR/caches`.
+Each person can connect their own GitHub account so the AI can clone, commit and push for them. For that, the server needs one GitHub App (not an OAuth App). Create it on GitHub under Settings, Developer settings, GitHub Apps:
 
-**Access to the Docker socket is access to the whole machine.** Whoever controls the app can start containers as root on the host. Run Docker in [rootless mode](https://docs.docker.com/engine/security/rootless/) where you can, put the data folder on a filesystem with a size quota (the workspace limit is checked once per second), and keep sign-ups to people you trust. For stronger isolation set `SANDBOX_RUNTIME=runsc` after installing gVisor.
+1. Set the callback URL to `<PUBLIC_URL>/api/integrations/github/callback`. Turn on "Request user authorization (OAuth) during installation". Keep "Expire user authorization tokens" on.
+2. Turn the webhook off.
+3. Under repository permissions, set Contents and Pull requests to read and write, and Metadata to read-only. Add Workflows only if the AI should edit `.github/workflows`.
+4. Allow installs on any account if several people use the server.
+5. Generate a client secret. Set the three `GITHUB_*` variables and recreate the app.
 
-## Quality checks and releases
+What you should know about the token:
 
-Run everything with:
+- A person's token reaches only the repos they picked, and only what both the app and the person are allowed to do.
+- It is stored encrypted with `DATA_DIR/secret.key` and renews every 8 hours.
+- Only commands in that person's own projects get it, and they can use it only with GitHub. Sites never get it.
+- Any program a command runs can read it during that run.
+- Disconnecting revokes it at GitHub.
 
-```bash
-make verify
-```
+## Docker and security
 
-This checks the frontend, Go code, architecture guardrails, lint rules, tests, and production frontend build.
+Commands have no network of their own. They reach only the hosts in `SANDBOX_EGRESS_HOSTS` (plus GitHub, if connected), through a proxy in the app. Downloads are cached per person in `DATA_DIR/caches`, up to 5 GB.
 
-Development happens on `dev`. A fast GitHub Actions workflow checks and builds every push to `dev`. A full workflow, started manually, repeats all checks, merges `dev` into `main`, and publishes the image to GHCR as `latest`. Pushes to `dev` publish the `dev` image once all checks and an image smoke test pass.
+Access to the Docker socket is access to the whole machine. To limit the risk:
 
-`make e2e-sites` drives a private site with a real signed-out browser (it needs Docker and Playwright: `npm i -g playwright && npx playwright install chromium`). It is not part of `make verify`.
+- Use [rootless Docker](https://docs.docker.com/engine/security/rootless/) if you can.
+- Put `DATA_DIR` on a filesystem with a size quota.
+- Let only people you trust sign up.
+- For stronger isolation, install gVisor and set `SANDBOX_RUNTIME=runsc`.
+
+## Checks and releases
+
+`make verify` runs every check: frontend, Go lint and tests, guardrails and the production build.
+
+| Workflow | Runs when | Does |
+| --- | --- | --- |
+| Fast (GitHub Actions) | Every push to `dev` | Checks, builds, publishes the `dev` image |
+| Full (GitHub Actions) | Started by hand | Repeats all checks, merges `dev` into `main`, publishes `latest` |
+| Jenkins (`Jenkinsfile`) | Started by hand | Builds a branch with no merge, tests, pushes, hot-swaps the binary. See [devops.md](./devops.md). |
+
+`make e2e-sites` tests a private site in a real browser. It needs Docker and Playwright, and it isn't part of `make verify`.

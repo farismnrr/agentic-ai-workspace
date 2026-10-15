@@ -17,11 +17,27 @@ export const kindChoices: KindChoice[] = [
 
 export const kindLabel = (kind: ProviderKind): string => kindChoices.find((choice) => choice.value === kind)?.label ?? kind;
 
+/**
+ * Names for the three providers people use most behind a gateway, as 9router's own dashboard calls them. A gateway
+ * only reports a short alias (cx, cc, oc) and its dashboard API needs a login, so just these are named here; any other
+ * provider shows the alias it reported. Only providers are named: their models always come from the gateway and are
+ * never listed in the code, because they change.
+ */
+export const gatewayProviderNames: Record<string, string> = {
+  cx: 'OpenAI Codex',
+  cc: 'Claude Code',
+  oc: 'OpenCode Free',
+};
+
 export const modelsCopy = {
   defaultIntro: 'Used for every new task unless you pick another when you start it.',
+  effortIntro: 'How hard the AI thinks before it answers. Higher is slower and costs more; a model that does not take a level will say so.',
+  refreshTip: 'Check the key again and update the list of models and how much each can hold.',
   providersIntro: 'Your own keys. Tasks are billed by the provider, not by us.',
   none: { title: 'Add your first AI model', body: 'Add a provider with your own key so your AI team has a model to work with. Use Add above.' },
   noModels: { title: 'No models to choose from yet', body: 'Add a provider and verify its key, then pick a model here.' },
+  contextIntro: 'How much a model can keep in mind at once. When a task gets close to it, the AI summarizes its notes and keeps going.',
+  contextLabel: (model: string) => `Context window for ${model}`,
   failed: 'We could not load your providers. Please try again in a moment.',
   saved: 'Saved, but the provider did not accept this key. Check it and press Verify.',
   errors: {
@@ -31,6 +47,7 @@ export const modelsCopy = {
     invalid_key: 'Enter the API key.',
     invalid_kind: 'Choose a provider.',
     too_many: 'You have too many providers. Remove one first.',
+    invalid_context: 'Choose a size between 8,000 and 2,000,000 tokens.',
     verify_failed: 'The provider did not accept this key.',
   } as Record<string, string>,
   fallbackError: 'Something went wrong. Please try again in a moment.',

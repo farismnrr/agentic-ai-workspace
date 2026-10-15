@@ -2,6 +2,8 @@
   import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import { connectedAppsCopy } from '../content/connected';
+  import { githubCopy } from '../content/integrations';
+  import { loadGitHub, type GitHubStatus } from '../logic/github-api';
   import { loadConnectedApps, revokeApp, type ConnectedApp } from '../logic/connectors-api';
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
@@ -10,6 +12,7 @@
   let loading = $state(true);
   let failed = $state(false);
   let pending: ConnectedApp | undefined = $state();
+  let github: GitHubStatus | undefined = $state();
 
   async function refresh(): Promise<void> {
     try {
@@ -34,7 +37,10 @@
 
   const day = (iso: string): string => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
 
-  onMount(refresh);
+  onMount(() => {
+    void refresh();
+    loadGitHub().then((status) => (github = status), () => undefined);
+  });
 </script>
 
 <SettingsSection title="Connected apps" description={connectedAppsCopy.intro}>
@@ -63,6 +69,15 @@
     {/each}
   {/if}
 </SettingsSection>
+{#if github?.connected === true}
+  <SettingsSection title="GitHub" description={githubCopy.connected(github.login)}>
+    <div class="py-3 text-xs text-[var(--brand-text-secondary)]">
+      <p>{githubCopy.details}</p>
+      <p class="mt-1">{githubCopy.repos.body}</p>
+      <a class="btn btn-outline btn-sm mt-3" href="/app/settings/integrations">Manage GitHub</a>
+    </div>
+  </SettingsSection>
+{/if}
 <ConfirmModal
   open={pending !== undefined}
   title="Remove access for {pending?.clientName ?? ''}?"

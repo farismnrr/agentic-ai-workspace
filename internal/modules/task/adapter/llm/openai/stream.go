@@ -54,7 +54,7 @@ func newAssembly(onText func(string)) *assembly {
 
 // stream asks for a streamed answer. Gateways that do not support streaming
 // answer with a client error before any text, and then the turn is asked again without it.
-func (c *Client) stream(ctx context.Context, in application.Request) (application.Reply, error) {
+func (c *Client) stream(ctx context.Context, in application.Request, mayFallBack bool) (application.Reply, error) {
 	body := encode(in)
 	body.Stream = true
 	body.StreamOptions = &streamOptions{IncludeUsage: true}
@@ -62,7 +62,7 @@ func (c *Client) stream(ctx context.Context, in application.Request) (applicatio
 	headers := map[string]string{"Authorization": "Bearer " + c.apiKey}
 
 	err := c.http.Stream(ctx, c.baseURL+"/chat/completions", headers, body, assembled.handle)
-	if modelErr, ok := domain.AsModelError(err); ok && !assembled.sent && unsupported(modelErr.Status) {
+	if modelErr, ok := domain.AsModelError(err); ok && mayFallBack && !assembled.sent && unsupported(modelErr.Status) {
 		in.OnText = nil
 
 		return c.Complete(ctx, in)

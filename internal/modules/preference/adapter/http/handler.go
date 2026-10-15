@@ -31,6 +31,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 type payload struct {
 	DefaultProviderID string        `json:"defaultProviderId"`
 	DefaultModel      string        `json:"defaultModel"`
+	DefaultEffort     string        `json:"defaultEffort"`
 	PersonaName       string        `json:"personaName"`
 	TalkStyle         string        `json:"talkStyle"`
 	Language          string        `json:"language"`
@@ -40,8 +41,9 @@ type payload struct {
 
 func toPayload(p domain.Preferences) payload {
 	return payload{
-		DefaultProviderID: p.DefaultProviderID, DefaultModel: p.DefaultModel, PersonaName: p.PersonaName,
-		TalkStyle: p.TalkStyle, Language: p.Language, About: p.About, Rules: append([]domain.Rule{}, p.Rules...),
+		DefaultProviderID: p.DefaultProviderID, DefaultModel: p.DefaultModel, DefaultEffort: p.DefaultEffort,
+		PersonaName: p.PersonaName,
+		TalkStyle:   p.TalkStyle, Language: p.Language, About: p.About, Rules: append([]domain.Rule{}, p.Rules...),
 	}
 }
 
@@ -61,8 +63,9 @@ func (h *Handler) put(c fiber.Ctx) error {
 	}
 
 	saved, err := h.service.Update(c.Context(), httpserver.UserID(c), domain.Preferences{
-		DefaultProviderID: body.DefaultProviderID, DefaultModel: body.DefaultModel, PersonaName: body.PersonaName,
-		TalkStyle: body.TalkStyle, Language: body.Language, About: body.About, Rules: body.Rules,
+		DefaultProviderID: body.DefaultProviderID, DefaultModel: body.DefaultModel, DefaultEffort: body.DefaultEffort,
+		PersonaName: body.PersonaName,
+		TalkStyle:   body.TalkStyle, Language: body.Language, About: body.About, Rules: body.Rules,
 	})
 	if errors.Is(err, domain.ErrInvalid) {
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_preferences"))

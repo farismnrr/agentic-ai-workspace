@@ -12,9 +12,11 @@ import (
 type Request struct {
 	// OnText, when set, asks the model to stream and is called with each piece of
 	// text as it arrives. The full reply is still returned at the end.
-	OnText   func(delta string)
-	Model    string
-	System   string
+	OnText func(delta string)
+	Model  string
+	System string
+	// Effort is how hard the model should think; empty leaves it to the provider.
+	Effort   domain.Effort
 	Messages []domain.Message
 	Tools    []domain.ToolDef
 }
@@ -23,6 +25,11 @@ type Request struct {
 type Reply struct {
 	Blocks []domain.Block
 	Usage  domain.Usage
+}
+
+// ContextWindows says how much a model can hold at once, in tokens.
+type ContextWindows interface {
+	ContextWindow(ctx context.Context, userID, providerID, model string) int64
 }
 
 // Model sends a conversation to a model provider. Failures are *domain.ModelError.
@@ -34,6 +41,8 @@ type Model interface {
 type Models interface {
 	Client(ctx context.Context, userID, providerID string) (Model, error)
 	Default(ctx context.Context, userID string) (providerID, model string, err error)
+	// DefaultEffort is the effort the person prefers when they do not pick one; empty when none.
+	DefaultEffort(ctx context.Context, userID string) domain.Effort
 }
 
 // Persona is how the person wants the agent to behave.
@@ -90,6 +99,22 @@ type ToolResult struct {
 	IsError bool
 }
 
+// Step is one thing the agent did that changed or ran something, for the person's activity log.
+type Step struct {
+	UserID    string
+	ProjectID string
+	TaskID    string
+	Tool      string
+	Summary   string
+	Detail    string
+	Failed    bool
+}
+
+// ActivitySink receives every such step. A failure to record must never stop the agent.
+type ActivitySink interface {
+	Step(ctx context.Context, step Step)
+}
+
 // ToolSet runs the project tools for the agent.
 type ToolSet interface {
 	Definitions() []domain.ToolDef
@@ -108,6 +133,8 @@ type TaskStore interface {
 	SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error
 	SavePlan(ctx context.Context, id string, plan []domain.PlanStep, at time.Time) error
 	Finish(ctx context.Context, id, summary string, proof *domain.Proof, at time.Time) error
+	// SetContext records how full the model's context window is, in tokens.
+	SetContext(ctx context.Context, id string, used, window int64) error
 	// Running lists tasks left queued, planning or working, for recovery after a restart.
 	Running(ctx context.Context) ([]domain.Task, error)
 	// DeleteAll removes every task a person has, with its thread.
@@ -151,7 +178,6 @@ type UsageRow struct {
 // UsageStore persists and summarises token usage.
 type UsageStore interface {
 	AddUsage(ctx context.Context, record UsageRecord) error
-	TotalUsage(ctx context.Context, taskID string) (domain.Usage, error)
 	UsageSummary(ctx context.Context, userID string, since time.Time) ([]UsageRow, error)
 }
 
@@ -164,4 +190,6 @@ type IDs interface {
 type Computer interface {
 	// Toolchains lists the languages and tools installed there, such as "Go 1.26"; empty when unknown.
 	Toolchains(ctx context.Context) []string
+	// GitHub is the login of the GitHub account this person connected, or "" when they have none.
+	GitHub(ctx context.Context, userID string) string
 }

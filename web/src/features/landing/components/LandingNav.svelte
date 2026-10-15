@@ -10,16 +10,16 @@
       <span class="whitespace-nowrap text-[17px] font-semibold tracking-[-0.01em] text-base-content">Masih Awam</span>
     </a>
 
-    <nav class="hidden flex-1 items-center gap-7 md:flex" aria-label="Primary">
+    <nav class="hidden flex-1 items-center gap-5 whitespace-nowrap lg:gap-7 md:flex" aria-label="Primary">
       {#each navLinks as link (link.href)}
         <a class="text-[15px] font-medium text-base-content/80 transition-colors hover:text-base-content" href={link.href}>{link.label}</a>
       {/each}
     </nav>
 
-    <div class="ml-auto flex items-center gap-3 md:ml-0">
-      <a class="text-[15px] font-medium text-base-content/80 transition-colors hover:text-base-content hidden sm:inline" href={REPO_URL}>GitHub</a>
-      <a class="text-[15px] font-medium text-base-content/80 transition-colors hover:text-base-content" href="/login">Sign in</a>
-      <a class="btn btn-primary h-10 min-h-10 rounded-full border-0 px-5 text-[15px] font-semibold text-primary-content hover:bg-[color-mix(in_oklab,var(--color-primary)_85%,black)]" href="/register">Get started</a>
+    <div class="ml-auto flex items-center gap-2 sm:gap-3 md:ml-0">
+      <a class="text-[15px] font-medium text-base-content/80 transition-colors hover:text-base-content hidden lg:inline" href={REPO_URL}>GitHub</a>
+      <a class="hidden text-[15px] font-medium text-base-content/80 transition-colors hover:text-base-content sm:inline" href="/login">Sign in</a>
+      <a class="btn btn-primary hidden h-10 min-h-10 rounded-full border-0 px-5 text-[15px] font-semibold text-primary-content hover:bg-[color-mix(in_oklab,var(--color-primary)_85%,black)] min-[400px]:inline-flex" href="/register">Get started</a>
       <div class="dropdown dropdown-end md:hidden">
         <button type="button" class="btn btn-ghost btn-square min-h-11" aria-label="Open menu" aria-haspopup="true">
           <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -31,6 +31,8 @@
             <li><a class="min-h-11" href={link.href}>{link.label}</a></li>
           {/each}
           <li><a class="min-h-11" href={REPO_URL}>GitHub</a></li>
+          <li class="sm:hidden"><a class="min-h-11" href="/login">Sign in</a></li>
+          <li class="min-[400px]:hidden"><a class="min-h-11 font-medium" href="/register">Get started</a></li>
         </ul>
       </div>
     </div>
