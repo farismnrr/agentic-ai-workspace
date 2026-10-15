@@ -24,7 +24,7 @@
   function onkeydown(event: KeyboardEvent): void {
     if (event.key !== 'Escape' || root?.open !== true) return;
     close();
-    root?.querySelector('summary')?.focus();
+    root.querySelector('summary')?.focus();
   }
 
   async function leave(): Promise<void> {

@@ -24,5 +24,5 @@
     {#if running}<button class="btn btn-outline btn-sm" type="button" onclick={onstop}>Stop</button>{/if}
     {#if task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
   </div>
-  <div class="flex pb-2 sm:hidden"><ContextMeter used={task.contextUsed} window={task.contextWindow} always /></div>
+  <div class="flex pb-2 sm:hidden"><ContextMeter used={task.contextUsed} window={task.contextWindow} phone /></div>
 </header>
