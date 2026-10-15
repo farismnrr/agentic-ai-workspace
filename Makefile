@@ -11,6 +11,8 @@ WEB_DIR := web
 WEB_EMBED_DIR := internal/platform/webassets/dist
 FRONTEND_DEPS_STAMP := $(WEB_DIR)/node_modules/.package-lock.json
 MAX_FILE_LINES := 200
+# Build version shown by /api/health and the X-App-Version header; CI passes the commit.
+VERSION ?= dev
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
@@ -32,7 +34,7 @@ build: verify
 
 backend-build:
 	@mkdir -p "$(BIN_DIR)"
-	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$(BIN_PATH)" ./cmd/workspace
+	CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(VERSION)" -o "$(BIN_PATH)" ./cmd/workspace
 
 # Checks run as Docker containers, so a local Docker daemon is needed to run them.
 run: build
