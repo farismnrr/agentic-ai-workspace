@@ -61,8 +61,9 @@ func failing(message string, retryable bool) step {
 }
 
 type fakeModels struct {
-	model application.Model
-	none  bool
+	model  application.Model
+	effort domain.Effort
+	none   bool
 }
 
 func (f *fakeModels) Client(context.Context, string, string) (application.Model, error) {
@@ -72,6 +73,8 @@ func (f *fakeModels) Client(context.Context, string, string) (application.Model,
 
 	return f.model, nil
 }
+
+func (f *fakeModels) DefaultEffort(context.Context, string) domain.Effort { return f.effort }
 
 func (f *fakeModels) Default(context.Context, string) (string, string, error) {
 	if f.none {

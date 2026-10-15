@@ -12,9 +12,11 @@ import (
 type Request struct {
 	// OnText, when set, asks the model to stream and is called with each piece of
 	// text as it arrives. The full reply is still returned at the end.
-	OnText   func(delta string)
-	Model    string
-	System   string
+	OnText func(delta string)
+	Model  string
+	System string
+	// Effort is how hard the model should think; empty leaves it to the provider.
+	Effort   domain.Effort
 	Messages []domain.Message
 	Tools    []domain.ToolDef
 }
@@ -39,6 +41,8 @@ type Model interface {
 type Models interface {
 	Client(ctx context.Context, userID, providerID string) (Model, error)
 	Default(ctx context.Context, userID string) (providerID, model string, err error)
+	// DefaultEffort is the effort the person prefers when they do not pick one; empty when none.
+	DefaultEffort(ctx context.Context, userID string) domain.Effort
 }
 
 // Persona is how the person wants the agent to behave.

@@ -12,6 +12,7 @@ import (
 	anthropicllm "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/anthropic"
 	openaillm "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/llm/openai"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
@@ -76,6 +77,16 @@ func (m agentModels) Default(ctx context.Context, userID string) (string, string
 	}
 
 	return prefs.DefaultProviderID, prefs.DefaultModel, nil
+}
+
+// DefaultEffort is the effort the person prefers when a task does not say; empty when none is set.
+func (m agentModels) DefaultEffort(ctx context.Context, userID string) taskdomain.Effort {
+	prefs, err := m.prefs.Get(ctx, userID)
+	if err != nil {
+		return taskdomain.EffortDefault
+	}
+
+	return taskdomain.Effort(prefs.DefaultEffort)
 }
 
 // agentPersona gives the agent a person's persona and the rules they switched on.
