@@ -10,6 +10,11 @@ export const taskErrors: Record<string, string> = {
   not_found: 'We could not find that task.',
 };
 
+export const contextCopy = {
+  label: 'Memory used',
+  tip: "How much of the AI's memory this task fills. When it is nearly full, the AI summarizes its notes and keeps going.",
+};
+
 export const taskFallbackError = 'Something went wrong. Please try again in a moment.';
 
 export const homeCopy = {

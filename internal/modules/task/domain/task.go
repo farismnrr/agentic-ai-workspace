@@ -78,4 +78,8 @@ type Task struct {
 	Source string
 	Status Status
 	Plan   []PlanStep
+	// ContextUsed and ContextWindow are tokens: what the last model call carried and what the model can hold.
+	// Zero until the first call.
+	ContextUsed   int64
+	ContextWindow int64
 }

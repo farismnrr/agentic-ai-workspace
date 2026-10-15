@@ -35,8 +35,13 @@ func TestALongTaskIsSummarisedAndKeepsGoing(t *testing.T) {
 		t.Fatalf("the next turn must start from the summary alone: %+v", final)
 	}
 
-	if r.task(t, task.ID).Status == domain.StatusFailed {
+	done := r.task(t, task.ID)
+	if done.Status == domain.StatusFailed {
 		t.Fatal("compaction must not fail the task")
+	}
+
+	if done.ContextWindow != 50_000 || done.ContextUsed <= 0 || done.ContextUsed >= 30_000 {
+		t.Fatalf("the task must show the window and the shortened size: %d of %d", done.ContextUsed, done.ContextWindow)
 	}
 }
 

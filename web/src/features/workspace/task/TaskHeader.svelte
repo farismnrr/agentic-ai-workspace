@@ -1,6 +1,7 @@
 <script lang="ts">
   import StatusBadge from '../components/StatusBadge.svelte';
   import type { Task } from '../logic/task-types';
+  import ContextMeter from './ContextMeter.svelte';
   import { timeAgo } from '../logic/time';
 
   interface Props {
@@ -19,6 +20,7 @@
     <StatusBadge status={task.status} />
     <p class="hidden flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">Started {timeAgo(task.createdAt)} · {task.model}</p>
     <span class="flex-1 md:hidden"></span>
+    <ContextMeter used={task.contextUsed} window={task.contextWindow} />
     {#if running}<button class="btn btn-outline btn-sm" type="button" onclick={onstop}>Stop</button>{/if}
     {#if task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
   </div>
