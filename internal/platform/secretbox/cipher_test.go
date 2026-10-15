@@ -1,4 +1,4 @@
-package aesgcm_test
+package secretbox_test
 
 import (
 	"bytes"
@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/adapter/aesgcm"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/secretbox"
 )
 
-func open(t *testing.T, dir string) *aesgcm.Cipher {
+func open(t *testing.T, dir string) *secretbox.Cipher {
 	t.Helper()
 
-	cipher, err := aesgcm.Open(dir)
+	cipher, err := secretbox.Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

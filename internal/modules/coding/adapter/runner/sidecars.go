@@ -30,8 +30,11 @@ type Extras struct {
 
 // prepare creates (and when needed empties) the workspace's cache and starts its proxy socket.
 // It never fails the command: without the extras the command still runs, just offline and uncached.
-// Images without the toolbox's start script (any plain image) get no proxy socket.
-func (e *Engine) prepare(ctx context.Context, dir string, spec *sandbox.Spec, docker *sandbox.Docker) {
+// Extra hosts are reachable from this workspace only. Images without the toolbox's start script
+// (any plain image) get no proxy socket.
+func (e *Engine) prepare(
+	ctx context.Context, dir string, spec *sandbox.Spec, docker *sandbox.Docker, hosts ...string,
+) {
 	id := filepath.Base(dir)
 
 	if e.extras.CacheDir != "" {
@@ -46,7 +49,7 @@ func (e *Engine) prepare(ctx context.Context, dir string, spec *sandbox.Spec, do
 	}
 
 	if e.extras.Proxy != nil && len(docker.Toolchains()) > 0 {
-		if socket, err := e.extras.Proxy.Dir(ctx, id); err == nil {
+		if socket, err := e.extras.Proxy.Dir(ctx, id, hosts...); err == nil {
 			spec.Egress = socket
 		}
 	}

@@ -39,10 +39,6 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 	engine, closeProxy := newSandboxEngine(cfg)
 
-	if err = removeOldWorkspaces(cfg.DataDir); err != nil {
-		return nil, nil, err
-	}
-
 	spaceStore, permissions := newPermissions(db, registry)
 
 	auth := httpserver.RequireSession(sess)
@@ -52,9 +48,9 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	folders, err := folder.Open(cfg.DataDir)
+	folders, err := openFolders(cfg.DataDir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("open project folders: %w", err)
+		return nil, nil, err
 	}
 
 	tools, err := newAgentTools(folders, cfg.DataDir, cfg.PublicURL, engine)
@@ -64,24 +60,40 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
 
+	githubMount, err := connectGitHub(db, cfg, tools, projects, auth, sameOrigin)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	tasks, sites, agentMounts, stop, err := newAgentAndSites(
 		db, cfg, models, projects, tools, folders, toolGate{permissions: permissions}, sess, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	account.AddEraser(eraser(sites.StopUser))
-	account.AddEraser(eraser(tasks.DeleteAll))
-	account.AddEraser(eraser(projects.DeleteAll))
+	for _, erase := range []eraser{sites.StopUser, tasks.DeleteAll, projects.DeleteAll} {
+		account.AddEraser(erase)
+	}
 
 	spaceMounts := newSpaceMounts(cfg, projects, tools, registry, spaceStore, permissions, oauth, sess, sameOrigin)
 
-	exportMount := newExport(account, models, projects, tasks, folders, auth)
-	mounts := append([]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts...)
-	mounts = append(mounts, exportMount)
-	mounts = append(mounts, models.mounts...)
+	mounts := joinMounts(
+		[]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts,
+		[]httpserver.Mount{newExport(account, models, projects, tasks, folders, auth)},
+		models.mounts, []httpserver.Mount{githubMount}, spaceMounts)
 
-	return append(mounts, spaceMounts...), func() { stop(); closeProxy() }, nil
+	return mounts, func() { stop(); closeProxy() }, nil
+}
+
+// joinMounts keeps the route groups in registration order.
+func joinMounts(groups ...[]httpserver.Mount) []httpserver.Mount {
+	var all []httpserver.Mount
+
+	for _, group := range groups {
+		all = append(all, group...)
+	}
+
+	return all
 }
 
 // newSpaceMounts wires the activity log, the app API and each hosted space.
@@ -103,6 +115,20 @@ func newSpaceMounts(
 	})
 
 	return append(mounts, mounter.Mount(space, handler))
+}
+
+// openFolders opens the project folders after deleting the old per-person ones.
+func openFolders(dataDir string) (*folder.Folders, error) {
+	if err := removeOldWorkspaces(dataDir); err != nil {
+		return nil, err
+	}
+
+	folders, err := folder.Open(dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("open project folders: %w", err)
+	}
+
+	return folders, nil
 }
 
 // removeOldWorkspaces deletes the per-person folders connected apps used to work in: they work in

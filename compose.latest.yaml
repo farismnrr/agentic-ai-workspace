@@ -40,6 +40,9 @@ services:
       SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-2048}
       SANDBOX_CPUS: ${SANDBOX_CPUS:-1}
       MAX_SANDBOXES: ${MAX_SANDBOXES:-4}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
     volumes:
       - agentic-data:/data
       - /var/run/docker.sock:/var/run/docker.sock

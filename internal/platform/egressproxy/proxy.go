@@ -56,6 +56,22 @@ func New(hosts []string) *Proxy {
 	}}
 }
 
+// WithHosts returns a proxy that allows the extra hostnames as well; the original is unchanged.
+func (p *Proxy) WithHosts(extra []string) *Proxy {
+	allowed := make(map[string]struct{}, len(p.hosts)+len(extra))
+	for host := range p.hosts {
+		allowed[host] = struct{}{}
+	}
+
+	for _, host := range extra {
+		if host = strings.ToLower(strings.TrimSpace(host)); host != "" {
+			allowed[host] = struct{}{}
+		}
+	}
+
+	return &Proxy{hosts: allowed, dial: p.dial}
+}
+
 // Serve answers connections on l until it is closed.
 func (p *Proxy) Serve(l net.Listener) error {
 	server := &http.Server{Handler: p, ReadHeaderTimeout: headerWait}
