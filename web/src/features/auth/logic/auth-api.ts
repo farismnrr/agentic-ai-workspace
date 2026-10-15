@@ -12,9 +12,3 @@ export const createAccount = (name: string, email: string, password: string): Pr
 export function describeError(error: unknown): string {
   return error instanceof ApiError ? (errorCopy[error.code] ?? FALLBACK_ERROR) : FALLBACK_ERROR;
 }
-
-/** Reads the `next` query parameter, accepting only same-site paths. */
-export function nextPath(search: string): string {
-  const next = new URLSearchParams(search).get('next');
-  return next !== null && next.startsWith('/') && !next.startsWith('//') ? next : '/app';
-}

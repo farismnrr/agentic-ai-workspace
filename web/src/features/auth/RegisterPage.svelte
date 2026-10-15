@@ -8,9 +8,10 @@
   import PasswordStrength from './components/PasswordStrength.svelte';
   import TextField from './components/TextField.svelte';
   import { goTo } from '../../app/router';
+  import { nextPath } from '../../shared/session/next-path';
   import { setUser } from '../../shared/session/session';
   import { registerCopy } from './content';
-  import { createAccount, describeError, nextPath } from './logic/auth-api';
+  import { createAccount, describeError } from './logic/auth-api';
   import { validateConfirm, validateEmail, validateName, validatePassword } from '../../shared/forms/validation';
 
   let form: HTMLFormElement | undefined = $state();

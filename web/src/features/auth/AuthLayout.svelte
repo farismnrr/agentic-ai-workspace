@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import Illustration from '../../shared/ui/Illustration.svelte';
-  import LogoMark from '../../shared/ui/LogoMark.svelte';
+  import BrandLink from '../../shared/ui/BrandLink.svelte';
   import type { authIllustrations } from './assets/illustrations';
 
   interface Props {
@@ -15,10 +15,7 @@
 
 <div class="grid min-h-screen bg-base-100 lg:grid-cols-2">
   <main class="flex flex-col px-6 py-8 sm:px-12 lg:px-[clamp(3rem,8vw,7.5rem)]">
-    <a class="flex min-h-11 w-fit items-center gap-2.5" href="/" aria-label="Masih Awam home">
-      <LogoMark class="size-10" />
-      <span class="whitespace-nowrap text-[17px] font-semibold tracking-[-0.01em]">Masih Awam</span>
-    </a>
+    <BrandLink />
     <div class="hero-in my-auto w-full max-w-md py-10">
       {@render children()}
     </div>
