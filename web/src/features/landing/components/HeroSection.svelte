@@ -7,7 +7,7 @@
   import TaskChecklist from './TaskChecklist.svelte';
 </script>
 
-<section class="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-16 pt-10 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:pb-20 lg:pt-14">
+<section class="mx-auto grid grid-cols-1 w-full max-w-6xl items-center gap-10 px-6 pb-16 pt-10 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:pb-20 lg:pt-14">
   <div class="hero-in">
     <p class="text-[var(--brand-text-secondary)]">For people who aren’t developers</p>
     <h1 class="mt-5 text-4xl font-medium leading-[1.05] tracking-tight min-[400px]:text-5xl sm:text-6xl">

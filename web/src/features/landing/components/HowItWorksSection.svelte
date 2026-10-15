@@ -18,7 +18,7 @@
   <p class="mt-4 text-lg text-[var(--brand-text-secondary)]">You talk, your AI team works, and you only accept what's proven.</p>
   </div>
 
-  <ol class="mt-14 grid gap-14 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+  <ol class="mt-14 grid grid-cols-1 gap-14 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
     {#each steps as step, index (step.number)}
       <li class="relative" use:reveal={index * 120}>
         <div class="relative flex h-64 items-center justify-center sm:h-72">
