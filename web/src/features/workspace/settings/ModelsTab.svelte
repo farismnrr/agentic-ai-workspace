@@ -111,7 +111,7 @@
     {/if}
   </SettingsSection>
 
-  <ContextWindows {providers} onchange={refresh} onerror={showNotice} />
+  <ContextWindows {options} {providers} onchange={refresh} onerror={showNotice} />
 
   <SettingsSection title="Connected providers" description={modelsCopy.providersIntro}>
     {#snippet action()}
