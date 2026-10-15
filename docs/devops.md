@@ -48,7 +48,9 @@ IMAGE                                                DISK USAGE   CONTENT SIZE
 ghcr.io/farismnrr/agentic-ai-workspace:sha-b6e2744         41MB         11.5MB
 ```
 
-The base is about 2 MB. The rest is one binary layer (23.2 MB). That binary holds the Go runtime, Fiber, pure-Go SQLite, the Docker client and the whole web app. `-s -w` already strips debug symbols, so nothing big is left to cut.
+- The base is about 2 MB. The rest is one binary layer (23.2 MB).
+- That binary holds the Go runtime, Fiber, pure-Go SQLite, the Docker client and the whole web app.
+- `-s -w` already strips debug symbols, so nothing big is left to cut.
 
 ## 2. Swap the binary without a rebuild
 
@@ -93,7 +95,14 @@ X-App-Version: b6e2744-b15
 
 ### Why this approach
 
-A hotfix must be fast and easy to undo, and a file rename plus a restart takes about 2 seconds. The container keeps its ports, volumes and restart policy, and rollback is renaming the old file back. We mount the folder, not the file, because a single-file mount keeps pointing at the old file after a rename. Unlike `docker cp`, the binary survives a container recreate and is never overwritten while it runs. The trade-off is that the binary can be newer than the image tag, so each build reports its own version.
+A hotfix must be fast and easy to undo.
+
+- **Fast:** a file rename plus a restart takes about 2 seconds, with no image rebuild.
+- **Safe:** the container keeps its ports, volumes and restart policy.
+- **Easy to undo:** rolling back is renaming the old file back.
+- **Folder mount, not file mount:** a single-file mount keeps pointing at the old file after a rename.
+- **Better than `docker cp`:** the binary survives a container recreate and is never overwritten while it runs.
+- **Trade-off:** the binary can be newer than the image tag, so each build reports its own version.
 
 ## 3. Jenkins pipeline
 
@@ -129,4 +138,7 @@ If the Deploy stage fails:
 3. If that doesn't happen, it prints the container logs, puts `.prev` back and restarts.
 4. It exits with an error, so the build turns red.
 
-The container is never removed, so the last good binary keeps running. Older builds stay in GHCR as `sha-<commit>`. To go back further, run the job on an older commit. If Test, Build or Push fails, the running app is never touched.
+- The container is never removed, so the last good binary keeps running.
+- Older builds stay in GHCR as `sha-<commit>`.
+- To go back further, run the job on an older commit.
+- If Test, Build or Push fails, the running app is never touched.

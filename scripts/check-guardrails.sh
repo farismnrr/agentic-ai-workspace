@@ -39,6 +39,26 @@ if [ -n "$file_violations" ]; then
   exit 1
 fi
 
+# Docs for people stay scannable: no long single-line paragraphs or bullets. Tables and code blocks are exempt.
+doc_limit="${MAX_DOC_LINE_WORDS:-60}"
+
+doc_violations="$(
+  for file in README.md docs/*.md; do
+    [ -f "$file" ] || continue
+    awk -v limit="$doc_limit" -v file="$file" '
+      /^```/ { fence = !fence; next }
+      fence || /^\|/ || /^#/ { next }
+      NF > limit { printf "%s:%d: %d words\n", file, NR, NF }
+    ' "$file"
+  done
+)"
+
+if [ -n "$doc_violations" ]; then
+  echo "Docs lines over ${doc_limit} words. Split them into bullets, or move the detail to agents/:" >&2
+  echo "$doc_violations" >&2
+  exit 1
+fi
+
 js_sources="$(
   find web -type f \
     \( -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) \

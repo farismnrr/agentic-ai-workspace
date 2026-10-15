@@ -25,7 +25,9 @@ You can add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https:
 
 - A gateway must run on the same computer as the app (`localhost`). The app refuses any other address, so nobody can point it at your internal network.
 - Keys are stored encrypted and checked right away.
-- Models are grouped by provider. With a gateway, each provider it serves becomes its own group. Codex, Claude Code and OpenCode get their names; others keep the gateway's short name, such as `kr`. A new provider in the gateway shows up within about 30 seconds, or right away when you press Refresh.
+- Models are grouped by provider.
+- With a gateway, each provider it serves is its own group. Codex, Claude Code and OpenCode have names. Others show the gateway's short name, such as `kr`.
+- A provider added in the gateway appears within about 30 seconds, or at once when you press Refresh.
 
 Settings you can change:
 
@@ -55,13 +57,22 @@ Each connected AI app works in its own project, named after it (ChatGPT works in
 
 Under Settings, Integrations, press Connect GitHub, approve, and choose which repositories the app may reach.
 
-After that, the AI's commands in your projects act as you: they can clone those repos, commit under your name and push. The AI pushes only when you ask. No one else's projects can use your connection, and web apps never can. Disconnect removes it at once.
+After that, the AI's commands in your projects act as you:
+
+- They can clone those repos, commit under your name and push.
+- The AI pushes only when you ask.
+- No one else's projects can use your connection, and web apps never can.
+- Disconnect removes it at once.
 
 If you see "not set up", the server's owner has to add a GitHub App first (see [deployment.md](./deployment.md#github)).
 
 ## Sites
 
-When the AI builds a web app and runs it, the app appears under Sites and in the sidebar. Starting one is allowed when "Run a command" is on. You can open it, make it public, or stop it. See [sites.md](./sites.md).
+When the AI builds and runs a web app, it appears under Sites and in the sidebar.
+
+- Starting one needs "Run a command" to be on.
+- You can open it, make it public, or stop it.
+- Details: [sites.md](./sites.md).
 
 ## Your data
 

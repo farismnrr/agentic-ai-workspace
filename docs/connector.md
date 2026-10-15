@@ -1,6 +1,10 @@
 # Connecting AI apps
 
-The server can be a connector for AI apps like ChatGPT. Each connector has its own address, such as `https://your-domain.com/api/coding`. Give that address to ChatGPT. It finds out how to sign in, what it may do, and registers itself.
+The server can be a connector for AI apps like ChatGPT.
+
+- Each connector has its own address, such as `https://your-domain.com/api/coding`.
+- Give that address to ChatGPT.
+- It finds out how to sign in and what it may do, then registers itself.
 
 ## Try it from your computer
 
@@ -13,7 +17,11 @@ You can see and remove connected apps under Settings, Connected apps.
 
 ## Where the AI app works
 
-Each connected app works in its own project, named after it (ChatGPT works in "ChatGPT"). It's a normal project: you can open its files and run tasks in it. No one can see anyone else's projects, and projects are deleted with the account.
+Each connected app works in its own project, named after it (ChatGPT works in "ChatGPT").
+
+- It is a normal project: you can open its files and run tasks in it.
+- No one can see anyone else's projects.
+- Projects are deleted with the account.
 
 Every check runs in its own throwaway container, which:
 
@@ -34,7 +42,11 @@ Turn each tool on or off under Settings, Spaces & tools. The same switches apply
 | Change files | Edit, write, delete and move files | Off |
 | Run things | Run a named check or a command, start the web app it builds | Off |
 
-Settings, Activity lists every step an AI app takes. Before a file is changed, deleted or moved, the old content is saved, and Undo puts it back. Undo is refused if the file changed again since, so it never overwrites newer work.
+Settings, Activity lists every step an AI app takes.
+
+- Before a file is changed, deleted or moved, the old content is saved.
+- Undo puts it back.
+- Undo is refused if the file changed again since, so it never overwrites newer work.
 
 ## Tasks
 
