@@ -2,43 +2,113 @@
 
 How to run, configure and release the app. For what the app does, see [using-the-app.md](./using-the-app.md); for how it is built, see [system-design.md](./system-design.md).
 
-## Run it with Docker Compose
+## Pick how you want to run it
 
-The app ships as one Docker image holding the single Go binary. Checks (the commands the AI runs on your project) run in short-lived containers that the app starts through the Docker socket, so the compose file mounts it:
+| I want to... | Choose | Needs |
+| --- | --- | --- |
+| Just use it, as fast as possible | **A. Pull the ready-made image** | Docker |
+| Run my own changes, still in Docker | **B. Build the image yourself** | Docker, Git |
+| Run it without Docker for the app itself | **C. Build the program and run it** | Go, Node.js, Docker |
+
+Every option needs Docker, because the commands the AI runs on your project (checks) run in short-lived Docker containers. If Docker is not reachable, the rest of the app still works and checks say so plainly.
+
+The app opens on `http://localhost:8081` in all three. Go slowly: each option below is a few small steps, and you can stop after any step.
+
+### Before you start (all options)
+
+1. Check Docker works: `docker version` should print a Client and a Server section. If it says "permission denied", add yourself to the `docker` group or use rootless Docker.
+2. Check Compose works: `docker compose version`.
+3. Check port 8081 is free (`ss -ltn | grep 8081` prints nothing). If it is taken, pick another one later with `PORT=9000`.
+
+### A. Pull the ready-made image (easiest)
 
 ```bash
+# 1. Get the compose file
 curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.latest.yaml
-DOCKER_GID=$(stat -c %g /var/run/docker.sock) docker compose -f compose.latest.yaml up -d
+
+# 2. Tell the app which group owns the Docker socket (it needs this to start checks)
+export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+
+# 3. Download the images and start the app in the background
+docker compose -f compose.latest.yaml up -d
+
+# 4. Look at it
+docker compose -f compose.latest.yaml ps
+docker compose -f compose.latest.yaml logs -f app
 ```
 
-Two compose files exist: `compose.latest.yaml` runs the image published from `main`, and `compose.dev.yaml` runs the one published from `dev`. Use one at a time, since they share a port and a data volume.
+The first start downloads two images (the app and the toolbox the AI's commands run in), so it can take a few minutes. Then open `http://localhost:8081` and create your account.
 
-By default the app listens on port `8081`; change it with `PORT=9000 docker compose -f compose.latest.yaml up -d`. Images are published to `ghcr.io/farismnrr/agentic-ai-workspace`: `latest` is the last release from `main`, `dev` follows the `dev` branch, and `sha-<commit>` pins an exact build.
+Two compose files exist: `compose.latest.yaml` runs the image published from `main` (the stable one), and `compose.dev.yaml` runs the one published from `dev` (newest, less tested). Use one at a time, since they share a port and a data volume. Images live at `ghcr.io/farismnrr/agentic-ai-workspace`: `latest` is the last release, `dev` follows the `dev` branch, and `sha-<commit>` pins an exact build.
 
-## Building from source
+### B. Build the image yourself
 
-You need Go and Node.js only when building the project yourself.
+Use this when you changed the code, or want to run exactly what is in your checkout.
 
 ```bash
-make build
-./bin/agentic-ai-workspace
+# 1. Get the code
+git clone https://github.com/farismnrr/agentic-ai-workspace.git
+cd agentic-ai-workspace
+
+# 2. Build the app image (tagged latest and dev, the names the compose files use)
+make image
+
+# 3. Build the toolbox image the AI's commands run in
+make sandbox-image
+
+# 4. Start, using only the images you just built (never download)
+export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+docker compose -f compose.latest.yaml up -d --pull never
 ```
 
-Or build and run in one command:
+`--pull never` is what keeps your local build in use. Do not run `docker compose pull` here: it would replace your build with the published image.
+
+### C. Build the program and run it
+
+No Docker image for the app: one static binary runs on your computer. Docker is still needed for checks.
 
 ```bash
-make run
+make run                 # verifies, builds, then starts on port 8081
+make run PORT=9000       # same, on another port
 ```
 
-`make run` needs a local Docker daemon for checks and listens on port 8081 by default. Use `make run PORT=9000` to change it. `make help` lists the available commands.
+Or in two steps: `make build`, then `./bin/agentic-ai-workspace`. `make help` lists every command. There is intentionally no development server or hot reload: always build first, then run.
 
-The build produces one static Linux binary with no shared-library dependencies, the same file that goes into the image. `make image` builds the Docker image locally under the names the compose files pull (`latest` and `dev`), so it is used instead of the published one.
+## Everyday tasks (options A and B)
 
-There is intentionally no development server or hot reload. The supported local flow is always build first, then run the resulting binary.
+Replace the file name with `compose.dev.yaml` if you use the dev channel.
+
+| I want to... | Command |
+| --- | --- |
+| See if it is running | `docker compose -f compose.latest.yaml ps` |
+| Read the logs | `docker compose -f compose.latest.yaml logs -f app` |
+| Stop it (data stays) | `docker compose -f compose.latest.yaml down` |
+| Start it again | `docker compose -f compose.latest.yaml up -d` |
+| Update to the newest published image (A) | `docker compose -f compose.latest.yaml pull` then `docker compose -f compose.latest.yaml up -d` |
+| Update after rebuilding yourself (B) | `make image` then `docker compose -f compose.latest.yaml up -d --pull never --force-recreate` |
+| Use another port | `PORT=9000 docker compose -f compose.latest.yaml up -d` |
+| Delete everything, including accounts and projects | `docker compose -f compose.latest.yaml down -v` (cannot be undone) |
+
+Your accounts, projects and settings live in the Docker volume `agentic-data`. Stopping, updating and recreating the app keeps it; only `down -v` or `docker volume rm agentic-data` removes it. To back it up while the app is stopped:
+
+```bash
+docker run --rm -v agentic-data:/data -v "$PWD":/backup alpine tar czf /backup/agentic-data.tar.gz -C /data .
+```
+
+## If something goes wrong
+
+| What you see | What to do |
+| --- | --- |
+| `DOCKER_GID` is required | Run `export DOCKER_GID=$(stat -c %g /var/run/docker.sock)` in the same terminal, or put `DOCKER_GID=...` in `.env`. |
+| Port already in use | Set another `PORT` (and `PUBLIC_URL` to match). |
+| The app says Docker is not reachable | Check `docker ps` works and the socket path is `/var/run/docker.sock`. |
+| Sign-in is refused from a domain or IP | Add it to `ALLOWED_ORIGINS` or set `PUBLIC_URL` (see below), then recreate the app. |
+| Image not found with `--pull never` | Run `make image` and `make sandbox-image` first. |
+| Still stuck | Read `docker compose -f compose.latest.yaml logs app`. |
 
 ## Configuration
 
-Settings are environment variables, set in the shell or in a `.env` file next to the compose file:
+Settings are environment variables, set in the shell or in a `.env` file next to the compose file (for example `PUBLIC_URL=https://workspace.example.com`). You usually need none of them for a local try-out. After changing one, run the `up -d` command again so the app restarts with it. Lines starting with `#` in `.env` are ignored.
 
 | Variable | Meaning |
 | --- | --- |
