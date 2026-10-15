@@ -4,14 +4,14 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/scripts/install.sh | sh
 #
-# INSTALL_DIR   where .env and the compose file go (default ./agentic-ai-workspace)
+# INSTALL_DIR   where .env and the compose file go (default ~/agentic-ai-workspace)
 # CHANNEL       latest (stable, default) or dev (newest)
 # INSTALL_TTY   where answers are read from (default /dev/tty, so piping into sh still works)
 set -eu
 
 REPO_RAW="https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace"
 CHANNEL="${CHANNEL:-latest}"
-INSTALL_DIR="${INSTALL_DIR:-agentic-ai-workspace}"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/agentic-ai-workspace}"
 TTY="${INSTALL_TTY:-/dev/tty}"
 
 case "$CHANNEL" in
@@ -111,9 +111,35 @@ fetch_compose() {
   curl -fsSL "$REPO_RAW/$BRANCH/$COMPOSE_FILE" -o "$INSTALL_DIR/$COMPOSE_FILE" || die "could not download $COMPOSE_FILE"
 }
 
+# Polls /api/health for up to 60 seconds; on failure shows the last log lines.
+wait_healthy() {
+  say "Waiting for the app to answer on port $PORT ..."
+  for _ in $(seq 1 60); do
+    if curl -fsS "http://localhost:$PORT/api/health" >/dev/null 2>&1; then
+      say "The app is healthy."
+      return 0
+    fi
+    sleep 1
+  done
+  say "The app did not answer within 60 seconds. Last log lines:"
+  (cd "$INSTALL_DIR" && docker compose -f "$COMPOSE_FILE" logs --tail 20 app) >&2 || true
+  return 1
+}
+
+# Both containers: the app keeps running; the sandbox only pulls the toolbox image and exits at once (that is normal).
+show_containers() {
+  say ""
+  (cd "$INSTALL_DIR" && docker compose -f "$COMPOSE_FILE" ps -a) >&2
+  say "(app = Up. sandbox = Exited (0) is expected: it only downloads the toolbox the AI's commands run in.)"
+}
+
 start_app() {
   say "Starting the app (the first time downloads two images, so it can take a few minutes) ..."
   (cd "$INSTALL_DIR" && docker compose -f "$COMPOSE_FILE" up -d)
+  healthy=0
+  wait_healthy && healthy=1
+  show_containers
+  [ "$healthy" = 1 ] || die "the app is not healthy yet; see the logs above."
   say ""
   say "Done. Open ${PUBLIC_URL} and create your account."
   say "Logs: cd $INSTALL_DIR && docker compose -f $COMPOSE_FILE logs -f app"
@@ -121,6 +147,9 @@ start_app() {
 }
 
 check_tools
+if [ -e "$INSTALL_DIR" ] && [ ! -d "$INSTALL_DIR" ]; then
+  die "$INSTALL_DIR exists but is a file, not a folder. Pick another place: INSTALL_DIR=/some/folder"
+fi
 mkdir -p "$INSTALL_DIR"
 collect_settings
 write_env

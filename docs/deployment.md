@@ -28,7 +28,7 @@ The app opens on `http://localhost:8081` in all three. Go slowly: each option be
 curl -fsSL https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/scripts/install.sh | sh
 ```
 
-It creates a folder `agentic-ai-workspace/` in the current directory and tells you how to read logs and stop the app at the end. Use `CHANNEL=dev` before `sh` for the dev image, or `INSTALL_DIR=/opt/workspace` to choose the folder. Running it again is safe: it asks before replacing an existing `.env` (the old one is kept as `.env.bak`).
+It creates the folder `~/agentic-ai-workspace/` (your home folder, whatever directory you run it from) waits until the app answers (up to 60 seconds, showing the logs if it does not), lists both containers, and tells you how to read logs and stop the app. The `sandbox` container showing `Exited (0)` is normal: it only downloads the toolbox image and stops. Use `CHANNEL=dev` before `sh` for the dev image, or `INSTALL_DIR=/opt/workspace` to choose the folder. Running it again is safe: it asks before replacing an existing `.env` (the old one is kept as `.env.bak`).
 
 **By hand:** the same thing in four steps.
 
