@@ -20,8 +20,11 @@ type activityPayload struct {
 	Summary string    `json:"summary"`
 	Outcome string    `json:"outcome"`
 	Detail  string    `json:"detail"`
-	CanUndo bool      `json:"canUndo"`
-	Undone  bool      `json:"undone"`
+	// ProjectID and TaskID are empty for calls that were not tied to a project.
+	ProjectID string `json:"projectId"`
+	TaskID    string `json:"taskId"`
+	CanUndo   bool   `json:"canUndo"`
+	Undone    bool   `json:"undone"`
 }
 
 // entries lists the signed-in person's latest tool calls.
@@ -43,6 +46,7 @@ func (a *API) entries(c fiber.Ctx) error {
 		payload = append(payload, activityPayload{
 			ID: entry.ID, At: entry.At, Space: entry.Space, Client: entry.Client, Tool: entry.Tool, Summary: entry.Summary,
 			Outcome: string(entry.Outcome), Detail: entry.Detail, CanUndo: entry.CanUndo(), Undone: entry.UndoneAt != nil,
+			ProjectID: entry.ProjectID, TaskID: entry.TaskID,
 		})
 	}
 

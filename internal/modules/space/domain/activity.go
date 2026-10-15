@@ -35,11 +35,14 @@ type Activity struct {
 	UserID   string
 	Space    string
 	Client   string
-	Tool     string
-	Summary  string
-	Detail   string
-	Outcome  Outcome
-	Undo     []byte
+	// ProjectID and TaskID say where the call happened; either may be empty.
+	ProjectID string
+	TaskID    string
+	Tool      string
+	Summary   string
+	Detail    string
+	Outcome   Outcome
+	Undo      []byte
 }
 
 // CanUndo reports whether the entry still has something to reverse.

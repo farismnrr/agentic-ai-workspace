@@ -28,6 +28,8 @@ type Entry struct {
 	Tool    string
 	Summary string
 	Detail  string
+	// Task is the thread of the app's conversation this call was written into, when it was.
+	Task    string
 	Outcome Outcome
 	Undo    []byte
 }
@@ -35,4 +37,35 @@ type Entry struct {
 // Recorder writes the activity log.
 type Recorder interface {
 	Record(ctx context.Context, entry Entry) error
+}
+
+// NoteKind is what a step of the app's conversation is.
+type NoteKind string
+
+// Kinds of step.
+const (
+	NoteUser      NoteKind = "user"
+	NoteAssistant NoteKind = "assistant"
+	NoteAction    NoteKind = "action"
+)
+
+// RunNote is a command the app ran, so the thread can show how it ended.
+type RunNote struct {
+	Name     string
+	ExitCode int
+	TimedOut bool
+}
+
+// Note is one step of the app's conversation, for the person to read later in the app.
+type Note struct {
+	Run       *RunNote
+	Kind      NoteKind
+	Text      string
+	Technical string
+}
+
+// TaskLog writes the app's conversation into a thread the person can open. It is optional.
+type TaskLog interface {
+	// Log adds the note to the app's current thread in the project and returns the thread's id.
+	Log(ctx context.Context, userID, client, projectID string, note Note) (string, error)
 }

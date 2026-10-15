@@ -17,7 +17,7 @@ import (
 const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
-	`created_at, updated_at`
+	`created_at, updated_at, source`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -43,9 +43,9 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 
 	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO tasks (id, project_id, user_id, title, summary, status, mode, provider_id, model, plan,
-		   created_at, updated_at) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?)`,
+		   created_at, updated_at, source) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?)`,
 		t.ID, t.ProjectID, t.UserID, t.Title, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
-		t.CreatedAt.Unix(), t.UpdatedAt.Unix())
+		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source)
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
 	}
@@ -172,7 +172,7 @@ func scanTask(row scanner) (domain.Task, error) {
 	)
 
 	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
-		&plan, &proof, &created, &updated)
+		&plan, &proof, &created, &updated, &t.Source)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}

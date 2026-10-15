@@ -22,6 +22,8 @@ export const modelsCopy = {
   providersIntro: 'Your own keys. Tasks are billed by the provider, not by us.',
   none: { title: 'Add your first AI model', body: 'Add a provider with your own key so your AI team has a model to work with. Use Add above.' },
   noModels: { title: 'No models to choose from yet', body: 'Add a provider and verify its key, then pick a model here.' },
+  contextIntro: 'How much a model can keep in mind at once. When a task gets close to it, the AI summarizes its notes and keeps going.',
+  contextLabel: (model: string) => `Context window for ${model}`,
   failed: 'We could not load your providers. Please try again in a moment.',
   saved: 'Saved, but the provider did not accept this key. Check it and press Verify.',
   errors: {
@@ -31,6 +33,7 @@ export const modelsCopy = {
     invalid_key: 'Enter the API key.',
     invalid_kind: 'Choose a provider.',
     too_many: 'You have too many providers. Remove one first.',
+    invalid_context: 'Choose a size between 8,000 and 2,000,000 tokens.',
     verify_failed: 'The provider did not accept this key.',
   } as Record<string, string>,
   fallbackError: 'Something went wrong. Please try again in a moment.',

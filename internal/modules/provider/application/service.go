@@ -22,6 +22,7 @@ type Store interface {
 	Find(ctx context.Context, userID, id string) (domain.Provider, string, error)
 	SetVerified(ctx context.Context, userID, id string, verified bool, models []string) error
 	SetEnabled(ctx context.Context, userID, id string, enabled bool) error
+	SetContextWindow(ctx context.Context, userID, id, model string, tokens int64) error
 	Delete(ctx context.Context, userID, id string) error
 }
 

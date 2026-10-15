@@ -74,7 +74,11 @@ func commandReport(result application.RunResult) (runOutput, report, error) {
 		detail = "timed out"
 	}
 
-	return out, report{detail: detail, failed: result.ExitCode != 0}, nil
+	return out, report{detail: detail, failed: result.ExitCode != 0, run: runNote(out.Name, result)}, nil
+}
+
+func runNote(name string, result application.RunResult) *RunNote {
+	return &RunNote{Name: name, ExitCode: result.ExitCode, TimedOut: result.TimedOut}
 }
 
 func (t *tools) listTasks(ctx context.Context, _ struct{}) (tasksOutput, report, error) {
@@ -117,5 +121,5 @@ func (t *tools) runTask(ctx context.Context, in runInput) (runOutput, report, er
 		detail = "timed out"
 	}
 
-	return out, report{detail: detail, failed: result.ExitCode != 0}, nil
+	return out, report{detail: detail, failed: result.ExitCode != 0, run: runNote(out.Name, result)}, nil
 }

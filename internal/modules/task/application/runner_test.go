@@ -92,20 +92,6 @@ func TestStepLimitStopsARunawayAgent(t *testing.T) {
 	}
 }
 
-func TestTokenBudgetStopsTheRun(t *testing.T) {
-	t.Parallel()
-
-	big := call("c1", "read_file", map[string]string{"path": "a"})
-	big.reply.Usage = domain.Usage{Input: 900, Output: 200}
-	r := newRig(nil, big, finish("never reached"))
-	task := r.start(t, "Spend a lot")
-	r.run(task.ID)
-
-	if r.task(t, task.ID).Status != domain.StatusFailed || len(r.model.requests) != 1 {
-		t.Fatalf("the budget must stop the run after the expensive call")
-	}
-}
-
 func TestRetryableModelErrorsAreRetriedAndPermanentOnesFail(t *testing.T) {
 	t.Parallel()
 

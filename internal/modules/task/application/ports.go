@@ -25,6 +25,11 @@ type Reply struct {
 	Usage  domain.Usage
 }
 
+// ContextWindows says how much a model can hold at once, in tokens.
+type ContextWindows interface {
+	ContextWindow(ctx context.Context, userID, providerID, model string) int64
+}
+
 // Model sends a conversation to a model provider. Failures are *domain.ModelError.
 type Model interface {
 	Complete(ctx context.Context, request Request) (Reply, error)
@@ -90,6 +95,22 @@ type ToolResult struct {
 	IsError bool
 }
 
+// Step is one thing the agent did that changed or ran something, for the person's activity log.
+type Step struct {
+	UserID    string
+	ProjectID string
+	TaskID    string
+	Tool      string
+	Summary   string
+	Detail    string
+	Failed    bool
+}
+
+// ActivitySink receives every such step. A failure to record must never stop the agent.
+type ActivitySink interface {
+	Step(ctx context.Context, step Step)
+}
+
 // ToolSet runs the project tools for the agent.
 type ToolSet interface {
 	Definitions() []domain.ToolDef
@@ -151,7 +172,6 @@ type UsageRow struct {
 // UsageStore persists and summarises token usage.
 type UsageStore interface {
 	AddUsage(ctx context.Context, record UsageRecord) error
-	TotalUsage(ctx context.Context, taskID string) (domain.Usage, error)
 	UsageSummary(ctx context.Context, userID string, since time.Time) ([]UsageRow, error)
 }
 

@@ -74,6 +74,8 @@ type Task struct {
 	Summary    string
 	ProviderID string
 	Model      string
-	Status     Status
-	Plan       []PlanStep
+	// Source names the connected app the thread was recorded from; empty for tasks the agent ran.
+	Source string
+	Status Status
+	Plan   []PlanStep
 }

@@ -11,6 +11,8 @@ export interface Provider {
   models: string[];
   verified: boolean;
   enabled: boolean;
+  /** Tokens each model can hold at once: the size chosen, else the built-in default. */
+  contextWindows: Record<string, number>;
 }
 
 export interface ModelOption {
@@ -34,6 +36,9 @@ export const verifyProvider = (id: string): Promise<Provider> => request<Provide
 
 export const setProviderEnabled = (id: string, enabled: boolean): Promise<undefined> =>
   request<undefined>('PUT', `/api/providers/${encodeURIComponent(id)}`, { enabled });
+
+export const setContextWindow = (id: string, model: string, contextWindow: number): Promise<undefined> =>
+  request<undefined>('PUT', `/api/providers/${encodeURIComponent(id)}/context`, { model, contextWindow });
 
 export const removeProvider = (id: string): Promise<undefined> => request<undefined>('DELETE', `/api/providers/${encodeURIComponent(id)}`);
 

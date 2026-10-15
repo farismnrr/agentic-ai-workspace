@@ -13,7 +13,9 @@ const maxModelError = 300
 
 // turn sends the conversation to the model and records its answer. It reports
 // done when the run is over, which happens when the model stops asking for tools.
-func (r *Runner) turn(ctx context.Context, task domain.Task, transcript []domain.Message) (outcome, bool) {
+func (r *Runner) turn(
+	ctx context.Context, task domain.Task, state *runState, transcript []domain.Message,
+) (outcome, bool) {
 	client, err := r.deps.Models.Client(ctx, task.UserID, task.ProviderID)
 	if err != nil {
 		return failed("I cannot reach the AI model you chose.", "Check Settings, AI models."), true
@@ -24,20 +26,28 @@ func (r *Runner) turn(ctx context.Context, task domain.Task, transcript []domain
 		return failed("I cannot check which tools you switched on.", "Try Continue in a moment."), true
 	}
 
+	system := r.system(ctx, task)
+	messages := r.compactIfNeeded(ctx, task, state, compaction{client: client, system: system, tools: offered}, transcript)
+
 	reply, err := r.ask(ctx, client, Request{
-		Model: task.Model, System: r.system(ctx, task), Messages: orderBlocks(transcript), OnText: r.streamTo(task.ID),
+		Model: task.Model, System: system, Messages: orderBlocks(messages), OnText: r.streamTo(task.ID),
 		Tools: offered,
 	})
 	if err != nil {
-		return r.modelFailure(ctx, task, err), true
+		return r.modelFailure(ctx, err), true
 	}
 
-	_ = r.deps.Usage.AddUsage(ctx, UsageRecord{
-		At: r.deps.Now(), TaskID: task.ID, UserID: task.UserID, ProviderID: task.ProviderID, Model: task.Model,
-		Usage: reply.Usage,
-	})
+	r.recordUsage(ctx, task, reply.Usage)
+	state.size = reply.Usage.Input + reply.Usage.Output
 
 	return r.record(ctx, task, reply)
+}
+
+func (r *Runner) recordUsage(ctx context.Context, task domain.Task, usage domain.Usage) {
+	_ = r.deps.Usage.AddUsage(ctx, UsageRecord{
+		At: r.deps.Now(), TaskID: task.ID, UserID: task.UserID, ProviderID: task.ProviderID, Model: task.Model,
+		Usage: usage,
+	})
 }
 
 func (r *Runner) record(ctx context.Context, task domain.Task, reply Reply) (outcome, bool) {
@@ -104,9 +114,9 @@ func (r *Runner) ask(ctx context.Context, client Model, request Request) (Reply,
 	}
 }
 
-func (r *Runner) modelFailure(ctx context.Context, task domain.Task, err error) outcome {
+func (r *Runner) modelFailure(ctx context.Context, err error) outcome {
 	if ctx.Err() != nil {
-		result, _ := r.limitReached(ctx, task)
+		result, _ := r.limitReached(ctx)
 
 		return result
 	}
