@@ -93,11 +93,7 @@ X-App-Version: b6e2744-b15
 
 ### Why this approach
 
-A hotfix has to be fast and easy to undo. Here a swap is a file rename plus a restart, about 2 seconds of downtime. The container keeps its ports, volumes and restart policy. Rollback means renaming the old file back.
-
-We mount the folder, not the single file. A single-file mount follows the old file even after you rename a new one over it, so the container would not see the fix. Compared with `docker cp`, the binary survives if the container is recreated, and you never overwrite a file that is running.
-
-The trade-off: the running binary can be newer than the image tag. That is why each binary reports its own version.
+A hotfix must be fast and easy to undo, and a file rename plus a restart takes about 2 seconds. The container keeps its ports, volumes and restart policy, and rollback is renaming the old file back. We mount the folder, not the file, because a single-file mount keeps pointing at the old file after a rename. Unlike `docker cp`, the binary survives a container recreate and is never overwritten while it runs. The trade-off is that the binary can be newer than the image tag, so each build reports its own version.
 
 ## 3. Jenkins pipeline
 
@@ -117,6 +113,12 @@ The Jenkins container has only Git, curl and Docker. Node and Go run in short-li
 No secret is in the Jenkinsfile. The registry token comes from the Jenkins credential through `withCredentials`.
 
 ![All stages green in build #15](./images/jenkins-pipeline-run.png)
+
+### When a test fails
+
+Build #16 ran a branch with one test broken on purpose. `go test` failed, the Test stage turned red, and Build, Push and Deploy were skipped. The running app stayed on the previous version.
+
+![Test stage failing in build #16, later stages skipped](./images/jenkins-test-failure.png)
 
 ### Rollback
 
