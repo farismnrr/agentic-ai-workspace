@@ -14,37 +14,15 @@ The frontend is built with Svelte, then embedded into the Go binary. In producti
 
 ## Run it
 
-You need [Docker](https://docs.docker.com/get-docker/). Pick one:
-
-**1. Pull the ready-made image (fastest)**
+You need [Docker](https://docs.docker.com/get-docker/). Then run one command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/scripts/install.sh | sh
 ```
 
-The script asks for each setting one by one, saves them, then starts the app. Prefer to do it by hand?
+It asks for each setting one by one, saves them, starts the app, and tells you where to open it (`http://localhost:8081` by default).
 
-```bash
-curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.latest.yaml
-export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
-docker compose -f compose.latest.yaml up -d
-```
-
-**2. Build the image yourself** (after `git clone`, inside the folder)
-
-```bash
-make image && make sandbox-image
-export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
-docker compose -f compose.latest.yaml up -d --pull never
-```
-
-**3. Build and run the program without a Docker image for the app** (needs Go and Node.js too)
-
-```bash
-make run
-```
-
-Then open `http://localhost:8081` and create your account. Stop it with `docker compose -f compose.latest.yaml down`; your data is kept. Step-by-step instructions, updating, backups and troubleshooting are in [docs/deployment.md](./docs/deployment.md).
+Want to deploy by hand (pull the compose file, build the image yourself, or run the binary)? Follow [docs/deployment.md](./docs/deployment.md).
 
 ## Documentation
 
