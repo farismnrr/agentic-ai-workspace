@@ -9,6 +9,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 )
 
@@ -23,29 +25,40 @@ const (
 
 var errPathTooLong = errors.New("the data folder path is too long for a Unix socket")
 
+// served is one open socket: the workspace it belongs to and its folder.
+type served struct {
+	l   net.Listener
+	id  string
+	dir string
+}
+
 // Hub gives every workspace its own socket, so a sandbox can only reach the proxy
 // through the folder it was handed and each person's traffic stays apart.
 type Hub struct {
 	proxy   *Proxy
-	servers map[string]net.Listener
+	servers map[string]served
 	base    string
 	mu      sync.Mutex
 }
 
 // NewHub keeps one socket folder per workspace under base.
 func NewHub(base string, proxy *Proxy) *Hub {
-	return &Hub{proxy: proxy, base: base, servers: map[string]net.Listener{}}
+	return &Hub{proxy: proxy, base: base, servers: map[string]served{}}
 }
 
-// Dir returns the folder holding the workspace's socket, serving it on first use.
-func (h *Hub) Dir(ctx context.Context, id string) (string, error) {
-	sum := sha256.Sum256([]byte(id))
+// Dir returns the folder holding the workspace's socket, serving it on first use. Extra hosts are
+// reachable through that socket only. Each set of hosts has a socket of its own, so a web app
+// without them and a command with them can run in the same workspace at once, and one person's
+// access never carries over to another workspace.
+func (h *Hub) Dir(ctx context.Context, id string, extra ...string) (string, error) {
+	key := id + "\x00" + strings.Join(slices.Sorted(slices.Values(extra)), ",")
+	sum := sha256.Sum256([]byte(key))
 	dir := filepath.Join(h.base, hex.EncodeToString(sum[:nameBytes]))
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if _, ok := h.servers[id]; ok {
+	if _, ok := h.servers[key]; ok {
 		return dir, nil
 	}
 
@@ -71,26 +84,27 @@ func (h *Hub) Dir(ctx context.Context, id string) (string, error) {
 		return "", fmt.Errorf("protect socket: %w", err)
 	}
 
-	h.servers[id] = l
+	h.servers[key] = served{l: l, id: id, dir: dir}
+	proxy := h.proxy.WithHosts(extra)
 
-	go func() { _ = h.proxy.Serve(l) }()
+	go func() { _ = proxy.Serve(l) }()
 
 	return dir, nil
 }
 
-// Remove stops serving a workspace and deletes its socket folder.
+// Remove stops serving a workspace and deletes its socket folders.
 func (h *Hub) Remove(id string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if l, ok := h.servers[id]; ok {
-		_ = l.Close()
+	for key, s := range h.servers {
+		if s.id == id {
+			_ = s.l.Close()
+			_ = os.RemoveAll(s.dir)
 
-		delete(h.servers, id)
+			delete(h.servers, key)
+		}
 	}
-
-	sum := sha256.Sum256([]byte(id))
-	_ = os.RemoveAll(filepath.Join(h.base, hex.EncodeToString(sum[:nameBytes])))
 }
 
 // Close stops every socket.
@@ -98,9 +112,9 @@ func (h *Hub) Close() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	for id, l := range h.servers {
-		_ = l.Close()
+	for key, s := range h.servers {
+		_ = s.l.Close()
 
-		delete(h.servers, id)
+		delete(h.servers, key)
 	}
 }

@@ -9,7 +9,6 @@ import (
 	prefhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/preference/adapter/http"
 	prefsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/preference/adapter/sqlite"
 	prefapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/preference/application"
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/adapter/aesgcm"
 	providerhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/adapter/http"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/adapter/probe"
 	providersqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/adapter/sqlite"
@@ -17,6 +16,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/secretbox"
 )
 
 // newModels wires the pages behind Settings: AI models (providers) and persona/rules (preferences).
@@ -29,7 +29,7 @@ type modelsWiring struct {
 }
 
 func newModels(db *sql.DB, cfg config.Config, auth, sameOrigin fiber.Handler) (modelsWiring, error) {
-	cipher, err := aesgcm.Open(cfg.DataDir)
+	cipher, err := secretbox.Open(cfg.DataDir)
 	if err != nil {
 		return modelsWiring{}, err //nolint:wrapcheck // already descriptive
 	}

@@ -23,7 +23,7 @@ Three audiences, three places. Never mix them.
 
 ## Runtime contract
 
-1. Production is one Docker image holding one Go binary: one process and one listening port. Checks and commands run as short-lived containers started through the Docker socket, never as a second server; their registry-only network goes through `platform/egressproxy` on per-workspace Unix sockets, never another port. Sites (`modules/site`) are served by a `/run/<name>/<uuid>/` proxy in this same process, never a new port or host.
+1. Production is one Docker image holding one Go binary: one process and one listening port. Checks and commands run as short-lived containers started through the Docker socket, never as a second server; their network (package registries, plus GitHub for a workspace whose owner connected it) goes through `platform/egressproxy` on per-workspace Unix sockets, never another port. Sites (`modules/site`) are served by a `/run/<name>/<uuid>/` proxy in this same process, never a new port or host.
 2. Go Fiber v3 owns API routing and serves the compiled Svelte SPA.
 3. Node.js, Vite, Tailwind CSS, and daisyUI are build-time dependencies only.
 4. Do not add a second runtime server, frontend port, or reverse proxy without explicit approval.

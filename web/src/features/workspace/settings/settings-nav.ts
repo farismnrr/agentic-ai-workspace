@@ -20,6 +20,7 @@ export const navGroups: NavGroup[] = [
       { id: 'persona', label: 'Persona & rules', icon: 'chat' },
       { id: 'spaces', label: 'Spaces & tools', icon: 'folder' },
       { id: 'connected', label: 'Connected apps', icon: 'globe' },
+      { id: 'integrations', label: 'Integrations', icon: 'link' },
       { id: 'activity', label: 'Activity', icon: 'clock' },
     ],
   },

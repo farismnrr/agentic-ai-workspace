@@ -164,4 +164,6 @@ type IDs interface {
 type Computer interface {
 	// Toolchains lists the languages and tools installed there, such as "Go 1.26"; empty when unknown.
 	Toolchains(ctx context.Context) []string
+	// GitHub is the login of the GitHub account this person connected, or "" when they have none.
+	GitHub(ctx context.Context, userID string) string
 }

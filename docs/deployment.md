@@ -128,6 +128,7 @@ Settings are environment variables, set in the shell or in a `.env` file next to
 | `CORS_ORIGINS` | Comma-separated origins browser-based AI tools may call the sign-in endpoints from. Defaults to `ALLOWED_ORIGINS`; `*` allows any. |
 | `SANDBOX_IMAGE` | The Docker image checks and commands run in (default `ghcr.io/<owner>/agentic-ai-workspace-sandbox`, which has Python, Node.js, Go, Rust, Java, Maven, Git, Bash and a C compiler). `make sandbox-image` builds it locally. Any image works, but only the default one gets the registry proxy and the toolchain list. The compose files pull it together with the app (a `sandbox` service that exits at once), so it is ready before the app starts. |
 | `SANDBOX_EGRESS_HOSTS` | Comma-separated hostnames commands may reach over HTTPS (default: PyPI, npm, the Go module proxy, crates.io and Maven Central). Everything else, including your computer and network, stays unreachable. |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_APP_SLUG` | The GitHub App people sign in with under Settings, Integrations (see [GitHub](#github) below). All three empty means the feature is off. |
 | `SANDBOX_RUNTIME` | Optional hardened container runtime, such as `runsc` (gVisor), for extra isolation. |
 | `SANDBOX_DATA_VOLUME` | Set automatically by the compose files: the Docker volume that holds `DATA_DIR`, so check containers can mount a person's folder. Leave empty when the app runs directly on the host. |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Memory (default 2048) and CPU cores (default 1) one check may use. |
@@ -137,9 +138,21 @@ Settings are environment variables, set in the shell or in a `.env` file next to
 | `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits and to tie private site tickets to the visitor's address; without it every visitor behind a tunnel looks like one address. |
 | `DATA_DIR` | Where accounts and connections are stored (default `data`). Projects, including the ones connected AI apps work in, live inside it, under `projects/`. |
 
+## GitHub
+
+Settings, Integrations lets each person connect their own GitHub account so the AI can clone, commit and push for them. The server needs one **GitHub App** (not an OAuth App) to do that. Create it once, at GitHub under Settings, Developer settings, GitHub Apps, New GitHub App:
+
+1. **Callback URL:** `<PUBLIC_URL>/api/integrations/github/callback`. Turn on **Request user authorization (OAuth) during installation**, so installing and signing in is one step. Leave **Expire user authorization tokens** on.
+2. **Webhook:** switch it off.
+3. **Repository permissions:** Contents and Pull requests set to read and write, Metadata read-only. Add Workflows only if the AI should be able to change `.github/workflows` files. Ask for nothing else.
+4. **Where can this app be installed:** any account if several people use the server.
+5. After creating it, generate a **client secret**. Set `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` and `GITHUB_APP_SLUG` (the last part of the app's page address) and recreate the app.
+
+Each person then presses **Connect GitHub**, approves, and chooses on GitHub which repositories the app may reach. What a person's commands can do on GitHub is the overlap of the app's permissions, their own rights and the repositories they chose. Their token is stored encrypted with `DATA_DIR/secret.key` and renewed automatically (it lasts 8 hours). It is given only to commands (`run_command` and tasks) in that person's own projects, together with access to `github.com`, `api.github.com` and `codeload.github.com` from those projects alone; web apps a project serves never get it. Be aware that any program a command runs, such as an install script, can read the token while the command runs; it can only be sent to GitHub, and it works only for the repositories the person chose. Disconnecting revokes the grant at GitHub.
+
 ## Docker and the sandbox
 
-Checks need access to a Docker daemon (`DOCKER_HOST`, or the default socket). If Docker is not reachable, checks say so plainly and the rest of the app keeps working. Commands have no network of their own. They reach only the package registries in `SANDBOX_EGRESS_HOSTS`, through a proxy inside the app, so `npm install`, `pip install` (or `uv pip install`), `cargo fetch`, `go mod download` and `mvn` work while other websites do not. Downloads are cached per person (up to 5 GB, emptied when over) in `DATA_DIR/caches`.
+Checks need access to a Docker daemon (`DOCKER_HOST`, or the default socket). If Docker is not reachable, checks say so plainly and the rest of the app keeps working. Commands have no network of their own. They reach only the package registries in `SANDBOX_EGRESS_HOSTS` (plus GitHub, for people who connected it), through a proxy inside the app, so `npm install`, `pip install` (or `uv pip install`), `cargo fetch`, `go mod download` and `mvn` work while other websites do not. Downloads are cached per person (up to 5 GB, emptied when over) in `DATA_DIR/caches`.
 
 **Access to the Docker socket is access to the whole machine.** Whoever controls the app can start containers as root on the host. Run Docker in [rootless mode](https://docs.docker.com/engine/security/rootless/) where you can, put the data folder on a filesystem with a size quota (the workspace limit is checked once per second), and keep sign-ups to people you trust. For stronger isolation set `SANDBOX_RUNTIME=runsc` after installing gVisor.
 

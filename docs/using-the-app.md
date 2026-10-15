@@ -21,6 +21,10 @@ Settings, **Spaces & tools** is the single list of tools, and it applies to the 
 
 Each AI app you connect works in a project of its own named after it, so ChatGPT's work is in a project called ChatGPT and Gemini's in one called Gemini. They are ordinary projects: you can open them, see their files and run tasks in them, and they are marked "Connected app" in the list. Settings, Activity shows which app did what.
 
+## GitHub
+
+Settings, **Integrations** connects your own GitHub account. Press **Connect GitHub**, approve on GitHub and choose which repositories the app may reach (you can change this on GitHub any time). Afterwards the AI's commands in your projects are signed in as you: it can download those repositories, save changes under your name and push, and it pushes only when you ask. Nobody else's projects can use your connection, and web apps (Sites) never can. **Disconnect** removes it right away. If the server shows "not set up", whoever runs it has to add a GitHub App first (see the deployment guide).
+
 ## Sites
 
 When the AI builds a web app and runs it, whether in a task here or from a connected app such as ChatGPT, it appears under **Sites** (and in the sidebar while it runs). Starting a web app has no switch of its own: it is allowed when **Run a command** is on, and you can always stop it yourself from Sites. Open it from there or from the link in the task, make it public if you want to share it, and press Stop when you are done. See [sites.md](./sites.md).

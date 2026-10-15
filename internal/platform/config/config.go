@@ -28,7 +28,7 @@ var defaultEgressHosts = []string{
 
 // Config contains runtime process configuration.
 type Config struct {
-	Port              string
+	GitHub            GitHub
 	PublicURL         string
 	ConnectorURL      string
 	DataDir           string
@@ -36,9 +36,10 @@ type Config struct {
 	SandboxImage      string
 	SandboxRuntime    string
 	SandboxDataVolume string
+	Port              string
 	SandboxEgress     []string
-	AllowedOrigins    []string
 	CORSOrigins       []string
+	AllowedOrigins    []string
 	AgentWorkers      int
 	MaxSandboxes      int
 	SiteMaxPerUser    int
@@ -46,6 +47,18 @@ type Config struct {
 	SandboxMemoryMB   int
 	SandboxCPUs       int
 	CookieSecure      bool
+}
+
+// GitHub is the GitHub App people connect their account through. Empty means the feature is off.
+type GitHub struct {
+	ClientID     string
+	ClientSecret string
+	AppSlug      string
+}
+
+// Enabled reports whether the GitHub App is configured.
+func (g GitHub) Enabled() bool {
+	return g.ClientID != "" && g.ClientSecret != ""
 }
 
 // Load reads runtime configuration from the environment.
@@ -84,6 +97,11 @@ func Load() Config {
 		SandboxMemoryMB:   atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
 		SandboxCPUs:       atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
 		CookieSecure:      strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
+		GitHub: GitHub{
+			ClientID:     strings.TrimSpace(os.Getenv("GITHUB_CLIENT_ID")),
+			ClientSecret: strings.TrimSpace(os.Getenv("GITHUB_CLIENT_SECRET")),
+			AppSlug:      strings.TrimSpace(os.Getenv("GITHUB_APP_SLUG")),
+		},
 	}
 }
 

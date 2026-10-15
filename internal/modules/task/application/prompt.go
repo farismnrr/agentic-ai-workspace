@@ -8,7 +8,7 @@ import (
 const defaultName = "Awam"
 
 // systemPrompt tells the model who it works for, how to behave, and how to work.
-func systemPrompt(project string, persona Persona, installed []string) string {
+func systemPrompt(project string, persona Persona, installed []string, github string) string {
 	var out strings.Builder
 
 	name := persona.Name
@@ -37,6 +37,7 @@ func systemPrompt(project string, persona Persona, installed []string) string {
 
 	appendRules(&out, persona.Rules)
 	appendComputer(&out, installed)
+	appendGitHub(&out, installed, github)
 	out.WriteString(workflow)
 
 	return out.String()
@@ -69,6 +70,18 @@ func appendComputer(out *strings.Builder, installed []string) {
 		"127.0.0.1 at a port you choose; they open it from a link in the thread. Use a production-style server (no " +
 		"hot reload) and relative links such as ./style.css, because the page is shown under a path. The page runs in " +
 		"a sandbox, so cookies, localStorage and service workers do not work in it.\n")
+}
+
+// appendGitHub says the commands are signed in to the person's GitHub, so the model uses it
+// instead of asking for a password or claiming it cannot reach GitHub.
+func appendGitHub(out *strings.Builder, installed []string, github string) {
+	if github == "" || len(installed) == 0 {
+		return
+	}
+
+	fmt.Fprintf(out, "\nThe person connected their GitHub account (@%s). Commands are already signed in to it: "+
+		"git clone, pull, commit and push over https://github.com/... work on the repositories they chose, with "+
+		"commits written under their name. Never ask for or print a token. Push only when asked.\n", github)
 }
 
 const workflow = `
