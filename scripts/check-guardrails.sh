@@ -20,6 +20,10 @@ file_violations="$(
     ! -path './web/node_modules/*' \
     ! -path './data/*' \
     ! -path './internal/platform/webassets/dist/*' \
+    ! -path './docs/*' \
+    ! -path './agents/*' \
+    ! -path './README.md' \
+    ! -path './AGENTS.md' \
     ! -name 'package-lock.json' \
     -exec sh -c '
       limit="$1"

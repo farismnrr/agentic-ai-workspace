@@ -11,7 +11,7 @@ Three audiences, three places. Never mix them.
 3. `agents/` (and this file) is for agents only: self-improvement, repository memory, lessons, notes and knowledge. Never put agent prompts, hidden workflow instructions or agent memory in `README.md` or `docs/`.
 4. When a durable project rule changes, update `AGENTS.md` or the right `agents/` file in the same task so future agents inherit the current truth.
 5. When user-visible behavior changes, update the matching file in `docs/` (and `README.md` only if the quick start or the doc list changes).
-6. Docs for people stay short and scannable: one idea per bullet or paragraph, the key point first, tables for facts, numbered steps for procedures. No line over about 45 words; `scripts/check-guardrails.sh` fails at 60. Long, exact detail goes in `agents/`.
+6. Docs for people stay short and scannable: one idea per bullet or paragraph, the key point first, tables for facts, numbered steps for procedures. No line over about 45 words; `scripts/check-guardrails.sh` fails at 60. Long, exact detail goes in `agents/`, where agents (not people) read it.
 
 ## Read and research before coding
 
@@ -103,7 +103,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 
 ## Size and complexity limits
 
-1. Every human-authored source, config, script, markup, and documentation file is limited to 200 lines.
+1. Every human-authored source, config, script, and markup file is limited to 200 lines. `README.md`, `AGENTS.md`, `agents/` and `docs/` are exempt: keep each page whole, clear and unambiguous, and never cut information just to fit a line count.
 2. Generated output and dependency lockfiles are exempt.
 3. Go functions are limited by lint to 60 lines / 40 statements and strict complexity thresholds.
 4. Frontend functions are limited by ESLint to 60 lines and complexity 10.

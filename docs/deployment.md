@@ -1,6 +1,6 @@
 # Deployment
 
-Install, update and configure the app. To learn what it does, read [using-the-app.md](./using-the-app.md).
+Install, update, back up and configure the app. To learn what it does, read [using-the-app.md](./using-the-app.md).
 
 ## Choose a way to run it
 
@@ -76,18 +76,53 @@ You can also run `make build` and then `./bin/agentic-ai-workspace`. There is no
 
 ## Everyday commands
 
-Use `compose.dev.yaml` instead if you're on the dev channel.
+The examples use `compose.latest.yaml`. On the dev channel, use `compose.dev.yaml` instead.
 
-| Task | Command |
-| --- | --- |
-| Check status | `docker compose -f compose.latest.yaml ps` (the app shows `healthy` after about 10 seconds) |
-| Read logs | `docker compose -f compose.latest.yaml logs -f app` |
-| Stop (keeps data) | `docker compose -f compose.latest.yaml down` |
-| Start | `docker compose -f compose.latest.yaml up -d` |
-| Update (A) | `docker compose -f compose.latest.yaml pull && docker compose -f compose.latest.yaml up -d` |
-| Update (B) | `make image && docker compose -f compose.latest.yaml up -d --pull never --force-recreate` |
-| Change the port | `PORT=9000 docker compose -f compose.latest.yaml up -d` |
-| Delete everything | `docker compose -f compose.latest.yaml down -v` (this cannot be undone) |
+### Check and read
+
+```bash
+docker compose -f compose.latest.yaml ps          # healthy after about 10 seconds
+docker compose -f compose.latest.yaml logs -f app
+```
+
+### Stop and start
+
+```bash
+docker compose -f compose.latest.yaml down        # keeps your data
+docker compose -f compose.latest.yaml up -d
+```
+
+### Update
+
+If you pulled the image (A):
+
+```bash
+docker compose -f compose.latest.yaml pull
+docker compose -f compose.latest.yaml up -d
+```
+
+If you built it yourself (B):
+
+```bash
+make image
+docker compose -f compose.latest.yaml up -d --pull never --force-recreate
+```
+
+### Change the port
+
+```bash
+PORT=9000 docker compose -f compose.latest.yaml up -d
+```
+
+### Delete everything
+
+This cannot be undone.
+
+```bash
+docker compose -f compose.latest.yaml down -v
+```
+
+### Back up your data
 
 Your data lives in the Docker volume `agentic-data`. Only `down -v` or `docker volume rm` deletes it. Back it up while the app is stopped:
 
@@ -110,23 +145,42 @@ docker run --rm -v agentic-data:/data -v "$PWD":/backup alpine tar czf /backup/a
 
 Set these as environment variables or in `.env` next to the compose file. A local try-out needs none of them. After a change, run `up -d` again.
 
+### Address and sign-in
+
 | Variable | What it does | Default |
 | --- | --- | --- |
 | `PUBLIC_URL` | The address you open the app on. Controls which origins can sign in and whether cookies are Secure. | `http://localhost:<PORT>` |
 | `CONNECTOR_URL` | Public `https` address AI apps like ChatGPT use. Point your tunnel or proxy here. | `PUBLIC_URL` |
 | `ALLOWED_ORIGINS` | Comma-separated origins that can sign in and change data (CSRF). `PUBLIC_URL` is always allowed. | localhost and 127.0.0.1 on `PORT` |
 | `CORS_ORIGINS` | Origins browser-based AI tools can call the sign-in endpoints from. `*` allows any. | `ALLOWED_ORIGINS` |
-| `SANDBOX_IMAGE` | Image the AI's commands run in. The default has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
+| `CLIENT_IP_HEADER` | Header with the real visitor IP behind a proxy, such as `CF-Connecting-IP`. | none |
+
+### Sandbox
+
+| Variable | What it does | Default |
+| --- | --- | --- |
+| `SANDBOX_IMAGE` | Image the AI's commands run in. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
 | `SANDBOX_EGRESS_HOSTS` | Hosts commands can reach over HTTPS. Everything else is blocked. | PyPI, npm, Go proxy, crates.io, Maven Central |
-| `SANDBOX_RUNTIME` | Hardened runtime such as `runsc` (gVisor) | none |
-| `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check | 2048 / 1 |
-| `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it; leave it empty when you run the binary directly. | set by compose |
+| `SANDBOX_RUNTIME` | Hardened runtime, such as `runsc` (gVisor). | none |
+| `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check. | 2048 / 1 |
+| `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it. Leave it empty when you run the binary directly. | set by compose |
+
+The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. `make sandbox-image` builds it locally.
+
+### Capacity
+
+| Variable | What it does | Default |
+| --- | --- | --- |
 | `MAX_SANDBOXES` | Checks running at once. Extra ones wait 30 seconds, then get "busy". | 4 |
-| `AGENT_WORKERS` | Tasks the AI runs at once (one per project) | 2 |
-| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person / per server | 2 / 6 |
-| `CLIENT_IP_HEADER` | Header with the real visitor IP behind a proxy, e.g. `CF-Connecting-IP` | none |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_APP_SLUG` | The GitHub App (see below). Leave all three empty to turn GitHub off. | empty |
-| `DATA_DIR` | Where accounts, settings and projects are stored | `data` |
+| `AGENT_WORKERS` | Tasks the AI runs at once (one per project). | 2 |
+| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person and per server. | 2 / 6 |
+
+### Other
+
+| Variable | What it does | Default |
+| --- | --- | --- |
+| `DATA_DIR` | Where accounts, settings and projects are stored. | `data` |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_SLUG` | The GitHub App (see [GitHub](#github)). Leave all three empty to turn GitHub off. | empty |
 
 ## GitHub
 
@@ -157,14 +211,7 @@ Access to the Docker socket is access to the whole machine. To limit the risk:
 - Let only people you trust sign up.
 - For stronger isolation, install gVisor and set `SANDBOX_RUNTIME=runsc`.
 
-## Checks and releases
+## Releases
 
-`make verify` runs every check: frontend, Go lint and tests, guardrails and the production build.
-
-| Workflow | Runs when | Does |
-| --- | --- | --- |
-| Fast (GitHub Actions) | Every push to `dev` | Checks, builds, publishes the `dev` image |
-| Full (GitHub Actions) | Started by hand | Repeats all checks, merges `dev` into `main`, publishes `latest` |
-| Jenkins (`Jenkinsfile`) | Started by hand | Builds a branch with no merge, tests, pushes, hot-swaps the binary. See [devops.md](./devops.md). |
-
-`make e2e-sites` tests a private site in a real browser. It needs Docker and Playwright, and it isn't part of `make verify`.
+- **What each workflow does:** see [system-design.md](./system-design.md#quality-and-release).
+- **Jenkins and hotfix deploys:** see [devops.md](./devops.md).
