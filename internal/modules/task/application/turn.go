@@ -39,6 +39,7 @@ func (r *Runner) turn(
 
 	r.recordUsage(ctx, task, reply.Usage)
 	state.size = reply.Usage.Input + reply.Usage.Output
+	r.saveContext(ctx, task, state)
 
 	return r.record(ctx, task, reply)
 }

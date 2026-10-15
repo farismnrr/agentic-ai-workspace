@@ -23,6 +23,9 @@ type taskPayload struct {
 	Model      string            `json:"model"`
 	Source     string            `json:"source"`
 	Plan       []domain.PlanStep `json:"plan"`
+	// ContextUsed and ContextWindow are tokens; both are zero before the first model call.
+	ContextUsed   int64 `json:"contextUsed"`
+	ContextWindow int64 `json:"contextWindow"`
 }
 
 func toPayload(t domain.Task) taskPayload {
@@ -30,7 +33,7 @@ func toPayload(t domain.Task) taskPayload {
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
 		ProviderID: t.ProviderID, Model: t.Model, Source: t.Source, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
-		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
+		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
 	}
 }
 

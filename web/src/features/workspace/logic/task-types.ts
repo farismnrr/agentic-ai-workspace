@@ -72,6 +72,9 @@ export interface Task {
   model: string;
   plan: PlanStep[];
   proof?: Proof;
+  /** Tokens the last model call carried and the model's window; both 0 before the first call. */
+  contextUsed: number;
+  contextWindow: number;
   createdAt: string;
   updatedAt: string;
 }

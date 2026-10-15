@@ -17,7 +17,7 @@ import (
 const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
-	`created_at, updated_at, source`
+	`created_at, updated_at, source, context_used, context_window`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -172,7 +172,7 @@ func scanTask(row scanner) (domain.Task, error) {
 	)
 
 	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
-		&plan, &proof, &created, &updated, &t.Source)
+		&plan, &proof, &created, &updated, &t.Source, &t.ContextUsed, &t.ContextWindow)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}

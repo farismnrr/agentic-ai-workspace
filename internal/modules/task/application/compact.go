@@ -27,6 +27,8 @@ const (
 type runState struct {
 	// size is the tokens the last model call carried; zero while unknown.
 	size int64
+	// window is the model's context window in tokens, as of the last turn.
+	window int64
 	// failed counts compactions that produced no summary, so a stuck one is not retried forever.
 	failed int
 }
@@ -57,6 +59,8 @@ func (r *Runner) compactIfNeeded(
 	}
 
 	window := r.deps.Windows.ContextWindow(ctx, task.UserID, task.ProviderID, task.Model)
+	state.window = window
+
 	if size < compactThreshold(window) || state.failed >= maxCompactTries {
 		return messages
 	}
@@ -67,14 +71,23 @@ func (r *Runner) compactIfNeeded(
 		return messages
 	}
 
-	state.size = 0
-
 	reloaded, err := r.deps.Transcript.LoadTranscript(ctx, task.ID)
 	if err != nil {
+		state.size = 0
+
 		return messages
 	}
 
-	return sinceSummary(reloaded)
+	shortened := sinceSummary(reloaded)
+	state.size = estimateTokens(c.system, c.tools, shortened)
+	r.saveContext(ctx, task, state)
+
+	return shortened
+}
+
+// saveContext tells the task page how full the model's window is.
+func (r *Runner) saveContext(ctx context.Context, task domain.Task, state *runState) {
+	_ = r.deps.Tasks.SetContext(ctx, task.ID, state.size, state.window)
 }
 
 // compact asks the model for a summary and records it; false means none came back.

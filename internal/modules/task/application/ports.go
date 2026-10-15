@@ -129,6 +129,8 @@ type TaskStore interface {
 	SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error
 	SavePlan(ctx context.Context, id string, plan []domain.PlanStep, at time.Time) error
 	Finish(ctx context.Context, id, summary string, proof *domain.Proof, at time.Time) error
+	// SetContext records how full the model's context window is, in tokens.
+	SetContext(ctx context.Context, id string, used, window int64) error
 	// Running lists tasks left queued, planning or working, for recovery after a restart.
 	Running(ctx context.Context) ([]domain.Task, error)
 	// DeleteAll removes every task a person has, with its thread.

@@ -10,3 +10,9 @@ export function formatTokens(tokens: number): string {
 export function contextChoices(current: number): number[] {
   return CHOICES.includes(current) ? CHOICES : [...CHOICES, current].sort((a, b) => a - b);
 }
+
+/** Share of the window in use, 0 to 100. */
+export const contextPercent = (used: number, window: number): number => (window > 0 ? Math.min(100, Math.round((used / window) * 100)) : 0);
+
+/** Warns once the window is nearly full, which is when the AI is about to summarize. */
+export const contextTone = (percent: number): 'progress-primary' | 'progress-warning' => (percent >= 75 ? 'progress-warning' : 'progress-primary');
