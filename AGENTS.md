@@ -11,6 +11,7 @@ Three audiences, three places. Never mix them.
 3. `agents/` (and this file) is for agents only: self-improvement, repository memory, lessons, notes and knowledge. Never put agent prompts, hidden workflow instructions or agent memory in `README.md` or `docs/`.
 4. When a durable project rule changes, update `AGENTS.md` or the right `agents/` file in the same task so future agents inherit the current truth.
 5. When user-visible behavior changes, update the matching file in `docs/` (and `README.md` only if the quick start or the doc list changes).
+6. Docs for people stay short and scannable: one idea per bullet or paragraph, the key point first, tables for facts, numbered steps for procedures. No line over about 45 words; `scripts/check-guardrails.sh` fails at 60. Long, exact detail goes in `agents/`.
 
 ## Read and research before coding
 
@@ -176,3 +177,4 @@ Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read th
 - `agents/self-improvement.md`: the observe -> codify loop and how to maintain repository memory (read for every meaningful task).
 - `agents/memory-backend.md`: platform lessons for Go, OAuth/MCP, sandbox, migrations and the agent loop.
 - `agents/memory-frontend.md`: lessons for the Svelte app, routing, workspace UI and status looks.
+- `agents/implementation-notes.md`: long, exact backend detail (sandbox, agent loop, models and effort, connectors, data, workspace screens) that `docs/` only summarizes.

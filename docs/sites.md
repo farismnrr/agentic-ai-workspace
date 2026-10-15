@@ -39,7 +39,3 @@ A sandboxed page can't send your login, so the server uses a ticket instead:
 4. It stops working when the site restarts or the server restarts.
 
 An address copied to another machine won't work. Still, treat an address with a ticket like a password while it's valid.
-
-## Technical notes
-
-The sandbox exposes the app's port as a Unix socket (`socat`, started by `sandbox-entry` when `SITE_PORT` is set) in `DATA_DIR/sites`, mounted at `/run/site`. The server proxies `/run/<name>/<uuid>/*` to it from the same process and port. Sites are stored in the `sites` table and reset at startup, because containers don't survive a restart.
