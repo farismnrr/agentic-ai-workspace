@@ -23,7 +23,7 @@ Each AI app you connect works in a project of its own named after it, so ChatGPT
 
 ## GitHub
 
-Settings, **Integrations** connects your own GitHub account. Press **Connect GitHub**, approve on GitHub and choose which repositories the app may reach (you can change this on GitHub any time). Afterwards the AI's commands in your projects are signed in as you: it can download those repositories, save changes under your name and push, and it pushes only when you ask. Nobody else's projects can use your connection, and web apps (Sites) never can. **Disconnect** removes it right away. If the server shows "not set up", whoever runs it has to add a GitHub App first (see the deployment guide).
+Settings, **Integrations** lists the services you can connect, each as a row with its logo and a button. For GitHub, press **Connect GitHub**, approve on GitHub and choose which repositories the app may reach (you can change this on GitHub any time). Afterwards the AI's commands in your projects are signed in as you: it can download those repositories, save changes under your name and push, and it pushes only when you ask. Nobody else's projects can use your connection, and web apps (Sites) never can. **Disconnect** removes it right away. If the server shows "not set up", whoever runs it has to add a GitHub App first (see the deployment guide).
 
 ## Sites
 
