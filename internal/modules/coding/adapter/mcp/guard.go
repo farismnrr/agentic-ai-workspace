@@ -13,13 +13,18 @@ import (
 
 const maxSummary = 200
 
+// clientKey is the token field that carries the connected app's name.
+const clientKey = "client"
+
 var errNoIdentity = errors.New("sign in to use this tool")
 
 // report is what a tool run tells the guard about the call.
 type report struct {
 	detail string
-	undo   []byte
-	failed bool
+	// project is where an undoable change was made.
+	project string
+	undo    []byte
+	failed  bool
 }
 
 type guard struct {
@@ -42,7 +47,8 @@ func guarded[In, Out any](
 			return nil, none, errNoIdentity
 		}
 
-		entry := Entry{UserID: token.UserID, Tool: info.Name, Summary: clip(describe(in))}
+		client, _ := token.Extra[clientKey].(string)
+		entry := Entry{UserID: token.UserID, Client: client, Tool: info.Name, Summary: clip(describe(in))}
 
 		if refusal := g.refuse(ctx, info, token.Scopes, &entry); refusal != nil {
 			g.record(ctx, entry)
@@ -50,7 +56,7 @@ func guarded[In, Out any](
 			return refusal, none, nil
 		}
 
-		out, rep, err := run(context.WithValue(ctx, identityKey{}, token.UserID), in)
+		out, rep, err := run(context.WithValue(ctx, identityKey{}, identity{User: token.UserID, Client: client}), in)
 		if err != nil {
 			entry.Outcome, entry.Detail = OutcomeFailed, UserFacing(err).Error()
 			g.record(ctx, entry)
@@ -58,7 +64,7 @@ func guarded[In, Out any](
 			return nil, none, UserFacing(err)
 		}
 
-		entry.Outcome, entry.Detail, entry.Undo = OutcomeOK, rep.detail, rep.undo
+		entry.Outcome, entry.Detail, entry.Undo, entry.Project = OutcomeOK, rep.detail, rep.undo, rep.project
 		if rep.failed {
 			entry.Outcome = OutcomeFailed
 		}

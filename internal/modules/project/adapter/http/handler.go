@@ -40,6 +40,7 @@ type payload struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	Source      string    `json:"source"`
 }
 
 type input struct {
@@ -48,7 +49,7 @@ type input struct {
 }
 
 func toPayload(p domain.Project) payload {
-	return payload{ID: p.ID, Name: p.Name, Description: p.Description, CreatedAt: p.CreatedAt}
+	return payload{ID: p.ID, Name: p.Name, Description: p.Description, Source: p.Source, CreatedAt: p.CreatedAt}
 }
 
 func (h *Handler) list(c fiber.Ctx) error {

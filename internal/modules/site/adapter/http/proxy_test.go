@@ -29,12 +29,12 @@ func (f fakeService) SetVisibility(context.Context, string, string, string) erro
 }
 func (f fakeService) Socket(string) string { return f.socket }
 
-// goodTicket is the only ticket the fake accepts, for the site with token "tok".
-const goodTicket = "9999999999.good"
+// The fake issues "9999999999.<holder>" so a test can see that a ticket only works for its holder.
+func goodTicket(holder string) string { return "9999999999." + holder }
 
-func (fakeService) Ticket(string) string { return goodTicket }
-func (fakeService) ValidTicket(token, ticket string) bool {
-	return token == "tok" && ticket == goodTicket
+func (fakeService) Ticket(_, holder string) string { return goodTicket(holder) }
+func (fakeService) ValidTicket(token, holder, ticket string) bool {
+	return token == "tok" && ticket == goodTicket(holder)
 }
 
 func (f fakeService) Resolve(_ context.Context, token string) (domain.Site, error) {
@@ -113,7 +113,7 @@ func newApp(t *testing.T, visibility domain.Visibility, status domain.Status) (*
 	passthrough := func(c fiber.Ctx) error { return c.Next() }
 
 	app := fiber.New()
-	NewHandler(fakeService{sites: map[string]domain.Site{"tok": site}, socket: socket}, cookieAuth{}).
+	NewHandler(fakeService{sites: map[string]domain.Site{"tok": site}, socket: socket}, cookieAuth{}, false).
 		Mount(passthrough, passthrough)(app)
 	app.Get("/*", func(c fiber.Ctx) error { return c.SendString("SPA") })
 

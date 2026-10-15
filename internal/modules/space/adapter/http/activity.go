@@ -15,6 +15,7 @@ type activityPayload struct {
 	At      time.Time `json:"at"`
 	ID      string    `json:"id"`
 	Space   string    `json:"space"`
+	Client  string    `json:"client"`
 	Tool    string    `json:"tool"`
 	Summary string    `json:"summary"`
 	Outcome string    `json:"outcome"`
@@ -40,7 +41,7 @@ func (a *API) entries(c fiber.Ctx) error {
 	payload := make([]activityPayload, 0, len(entries))
 	for _, entry := range entries {
 		payload = append(payload, activityPayload{
-			ID: entry.ID, At: entry.At, Space: entry.Space, Tool: entry.Tool, Summary: entry.Summary,
+			ID: entry.ID, At: entry.At, Space: entry.Space, Client: entry.Client, Tool: entry.Tool, Summary: entry.Summary,
 			Outcome: string(entry.Outcome), Detail: entry.Detail, CanUndo: entry.CanUndo(), Undone: entry.UndoneAt != nil,
 		})
 	}

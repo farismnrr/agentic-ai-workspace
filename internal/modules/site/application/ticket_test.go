@@ -17,23 +17,27 @@ func ticketService(now *time.Time, secret string) *application.Service {
 func TestTicketsAreBoundToTheSiteAndExpire(t *testing.T) {
 	now := time.Unix(1_800_000_000, 0)
 	svc := ticketService(&now, "secret-a")
-	ticket := svc.Ticket("tok-1")
+	ticket := svc.Ticket("tok-1", "holder")
 
-	if !svc.ValidTicket("tok-1", ticket) {
+	if !svc.ValidTicket("tok-1", "holder", ticket) {
 		t.Fatal("a fresh ticket must work")
 	}
 
-	if svc.ValidTicket("tok-2", ticket) {
+	if svc.ValidTicket("tok-2", "holder", ticket) {
 		t.Error("a ticket must not work for another address")
 	}
 
-	if ticketService(&now, "secret-b").ValidTicket("tok-1", ticket) {
+	if ticketService(&now, "secret-b").ValidTicket("tok-1", "holder", ticket) {
 		t.Error("a ticket signed with another key must not work (a restart renews the key)")
+	}
+
+	if svc.ValidTicket("tok-1", "someone else", ticket) {
+		t.Error("a ticket must not work for a different browser or address")
 	}
 
 	now = now.Add(application.TicketTTL + time.Second)
 
-	if svc.ValidTicket("tok-1", ticket) {
+	if svc.ValidTicket("tok-1", "holder", ticket) {
 		t.Error("an expired ticket must not work")
 	}
 }
@@ -41,7 +45,7 @@ func TestTicketsAreBoundToTheSiteAndExpire(t *testing.T) {
 func TestMalformedAndTamperedTicketsAreRefused(t *testing.T) {
 	now := time.Unix(1_800_000_000, 0)
 	svc := ticketService(&now, "secret-a")
-	good := svc.Ticket("tok")
+	good := svc.Ticket("tok", "holder")
 	expires, mac, _ := strings.Cut(good, ".")
 
 	for name, bad := range map[string]string{
@@ -53,7 +57,7 @@ func TestMalformedAndTamperedTicketsAreRefused(t *testing.T) {
 		"later expiry":  "9999999999." + mac,
 		"extra segment": good + ".extra",
 	} {
-		if svc.ValidTicket("tok", bad) {
+		if svc.ValidTicket("tok", "holder", bad) {
 			t.Errorf("%s must be refused", name)
 		}
 	}

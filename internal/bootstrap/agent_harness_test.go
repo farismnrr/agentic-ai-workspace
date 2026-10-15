@@ -122,9 +122,24 @@ func newAgentRig(t *testing.T, steps ...string) agentRig {
 func newAgentRigWith(t *testing.T, adjust func(*config.Config), steps ...string) agentRig {
 	t.Helper()
 
-	env := newEnvWith(t, adjust)
+	return rigOn(t, newEnvWith(t, adjust), steps...)
+}
+
+// rigOn signs a person up on an app that is already running and gives them a model and a project.
+func rigOn(t *testing.T, env testEnv, steps ...string) agentRig {
+	t.Helper()
+
 	cookie, _ := signedInClient(t, env.app)
 	gw := newGateway(t, steps...)
+
+	// The agent obeys the same switches as connected apps; most tests need the changing tools on.
+	changing := []string{
+		"edit_file", "write_file", "delete_file", "move_file", "run_task", "run_command",
+	}
+
+	for _, tool := range changing {
+		enableTool(t, env.app, cookie, tool)
+	}
 
 	providerID, _ := addProvider(t, env, cookie, gw.server.URL, "k").JSON(t)["id"].(string)
 	do(t, env.app, "POST", "/api/providers/"+providerID+"/verify", "", jsonCookie(cookie))

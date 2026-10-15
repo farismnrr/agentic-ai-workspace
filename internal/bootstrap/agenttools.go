@@ -29,16 +29,21 @@ type agentTools struct {
 	backups  *codingbackup.Store
 	cache    map[string]codingmcp.Services
 	handlers map[string]toolHandler
+	public   string
 	mu       sync.Mutex
 }
 
-func newAgentTools(folders *folder.Folders, dataDir string, engine *codingrunner.Engine) (*agentTools, error) {
+func newAgentTools(
+	folders *folder.Folders, dataDir, publicURL string, engine *codingrunner.Engine,
+) (*agentTools, error) {
 	backups, err := codingbackup.Open(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("open backups: %w", err)
 	}
 
-	tools := &agentTools{folders: folders, engine: engine, backups: backups, cache: map[string]codingmcp.Services{}}
+	tools := &agentTools{
+		folders: folders, public: publicURL, engine: engine, backups: backups, cache: map[string]codingmcp.Services{},
+	}
 	tools.handlers = toolHandlers()
 
 	return tools, nil
@@ -66,6 +71,7 @@ func (a *agentTools) services(projectID string) (codingmcp.Services, error) {
 		Reader: codingapp.NewService(files),
 		Editor: codingapp.NewEditor(files, files, a.backups, opaque.Generator{}),
 		Tasks:  codingapp.NewTasks(files, codingrunner.New(dir, a.engine)),
+		Sites:  projectSites{tools: a, projectID: projectID}, ProjectID: projectID,
 	}
 	a.cache[projectID] = services
 

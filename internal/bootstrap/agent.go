@@ -21,7 +21,7 @@ import (
 // scheduler, and the task API. The returned function stops the workers.
 func newAgent(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
-	hub *taskapp.Hub, auth, sameOrigin fiber.Handler,
+	gate taskapp.ToolGate, hub *taskapp.Hub, auth, sameOrigin fiber.Handler,
 ) (*taskapp.Service, httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStore(db, opaque.Generator{})
 	deps := taskapp.Observe(taskapp.Deps{
@@ -29,7 +29,7 @@ func newAgent(
 		Models:   models.agentModels(),
 		Persona:  agentPersona{prefs: models.prefs},
 		Projects: agentProjects{projects: projects},
-		Tools:    tools, Computer: computer{engine: tools.engine}, IDs: opaque.Generator{}, Now: time.Now,
+		Tools:    tools, Gate: gate, Computer: computer{engine: tools.engine}, IDs: opaque.Generator{}, Now: time.Now,
 	}, hub)
 
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())

@@ -3,6 +3,8 @@ package bootstrap
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -10,6 +12,7 @@ import (
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
+	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spacesqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/sqlite"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
@@ -36,12 +39,11 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 	engine, closeProxy := newSandboxEngine(cfg)
 
-	coding, err := newWorkspaces(cfg, engine)
-	if err != nil {
+	if err = removeOldWorkspaces(cfg.DataDir); err != nil {
 		return nil, nil, err
 	}
 
-	spaceMounts := newSpaceMounts(db, cfg, coding, registry, oauth, sess, sameOrigin)
+	spaceStore, permissions := newPermissions(db, registry)
 
 	auth := httpserver.RequireSession(sess)
 
@@ -55,7 +57,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, fmt.Errorf("open project folders: %w", err)
 	}
 
-	tools, err := newAgentTools(folders, cfg.DataDir, engine)
+	tools, err := newAgentTools(folders, cfg.DataDir, cfg.PublicURL, engine)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,7 +65,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
 
 	tasks, sites, agentMounts, stop, err := newAgentAndSites(
-		db, cfg, models, projects, tools, folders, sess, auth, sameOrigin)
+		db, cfg, models, projects, tools, folders, toolGate{permissions: permissions}, sess, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,7 +73,8 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	account.AddEraser(eraser(sites.StopUser))
 	account.AddEraser(eraser(tasks.DeleteAll))
 	account.AddEraser(eraser(projects.DeleteAll))
-	account.AddEraser(eraser(coding.Erase))
+
+	spaceMounts := newSpaceMounts(cfg, projects, tools, registry, spaceStore, permissions, oauth, sess, sameOrigin)
 
 	exportMount := newExport(account, models, projects, tasks, folders, auth)
 	mounts := append([]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts...)
@@ -81,25 +84,40 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	return append(mounts, spaceMounts...), func() { stop(); closeProxy() }, nil
 }
 
-// newSpaceMounts wires permissions, the activity log, the app API and each hosted space.
+// newSpaceMounts wires the activity log, the app API and each hosted space.
 func newSpaceMounts(
-	db *sql.DB, cfg config.Config, coding *workspaces, registry *spaceapp.Registry, oauth *oauthapp.Service,
-	sess sessions, sameOrigin fiber.Handler,
+	cfg config.Config, projects *projectapp.Service, tools *agentTools, registry *spaceapp.Registry,
+	store *spacesqlite.Store, permissions *spaceapp.Permissions, oauth *oauthapp.Service, sess sessions,
+	sameOrigin fiber.Handler,
 ) []httpserver.Mount {
-	store := spacesqlite.NewStore(db)
-	permissions := spaceapp.NewPermissions(registry, store, time.Now)
-	undoers := map[string]spaceapp.Undoer{"coding": undoer{workspaces: coding}}
-
+	undoers := map[string]spaceapp.Undoer{"coding": undoer{tools: tools}}
 	log := spaceapp.NewActivityLog(store, opaque.Generator{}, undoers, time.Now)
 	api := spacehttp.NewAPI(registry, sess, permissions, log)
 	mounts := []httpserver.Mount{api.Mount(sameOrigin)}
 
 	space := codingSpace()
 	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
-	handler := codingHandler(coding, codingmcp.Options{
+	handler := codingHandler(appWorkspaces{projects: projects, tools: tools}, codingmcp.Options{
 		Gate: gate{permissions: permissions}, Recorder: recorder{log: log},
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 
 	return append(mounts, mounter.Mount(space, handler))
+}
+
+// removeOldWorkspaces deletes the per-person folders connected apps used to work in: they work in
+// projects now.
+func removeOldWorkspaces(dataDir string) error {
+	if err := os.RemoveAll(filepath.Join(dataDir, "workspaces")); err != nil {
+		return fmt.Errorf("remove old workspaces: %w", err)
+	}
+
+	return nil
+}
+
+// newPermissions wires the tool switches and approval settings every part of the app obeys.
+func newPermissions(db *sql.DB, registry *spaceapp.Registry) (*spacesqlite.Store, *spaceapp.Permissions) {
+	store := spacesqlite.NewStore(db)
+
+	return store, spaceapp.NewPermissions(registry, store, time.Now)
 }

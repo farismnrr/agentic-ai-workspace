@@ -13,6 +13,28 @@ func (fakePersona) Persona(context.Context, string) (application.Persona, error)
 	return application.Persona{Name: "Sari-bot", Rules: []string{"Never change prices"}}, nil
 }
 
+// fakeGate has these tools switched on, unless a test switches one off; skip lets the agent act unasked.
+type fakeGate struct {
+	off  map[string]bool
+	skip bool
+}
+
+func (g *fakeGate) Enabled(context.Context, string) (map[string]bool, error) {
+	on := map[string]bool{}
+
+	known := []string{
+		"read_file", "edit_file", "write_file", "delete_file", "run_task", "run_command", "start_site", "test",
+	}
+
+	for _, name := range known {
+		on[name] = !g.off[name]
+	}
+
+	return on, nil
+}
+
+func (g *fakeGate) SkipApprovals(context.Context, string) (bool, error) { return g.skip, nil }
+
 type fakeProjects struct{}
 
 func (fakeProjects) Name(_ context.Context, _, projectID string) (string, error) {

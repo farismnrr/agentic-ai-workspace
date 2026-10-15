@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -33,7 +32,6 @@ type Config struct {
 	PublicURL         string
 	ConnectorURL      string
 	DataDir           string
-	WorkspacesDir     string
 	ClientIPHeader    string
 	SandboxImage      string
 	SandboxRuntime    string
@@ -72,7 +70,6 @@ func Load() Config {
 		PublicURL:         publicURL,
 		ConnectorURL:      connector,
 		DataDir:           dataDir,
-		WorkspacesDir:     filepath.Join(dataDir, "workspaces"),
 		AllowedOrigins:    allowed,
 		CORSOrigins:       list("CORS_ORIGINS", allowed),
 		ClientIPHeader:    strings.TrimSpace(os.Getenv("CLIENT_IP_HEADER")),

@@ -74,10 +74,37 @@ var ToolRunCommand = ToolInfo{
 		"only package registries can be reached) and return its exit code and output.",
 }
 
+// The site tools start and stop the project's web app. They have no switch of their own: they are allowed
+// exactly when run_command is, because starting an app is running a command (see SwitchOf).
+var (
+	ToolStartSite = ToolInfo{
+		Name: "start_site", Title: "Start the web app", Scope: ScopeExec, Group: GroupExec,
+		Description: "Start a web app in the sandbox so the person can open it in their browser. The command " +
+			"must keep running and listen on 127.0.0.1 at the given port. The page is opened under a path, so the " +
+			"server removes that path before the request reaches the app: use relative links (./style.css), or " +
+			"read BASE_PATH. Use a production-style server, not a dev server with hot reload. Pages run in a " +
+			"sandbox: cookies, localStorage and service workers do not work. Starting again replaces the running app.",
+	}
+	ToolStopSite = ToolInfo{
+		Name: "stop_site", Title: "Stop the web app", Scope: ScopeExec, Group: GroupExec,
+		Description: "Stop the project's running web app.",
+	}
+)
+
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami,
 		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand,
 	}
+}
+
+// SwitchOf names the switch that governs a tool. Most tools have their own; starting and stopping the web
+// app follow run_command.
+func SwitchOf(tool string) string {
+	if tool == ToolStartSite.Name || tool == ToolStopSite.Name {
+		return ToolRunCommand.Name
+	}
+
+	return tool
 }

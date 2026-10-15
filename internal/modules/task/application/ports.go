@@ -47,6 +47,15 @@ type PersonaSource interface {
 	Persona(ctx context.Context, userID string) (Persona, error)
 }
 
+// ToolGate is the person's switchboard for tools, shared with the apps they connected: a tool
+// switched off is neither offered to the agent nor run, and skipping approvals lets the
+// agent run the enabled ones without asking.
+type ToolGate interface {
+	// Enabled says, for every tool, whether the person switched it on.
+	Enabled(ctx context.Context, userID string) (map[string]bool, error)
+	SkipApprovals(ctx context.Context, userID string) (bool, error)
+}
+
 // Projects resolves a project the person owns.
 type Projects interface {
 	Name(ctx context.Context, userID, projectID string) (string, error)

@@ -62,14 +62,14 @@ func newSites(
 
 	projects.OnArchive(service.StopProject)
 
-	return service, sitehttp.NewHandler(service, sess).Mount(auth, sameOrigin), nil
+	return service, sitehttp.NewHandler(service, sess, cfg.ClientIPHeader != "").Mount(auth, sameOrigin), nil
 }
 
 // newAgentAndSites wires the two features that need each other: the agent starts sites through
 // its tools, and sites tell the person's pages about changes through the agent's hub.
 func newAgentAndSites(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
-	folders *folder.Folders, sess sessions, auth, sameOrigin fiber.Handler,
+	folders *folder.Folders, gate taskapp.ToolGate, sess sessions, auth, sameOrigin fiber.Handler,
 ) (*taskapp.Service, *siteapp.Service, []httpserver.Mount, func(), error) {
 	hub := taskapp.NewHub()
 
@@ -80,7 +80,7 @@ func newAgentAndSites(
 
 	tools.sites = sites
 
-	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, hub, auth, sameOrigin)
+	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, hub, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

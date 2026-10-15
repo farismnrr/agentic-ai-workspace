@@ -19,6 +19,7 @@ export interface ConnectorSpace {
   url: string;
   scopes: ConnectedScope[];
   tools: SpaceTool[];
+  skipApprovals: boolean;
 }
 
 export interface ConnectedScope {
@@ -42,6 +43,10 @@ export const loadConnectedApps = (): Promise<ConnectedApp[]> => request<Connecte
 
 export const revokeApp = (id: string): Promise<undefined> => request<undefined>('DELETE', `/api/oauth/grants/${encodeURIComponent(id)}`);
 
+/** Lets the AI use every enabled tool of a space without asking; a tool that is off stays off. */
+export const setSkipApprovals = (slug: string, skip: boolean): Promise<undefined> =>
+  request<undefined>('PUT', `/api/spaces/${encodeURIComponent(slug)}/approvals`, { skip });
+
 export const setToolEnabled = (slug: string, tool: string, enabled: boolean): Promise<undefined> =>
   request<undefined>('PUT', `/api/spaces/${encodeURIComponent(slug)}/tools/${encodeURIComponent(tool)}`, { enabled });
 
@@ -51,6 +56,8 @@ export interface ActivityEntry {
   id: string;
   at: string;
   space: string;
+  /** The app that made the call, such as ChatGPT. */
+  client: string;
   tool: string;
   summary: string;
   outcome: ActivityOutcome;
