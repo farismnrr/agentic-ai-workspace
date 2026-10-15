@@ -147,6 +147,7 @@ type listed struct {
 	OwnedBy      string `json:"owned_by"`
 	Capabilities struct {
 		Reasoning          *bool    `json:"reasoning"`
+		ThinkingFormat     string   `json:"thinkingFormat"`
 		ThinkingCanDisable *bool    `json:"thinkingCanDisable"`
 		ReasoningEffort    []string `json:"reasoningEffort"`
 		ContextWindow      int64    `json:"contextWindow"`
@@ -179,6 +180,7 @@ func (m listed) thinking() domain.Thinking {
 		Reasoning:  caps.Reasoning == nil || *caps.Reasoning,
 		CanDisable: caps.ThinkingCanDisable == nil || *caps.ThinkingCanDisable,
 		Levels:     caps.ReasoningEffort,
+		Format:     caps.ThinkingFormat,
 	}
 }
 
