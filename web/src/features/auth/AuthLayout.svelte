@@ -16,7 +16,7 @@
 <div class="grid grid-cols-1 min-h-dvh bg-base-100 lg:grid-cols-2">
   <main class="flex flex-col px-6 py-8 sm:px-12 lg:px-[clamp(3rem,8vw,7.5rem)]">
     <BrandLink />
-    <div class="hero-in my-auto w-full max-w-md py-10">
+    <div class="hero-in mx-auto my-auto w-full max-w-md py-10 lg:mx-0">
       {@render children()}
     </div>
   </main>
