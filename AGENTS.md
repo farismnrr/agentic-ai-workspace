@@ -153,6 +153,7 @@ agents/                                   self-improvement, memory and notes for
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
 10. Permissions default to read-only; `packages: write` belongs only to the image jobs, and merge rights only to the full publish job.
 11. A change is incomplete while CI is failing.
+12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull the image and recreate the local container (`docker compose -f compose.dev.yaml pull`, then `docker compose -f compose.dev.yaml up -d`) and confirm `/api/health` on port 8081. Never restart the local app from an unpushed or red build, and say when a step was skipped.
 
 ## Container image
 
