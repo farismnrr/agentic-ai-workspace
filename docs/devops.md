@@ -1,10 +1,19 @@
 # Build, deploy and CI/CD
 
-This page covers three things: building the image, swapping in a fixed binary without a rebuild, and the Jenkins pipeline that does both.
+This page covers three things:
 
-Tools used: Git, Docker 29, Go 1.27.2, and Jenkins 2.580.1 running in Docker with a `docker:dind` daemon.
+- [Building the image](#build-the-image).
+- [Swapping in a fixed binary without a rebuild](#swap-the-binary-without-a-rebuild).
+- [The Jenkins pipeline](#jenkins-pipeline) that does both.
 
-## 1. Build
+Tools used:
+
+- Git
+- Docker 29
+- Go 1.27.2
+- Jenkins 2.580.1, running in Docker with a `docker:dind` daemon
+
+## Build the image
 
 The [Dockerfile](../Dockerfile) has three stages:
 
@@ -52,7 +61,7 @@ ghcr.io/farismnrr/agentic-ai-workspace:sha-b6e2744         41MB         11.5MB
 - That binary holds the Go runtime, Fiber, pure-Go SQLite, the Docker client and the whole web app.
 - `-s -w` already strips debug symbols, so nothing big is left to cut.
 
-## 2. Swap the binary without a rebuild
+## Swap the binary without a rebuild
 
 The binary lives in a host folder, not in the image. The container mounts that folder read-only at `/opt/app` and runs `/opt/app/agentic-ai-workspace`.
 
@@ -101,10 +110,10 @@ A hotfix must be fast and easy to undo.
 - **Safe:** the container keeps its ports, volumes and restart policy.
 - **Easy to undo:** rolling back is renaming the old file back.
 - **Folder mount, not file mount:** a single-file mount keeps pointing at the old file after a rename.
-- **Better than `docker cp`:** the binary survives a container recreate and is never overwritten while it runs.
+- **Survives recreates:** unlike `docker cp`, the binary survives a container recreate and is never overwritten while it runs.
 - **Trade-off:** the binary can be newer than the image tag, so each build reports its own version.
 
-## 3. Jenkins pipeline
+## Jenkins pipeline
 
 The [Jenkinsfile](../Jenkinsfile) runs these stages in order:
 
@@ -115,7 +124,7 @@ The [Jenkinsfile](../Jenkinsfile) runs these stages in order:
 | Build binary | Build with the version in `-ldflags`, then smoke-test the binary. |
 | Build image | `docker build --build-arg VERSION=...` tagged `sha-<commit>`, then smoke-test it. |
 | Push | Log in to GHCR with the `ghcr-credentials` Jenkins credential and push. Only `main` also moves `latest`. |
-| Deploy | Run `scripts/deploy-binary.sh` to swap the binary (section 2). |
+| Deploy | Run `scripts/deploy-binary.sh` to swap the binary (see [Swap the binary](#swap-the-binary-without-a-rebuild)). |
 
 The Jenkins container has only Git, curl and Docker. Node and Go run in short-lived containers that mount the workspace. That works because the dind daemon shares `/var/jenkins_home` with Jenkins.
 

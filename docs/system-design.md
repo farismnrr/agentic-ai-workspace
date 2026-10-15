@@ -15,9 +15,9 @@ How the app is put together, in short. The goal: easy to run, easy to grow, neve
 ## How it runs
 
 ```text
-Browser -> HTTP -> Go binary
-                    |-- Fiber handles API requests
-                    |-- Fiber serves the built Svelte app
+Browser  --HTTP-->  Go binary (Fiber)
+                      |- handles API requests
+                      '- serves the built Svelte app
 ```
 
 - **One executable** to deploy and one process to monitor.
@@ -128,7 +128,9 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 4. Go module check and tests.
 5. Strict Go lint and architecture rules.
 
-Rules in the code: files stay under 200 lines, and functions have size and complexity limits.
+`make e2e-sites` also tests a private site in a real browser. It needs Docker and Playwright and is not part of `make verify`.
+
+Rules in the code: source files stay under 200 lines (documentation is exempt), and functions have size and complexity limits.
 
 Work happens on `dev`. Two GitHub Actions workflows run the same checks:
 

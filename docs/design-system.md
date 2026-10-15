@@ -125,7 +125,7 @@ The signed-in app lives under `/app` and uses a compact scale: 14px text, small 
 
 - **Pages:** Home, Inbox, Projects, a project, a task, Settings.
 - **Sidebar:** icon rail on desktop, drawer on tablets.
-- **Phones (below `md`):** a bottom bar with Home, Inbox, Projects, Sites and Settings (daisyUI `dock`, with counts). The menu button still opens the sidebar.
+- **Phones:** below the `md` breakpoint, a bottom bar with Home, Inbox, Projects, Sites and Settings (daisyUI `dock`, with counts). The menu button still opens the sidebar.
 - **Task page:** the bottom bar steps aside, so the conversation keeps the whole screen.
 - **Status:** always an icon plus a text label, never color alone.
 - **Approvals:** show the exact action, a risk label, and Allow or Don't allow.
