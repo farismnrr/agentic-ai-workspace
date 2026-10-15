@@ -168,6 +168,6 @@ This checks the frontend, Go code, architecture guardrails, lint rules, tests, a
 
 Development happens on `dev`. A fast GitHub Actions workflow checks and builds every push to `dev`. A full workflow, started manually, repeats all checks, merges `dev` into `main`, and publishes the image to GHCR as `latest`. Pushes to `dev` publish the `dev` image once all checks and an image smoke test pass.
 
-The `Jenkinsfile` is a Jenkins alternative to the full workflow. It builds `main` as it is (no `dev` to `main` merge), runs the same checks and smoke tests, and pushes the app and sandbox images to GHCR as `latest` and `sha-<commit>`. The agent needs Git, Make, Go, Node.js 24, curl and Docker, plus a `ghcr-credentials` username/password credential whose password is a token with `write:packages`.
+The `Jenkinsfile` is a Jenkins alternative to the full workflow. It builds `main` as it is (no `dev` to `main` merge), runs the same checks and smoke tests, and pushes the app and sandbox images to GHCR as `latest` and `sha-<commit>`. The agent needs only Git and Docker (Node.js and Go run in containers that mount the workspace, so the daemon must share `/var/jenkins_home`), plus a `ghcr-credentials` username/password credential whose password is a token with `write:packages`.
 
 `make e2e-sites` drives a private site with a real signed-out browser (it needs Docker and Playwright: `npm i -g playwright && npx playwright install chromium`). It is not part of `make verify`.
