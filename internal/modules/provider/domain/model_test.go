@@ -46,3 +46,19 @@ func TestEffortLevelsFollowWhatTheGatewayReports(t *testing.T) {
 		}
 	}
 }
+
+func TestOnlyAGatewaysModelsAreGroupedByOwner(t *testing.T) {
+	t.Parallel()
+
+	catalog := map[string]domain.ModelInfo{"cx/gpt": {Owner: "cx"}, "gpt-5": {Owner: "system"}}
+
+	gateway := domain.Provider{Kind: domain.KindCompatible, Catalog: catalog}
+	if gateway.GroupOf("cx/gpt") != "cx" || gateway.GroupOf("unlisted") != "" {
+		t.Fatal("a gateway groups its models by the owner it reports")
+	}
+
+	direct := domain.Provider{Kind: domain.KindOpenAI, Catalog: catalog}
+	if direct.GroupOf("gpt-5") != "" {
+		t.Fatal("a direct provider's models must not be split by its owner label")
+	}
+}

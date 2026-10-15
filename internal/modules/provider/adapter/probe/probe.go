@@ -127,7 +127,9 @@ func fetch(client *http.Client, request *http.Request) ([]domain.ModelInfo, erro
 
 	for _, model := range body.Data {
 		if model.ID != "" {
-			models = append(models, domain.ModelInfo{Name: model.ID, ContextWindow: model.window(), Thinking: model.thinking()})
+			models = append(models, domain.ModelInfo{
+				Name: model.ID, ContextWindow: model.window(), Thinking: model.thinking(), Owner: model.owner(),
+			})
 		}
 	}
 
@@ -142,6 +144,7 @@ func fetch(client *http.Client, request *http.Request) ([]domain.ModelInfo, erro
 // wild is read; 9router describes each model under capabilities, including how it thinks.
 type listed struct {
 	ID           string `json:"id"`
+	OwnedBy      string `json:"owned_by"`
 	Capabilities struct {
 		Reasoning          *bool    `json:"reasoning"`
 		ThinkingCanDisable *bool    `json:"thinkingCanDisable"`
@@ -177,4 +180,18 @@ func (m listed) thinking() domain.Thinking {
 		CanDisable: caps.ThinkingCanDisable == nil || *caps.ThinkingCanDisable,
 		Levels:     caps.ReasoningEffort,
 	}
+}
+
+// owner is who serves the model: what the gateway reports as owned_by, else the part of the id before a slash
+// (9router names models alias/model). Empty for a plain id, which a combo or a hosted provider's model is.
+func (m listed) owner() string {
+	if owner := strings.TrimSpace(m.OwnedBy); owner != "" {
+		return owner
+	}
+
+	if prefix, _, found := strings.Cut(m.ID, "/"); found {
+		return prefix
+	}
+
+	return ""
 }

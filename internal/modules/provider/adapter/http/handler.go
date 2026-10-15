@@ -149,26 +149,6 @@ func (h *Handler) remove(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *Handler) models(c fiber.Ctx) error {
-	options, err := h.service.Models(c.Context(), httpserver.UserID(c))
-	if err != nil {
-		return fail(c, err)
-	}
-
-	type option struct {
-		ProviderID   string `json:"providerId"`
-		ProviderName string `json:"providerName"`
-		Model        string `json:"model"`
-	}
-
-	payload := make([]option, 0, len(options))
-	for _, o := range options {
-		payload = append(payload, option{ProviderID: o.ProviderID, ProviderName: o.ProviderName, Model: o.Model})
-	}
-
-	return c.JSON(payload)
-}
-
 var badInput = []struct {
 	err  error
 	code string

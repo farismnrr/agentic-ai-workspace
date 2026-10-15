@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { effortChoices, hasEffortChoice } from '../logic/effort';
+  import { groupModels, modelValue } from '../logic/model-groups';
   import { loadPreferences, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, type ModelOption, type Provider } from '../logic/providers-api';
 
@@ -47,7 +48,11 @@
   <label class="sr-only" for="composer-model">Model</label>
   <select id="composer-model" class="select select-ghost select-sm w-auto max-w-44 rounded-full {model === '' ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}" bind:value={model} {disabled}>
     <option value="">Default model</option>
-    {#each options as option (`${option.providerId}::${option.model}`)}<option value="{option.providerId}::{option.model}">{option.model}</option>{/each}
+    {#each groupModels(options) as group (group.label)}
+      <optgroup label={group.label}>
+        {#each group.models as option (modelValue(option))}<option value={modelValue(option)}>{option.model}</option>{/each}
+      </optgroup>
+    {/each}
   </select>
   {#if hasEffortChoice(levels)}
     <label class="sr-only" for="composer-effort">Effort</label>
