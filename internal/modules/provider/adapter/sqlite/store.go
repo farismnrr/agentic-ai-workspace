@@ -93,27 +93,22 @@ func (s *Store) Find(ctx context.Context, userID, id string) (domain.Provider, s
 func (s *Store) withWindows(
 	ctx context.Context, userID string, providers []domain.Provider,
 ) ([]domain.Provider, error) {
-	byID := map[string]map[string]int64{}
-	if err := s.loadWindows(ctx, userID, byID); err != nil {
+	chosen, err := s.loadWindows(ctx, userID, chosenWindows)
+	if err != nil {
+		return nil, err
+	}
+
+	reported, err := s.loadWindows(ctx, userID, reportedWindows)
+	if err != nil {
 		return nil, err
 	}
 
 	for i := range providers {
-		providers[i].ContextWindows = byID[providers[i].ID]
+		providers[i].ContextWindows = chosen[providers[i].ID]
+		providers[i].ReportedWindows = reported[providers[i].ID]
 	}
 
 	return providers, nil
-}
-
-// SetVerified records the result of a verification and the models found.
-func (s *Store) SetVerified(ctx context.Context, userID, id string, verified bool, models []string) error {
-	encoded, err := json.Marshal(append([]string{}, models...))
-	if err != nil {
-		return fmt.Errorf("encode models: %w", err)
-	}
-
-	return s.exec(ctx, `UPDATE providers SET verified = ?, models = ? WHERE user_id = ? AND id = ?`,
-		verified, string(encoded), userID, id)
 }
 
 // SetEnabled switches a provider on or off.

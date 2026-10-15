@@ -51,8 +51,9 @@ func guarded(policy egress.Policy) *http.Client {
 	}
 }
 
-// Models returns the model ids a credential can use.
-func (p *Probe) Models(ctx context.Context, credential domain.Credential) ([]string, error) {
+// Models returns the models a credential can use, with the context window the provider reports for each
+// when it says so (9router, OpenRouter and Anthropic do; OpenAI and Gemini do not).
+func (p *Probe) Models(ctx context.Context, credential domain.Credential) ([]domain.ModelInfo, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, credential.BaseURL+"/models", http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
@@ -83,15 +84,15 @@ func (p *Probe) Models(ctx context.Context, credential domain.Credential) ([]str
 
 // geminiChatModels keeps the models that can chat: Google lists embedding, speech,
 // image and live models in the same catalogue, and names them "models/<id>".
-func geminiChatModels(listed []string) ([]string, error) {
-	chat := make([]string, 0, len(listed))
+func geminiChatModels(listed []domain.ModelInfo) ([]domain.ModelInfo, error) {
+	chat := make([]domain.ModelInfo, 0, len(listed))
 
-	for _, id := range listed {
-		id = strings.TrimPrefix(id, "models/")
+	for _, model := range listed {
+		id := strings.TrimPrefix(model.Name, "models/")
 		if strings.HasPrefix(id, "gemini-") && !slices.ContainsFunc(nonChat, func(word string) bool {
 			return strings.Contains(id, word)
 		}) {
-			chat = append(chat, id)
+			chat = append(chat, domain.ModelInfo{Name: id, ContextWindow: model.ContextWindow})
 		}
 	}
 
@@ -102,7 +103,7 @@ func geminiChatModels(listed []string) ([]string, error) {
 	return chat, nil
 }
 
-func fetch(client *http.Client, request *http.Request) ([]string, error) {
+func fetch(client *http.Client, request *http.Request) ([]domain.ModelInfo, error) {
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("call provider: %w", err)
@@ -115,20 +116,18 @@ func fetch(client *http.Client, request *http.Request) ([]string, error) {
 	}
 
 	var body struct {
-		Data []struct {
-			ID string `json:"id"`
-		} `json:"data"`
+		Data []listed `json:"data"`
 	}
 
 	if err := json.NewDecoder(io.LimitReader(response.Body, maxBody)).Decode(&body); err != nil {
 		return nil, fmt.Errorf("read model list: %w", err)
 	}
 
-	models := make([]string, 0, len(body.Data))
+	models := make([]domain.ModelInfo, 0, len(body.Data))
 
 	for _, model := range body.Data {
 		if model.ID != "" {
-			models = append(models, model.ID)
+			models = append(models, domain.ModelInfo{Name: model.ID, ContextWindow: model.window()})
 		}
 	}
 
@@ -137,4 +136,26 @@ func fetch(client *http.Client, request *http.Request) ([]string, error) {
 	}
 
 	return models, nil
+}
+
+// listed is one entry of a provider's model list. Providers name the context window differently, so every
+// field seen in the wild is read, and the first positive one is used.
+type listed struct {
+	ID           string `json:"id"`
+	ContextLen   int64  `json:"context_length"`
+	ContextWin   int64  `json:"context_window"`
+	MaxInput     int64  `json:"max_input_tokens"`
+	Capabilities struct {
+		ContextWindow int64 `json:"contextWindow"`
+	} `json:"capabilities"`
+}
+
+func (m listed) window() int64 {
+	for _, size := range []int64{m.Capabilities.ContextWindow, m.ContextLen, m.ContextWin, m.MaxInput} {
+		if size > 0 {
+			return size
+		}
+	}
+
+	return 0
 }

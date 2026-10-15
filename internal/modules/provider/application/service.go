@@ -20,7 +20,7 @@ type Store interface {
 	Create(ctx context.Context, p domain.Provider, sealedKey string) error
 	List(ctx context.Context, userID string) ([]domain.Provider, error)
 	Find(ctx context.Context, userID, id string) (domain.Provider, string, error)
-	SetVerified(ctx context.Context, userID, id string, verified bool, models []string) error
+	SetVerified(ctx context.Context, userID, id string, verified bool, models []domain.ModelInfo) error
 	SetEnabled(ctx context.Context, userID, id string, enabled bool) error
 	SetContextWindow(ctx context.Context, userID, id, model string, tokens int64) error
 	Delete(ctx context.Context, userID, id string) error
@@ -28,7 +28,7 @@ type Store interface {
 
 // Verifier asks a provider which models a key can use; success proves the key works.
 type Verifier interface {
-	Models(ctx context.Context, credential domain.Credential) ([]string, error)
+	Models(ctx context.Context, credential domain.Credential) ([]domain.ModelInfo, error)
 }
 
 // IDs mints identifiers.

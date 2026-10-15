@@ -19,16 +19,25 @@ func (s *Store) SetContextWindow(ctx context.Context, userID, id, model string, 
 	return notFoundIfNone(result)
 }
 
-// loadWindows fills in the chosen context windows of the given providers.
-func (s *Store) loadWindows(ctx context.Context, userID string, byID map[string]map[string]int64) error {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT m.provider_id, m.model, m.context_window FROM model_settings m
-		 JOIN providers p ON p.id = m.provider_id WHERE p.user_id = ?`, userID)
+// The two kinds of context window a person's providers can have: the sizes they chose, and the ones the
+// providers reported.
+const (
+	chosenWindows = `SELECT m.provider_id, m.model, m.context_window FROM model_settings m
+		 JOIN providers p ON p.id = m.provider_id WHERE p.user_id = ?`
+	reportedWindows = `SELECT m.provider_id, m.model, m.context_window FROM model_windows m
+		 JOIN providers p ON p.id = m.provider_id WHERE p.user_id = ?`
+)
+
+// loadWindows reads context windows with one of the queries above, keyed by provider id.
+func (s *Store) loadWindows(ctx context.Context, userID, query string) (map[string]map[string]int64, error) {
+	rows, err := s.db.QueryContext(ctx, query, userID)
 	if err != nil {
-		return fmt.Errorf("select context windows: %w", err)
+		return nil, fmt.Errorf("select context windows: %w", err)
 	}
 
 	defer func() { _ = rows.Close() }()
+
+	byID := map[string]map[string]int64{}
 
 	for rows.Next() {
 		var (
@@ -37,17 +46,17 @@ func (s *Store) loadWindows(ctx context.Context, userID string, byID map[string]
 		)
 
 		if err := rows.Scan(&id, &model, &tokens); err != nil {
-			return fmt.Errorf("scan context window: %w", err)
+			return nil, fmt.Errorf("scan context window: %w", err)
 		}
 
 		byID[id] = withWindow(byID[id], model, tokens)
 	}
 
 	if err := rows.Err(); err != nil {
-		return fmt.Errorf("read context windows: %w", err)
+		return nil, fmt.Errorf("read context windows: %w", err)
 	}
 
-	return nil
+	return byID, nil
 }
 
 func withWindow(windows map[string]int64, model string, tokens int64) map[string]int64 {
