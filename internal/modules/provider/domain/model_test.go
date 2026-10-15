@@ -7,6 +7,14 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/domain"
 )
 
+// claudeStyle builds a model a gateway says thinks like Claude (9router: claude-adaptive or claude-budget).
+func claudeStyle(canDisable bool) domain.ModelInfo {
+	info := reports(true, canDisable)
+	info.Thinking.Format = "claude-adaptive"
+
+	return info
+}
+
 // reports builds what a gateway says about a model's thinking.
 func reports(reasoning, canDisable bool, levels ...string) domain.ModelInfo {
 	return domain.ModelInfo{Thinking: domain.Thinking{
@@ -36,6 +44,8 @@ func TestEffortLevelsFollowWhatTheGatewayReports(t *testing.T) {
 			name: "levels the gateway lists win", kind: gateway, want: []string{"low", "high"},
 			info: reports(true, true, "low", "high"),
 		},
+		{name: "a Claude-style model has no none or minimal", kind: gateway, want: full[2:], info: claudeStyle(true)},
+		{name: "a Claude-style model that cannot stop thinking", kind: gateway, want: full[2:], info: claudeStyle(false)},
 		{name: "Anthropic has no none or minimal", kind: domain.KindAnthropic, want: full[2:]},
 		{name: "Gemini stops at high", kind: domain.KindGemini, want: full[:5]},
 	}

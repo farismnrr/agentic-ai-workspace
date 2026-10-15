@@ -84,7 +84,7 @@ func TestTheContextWindowIsReadFromWhicheverFieldTheProviderUses(t *testing.T) {
 // sameThinking compares what two reports say about a model's thinking.
 func sameThinking(a, b domain.Thinking) bool {
 	return slices.Equal(a.Levels, b.Levels) && a.Reported == b.Reported && a.Reasoning == b.Reasoning &&
-		a.CanDisable == b.CanDisable
+		a.CanDisable == b.CanDisable && a.Format == b.Format
 }
 
 func TestWhatAGatewayReportsAboutThinkingIsKept(t *testing.T) {
@@ -96,6 +96,7 @@ func TestWhatAGatewayReportsAboutThinkingIsKept(t *testing.T) {
 			`{"id":"cc/claude","capabilities":{"reasoning":true,"thinkingCanDisable":false}},` +
 			`{"id":"cx/review","capabilities":{"reasoning":false}},` +
 			`{"id":"listed","capabilities":{"reasoningEffort":["low","high"]}},` +
+			`{"id":"fmt","capabilities":{"reasoning":true,"thinkingFormat":"claude-adaptive"}},` +
 			`{"id":"silent"}]}`))
 	}))
 	t.Cleanup(server.Close)
@@ -111,6 +112,7 @@ func TestWhatAGatewayReportsAboutThinkingIsKept(t *testing.T) {
 		{Reported: true, Reasoning: true},
 		{Reported: true, CanDisable: true},
 		{Reported: true, Reasoning: true, CanDisable: true, Levels: []string{"low", "high"}},
+		{Reported: true, Reasoning: true, CanDisable: true, Format: "claude-adaptive"},
 		{},
 	}
 

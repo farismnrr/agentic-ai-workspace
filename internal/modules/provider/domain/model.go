@@ -1,7 +1,11 @@
 package domain
 
+import "strings"
+
 // Thinking is what a provider said about how a model thinks. The zero value means it said nothing.
 type Thinking struct {
+	// Format is how the gateway says the model thinks (9router: openai, claude-adaptive, ...); empty when unsaid.
+	Format string
 	// Levels are the effort levels the provider lists for the model itself, when it does.
 	Levels []string
 	// Reported is true when the provider described the model's thinking at all.
@@ -22,6 +26,9 @@ type ModelInfo struct {
 	ContextWindow int64
 }
 
+// claudeFormat starts the thinking format a gateway reports for Claude-style models (claude-adaptive, claude-budget).
+const claudeFormat = "claude"
+
 // The effort levels, from the least to the most thinking.
 var (
 	levelsAnthropic = []string{"low", "medium", "high", "xhigh", "max"}
@@ -41,8 +48,13 @@ func EffortLevels(kind Kind, model ModelInfo) []string {
 	}
 
 	levels := append([]string{}, kindLevels(kind)...)
-	if len(thinking.Levels) > 0 {
+
+	switch {
+	case len(thinking.Levels) > 0:
 		levels = append([]string{}, thinking.Levels...)
+	case strings.HasPrefix(thinking.Format, claudeFormat):
+		// A Claude-style model, whoever serves it, takes Anthropic's levels: there is no "minimal" or "none".
+		levels = append([]string{}, levelsAnthropic...)
 	}
 
 	if thinking.Reported && !thinking.CanDisable {
