@@ -8,6 +8,8 @@ import (
 
 // models lists every model a person can pick, from all their enabled and verified providers.
 func (h *Handler) models(c fiber.Ctx) error {
+	h.service.SyncStale(c.Context(), httpserver.UserID(c))
+
 	options, err := h.service.Models(c.Context(), httpserver.UserID(c))
 	if err != nil {
 		return fail(c, err)

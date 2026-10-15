@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/domain"
@@ -38,16 +39,19 @@ type IDs interface {
 
 // Service holds the provider use cases.
 type Service struct {
+	now      func() time.Time
 	store    Store
 	cipher   Cipher
 	verifier Verifier
 	ids      IDs
-	now      func() time.Time
+	// synced remembers when each gateway's model list was last read, so it is not read on every page load.
+	synced map[string]time.Time
+	mu     sync.Mutex
 }
 
 // NewService wires the use cases.
 func NewService(store Store, cipher Cipher, verifier Verifier, ids IDs, now func() time.Time) *Service {
-	return &Service{store: store, cipher: cipher, verifier: verifier, ids: ids, now: now}
+	return &Service{store: store, cipher: cipher, verifier: verifier, ids: ids, now: now, synced: map[string]time.Time{}}
 }
 
 // Verify checks the key with the provider and caches the models it offers.
