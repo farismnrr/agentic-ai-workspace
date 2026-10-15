@@ -126,7 +126,12 @@ func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) err
 
 // Get returns one of the person's tasks.
 func (s *Service) Get(ctx context.Context, userID, taskID string) (domain.Task, error) {
-	return s.owned(ctx, userID, taskID)
+	task, err := s.owned(ctx, userID, taskID)
+	if err != nil {
+		return domain.Task{}, err
+	}
+
+	return s.withWindow(ctx, task), nil
 }
 
 // List returns the person's tasks, newest first; projectID may be empty.
@@ -134,6 +139,10 @@ func (s *Service) List(ctx context.Context, userID, projectID string) ([]domain.
 	tasks, err := s.deps.Tasks.List(ctx, userID, projectID, listLimit)
 	if err != nil {
 		return nil, fmt.Errorf("list tasks: %w", err)
+	}
+
+	for i := range tasks {
+		tasks[i] = s.withWindow(ctx, tasks[i])
 	}
 
 	return tasks, nil
