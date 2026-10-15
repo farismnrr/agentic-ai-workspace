@@ -54,6 +54,7 @@
     'external-link': 'M14 4h6v6M20 4 10 14M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
     user: 'M20 21a8 8 0 0 0-16 0M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
     'send': 'M22 2 11 13M22 2l-7 20-4-9-9-4z',
+    'log-out': 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   };
 
   const { name, class: className = 'size-5' }: Props = $props();
