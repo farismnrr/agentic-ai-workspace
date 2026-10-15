@@ -37,5 +37,5 @@ func (s *Service) ContextWindow(ctx context.Context, userID, id, model string) i
 		return domain.ContextWindow(model, nil, nil)
 	}
 
-	return domain.ContextWindow(model, provider.ContextWindows, provider.ReportedWindows)
+	return domain.ContextWindow(model, provider.ContextWindows, provider.Catalog)
 }

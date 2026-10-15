@@ -10,7 +10,9 @@ func TestContextWindowPrefersTheChoiceThenTheReportedSizeThenTheModelNameThenThe
 	t.Parallel()
 
 	chosen := map[string]int64{"big[1m]": 400_000}
-	reported := map[string]int64{"cx/gpt[1M]": 872_000, "big[1m]": 999_000, "other": 272_000}
+	reported := map[string]domain.ModelInfo{
+		"cx/gpt[1M]": {ContextWindow: 872_000}, "big[1m]": {ContextWindow: 999_000}, "other": {ContextWindow: 272_000},
+	}
 	cases := map[string]int64{
 		"big[1m]":    400_000,
 		"cx/gpt[1M]": 872_000, // what the provider reported beats the [1m] guess

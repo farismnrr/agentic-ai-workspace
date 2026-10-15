@@ -127,7 +127,7 @@ func fetch(client *http.Client, request *http.Request) ([]domain.ModelInfo, erro
 
 	for _, model := range body.Data {
 		if model.ID != "" {
-			models = append(models, domain.ModelInfo{Name: model.ID, ContextWindow: model.window()})
+			models = append(models, domain.ModelInfo{Name: model.ID, ContextWindow: model.window(), Thinking: model.thinking()})
 		}
 	}
 
@@ -138,18 +138,22 @@ func fetch(client *http.Client, request *http.Request) ([]domain.ModelInfo, erro
 	return models, nil
 }
 
-// listed is one entry of a provider's model list. Providers name the context window differently, so every
-// field seen in the wild is read, and the first positive one is used.
+// listed is one entry of a provider's model list. Providers name things differently, so every field seen in the
+// wild is read; 9router describes each model under capabilities, including how it thinks.
 type listed struct {
 	ID           string `json:"id"`
-	ContextLen   int64  `json:"context_length"`
-	ContextWin   int64  `json:"context_window"`
-	MaxInput     int64  `json:"max_input_tokens"`
 	Capabilities struct {
-		ContextWindow int64 `json:"contextWindow"`
+		Reasoning          *bool    `json:"reasoning"`
+		ThinkingCanDisable *bool    `json:"thinkingCanDisable"`
+		ReasoningEffort    []string `json:"reasoningEffort"`
+		ContextWindow      int64    `json:"contextWindow"`
 	} `json:"capabilities"`
+	ContextLen int64 `json:"context_length"`
+	ContextWin int64 `json:"context_window"`
+	MaxInput   int64 `json:"max_input_tokens"`
 }
 
+// window is the first positive context window the entry gives.
 func (m listed) window() int64 {
 	for _, size := range []int64{m.Capabilities.ContextWindow, m.ContextLen, m.ContextWin, m.MaxInput} {
 		if size > 0 {
@@ -158,4 +162,19 @@ func (m listed) window() int64 {
 	}
 
 	return 0
+}
+
+// thinking is what the entry says about how the model thinks; the zero value when it says nothing.
+func (m listed) thinking() domain.Thinking {
+	caps := m.Capabilities
+	if caps.Reasoning == nil && len(caps.ReasoningEffort) == 0 {
+		return domain.Thinking{}
+	}
+
+	return domain.Thinking{
+		Reported:   true,
+		Reasoning:  caps.Reasoning == nil || *caps.Reasoning,
+		CanDisable: caps.ThinkingCanDisable == nil || *caps.ThinkingCanDisable,
+		Levels:     caps.ReasoningEffort,
+	}
 }

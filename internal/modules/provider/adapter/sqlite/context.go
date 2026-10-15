@@ -19,18 +19,13 @@ func (s *Store) SetContextWindow(ctx context.Context, userID, id, model string, 
 	return notFoundIfNone(result)
 }
 
-// The two kinds of context window a person's providers can have: the sizes they chose, and the ones the
-// providers reported.
-const (
-	chosenWindows = `SELECT m.provider_id, m.model, m.context_window FROM model_settings m
-		 JOIN providers p ON p.id = m.provider_id WHERE p.user_id = ?`
-	reportedWindows = `SELECT m.provider_id, m.model, m.context_window FROM model_windows m
-		 JOIN providers p ON p.id = m.provider_id WHERE p.user_id = ?`
-)
+// chosenWindows reads the context window sizes a person chose, for all their providers.
+const chosenWindows = `SELECT m.provider_id, m.model, m.context_window FROM model_settings m
+	 JOIN providers p ON p.id = m.provider_id WHERE p.user_id = ?`
 
-// loadWindows reads context windows with one of the queries above, keyed by provider id.
-func (s *Store) loadWindows(ctx context.Context, userID, query string) (map[string]map[string]int64, error) {
-	rows, err := s.db.QueryContext(ctx, query, userID)
+// loadWindows reads the sizes a person chose, keyed by provider id.
+func (s *Store) loadWindows(ctx context.Context, userID string) (map[string]map[string]int64, error) {
+	rows, err := s.db.QueryContext(ctx, chosenWindows, userID)
 	if err != nil {
 		return nil, fmt.Errorf("select context windows: %w", err)
 	}

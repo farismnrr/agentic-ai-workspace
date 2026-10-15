@@ -13,6 +13,8 @@ export interface Provider {
   enabled: boolean;
   /** Tokens each model can hold at once: the size chosen, else the built-in default. */
   contextWindows: Record<string, number>;
+  /** The effort levels worth offering for each model; an empty list means the model does not reason. */
+  efforts: Record<string, string[]>;
 }
 
 export interface ModelOption {
