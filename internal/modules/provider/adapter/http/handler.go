@@ -83,6 +83,8 @@ func windows(p domain.Provider) map[string]int64 {
 }
 
 func (h *Handler) list(c fiber.Ctx) error {
+	h.service.SyncStale(c.Context(), httpserver.UserID(c))
+
 	providers, err := h.service.List(c.Context(), httpserver.UserID(c))
 	if err != nil {
 		return fail(c, err)
