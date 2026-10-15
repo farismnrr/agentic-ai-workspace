@@ -6,7 +6,7 @@
 </script>
 
 <section id="faq" class="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20">
-  <div class="grid gap-10 border-t border-[var(--brand-border-strong)] pt-14 lg:grid-cols-[1fr_1.4fr] lg:pt-16">
+  <div class="grid grid-cols-1 gap-10 border-t border-[var(--brand-border-strong)] pt-14 lg:grid-cols-[1fr_1.4fr] lg:pt-16">
     <div use:reveal>
       <p class="text-sm text-[var(--brand-text-secondary)]">FAQ</p>
       <h2 class="mt-3 text-4xl font-medium leading-[1.05] tracking-tight sm:text-5xl">Questions,<br />answered.</h2>

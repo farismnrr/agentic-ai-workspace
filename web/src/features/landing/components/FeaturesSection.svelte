@@ -8,7 +8,7 @@
 
 <section class="mx-auto w-full max-w-6xl px-6 py-14 lg:py-20">
   <p class="text-[var(--brand-text-secondary)]" use:reveal>Features</p>
-  <div class="mt-3 grid gap-12 lg:grid-cols-[1.5fr_1fr] lg:gap-0">
+  <div class="mt-3 grid grid-cols-1 gap-12 lg:grid-cols-[1.5fr_1fr] lg:gap-0">
     <div class="lg:pr-12" use:reveal>
       <h2 class="font-display text-4xl font-medium leading-tight tracking-tight sm:text-5xl">
         Made to fit <Marker>your day.</Marker>

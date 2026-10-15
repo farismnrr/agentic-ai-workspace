@@ -24,8 +24,8 @@
 <svelte:head><title>Settings · Masih Awam</title></svelte:head>
 
 <AppShell crumbs={[{ label: 'Settings', href: '/app/settings' }, { label }]} width="dense">
-  <div class="grid items-start gap-6 md:grid-cols-[12rem_1fr]">
-    <div class="md:sticky md:top-16"><h1 class="mb-3 text-xl font-semibold">Settings</h1><SettingsNav {tab} /></div>
+  <div class="grid grid-cols-1 items-start gap-6 md:grid-cols-[12rem_minmax(0,1fr)]">
+    <div class="min-w-0 md:sticky md:top-16"><h1 class="mb-3 text-xl font-semibold">Settings</h1><SettingsNav {tab} /></div>
     <div class="min-w-0 max-w-4xl">
       {#if tab === 'models'}<ModelsTab />{:else if tab === 'persona'}<PersonaTab />{:else if tab === 'spaces'}<SpacesTab />{:else if tab === 'connected'}<ConnectedAppsTab />{:else if tab === 'integrations'}<IntegrationsTab />{:else if tab === 'activity'}<ActivityTab />{:else if tab === 'usage'}<UsageTab />{:else if tab === 'notifications'}<NotificationsTab />{:else}<AccountTab />{/if}
     </div>

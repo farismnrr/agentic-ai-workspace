@@ -32,7 +32,7 @@
 {:else if space === undefined}
   <EmptyState bordered icon="box" title={spacesCopy.empty.title} body={spacesCopy.empty.body} />
 {:else}
-  <div class="mb-8 grid items-start gap-4 md:grid-cols-[11rem_1fr]">
+  <div class="mb-8 grid grid-cols-1 items-start gap-4 md:grid-cols-[11rem_minmax(0,1fr)]">
     <div>
       <h2 class="mb-1 px-1 text-sm font-semibold">Spaces</h2>
       <ul class="flex gap-1 overflow-x-auto md:flex-col">

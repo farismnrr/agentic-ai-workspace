@@ -3,7 +3,9 @@
   import { onMount } from 'svelte';
   import { startNotifications } from '../logic/notify';
   import { watch } from '../logic/workspace-store';
+  import { route } from '../../../app/router';
   import CommandPalette from './CommandPalette.svelte';
+  import MobileBar from './MobileBar.svelte';
   import { paletteOpen, type Crumb } from './shell-state';
   import Sidebar from './Sidebar.svelte';
   import Topbar from './Topbar.svelte';
@@ -26,6 +28,8 @@
 
   const { crumbs, width = 'dense', children, footer }: Props = $props();
   let open = $state(false);
+  // A conversation needs the whole phone screen for its composer, so the bar steps aside there.
+  const bar = $derived($route.name !== 'task');
 
   onMount(() => {
     const stopWatching = watch();
@@ -46,12 +50,13 @@
 
 <svelte:window {onkeydown} />
 
-<div class="app-ui drawer min-h-screen bg-base-200 lg:drawer-open">
+<div class="app-ui drawer min-h-dvh bg-base-200 lg:drawer-open">
   <input id="workspace-drawer" type="checkbox" class="drawer-toggle" bind:checked={open} aria-label="Open menu" />
-  <div class="drawer-content flex min-h-screen min-w-0 flex-col">
+  <div class="drawer-content flex min-h-dvh min-w-0 flex-col {bar ? 'pb-16 md:pb-0' : ''}">
     <Topbar {crumbs} />
     <main class="hero-in flex min-h-0 flex-1 flex-col"><div class="flex flex-1 flex-col {widths[width]}">{@render children()}</div></main>
     {#if footer}{@render footer()}{/if}
+    {#if bar}<MobileBar />{/if}
   </div>
   <div class="drawer-side z-20">
     <label for="workspace-drawer" aria-label="Close menu" class="drawer-overlay"></label>
