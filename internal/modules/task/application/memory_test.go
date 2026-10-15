@@ -95,6 +95,10 @@ func (m *memory) SetStatus(_ context.Context, id string, status domain.Status, _
 	return m.update(id, func(t *domain.Task) { t.Status = status })
 }
 
+func (m *memory) SetContext(_ context.Context, id string, used, window int64) error {
+	return m.update(id, func(t *domain.Task) { t.ContextUsed, t.ContextWindow = used, window })
+}
+
 func (m *memory) SavePlan(_ context.Context, id string, plan []domain.PlanStep, _ time.Time) error {
 	return m.update(id, func(t *domain.Task) { t.Plan = plan })
 }

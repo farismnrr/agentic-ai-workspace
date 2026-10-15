@@ -115,6 +115,7 @@ func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
 	_, err := r.log.Record(ctx, spacedomain.Activity{
 		UserID: entry.UserID, Space: "coding", Client: entry.Client, Tool: entry.Tool, Summary: entry.Summary,
 		Detail: entry.Detail, Outcome: spacedomain.Outcome(entry.Outcome), Undo: wrapUndo(entry.Project, entry.Undo),
+		ProjectID: entry.Project, TaskID: entry.Task,
 	})
 	if err != nil {
 		return fmt.Errorf("record activity: %w", err)

@@ -13,6 +13,7 @@ import (
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	githubapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -29,6 +30,8 @@ type agentTools struct {
 	backups  *codingbackup.Store
 	cache    map[string]codingmcp.Services
 	handlers map[string]toolHandler
+	github   *githubapp.Service
+	git      func(projectID string) codingrunner.GitSource
 	public   string
 	mu       sync.Mutex
 }
@@ -67,10 +70,15 @@ func (a *agentTools) services(projectID string) (codingmcp.Services, error) {
 		return codingmcp.Services{}, fmt.Errorf("open project folder: %w", err)
 	}
 
+	run := codingrunner.New(dir, a.engine)
+	if a.git != nil {
+		run.WithGit(a.git(projectID))
+	}
+
 	services := codingmcp.Services{
 		Reader: codingapp.NewService(files),
 		Editor: codingapp.NewEditor(files, files, a.backups, opaque.Generator{}),
-		Tasks:  codingapp.NewTasks(files, codingrunner.New(dir, a.engine)),
+		Tasks:  codingapp.NewTasks(files, run),
 		Sites:  projectSites{tools: a, projectID: projectID}, ProjectID: projectID,
 	}
 	a.cache[projectID] = services

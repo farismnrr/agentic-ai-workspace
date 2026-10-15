@@ -5,7 +5,7 @@
   import { illustrations } from '../assets/illustrations';
 </script>
 
-<section id="why-different" class="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-14 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
+<section id="why-different" class="mx-auto grid grid-cols-1 w-full max-w-6xl items-center gap-10 px-6 py-14 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
   <div use:reveal>
     <p class="text-primary">Why it’s different</p>
     <h2 class="mt-4 text-4xl font-medium leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">

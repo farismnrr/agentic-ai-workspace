@@ -23,7 +23,7 @@ Three audiences, three places. Never mix them.
 
 ## Runtime contract
 
-1. Production is one Docker image holding one Go binary: one process and one listening port. Checks and commands run as short-lived containers started through the Docker socket, never as a second server; their registry-only network goes through `platform/egressproxy` on per-workspace Unix sockets, never another port. Sites (`modules/site`) are served by a `/run/<name>/<uuid>/` proxy in this same process, never a new port or host.
+1. Production is one Docker image holding one Go binary: one process and one listening port. Checks and commands run as short-lived containers started through the Docker socket, never as a second server; their network (package registries, plus GitHub for a workspace whose owner connected it) goes through `platform/egressproxy` on per-workspace Unix sockets, never another port. Sites (`modules/site`) are served by a `/run/<name>/<uuid>/` proxy in this same process, never a new port or host.
 2. Go Fiber v3 owns API routing and serves the compiled Svelte SPA.
 3. Node.js, Vite, Tailwind CSS, and daisyUI are build-time dependencies only.
 4. Do not add a second runtime server, frontend port, or reverse proxy without explicit approval.
@@ -153,6 +153,7 @@ agents/                                   self-improvement, memory and notes for
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
 10. Permissions default to read-only; `packages: write` belongs only to the image jobs, and merge rights only to the full publish job.
 11. A change is incomplete while CI is failing.
+12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` and confirm `/api/health` on port 8081. Never run a plain `docker compose pull`, and never pull the sandbox image: only Full publishes `-sandbox:latest`, so a pull replaces the locally built toolbox (`make sandbox-image`) with an older one that can lack tools such as `gh`. Never restart the local app from an unpushed or red build, and say when a step was skipped.
 
 ## Container image
 

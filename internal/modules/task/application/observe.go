@@ -95,6 +95,15 @@ func (o observedTasks) Finish(ctx context.Context, id, summary string, proof *do
 	return err //nolint:wrapcheck // a transparent decorator
 }
 
+func (o observedTasks) SetContext(ctx context.Context, id string, used, window int64) error {
+	err := o.TaskStore.SetContext(ctx, id, used, window)
+	if err == nil {
+		o.notify.Changed(o.owners.of(ctx, id), id)
+	}
+
+	return err //nolint:wrapcheck // a transparent decorator
+}
+
 type observedEvents struct {
 	EventStore
 	notify Notifier

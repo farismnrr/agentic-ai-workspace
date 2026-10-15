@@ -70,8 +70,13 @@ export interface Task {
   status: TaskStatus;
   providerId: string;
   model: string;
+  /** How hard the AI was asked to think; empty is the provider's default. */
+  effort: string;
   plan: PlanStep[];
   proof?: Proof;
+  /** Tokens the last model call carried and the model's window; both 0 before the first call. */
+  contextUsed: number;
+  contextWindow: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -14,5 +14,5 @@
   <h1 class="font-display! text-4xl font-medium leading-tight tracking-tight">{greeting(new Date().getHours())}, <Marker>{$session.status === 'signed-in' ? $session.user.name : ''}.</Marker></h1>
   <p class="mb-6 mt-1 text-base text-[var(--brand-text-secondary)]">What do you need help with today?</p>
   <Composer />
-  <div class="mt-10 grid items-start gap-6 lg:grid-cols-2"><NeedsYou /><RunningNow /></div>
+  <div class="mt-10 grid grid-cols-1 items-start gap-6 lg:grid-cols-2"><NeedsYou /><RunningNow /></div>
 </AppShell>

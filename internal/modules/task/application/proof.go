@@ -2,7 +2,6 @@ package application
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -16,7 +15,7 @@ func buildProof(events []domain.Event, claims []string) *domain.Proof {
 	failed := false
 
 	for _, run := range runs {
-		passed := run.ExitCode == 0 && !run.TimedOut
+		passed := passedRun(run)
 		failed = failed || !passed
 		proof.Checks = append(proof.Checks, domain.Check{Text: runText(run, passed), Verified: true, Passed: passed})
 	}
@@ -89,17 +88,40 @@ func changedSummary(events []domain.Event) string {
 	return fmt.Sprintf("%d files changed", len(files))
 }
 
+// passedRun reports whether a check the server ran succeeded.
+func passedRun(run domain.RunInfo) bool {
+	return run.ExitCode == 0 && !run.TimedOut
+}
+
+// testedSummary says how many checks ran and how they ended. It never lists the commands: they are long, and the
+// "What was checked" list under it already names each one.
 func testedSummary(runs []domain.RunInfo) string {
 	if len(runs) == 0 {
 		return "Nothing was run to check it"
 	}
 
-	names := make([]string, 0, len(runs))
+	passed := 0
+
 	for _, run := range runs {
-		names = append(names, run.Name)
+		if passedRun(run) {
+			passed++
+		}
 	}
 
-	return "Ran " + strings.Join(names, ", ")
+	failed := len(runs) - passed
+
+	switch {
+	case len(runs) == 1 && failed == 0:
+		return "Ran 1 check, and it passed"
+	case len(runs) == 1:
+		return "Ran 1 check, and it failed"
+	case failed == 0:
+		return fmt.Sprintf("Ran %d checks, all passed", len(runs))
+	case passed == 0:
+		return fmt.Sprintf("Ran %d checks, all failed", len(runs))
+	}
+
+	return fmt.Sprintf("Ran %d checks: %d passed, %d failed", len(runs), passed, failed)
 }
 
 func resultText(runs []domain.RunInfo, failed bool) string {

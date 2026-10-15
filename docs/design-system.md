@@ -145,6 +145,8 @@ The logo is a rounded primary-olive tile with a white "o..n" mark, set beside th
 
 `/login` and `/register` use a 50/50 split: logo, a serif headline with one marker highlight, a short subtitle, and the form on the left; on the right, a quiet panel with one hand-drawn illustration and a short serif caption. The panel hides below the `lg` breakpoint so the form gets the full width on phones.
 
+In the workspace, phones (below `md`) get a bottom bar with Home, Inbox, Projects, Sites and Settings (daisyUI `dock`, with the inbox and running-site counts); the menu button still opens the sidebar for recent tasks and the account menu. Popup menus (the account menu, the command palette) share one surface: `bg-base-100`, a hairline `--brand-border`, a medium radius, the `--brand-shadow` token (never a generic Tailwind shadow), a leading icon on every row, hairlines between groups, and a destructive or session action such as Sign out in a group of its own. They close on an outside click and on Escape, and focus returns to the trigger. The bar steps aside on a task page so the conversation keeps the whole screen. Tablets and up use the sidebar drawer, which stays open from `lg`.
+
 Forms use daisyUI inputs and the primary pill button. Every field has a visible label, errors appear as text under the field after it is touched or the form is submitted, and the password fields have a real show/hide button. The password strength meter always pairs its bars with a text label. These screens are UI only for now: nothing is sent to a server.
 
 ## Error pages

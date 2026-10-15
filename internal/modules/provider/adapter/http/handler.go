@@ -30,30 +30,61 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Post("/api/providers", auth, sameOrigin, h.add)
 		app.Post("/api/providers/:id/verify", auth, sameOrigin, h.verify)
 		app.Put("/api/providers/:id", auth, sameOrigin, h.setEnabled)
+		app.Put("/api/providers/:id/context", auth, sameOrigin, h.setContext)
 		app.Delete("/api/providers/:id", auth, sameOrigin, h.remove)
 		app.Get("/api/models", auth, h.models)
 	}
 }
 
 type providerPayload struct {
-	ID       string   `json:"id"`
-	Kind     string   `json:"kind"`
-	Name     string   `json:"name"`
-	BaseURL  string   `json:"baseUrl"`
-	KeyHint  string   `json:"keyHint"`
-	Models   []string `json:"models"`
-	Verified bool     `json:"verified"`
-	Enabled  bool     `json:"enabled"`
+	ID      string `json:"id"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	BaseURL string `json:"baseUrl"`
+	KeyHint string `json:"keyHint"`
+	// ContextWindows maps every model to its context window in tokens (chosen or default).
+	ContextWindows map[string]int64 `json:"contextWindows"`
+	// Efforts maps every model to the effort levels worth offering for it; empty when it does not reason.
+	Efforts  map[string][]string `json:"efforts"`
+	Models   []string            `json:"models"`
+	Verified bool                `json:"verified"`
+	Enabled  bool                `json:"enabled"`
 }
 
 func toPayload(p domain.Provider) providerPayload {
 	return providerPayload{
 		ID: p.ID, Kind: string(p.Kind), Name: p.Name, BaseURL: p.BaseURL, KeyHint: p.KeyHint,
-		Models: p.Models, Verified: p.Verified, Enabled: p.Enabled,
+		Models: p.Models, Verified: p.Verified, Enabled: p.Enabled, ContextWindows: windows(p),
+		Efforts: efforts(p),
 	}
 }
 
+func efforts(p domain.Provider) map[string][]string {
+	all := make(map[string][]string, len(p.Models))
+	for _, model := range p.Models {
+		info, ok := p.Catalog[model]
+		if !ok {
+			info = domain.ModelInfo{Name: model}
+		}
+
+		all[model] = domain.EffortLevels(p.Kind, info)
+	}
+
+	return all
+}
+
+func windows(p domain.Provider) map[string]int64 {
+	all := make(map[string]int64, len(p.Models))
+	for _, model := range p.Models {
+		all[model] = domain.ContextWindow(model, p.ContextWindows, p.Catalog)
+	}
+
+	return all
+}
+
 func (h *Handler) list(c fiber.Ctx) error {
+	h.service.SyncStale(c.Context(), httpserver.UserID(c))
+
 	providers, err := h.service.List(c.Context(), httpserver.UserID(c))
 	if err != nil {
 		return fail(c, err)
@@ -120,26 +151,6 @@ func (h *Handler) remove(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h *Handler) models(c fiber.Ctx) error {
-	options, err := h.service.Models(c.Context(), httpserver.UserID(c))
-	if err != nil {
-		return fail(c, err)
-	}
-
-	type option struct {
-		ProviderID   string `json:"providerId"`
-		ProviderName string `json:"providerName"`
-		Model        string `json:"model"`
-	}
-
-	payload := make([]option, 0, len(options))
-	for _, o := range options {
-		payload = append(payload, option{ProviderID: o.ProviderID, ProviderName: o.ProviderName, Model: o.Model})
-	}
-
-	return c.JSON(payload)
-}
-
 var badInput = []struct {
 	err  error
 	code string
@@ -150,6 +161,7 @@ var badInput = []struct {
 	{domain.ErrAddressFixed, "address_fixed"},
 	{domain.ErrInvalidKey, "invalid_key"},
 	{domain.ErrTooMany, "too_many"},
+	{domain.ErrInvalidContext, "invalid_context"},
 }
 
 func fail(c fiber.Ctx, err error) error {

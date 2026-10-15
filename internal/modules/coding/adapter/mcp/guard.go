@@ -23,13 +23,25 @@ type report struct {
 	detail string
 	// project is where an undoable change was made.
 	project string
-	undo    []byte
-	failed  bool
+	// run says how a command ended, for the thread.
+	run *RunNote
+	// note, when set, is what the call writes into the thread instead of the usual action line.
+	note   *Note
+	undo   []byte
+	failed bool
 }
+
+// callState collects what a run learns about the call, such as the project it worked in.
+type callState struct {
+	project string
+}
+
+type stateKey struct{}
 
 type guard struct {
 	gate        Gate
 	recorder    Recorder
+	tasks       TaskLog
 	metadataURL string
 }
 
@@ -56,22 +68,53 @@ func guarded[In, Out any](
 			return refusal, none, nil
 		}
 
-		out, rep, err := run(context.WithValue(ctx, identityKey{}, identity{User: token.UserID, Client: client}), in)
+		state := &callState{}
+		who := context.WithValue(ctx, identityKey{}, identity{User: token.UserID, Client: client})
+
+		out, rep, err := run(context.WithValue(who, stateKey{}, state), in)
+		entry.Project = state.project
+
 		if err != nil {
 			entry.Outcome, entry.Detail = OutcomeFailed, UserFacing(err).Error()
+			g.thread(ctx, info, &entry, report{})
 			g.record(ctx, entry)
 
 			return nil, none, UserFacing(err)
 		}
 
-		entry.Outcome, entry.Detail, entry.Undo, entry.Project = OutcomeOK, rep.detail, rep.undo, rep.project
+		entry.Outcome, entry.Detail, entry.Undo = OutcomeOK, rep.detail, rep.undo
+		if rep.project != "" {
+			entry.Project = rep.project
+		}
+
 		if rep.failed {
 			entry.Outcome = OutcomeFailed
 		}
 
+		g.thread(ctx, info, &entry, rep)
 		g.record(ctx, entry)
 
 		return nil, out, nil
+	}
+}
+
+// thread writes the call into the app's thread, so the person can read what the app did. Looking
+// around is not written; a failure to write never turns a finished call into an error.
+func (g *guard) thread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) {
+	note := rep.note
+	if note == nil && info.Group != domain.GroupRead {
+		note = &Note{Kind: NoteAction, Text: entry.Summary, Technical: entry.Detail, Run: rep.run}
+		if entry.Outcome == OutcomeFailed && rep.run == nil {
+			note.Text = "Tried to, but it did not work: " + entry.Summary
+		}
+	}
+
+	if note == nil || g.tasks == nil || entry.Project == "" {
+		return
+	}
+
+	if id, err := g.tasks.Log(ctx, entry.UserID, entry.Client, entry.Project, *note); err == nil {
+		entry.Task = id
 	}
 }
 

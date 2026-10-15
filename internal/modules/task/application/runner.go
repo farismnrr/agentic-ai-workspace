@@ -11,17 +11,15 @@ import (
 
 const (
 	defaultWallTime  = 15 * time.Minute
-	defaultTokenCap  = 400_000
 	defaultMaxSteps  = 40
 	defaultRetries   = 2
 	defaultMaxResult = 24_000
 )
 
-// Limits keep one task from running away with time or money.
+// Limits keep one task from running away with time or steps.
 type Limits struct {
 	Backoff   func(attempt int) time.Duration
 	WallTime  time.Duration
-	TokenCap  int64
 	MaxSteps  int
 	Retries   int
 	MaxResult int
@@ -31,7 +29,7 @@ type Limits struct {
 func DefaultLimits() Limits {
 	return Limits{
 		Backoff:  func(attempt int) time.Duration { return time.Duration(attempt+1) * 3 * time.Second },
-		WallTime: defaultWallTime, TokenCap: defaultTokenCap, MaxSteps: defaultMaxSteps,
+		WallTime: defaultWallTime, MaxSteps: defaultMaxSteps,
 		Retries: defaultRetries, MaxResult: defaultMaxResult,
 	}
 }
@@ -43,12 +41,15 @@ type Deps struct {
 	Transcript TranscriptStore
 	Usage      UsageStore
 	Models     Models
+	Windows    ContextWindows
 	Persona    PersonaSource
 	Projects   Projects
 	Tools      ToolSet
 	Gate       ToolGate
 	IDs        IDs
 	Notify     Notifier
+	// Activity, when set, is told about the steps that change or run something; optional.
+	Activity ActivitySink
 	// Computer says what the agent's run_command can use; optional.
 	Computer Computer
 	Now      func() time.Time
@@ -113,8 +114,10 @@ func (r *Runner) loop(ctx context.Context, task domain.Task) outcome {
 	}
 
 	// A step is one model turn; working through its tool calls does not count.
+	state := &runState{}
+
 	for turns := 0; turns < r.lim.MaxSteps; {
-		result, done, modelTurn := r.advance(ctx, task)
+		result, done, modelTurn := r.advance(ctx, task, state)
 		if done {
 			return result
 		}
@@ -129,8 +132,10 @@ func (r *Runner) loop(ctx context.Context, task domain.Task) outcome {
 }
 
 // advance does one unit of work: answer pending tool calls, or ask the model for the next move.
-func (r *Runner) advance(ctx context.Context, task domain.Task) (result outcome, done, modelTurn bool) {
-	if stopped, over := r.limitReached(ctx, task); over {
+func (r *Runner) advance(
+	ctx context.Context, task domain.Task, state *runState,
+) (result outcome, done, modelTurn bool) {
+	if stopped, over := r.limitReached(ctx); over {
 		return stopped, true, false
 	}
 
@@ -145,22 +150,17 @@ func (r *Runner) advance(ctx context.Context, task domain.Task) (result outcome,
 		return result, done, false
 	}
 
-	result, done = r.turn(ctx, task, transcript)
+	result, done = r.turn(ctx, task, state, transcript)
 
 	return result, done, true
 }
 
-func (r *Runner) limitReached(ctx context.Context, task domain.Task) (outcome, bool) {
+func (r *Runner) limitReached(ctx context.Context) (outcome, bool) {
 	switch {
 	case errors.Is(ctx.Err(), context.DeadlineExceeded):
 		return failed("This task took longer than the time limit, so I paused.", "Press Continue to keep going."), true
 	case ctx.Err() != nil:
 		return failed("Stopped.", "Press Continue to pick up where I left off."), true
-	}
-
-	used, err := r.deps.Usage.TotalUsage(ctx, task.ID)
-	if err == nil && used.Input+used.Output > r.lim.TokenCap {
-		return failed("This task used up its budget, so I paused.", "Press Continue to allow more."), true
 	}
 
 	return outcome{}, false

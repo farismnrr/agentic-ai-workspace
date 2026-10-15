@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/provider/domain"
@@ -20,14 +21,15 @@ type Store interface {
 	Create(ctx context.Context, p domain.Provider, sealedKey string) error
 	List(ctx context.Context, userID string) ([]domain.Provider, error)
 	Find(ctx context.Context, userID, id string) (domain.Provider, string, error)
-	SetVerified(ctx context.Context, userID, id string, verified bool, models []string) error
+	SetVerified(ctx context.Context, userID, id string, verified bool, models []domain.ModelInfo) error
 	SetEnabled(ctx context.Context, userID, id string, enabled bool) error
+	SetContextWindow(ctx context.Context, userID, id, model string, tokens int64) error
 	Delete(ctx context.Context, userID, id string) error
 }
 
 // Verifier asks a provider which models a key can use; success proves the key works.
 type Verifier interface {
-	Models(ctx context.Context, credential domain.Credential) ([]string, error)
+	Models(ctx context.Context, credential domain.Credential) ([]domain.ModelInfo, error)
 }
 
 // IDs mints identifiers.
@@ -37,16 +39,19 @@ type IDs interface {
 
 // Service holds the provider use cases.
 type Service struct {
+	now      func() time.Time
 	store    Store
 	cipher   Cipher
 	verifier Verifier
 	ids      IDs
-	now      func() time.Time
+	// synced remembers when each gateway's model list was last read, so it is not read on every page load.
+	synced map[string]time.Time
+	mu     sync.Mutex
 }
 
 // NewService wires the use cases.
 func NewService(store Store, cipher Cipher, verifier Verifier, ids IDs, now func() time.Time) *Service {
-	return &Service{store: store, cipher: cipher, verifier: verifier, ids: ids, now: now}
+	return &Service{store: store, cipher: cipher, verifier: verifier, ids: ids, now: now, synced: map[string]time.Time{}}
 }
 
 // Verify checks the key with the provider and caches the models it offers.
@@ -125,6 +130,8 @@ type ModelOption struct {
 	ProviderID   string
 	ProviderName string
 	Model        string
+	// Group is who serves the model when the provider is a gateway that says so, such as cc or cx behind 9router.
+	Group string
 }
 
 // Models lists the models of every enabled, verified provider.
@@ -142,7 +149,9 @@ func (s *Service) Models(ctx context.Context, userID string) ([]ModelOption, err
 		}
 
 		for _, model := range provider.Models {
-			options = append(options, ModelOption{ProviderID: provider.ID, ProviderName: provider.Name, Model: model})
+			options = append(options, ModelOption{
+				ProviderID: provider.ID, ProviderName: provider.Name, Model: model, Group: provider.GroupOf(model),
+			})
 		}
 	}
 

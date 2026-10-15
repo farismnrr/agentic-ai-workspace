@@ -8,6 +8,14 @@ export const taskErrors: Record<string, string> = {
   wrong_state: 'That is not possible right now.',
   undo_refused: 'The file changed after this step, so it was left as it is.',
   not_found: 'We could not find that task.',
+  bad_effort: 'That effort level is not available.',
+};
+
+export const contextCopy = {
+  label: 'Memory used',
+  /** One line, so the tip never grows taller than the header row it opens beside. */
+  hover: "How much of the AI's memory this task uses",
+  tip: "How much of the AI's memory this task fills. When it is nearly full, the AI summarizes its notes and keeps going.",
 };
 
 export const taskFallbackError = 'Something went wrong. Please try again in a moment.';

@@ -18,7 +18,7 @@
   const inProjects = $derived(name === 'projects' || name === 'project');
 </script>
 
-<nav class="flex h-full min-h-screen w-64 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-panel)] p-2 {collapsed ? 'lg:w-14' : ''}" aria-label="Workspace">
+<nav class="flex h-full min-h-dvh w-64 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-panel)] p-2 {collapsed ? 'lg:w-14' : ''}" aria-label="Workspace">
   <a class="mb-2 flex min-h-9 items-center gap-2.5 px-2" href="/app" aria-label="Masih Awam home">
     <LogoMark class="size-6 shrink-0" />
     <span class="font-semibold {collapsed ? 'lg:hidden' : ''}">Masih Awam</span>

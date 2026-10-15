@@ -6,6 +6,11 @@ const base = (id: string): string => `/api/tasks/${encodeURIComponent(id)}`;
 export interface NewTask {
   projectId: string;
   prompt: string;
+  /** Leave out to use the default model. */
+  providerId?: string;
+  model?: string;
+  /** Leave out to use the default effort. */
+  effort?: string;
 }
 
 export interface UsageRow {

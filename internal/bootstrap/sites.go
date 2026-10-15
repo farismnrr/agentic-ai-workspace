@@ -69,7 +69,8 @@ func newSites(
 // its tools, and sites tell the person's pages about changes through the agent's hub.
 func newAgentAndSites(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
-	folders *folder.Folders, gate taskapp.ToolGate, sess sessions, auth, sameOrigin fiber.Handler,
+	folders *folder.Folders, gate taskapp.ToolGate, steps taskapp.ActivitySink, sess sessions,
+	auth, sameOrigin fiber.Handler,
 ) (*taskapp.Service, *siteapp.Service, []httpserver.Mount, func(), error) {
 	hub := taskapp.NewHub()
 
@@ -80,7 +81,7 @@ func newAgentAndSites(
 
 	tools.sites = sites
 
-	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, hub, auth, sameOrigin)
+	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, steps, hub, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
