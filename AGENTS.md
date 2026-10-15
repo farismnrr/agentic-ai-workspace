@@ -153,7 +153,7 @@ agents/                                   self-improvement, memory and notes for
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
 10. Permissions default to read-only; `packages: write` belongs only to the image jobs, and merge rights only to the full publish job.
 11. A change is incomplete while CI is failing.
-12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull only the app image and recreate the app container (`docker compose -f compose.dev.yaml pull app`, then `docker compose -f compose.dev.yaml up -d app`) and confirm `/api/health` on port 8081. Never pull the sandbox image this way: only Full publishes `-sandbox:latest`, so a pull replaces the locally built toolbox (`make sandbox-image`) with an older one that can lack tools such as `gh`. Never restart the local app from an unpushed or red build, and say when a step was skipped.
+12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` and confirm `/api/health` on port 8081. Never run a plain `docker compose pull`, and never pull the sandbox image: only Full publishes `-sandbox:latest`, so a pull replaces the locally built toolbox (`make sandbox-image`) with an older one that can lack tools such as `gh`. Never restart the local app from an unpushed or red build, and say when a step was skipped.
 
 ## Container image
 
