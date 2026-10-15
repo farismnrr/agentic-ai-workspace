@@ -81,7 +81,8 @@ func appendGitHub(out *strings.Builder, installed []string, github string) {
 
 	fmt.Fprintf(out, "\nThe person connected their GitHub account (@%s). Commands are already signed in to it: "+
 		"git clone, pull, commit and push over https://github.com/... work on the repositories they chose, with "+
-		"commits written under their name. Never ask for or print a token. Push only when asked.\n", github)
+		"commits written under their name, and the gh command works too (gh repo list, gh pr, gh issue, gh run). "+
+		"Never ask for or print a token. Push only when asked.\n", github)
 }
 
 const workflow = `
