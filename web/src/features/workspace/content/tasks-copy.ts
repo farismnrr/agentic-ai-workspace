@@ -12,6 +12,8 @@ export const taskErrors: Record<string, string> = {
 
 export const contextCopy = {
   label: 'Memory used',
+  /** One line, so the tip never grows taller than the header row it opens beside. */
+  hover: "How much of the AI's memory this task uses",
   tip: "How much of the AI's memory this task fills. When it is nearly full, the AI summarizes its notes and keeps going.",
 };
 

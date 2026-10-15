@@ -22,7 +22,7 @@
     </div>
   {:else}
     <!-- The tip opens to the left: the meter sits at the right of the header, so it always has room there. -->
-    <div class="tooltip tooltip-left hidden items-center gap-2 text-xs text-[var(--brand-text-secondary)] sm:flex" data-tip={contextCopy.tip}>
+    <div class="tooltip tooltip-left hidden items-center gap-2 text-xs text-[var(--brand-text-secondary)] sm:flex" data-tip={contextCopy.hover}>
       <progress class="progress {contextTone(percent)} w-16 shrink-0" value={percent} max="100" aria-label={contextCopy.label}></progress>
       <span class="tabular-nums">{size}</span>
     </div>
