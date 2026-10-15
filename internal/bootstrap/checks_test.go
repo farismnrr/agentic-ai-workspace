@@ -76,5 +76,5 @@ func TestPassingCheckAfterTheLastChangeMakesTheWorkProven(t *testing.T) {
 	a.waitApproving(t, id, "review")
 
 	task := do(t, a.env.app, "GET", "/api/tasks/"+id, "", jsonCookie(a.cookie)).Body
-	mustContain(t, task, `"proven":true`, "Ran hello", "Verified", `The \"hello\" task passed`)
+	mustContain(t, task, `"proven":true`, "Ran 1 check, and it passed", "Verified", `The \"hello\" task passed`)
 }
