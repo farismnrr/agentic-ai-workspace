@@ -3,6 +3,7 @@ package http
 
 import (
 	"errors"
+	"log"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -83,15 +84,37 @@ func (h *Handler) start(c fiber.Ctx) error {
 
 func (h *Handler) callback(c fiber.Ctx) error {
 	code, state := c.Query("code"), c.Query("state")
-	if c.Query("error") != "" || code == "" || state == "" {
+	if reason := c.Query("error"); reason != "" || code == "" {
+		log.Printf("github: sign-in refused: %q", reason)
+
 		return c.Redirect().To(settingsPage + "?github=failed")
 	}
 
+	// GitHub sends people here without a state right after they install or change the app on
+	// GitHub, an address it picks itself. Such a code is never trusted: a link could carry someone
+	// else's. The person is sent through a sign-in this server started, which GitHub approves at once.
+	if state == "" {
+		return h.restart(c)
+	}
+
 	if err := h.service.Finish(c.Context(), httpserver.UserID(c), code, state); err != nil {
+		log.Printf("github: sign-in failed: %v", err)
+
 		return c.Redirect().To(settingsPage + "?github=failed")
 	}
 
 	return c.Redirect().To(settingsPage + "?github=connected")
+}
+
+func (h *Handler) restart(c fiber.Ctx) error {
+	target, err := h.service.Start(httpserver.UserID(c))
+	if err != nil {
+		log.Printf("github: could not restart sign-in: %v", err)
+
+		return c.Redirect().To(settingsPage + "?github=failed")
+	}
+
+	return c.Redirect().To(target)
 }
 
 func (h *Handler) disconnect(c fiber.Ctx) error {

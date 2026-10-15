@@ -58,6 +58,24 @@ func TestGitHubConnectionIsPerPersonAndStateBound(t *testing.T) {
 	}
 }
 
+func TestGitHubReturnWithoutStateRestartsTheSignIn(t *testing.T) {
+	t.Parallel()
+
+	app := newEnvWith(t, withGitHub).app
+	cookie := cookieOf(t, do(t, app, "POST", "/api/auth/register",
+		`{"name":"Sari","email":"sari@example.com","password":"`+testPassword+`"}`, jsonHeaders()))
+
+	// What GitHub sends after the app is installed or changed there: a code, no state.
+	back := do(t, app, "GET", "/api/integrations/github/callback?code=from-install&installation_id=1&setup_action=install",
+		"", map[string]string{"Cookie": cookie})
+	target, _ := url.Parse(back.Header.Get("Location"))
+
+	if back.Status != 303 || target.Host != "github.com" || target.Path != "/login/oauth/authorize" ||
+		target.Query().Get("state") == "" || target.Query().Get("code_challenge") == "" {
+		t.Fatalf("an unknown return must start our own sign-in, got %d %s", back.Status, back.Header.Get("Location"))
+	}
+}
+
 func TestGitHubIsOffUntilConfigured(t *testing.T) {
 	t.Parallel()
 
