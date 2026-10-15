@@ -19,6 +19,12 @@ You need [Docker](https://docs.docker.com/get-docker/). Pick one:
 **1. Pull the ready-made image (fastest)**
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/scripts/install.sh | sh
+```
+
+The script asks for each setting one by one, saves them, then starts the app. Prefer to do it by hand?
+
+```bash
 curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.latest.yaml
 export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
 docker compose -f compose.latest.yaml up -d

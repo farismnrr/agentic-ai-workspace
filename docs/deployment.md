@@ -22,6 +22,16 @@ The app opens on `http://localhost:8081` in all three. Go slowly: each option be
 
 ### A. Pull the ready-made image (easiest)
 
+**Guided (recommended):** one script asks for each setting one by one (with an example and a default; press Enter to keep it), saves them in `.env`, and only then downloads the compose file and starts the app:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/scripts/install.sh | sh
+```
+
+It creates a folder `agentic-ai-workspace/` in the current directory and tells you how to read logs and stop the app at the end. Use `CHANNEL=dev` before `sh` for the dev image, or `INSTALL_DIR=/opt/workspace` to choose the folder. Running it again is safe: it asks before replacing an existing `.env` (the old one is kept as `.env.bak`).
+
+**By hand:** the same thing in four steps.
+
 ```bash
 # 1. Get the compose file
 curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.latest.yaml
