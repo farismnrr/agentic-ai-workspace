@@ -80,6 +80,8 @@ export interface Project {
   id: string;
   name: string;
   description: string;
+  /** The connected app that owns the project, such as ChatGPT; empty for projects made by hand. */
+  source: string;
   createdAt: string;
 }
 

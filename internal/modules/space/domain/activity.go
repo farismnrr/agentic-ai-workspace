@@ -34,6 +34,7 @@ type Activity struct {
 	ID       string
 	UserID   string
 	Space    string
+	Client   string
 	Tool     string
 	Summary  string
 	Detail   string

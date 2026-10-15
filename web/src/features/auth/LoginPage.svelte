@@ -6,9 +6,10 @@
   import PasswordField from '../../shared/forms/PasswordField.svelte';
   import TextField from './components/TextField.svelte';
   import { goTo } from '../../app/router';
+  import { nextPath } from '../../shared/session/next-path';
   import { setUser } from '../../shared/session/session';
   import { loginCopy } from './content';
-  import { describeError, nextPath, signIn } from './logic/auth-api';
+  import { describeError, signIn } from './logic/auth-api';
   import { validateEmail } from '../../shared/forms/validation';
 
   let form: HTMLFormElement | undefined = $state();

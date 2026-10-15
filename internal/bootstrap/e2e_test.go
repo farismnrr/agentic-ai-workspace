@@ -48,7 +48,7 @@ func signedInClient(t *testing.T, app *fiber.App) (cookie, clientID string) {
 
 	id, _ := dcr.JSON(t)["client_id"].(string)
 
-	seedWorkspace(t, app, cookie)
+	seedWorkspace(t, app, cookie, "ChatGPT")
 
 	return cookie, id
 }

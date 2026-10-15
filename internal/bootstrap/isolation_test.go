@@ -19,12 +19,12 @@ func TestPeopleNeverShareAWorkspace(t *testing.T) {
 	app := newApp(t)
 	sariCookie, clientID := signedInClient(t, app)
 	sari := person{cookie: sariCookie, token: connect(t, app, sariCookie, clientID, "coding:read coding:write")}
-	sari.dir = userWorkspace(t, app, sari.cookie)
+	sari.dir = userWorkspace(t, app, sari.cookie, "ChatGPT")
 
 	bobCookie := cookieOf(t, do(t, app, "POST", "/api/auth/register",
 		`{"name":"Bob","email":"bob@example.com","password":"`+testPassword+`"}`, jsonHeaders()))
 	bob := person{cookie: bobCookie, token: connect(t, app, bobCookie, clientID, "coding:read coding:write")}
-	bob.dir = userWorkspace(t, app, bob.cookie)
+	bob.dir = userWorkspace(t, app, bob.cookie, "ChatGPT")
 
 	enableTool(t, app, sari.cookie, "write_file")
 	enableTool(t, app, bob.cookie, "write_file")
@@ -59,7 +59,7 @@ func TestDeletingAnAccountErasesItsWorkspace(t *testing.T) {
 	token := connect(t, app, cookie, clientID, "coding:read")
 	callTool(t, app, token, "list_files", `{}`)
 
-	dir := userWorkspace(t, app, cookie)
+	dir := userWorkspace(t, app, cookie, "ChatGPT")
 	if _, err := os.Stat(dir); err != nil {
 		t.Fatalf("the workspace should exist before deletion: %v", err)
 	}

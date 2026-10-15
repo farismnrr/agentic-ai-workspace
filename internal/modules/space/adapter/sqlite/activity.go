@@ -10,7 +10,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/space/domain"
 )
 
-const activityColumns = `id, user_id, space, tool, summary, outcome, detail, at, undo, undone_at`
+const activityColumns = `id, user_id, space, client, tool, summary, outcome, detail, at, undo, undone_at`
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -19,8 +19,8 @@ type scanner interface {
 // AddActivity stores a log entry.
 func (s *Store) AddActivity(ctx context.Context, e domain.Activity) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO activity (`+activityColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-		e.ID, e.UserID, e.Space, e.Tool, e.Summary, string(e.Outcome), e.Detail, e.At.Unix(), e.Undo)
+		`INSERT INTO activity (`+activityColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+		e.ID, e.UserID, e.Space, e.Client, e.Tool, e.Summary, string(e.Outcome), e.Detail, e.At.Unix(), e.Undo)
 	if err != nil {
 		return fmt.Errorf("insert activity: %w", err)
 	}
@@ -83,7 +83,7 @@ func scanActivity(row scanner) (domain.Activity, error) {
 		undone  sql.NullInt64
 	)
 
-	err := row.Scan(&e.ID, &e.UserID, &e.Space, &e.Tool, &e.Summary, &outcome, &e.Detail, &at, &e.Undo, &undone)
+	err := row.Scan(&e.ID, &e.UserID, &e.Space, &e.Client, &e.Tool, &e.Summary, &outcome, &e.Detail, &at, &e.Undo, &undone)
 	if err != nil {
 		return domain.Activity{}, fmt.Errorf("scan activity: %w", err)
 	}

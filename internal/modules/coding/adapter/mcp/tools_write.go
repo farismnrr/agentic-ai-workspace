@@ -48,7 +48,7 @@ func (t *tools) addWriteTools(server *sdk.Server) {
 }
 
 // changed turns a finished modification into the tool output and the log report.
-func changed(path string, applied application.Applied, err error) (changeOutput, report, error) {
+func changed(project, path string, applied application.Applied, err error) (changeOutput, report, error) {
 	if err != nil {
 		return changeOutput{}, report{}, fmt.Errorf("change %s: %w", path, err)
 	}
@@ -58,7 +58,9 @@ func changed(path string, applied application.Applied, err error) (changeOutput,
 		return changeOutput{}, report{}, fmt.Errorf("record change: %w", err)
 	}
 
-	return changeOutput{Path: path, Result: applied.Detail}, report{detail: applied.Detail, undo: undo}, nil
+	done := report{detail: applied.Detail, undo: undo, project: project}
+
+	return changeOutput{Path: path, Result: applied.Detail}, done, nil
 }
 
 func (t *tools) editFile(ctx context.Context, in editInput) (changeOutput, report, error) {
@@ -69,7 +71,7 @@ func (t *tools) editFile(ctx context.Context, in editInput) (changeOutput, repor
 
 	applied, err := svc.Editor.Edit(in.Path, in.OldText, in.NewText, in.ReplaceAll)
 
-	return changed(in.Path, applied, err)
+	return changed(svc.ProjectID, in.Path, applied, err)
 }
 
 func (t *tools) writeFile(ctx context.Context, in writeInput) (changeOutput, report, error) {
@@ -80,7 +82,7 @@ func (t *tools) writeFile(ctx context.Context, in writeInput) (changeOutput, rep
 
 	applied, err := svc.Editor.Write(in.Path, in.Content)
 
-	return changed(in.Path, applied, err)
+	return changed(svc.ProjectID, in.Path, applied, err)
 }
 
 func (t *tools) deleteFile(ctx context.Context, in deleteInput) (changeOutput, report, error) {
@@ -91,7 +93,7 @@ func (t *tools) deleteFile(ctx context.Context, in deleteInput) (changeOutput, r
 
 	applied, err := svc.Editor.Delete(in.Path)
 
-	return changed(in.Path, applied, err)
+	return changed(svc.ProjectID, in.Path, applied, err)
 }
 
 func (t *tools) moveFile(ctx context.Context, in moveInput) (changeOutput, report, error) {
@@ -102,5 +104,5 @@ func (t *tools) moveFile(ctx context.Context, in moveInput) (changeOutput, repor
 
 	applied, err := svc.Editor.Move(in.From, in.To)
 
-	return changed(in.To, applied, err)
+	return changed(svc.ProjectID, in.To, applied, err)
 }

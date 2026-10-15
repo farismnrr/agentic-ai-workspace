@@ -5,22 +5,47 @@ export const connectedAppsCopy = {
 };
 
 export const spacesCopy = {
-  intro: 'A space is a set of tools your AI apps can use. Give an app the address of the space you want it to reach.',
+  intro: 'A space is a set of tools. The switches here apply everywhere: to tasks in this app and to AI apps you connect, such as ChatGPT. A tool that is off cannot be used by anyone.',
   empty: { title: 'No spaces available', body: 'This server has no spaces switched on yet, so there is nothing to connect an AI app to.' },
   failed: 'We could not load your spaces. Please try again in a moment.',
 };
 
+export const approvalsCopy = {
+  title: 'Skip approvals',
+  body: 'Let the AI go ahead without asking you each time. Anything you turned off stays off.',
+  failed: 'We could not save that switch. Please try again.',
+};
+
+/** What each tool does, in plain words. The server's own wording is written for the AI, so it is not shown. */
+export const toolCopy: Record<string, string> = {
+  list_files: 'See which files and folders are in the project.',
+  find_files: 'Look for files by their name.',
+  read_file: 'Open and read a file.',
+  search_code: 'Search for a word or phrase across all the files.',
+  list_tasks: 'See the checks you set up for this project, like running tests.',
+  whoami: 'Tell the AI which account it is working for.',
+  edit_file: 'Change part of a file.',
+  write_file: 'Create a new file, or replace everything in one.',
+  delete_file: 'Delete a file.',
+  move_file: 'Move a file to another place, or give it a new name.',
+  run_task: 'Run one of your checks, like the tests, and see if it passed.',
+  run_command: 'Run commands in a safe, closed-off box so the AI can build and test things. This is also how it shows you the web app it makes.',
+};
+
 export const toolGroups = {
-  read: { title: 'Look around', note: 'Read files, search and list tasks. On by default.' },
+  read: { title: 'Look around', note: 'Look at your project without changing anything. On by default.' },
   write: {
     title: 'Change files',
     note: 'Create, edit, move and delete files. Off until you turn it on. Every change can be undone under Activity.',
   },
-  exec: { title: 'Run tasks', note: 'Run the tasks you set up in .workspace/tasks.json, such as tests. Off until you turn it on.' },
+  exec: {
+    title: 'Run things',
+    note: 'Run checks and commands, and show you the web app it builds. Off until you turn it on.',
+  },
 } as const;
 
 export const activityCopy = {
-  intro: 'Every step an AI app takes in your spaces, newest first. Changes to files can be undone.',
+  intro: 'Every step a connected AI app takes in your spaces, newest first. Changes to files can be undone.',
   empty: { title: 'No activity yet', body: 'When an AI app uses your spaces, every step shows up here.' },
   failed: 'We could not load the activity. Please try again in a moment.',
   outcomes: { ok: 'Done', failed: 'Failed', off: 'Was turned off', forbidden: 'Needed permission' },

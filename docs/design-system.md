@@ -147,6 +147,10 @@ The logo is a rounded primary-olive tile with a white "o..n" mark, set beside th
 
 Forms use daisyUI inputs and the primary pill button. Every field has a visible label, errors appear as text under the field after it is touched or the form is submitted, and the password fields have a real show/hide button. The password strength meter always pairs its bars with a text label. These screens are UI only for now: nothing is sent to a server.
 
+## Error pages
+
+`/not-found` (404) and `/forbidden` (403) are one centred column: the logo, a hand-drawn illustration (signpost or locked garden gate), a small "Error 404/403" label, a serif headline with one marker word, one plain sentence, and a primary pill plus an outline pill. Any address the app does not know opens the 404 screen, and private sites send people to the 403 screen; both carry real status codes and `noindex`.
+
 ## Workspace screens
 
 The signed-in workspace lives under `/app`: Home, Inbox, Projects, a project (Tasks, About), a task, and Settings. It uses a compact app scale rather than the landing-page scale: 14px text, small radii, sans headings, flat rows separated by hairlines, and no card shadows (only the composer and popovers float). Colors are exactly the theme's roles.

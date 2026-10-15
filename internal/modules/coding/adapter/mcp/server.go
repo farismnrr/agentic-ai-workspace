@@ -16,6 +16,10 @@ type Services struct {
 	Reader *application.Service
 	Editor *application.Editor
 	Tasks  *application.Tasks
+	// Sites starts and stops the web app of this workspace's project.
+	Sites SiteRunner
+	// ProjectID is the project this workspace is.
+	ProjectID string
 }
 
 // Options connect the tools to permissions and the activity log.
@@ -26,10 +30,10 @@ type Options struct {
 	ResourceMetadataURL string
 }
 
-// Workspaces gives each person a private workspace. A call can only ever reach
-// the workspace of the person whose token it carries.
+// Workspaces gives each connected app a project of the person's own to work in. A call can only ever
+// reach the project of the person whose token it carries, named after the app that made it.
 type Workspaces interface {
-	For(userID string) (Services, error)
+	For(ctx context.Context, userID, client string) (Services, error)
 }
 
 type tools struct {
@@ -39,12 +43,12 @@ type tools struct {
 
 // services returns the workspace of the person whose token made this call.
 func (t *tools) services(ctx context.Context) (Services, error) {
-	id, _ := ctx.Value(identityKey{}).(string)
-	if id == "" {
+	who, _ := ctx.Value(identityKey{}).(identity)
+	if who.User == "" {
 		return Services{}, errNoIdentity
 	}
 
-	services, err := t.workspaces.For(id)
+	services, err := t.workspaces.For(ctx, who.User, who.Client)
 	if err != nil {
 		return Services{}, fmt.Errorf("open workspace: %w", err)
 	}
@@ -61,6 +65,7 @@ func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	t.addReadTools(server)
 	t.addWriteTools(server)
 	t.addExecTools(server)
+	t.addSiteTools(server)
 
 	return server
 }

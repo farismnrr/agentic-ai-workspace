@@ -20,20 +20,23 @@ type Service interface {
 	SetVisibility(ctx context.Context, userID, projectID, value string) error
 	Resolve(ctx context.Context, token string) (domain.Site, error)
 	Socket(projectID string) string
-	Ticket(token string) string
-	ValidTicket(token, ticket string) bool
+	Ticket(token, holder string) string
+	ValidTicket(token, holder, ticket string) bool
 }
 
 // Handler serves /api/sites and /run.
 type Handler struct {
 	service Service
 	auth    httpserver.Authenticator
+	// bindIP also ties tickets to the visitor's address. It is only meaningful when the server can see
+	// the real client address (CLIENT_IP_HEADER behind a proxy); otherwise it would vary or be shared.
+	bindIP bool
 }
 
 // NewHandler builds the adapter. auth is only used to recognise the owner on /run, where a
 // missing login is not an error.
-func NewHandler(service Service, auth httpserver.Authenticator) *Handler {
-	return &Handler{service: service, auth: auth}
+func NewHandler(service Service, auth httpserver.Authenticator, bindIP bool) *Handler {
+	return &Handler{service: service, auth: auth, bindIP: bindIP}
 }
 
 // Mount registers the routes. /run is outside the session and same-origin rules on purpose:

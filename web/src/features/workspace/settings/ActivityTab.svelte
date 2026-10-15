@@ -61,7 +61,7 @@
       <div class="flex flex-wrap items-center justify-between gap-3 py-2.5">
         <div class="min-w-0 flex-1">
           <p class="truncate font-medium">{entry.summary}</p>
-          <p class="text-xs text-[var(--brand-text-tertiary)]">{when(entry.at)}{entry.detail === '' ? '' : ` · ${entry.detail}`}</p>
+          <p class="text-xs text-[var(--brand-text-tertiary)]">{entry.client === '' ? '' : `${entry.client} · `}{when(entry.at)}{entry.detail === '' ? '' : ` · ${entry.detail}`}</p>
         </div>
         <span class="badge badge-sm {badge[entry.outcome]}">{activityCopy.outcomes[entry.outcome]}</span>
         {#if entry.undone}

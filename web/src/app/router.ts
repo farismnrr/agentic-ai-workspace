@@ -4,6 +4,8 @@ export type SettingsTab = 'models' | 'persona' | 'spaces' | 'connected' | 'activ
 
 export type Route =
   | { name: 'landing' }
+  | { name: 'not-found' }
+  | { name: 'forbidden' }
   | { name: 'login' }
   | { name: 'register' }
   | { name: 'consent' }
@@ -21,6 +23,8 @@ const isSettingsTab = (value: string | undefined): value is SettingsTab => value
 
 const staticRoutes: Record<string, Route> = {
   '/': { name: 'landing' },
+  '/not-found': { name: 'not-found' },
+  '/forbidden': { name: 'forbidden' },
   '/login': { name: 'login' },
   '/register': { name: 'register' },
   '/oauth/consent': { name: 'consent' },
@@ -60,7 +64,7 @@ export function matchRoute(path: string): Route | undefined {
 
 const pathOf = (url: string): string => url.split(/[?#]/)[0] ?? url;
 
-const resolve = (url: string): Route => matchRoute(pathOf(url)) ?? { name: 'landing' };
+const resolve = (url: string): Route => matchRoute(pathOf(url)) ?? { name: 'not-found' };
 
 export const route = writable<Route>(resolve(window.location.pathname));
 

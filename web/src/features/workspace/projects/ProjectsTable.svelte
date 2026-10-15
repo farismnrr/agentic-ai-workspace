@@ -25,7 +25,7 @@
           <td>
             <a class="flex items-center gap-3" href="/app/projects/{project.id}">
               <ProjectTile name={project.name} id={project.id} class="size-9 text-base" />
-              <span class="flex flex-col"><span class="font-medium">{project.name}</span>{#if project.description !== ''}<span class="max-w-md truncate text-sm text-[var(--brand-text-secondary)]">{project.description}</span>{/if}</span>
+              <span class="flex flex-col"><span class="flex items-center gap-2"><span class="font-medium">{project.name}</span>{#if project.source !== ''}<span class="badge badge-soft badge-sm">Connected app</span>{/if}</span>{#if project.description !== ''}<span class="max-w-md truncate text-sm text-[var(--brand-text-secondary)]">{project.description}</span>{/if}</span>
             </a>
           </td>
           <td class="hidden sm:table-cell">{#if waiting > 0}<span class="badge badge-primary badge-soft">{waiting} waiting</span>{:else}<span class="text-[var(--brand-text-tertiary)]">None</span>{/if}</td>

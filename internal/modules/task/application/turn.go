@@ -19,9 +19,14 @@ func (r *Runner) turn(ctx context.Context, task domain.Task, transcript []domain
 		return failed("I cannot reach the AI model you chose.", "Check Settings, AI models."), true
 	}
 
+	offered, err := r.offered(ctx, task.UserID)
+	if err != nil {
+		return failed("I cannot check which tools you switched on.", "Try Continue in a moment."), true
+	}
+
 	reply, err := r.ask(ctx, client, Request{
 		Model: task.Model, System: r.system(ctx, task), Messages: orderBlocks(transcript), OnText: r.streamTo(task.ID),
-		Tools: append(r.deps.Tools.Definitions(), agentTools()...),
+		Tools: offered,
 	})
 	if err != nil {
 		return r.modelFailure(ctx, task, err), true
