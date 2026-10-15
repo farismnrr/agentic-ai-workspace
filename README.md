@@ -24,10 +24,19 @@ It asks for each setting one by one, saves them, starts the app, and tells you w
 
 Want to deploy by hand (pull the compose file, build the image yourself, or run the binary)? Follow [docs/deployment.md](./docs/deployment.md).
 
+## Build, deploy and CI/CD
+
+- **Build:** `docker build --build-arg VERSION=1.0.0 -t agentic-ai-workspace .` makes a static Go binary in a distroless image; the version shows in the `X-App-Version` header and `/api/health`.
+- **Hotfix deploy:** `scripts/deploy-binary.sh` swaps the binary in the running container without a rebuild, and rolls back if the new one does not come up.
+- **Jenkins:** the `Jenkinsfile` runs checkout, test, build, push and deploy.
+
+The write-ups, commands and proof are in [docs/devops.md](./docs/devops.md).
+
 ## Documentation
 
 | Read | For |
 | --- | --- |
+| [docs/devops.md](./docs/devops.md) | Image build, hotfix binary swap, and the Jenkins pipeline |
 | [docs/deployment.md](./docs/deployment.md) | Step-by-step install (pull or build), updating, backups, settings, and Docker security notes |
 | [docs/using-the-app.md](./docs/using-the-app.md) | Adding a model, projects, checks, and your data |
 | [docs/sites.md](./docs/sites.md) | Web apps the AI starts and how they are kept apart from the app |
