@@ -10,8 +10,8 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/webassets"
 )
 
-// Run wires infrastructure and starts the application process.
-func Run() error {
+// Run wires infrastructure and starts the application process. version is the build's version.
+func Run(version string) error {
 	cfg := config.Load()
 
 	frontend, err := webassets.Assets()
@@ -35,7 +35,7 @@ func Run() error {
 
 	defer database.StartSweeper(db, time.Hour)()
 
-	app := httpserver.New(frontend, httpserver.Settings{ClientIPHeader: cfg.ClientIPHeader}, mounts...)
+	app := httpserver.New(frontend, httpserver.Settings{ClientIPHeader: cfg.ClientIPHeader, Version: version}, mounts...)
 	if err := app.Listen(cfg.Address()); err != nil {
 		return fmt.Errorf("listen on %s: %w", cfg.Address(), err)
 	}

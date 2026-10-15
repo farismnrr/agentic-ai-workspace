@@ -10,6 +10,8 @@ RUN mkdir -p ../internal/platform/webassets/dist && npm run build
 
 # 2. Build the single static Go binary with the SPA embedded.
 FROM golang:1.27.2-bookworm@sha256:5cf287a799e6b94384bad13d16b14904c531f51ba65792237e122ce42b392f61 AS server
+# Build version, e.g. --build-arg VERSION=$(git rev-parse --short HEAD); shown by /api/health.
+ARG VERSION=dev
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
@@ -17,7 +19,7 @@ COPY cmd/ cmd/
 COPY internal/ internal/
 COPY --from=web /src/internal/platform/webassets/dist internal/platform/webassets/dist
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/agentic-ai-workspace ./cmd/workspace \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/agentic-ai-workspace ./cmd/workspace \
     && mkdir /out/data
 
 # 3. The runtime image holds the binary and nothing else.
