@@ -90,7 +90,7 @@ Replace the file name with `compose.dev.yaml` if you use the dev channel.
 
 | I want to... | Command |
 | --- | --- |
-| See if it is running | `docker compose -f compose.latest.yaml ps` |
+| See if it is running and healthy | `docker compose -f compose.latest.yaml ps` (the app shows `Up ... (healthy)` about 10 seconds after it starts; `sandbox` shows `Exited (0)`, which is normal) |
 | Read the logs | `docker compose -f compose.latest.yaml logs -f app` |
 | Stop it (data stays) | `docker compose -f compose.latest.yaml down` |
 | Start it again | `docker compose -f compose.latest.yaml up -d` |

@@ -31,4 +31,6 @@ ENV PORT=8081 DATA_DIR=/data
 VOLUME /data
 EXPOSE 8081
 USER 65532:65532
+# The binary asks itself (no curl or shell in this image). Compose inherits it, so `docker ps` shows (healthy).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD ["/agentic-ai-workspace", "healthcheck"]
 ENTRYPOINT ["/agentic-ai-workspace"]
