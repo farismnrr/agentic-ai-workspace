@@ -18,6 +18,7 @@
   }
 </script>
 
-<span class="grid shrink-0 place-items-center rounded-lg font-medium {tone} {className}" aria-hidden="true">
+<!-- leading-none: the workspace scale gives text a fixed line height (22px), taller than a small tile, which pushed the letter down. -->
+<span class="grid shrink-0 place-items-center rounded-lg font-medium leading-none {tone} {className}" aria-hidden="true">
   {name.slice(0, 1).toUpperCase()}
 </span>

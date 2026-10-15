@@ -20,7 +20,7 @@
           aria-current={active === project.id ? 'page' : undefined}
           class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-base-100/70 {active === project.id ? 'bg-base-300/60 font-medium' : ''}"
         >
-          <ProjectTile name={project.name} id={project.id} class="size-4 rounded text-[9px]" />
+          <ProjectTile name={project.name} id={project.id} class="size-4 rounded text-[10px]" />
           <span class="flex-1 truncate">{project.name}</span>
           {#if waiting > 0}<span class="text-xs text-[var(--brand-text-tertiary)]">{waiting}</span>{/if}
         </a>
