@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toolGroups } from '../content/connected';
+  import { toolCopy, toolGroups } from '../content/connected';
   import { setToolEnabled, type ConnectorSpace, type SpaceTool, type ToolGroup } from '../logic/connectors-api';
 
   interface Props {
@@ -39,7 +39,7 @@
         <li class="flex flex-wrap items-center gap-3 py-2.5">
           <div class="min-w-44 flex-1 leading-tight">
             <p class="font-medium">{tool.title}</p>
-            <p class="text-xs text-[var(--brand-text-tertiary)]">{tool.description}</p>
+            <p class="text-xs text-[var(--brand-text-tertiary)]">{toolCopy[tool.name] ?? tool.description}</p>
           </div>
           <input
             class="toggle toggle-sm toggle-primary"

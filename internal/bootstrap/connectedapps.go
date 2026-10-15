@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
 	spacedomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/domain"
@@ -45,6 +46,10 @@ func (g toolGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 	states, err := g.permissions.For(ctx, userID, codingSpace())
 	if err != nil {
 		return nil, fmt.Errorf("load tool switches: %w", err)
+	}
+
+	for _, site := range []string{codingdomain.ToolStartSite.Name, codingdomain.ToolStopSite.Name} {
+		states[site] = states[codingdomain.SwitchOf(site)]
 	}
 
 	return states, nil

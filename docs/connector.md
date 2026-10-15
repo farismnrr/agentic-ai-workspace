@@ -12,7 +12,7 @@ Each tool can be switched on or off under Settings, Spaces & tools, and the same
 | --- | --- |
 | Look around (on) | list files, find files by name, read a file or some lines of it, search code, list tasks |
 | Change files (off) | edit, write, delete and move files |
-| Run and share (off) | run a named task, run a command, start or stop the project's web app |
+| Run things (off) | run a named check, run a command; starting the web app it builds comes with running commands |
 
 Every step an AI app takes is listed under Settings, Activity. Before a file is edited, written over, deleted or moved, its old content is saved, and the Undo button there puts it back. Undo is refused if the file changed again afterwards, so it never overwrites newer work.
 

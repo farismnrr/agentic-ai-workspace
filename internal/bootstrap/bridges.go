@@ -98,7 +98,7 @@ type gate struct {
 }
 
 func (g gate) Allowed(ctx context.Context, userID, tool string) (bool, error) {
-	enabled, err := g.permissions.Enabled(ctx, userID, "coding", tool)
+	enabled, err := g.permissions.Enabled(ctx, userID, "coding", codingdomain.SwitchOf(tool))
 	if err != nil {
 		return false, fmt.Errorf("check tool switch: %w", err)
 	}

@@ -103,7 +103,7 @@ func TestAgentCannotUseAToolThatIsSwitchedOffEvenWhenApprovalsAreSkipped(t *test
 	}
 }
 
-func TestConnectedAppCannotStartASiteUntilItIsSwitchedOn(t *testing.T) {
+func TestConnectedAppCannotStartASiteUntilRunACommandIsSwitchedOn(t *testing.T) {
 	t.Parallel()
 
 	app := newApp(t)
@@ -125,8 +125,7 @@ func TestConnectedAppStartsASiteInItsProject(t *testing.T) {
 	env := newEnvWith(t, func(c *config.Config) { c.SandboxImage = image })
 	cookie, clientID := signedInClient(t, env.app)
 	token := connect(t, env.app, cookie, clientID, "coding:read coding:exec")
-	enableTool(t, env.app, cookie, "start_site")
-	enableTool(t, env.app, cookie, "stop_site")
+	enableTool(t, env.app, cookie, "run_command")
 
 	args, _ := json.Marshal(map[string]any{"command": siteCommand, "port": 8124})
 	started := callTool(t, env.app, token, "start_site", string(args))
