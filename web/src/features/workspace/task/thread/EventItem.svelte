@@ -13,9 +13,10 @@
     actions: ThreadActions;
     proven: boolean;
     onretry?: (() => void) | undefined;
+    onproof?: (() => void) | undefined;
   }
 
-  const { event, actions, proven, onretry }: Props = $props();
+  const { event, actions, proven, onretry, onproof }: Props = $props();
 </script>
 
 {#if event.kind === 'request'}
@@ -33,7 +34,7 @@
     {:else if event.kind === 'site'}
       <SiteCard text={event.text} url={event.url} />
     {:else}
-      <ResultCard kind="receipt" text={event.text} {proven} />
+      <ResultCard kind="receipt" text={event.text} {proven} {onproof} />
     {/if}
   </div>
 {/if}
