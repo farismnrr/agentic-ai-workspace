@@ -59,7 +59,7 @@ func toPayload(p domain.Provider) providerPayload {
 func windows(p domain.Provider) map[string]int64 {
 	all := make(map[string]int64, len(p.Models))
 	for _, model := range p.Models {
-		all[model] = domain.ContextWindow(model, p.ContextWindows)
+		all[model] = domain.ContextWindow(model, p.ContextWindows, p.ReportedWindows)
 	}
 
 	return all

@@ -34,8 +34,8 @@ func (s *Service) SetContextWindow(ctx context.Context, userID, id, model string
 func (s *Service) ContextWindow(ctx context.Context, userID, id, model string) int64 {
 	provider, _, err := s.store.Find(ctx, userID, id)
 	if err != nil {
-		return domain.ContextWindow(model, nil)
+		return domain.ContextWindow(model, nil, nil)
 	}
 
-	return domain.ContextWindow(model, provider.ContextWindows)
+	return domain.ContextWindow(model, provider.ContextWindows, provider.ReportedWindows)
 }
