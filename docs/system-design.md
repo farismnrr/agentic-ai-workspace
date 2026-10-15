@@ -14,10 +14,11 @@ How the app is put together, in short. The goal: easy to run, easy to grow, neve
 
 ## How it runs
 
-```text
-Browser  --HTTP-->  Go binary (Fiber)
-                      |- handles API requests
-                      '- serves the built Svelte app
+```mermaid
+flowchart LR
+  B[Browser] -->|HTTP| G["Go binary (Fiber)"]
+  G --> A[Handles API requests]
+  G --> S[Serves the built Svelte app]
 ```
 
 - **One executable** to deploy and one process to monitor.
@@ -26,9 +27,10 @@ Browser  --HTTP-->  Go binary (Fiber)
 
 ## How a build works
 
-```text
-Svelte + TypeScript -> type check and lint -> Vite build
-  -> files embedded into Go -> Go tests and lint -> bin/agentic-ai-workspace
+```mermaid
+flowchart LR
+  A["Svelte + TypeScript"] --> B[Type check and lint] --> C[Vite build]
+  C --> D[Files embedded into Go] --> E[Go tests and lint] --> F[bin/agentic-ai-workspace]
 ```
 
 Run `make build`. It verifies first, then builds the binary.

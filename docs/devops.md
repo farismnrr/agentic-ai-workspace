@@ -10,10 +10,10 @@ How the app is packed into an image, how a fix reaches the running app in second
 | Hot swap | Replaces the binary in the running container, with no rebuild | [`scripts/deploy-binary.sh`](../scripts/deploy-binary.sh) |
 | Pipeline | Tests, builds, pushes and deploys, in Jenkins | [`Jenkinsfile`](../Jenkinsfile) |
 
-```text
-Checkout -> Test -> Build binary -> Build image -> Push -> Deploy
-                                                           |
-                               swaps the binary in the running container
+```mermaid
+flowchart LR
+  A[Checkout] --> B[Test] --> C[Build binary] --> D[Build image] --> E[Push] --> F[Deploy]
+  F -.-> G[Swaps the binary in the running container]
 ```
 
 What you need:
