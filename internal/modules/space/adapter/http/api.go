@@ -38,6 +38,7 @@ func (a *API) Mount(sameOrigin fiber.Handler) httpserver.Mount {
 	return func(app *fiber.App) {
 		app.Get("/api/spaces", a.list)
 		app.Put("/api/spaces/:slug/tools/:tool", sameOrigin, a.setTool)
+		app.Put("/api/spaces/:slug/approvals", sameOrigin, a.setApprovals)
 		app.Get("/api/activity", a.entries)
 		app.Post("/api/activity/:id/undo", sameOrigin, a.undo)
 	}

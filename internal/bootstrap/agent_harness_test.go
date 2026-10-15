@@ -132,6 +132,15 @@ func rigOn(t *testing.T, env testEnv, steps ...string) agentRig {
 	cookie, _ := signedInClient(t, env.app)
 	gw := newGateway(t, steps...)
 
+	// The agent obeys the same switches as connected apps; most tests need the changing tools on.
+	changing := []string{
+		"edit_file", "write_file", "delete_file", "move_file", "run_task", "run_command", "start_site", "stop_site",
+	}
+
+	for _, tool := range changing {
+		enableTool(t, env.app, cookie, tool)
+	}
+
 	providerID, _ := addProvider(t, env, cookie, gw.server.URL, "k").JSON(t)["id"].(string)
 	do(t, env.app, "POST", "/api/providers/"+providerID+"/verify", "", jsonCookie(cookie))
 	do(t, env.app, "PUT", "/api/preferences",

@@ -14,6 +14,8 @@ type Store interface {
 	List(ctx context.Context, userID string) ([]domain.Project, error)
 	ListAll(ctx context.Context, userID string) ([]domain.Project, error)
 	Find(ctx context.Context, userID, id string) (domain.Project, error)
+	// FindBySource loads the active project a connected app works in.
+	FindBySource(ctx context.Context, userID, source string) (domain.Project, error)
 	// FindByID loads one active project whoever owns it.
 	FindByID(ctx context.Context, id string) (domain.Project, error)
 	Update(ctx context.Context, userID, id, name, description string) error
@@ -66,6 +68,10 @@ func NewService(store Store, folders Folders, checks Checks, ids IDs, now func()
 
 // Create makes a project and its folder.
 func (s *Service) Create(ctx context.Context, userID, name, description string) (domain.Project, error) {
+	return s.create(ctx, userID, name, description, "")
+}
+
+func (s *Service) create(ctx context.Context, userID, name, description, source string) (domain.Project, error) {
 	name, description, err := domain.Normalize(name, description)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("create project: %w", err)
@@ -80,8 +86,12 @@ func (s *Service) Create(ctx context.Context, userID, name, description string) 
 		return domain.Project{}, fmt.Errorf("create folder: %w", err)
 	}
 
-	project := domain.Project{ID: id, UserID: userID, Name: name, Description: description, CreatedAt: s.now()}
+	project := domain.Project{
+		ID: id, UserID: userID, Name: name, Description: description, Source: source, CreatedAt: s.now(),
+	}
 	if err := s.store.Create(ctx, project); err != nil {
+		_ = s.folders.Remove(id)
+
 		return domain.Project{}, fmt.Errorf("save project: %w", err)
 	}
 

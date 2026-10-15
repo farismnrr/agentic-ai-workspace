@@ -5,9 +5,15 @@ export const connectedAppsCopy = {
 };
 
 export const spacesCopy = {
-  intro: 'A space is a set of tools your AI apps can use. Give an app the address of the space you want it to reach.',
+  intro: 'A space is a set of tools. The switches here apply everywhere: to tasks in this app and to AI apps you connect, such as ChatGPT. A tool that is off cannot be used by anyone.',
   empty: { title: 'No spaces available', body: 'This server has no spaces switched on yet, so there is nothing to connect an AI app to.' },
   failed: 'We could not load your spaces. Please try again in a moment.',
+};
+
+export const approvalsCopy = {
+  title: 'Skip approvals',
+  body: 'Use every tool that is on in this space without asking you first. Tools that are off stay off.',
+  failed: 'We could not save that switch. Please try again.',
 };
 
 export const toolGroups = {
@@ -16,11 +22,14 @@ export const toolGroups = {
     title: 'Change files',
     note: 'Create, edit, move and delete files. Off until you turn it on. Every change can be undone under Activity.',
   },
-  exec: { title: 'Run tasks', note: 'Run the tasks you set up in .workspace/tasks.json, such as tests. Off until you turn it on.' },
+  exec: {
+    title: 'Run and share',
+    note: 'Run tasks and commands in the sandbox, and start or stop the project’s web app. Off until you turn it on.',
+  },
 } as const;
 
 export const activityCopy = {
-  intro: 'Every step an AI app takes in your spaces, newest first. Changes to files can be undone.',
+  intro: 'Every step a connected AI app takes in your spaces, newest first. Changes to files can be undone.',
   empty: { title: 'No activity yet', body: 'When an AI app uses your spaces, every step shows up here.' },
   failed: 'We could not load the activity. Please try again in a moment.',
   outcomes: { ok: 'Done', failed: 'Failed', off: 'Was turned off', forbidden: 'Needed permission' },

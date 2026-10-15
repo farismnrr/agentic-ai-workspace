@@ -4,6 +4,7 @@
   import { spacesCopy } from '../content/connected';
   import { loadSpaces, type ConnectorSpace } from '../logic/connectors-api';
   import ConnectorAddress from './ConnectorAddress.svelte';
+  import SkipApprovals from './SkipApprovals.svelte';
   import SpaceTools from './SpaceTools.svelte';
 
   let spaces: ConnectorSpace[] = $state([]);
@@ -47,6 +48,7 @@
     <section class="min-w-0 rounded-xl border border-[var(--brand-border)] bg-base-100" aria-label="{space.name} tools">
       <h2 class="border-b border-[var(--brand-border)] px-4 py-3 text-sm font-semibold">{space.name}</h2>
       <ConnectorAddress url={space.url} />
+      {#key space.slug}<SkipApprovals {space} />{/key}
       <SpaceTools {space} />
     </section>
   </div>

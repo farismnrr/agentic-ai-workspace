@@ -4,15 +4,15 @@ The server can act as a connector for AI apps such as ChatGPT. Each connector is
 
 ## What the coding space can do
 
-Every person gets their own coding folder (`DATA_DIR/workspaces/<account>`); nobody can read or change anyone else's files, and the folder is deleted with the account. Every check runs in its own throwaway Docker container, removed when the check ends. It sees only your coding folder (as `/workspace`, the one place it can write), a private `/tmp`, a private download cache, and the programs in the sandbox image, which every person shares (each tool is stored once on disk). It can reach package registries only, cannot see your other files or processes, runs without privileges and with Docker's default system-call filter, and is held to a memory, CPU, process, file-size and workspace-size limit.
+Every AI app you connect works in a project of its own, named after the app (ChatGPT works in a project called ChatGPT). It is an ordinary project in your list, so you can open its files and run tasks in it; nobody can read or change anyone else's projects, and the projects are deleted with the account. Every check runs in its own throwaway Docker container, removed when the check ends. It sees only that project's folder (as `/workspace`, the one place it can write), a private `/tmp`, a private download cache, and the programs in the sandbox image, which every person shares (each tool is stored once on disk). It can reach package registries only, cannot see your other files or processes, runs without privileges and with Docker's default system-call filter, and is held to a memory, CPU, process, file-size and workspace-size limit.
 
-Each tool can be switched on or off under Settings, Spaces & tools. Looking around is on from the start; changing files and running tasks stay off until you turn them on.
+Each tool can be switched on or off under Settings, Spaces & tools, and the same switches apply to the tasks you run in the app. **Skip approvals** there lets the AI use every tool that is on without asking; it never turns a tool on. Looking around is on from the start; changing files, running commands and starting a web app stay off until you turn them on.
 
 | Group | Tools |
 | --- | --- |
 | Look around (on) | list files, find files by name, read a file or some lines of it, search code, list tasks |
 | Change files (off) | edit, write, delete and move files |
-| Run tasks (off) | run a named task |
+| Run and share (off) | run a named task, run a command, start or stop the project's web app |
 
 Every step an AI app takes is listed under Settings, Activity. Before a file is edited, written over, deleted or moved, its old content is saved, and the Undo button there puts it back. Undo is refused if the file changed again afterwards, so it never overwrites newer work.
 

@@ -87,7 +87,8 @@ func (v verifier) Verify(ctx context.Context, token string) (spacehttp.Access, e
 	}
 
 	return spacehttp.Access{
-		UserID: info.UserID, Resource: info.Resource, Scopes: info.Scopes, ExpiresAt: unixTime(info.ExpiresAt),
+		UserID: info.UserID, Resource: info.Resource, Client: info.ClientName, Scopes: info.Scopes,
+		ExpiresAt: unixTime(info.ExpiresAt),
 	}, nil
 }
 
@@ -112,8 +113,8 @@ type recorder struct {
 
 func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
 	_, err := r.log.Record(ctx, spacedomain.Activity{
-		UserID: entry.UserID, Space: "coding", Tool: entry.Tool, Summary: entry.Summary, Detail: entry.Detail,
-		Outcome: spacedomain.Outcome(entry.Outcome), Undo: entry.Undo,
+		UserID: entry.UserID, Space: "coding", Client: entry.Client, Tool: entry.Tool, Summary: entry.Summary,
+		Detail: entry.Detail, Outcome: spacedomain.Outcome(entry.Outcome), Undo: wrapUndo(entry.Project, entry.Undo),
 	})
 	if err != nil {
 		return fmt.Errorf("record activity: %w", err)
@@ -124,19 +125,25 @@ func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
 
 // undoer lets the activity log reverse a change recorded by the coding tools.
 type undoer struct {
-	workspaces *workspaces
+	tools *agentTools
 }
 
-// Undo reverses a change inside the workspace of the person who made it.
-func (u undoer) Undo(_ context.Context, userID string, blob []byte) error {
-	change, err := codingdomain.ParseChange(blob)
+// Undo reverses a change inside the project it was made in. The person is whoever the entry
+// belongs to, and projects are only ever reached through that person's own log.
+func (u undoer) Undo(_ context.Context, _ string, blob []byte) error {
+	undo, err := unwrapUndo(blob)
+	if err != nil {
+		return err
+	}
+
+	change, err := codingdomain.ParseChange(undo.Change)
 	if err != nil {
 		return spacedomain.ErrNotUndoable
 	}
 
-	services, err := u.workspaces.For(userID)
+	services, err := u.tools.services(undo.Project)
 	if err != nil {
-		return fmt.Errorf("open workspace: %w", err)
+		return fmt.Errorf("open project: %w", err)
 	}
 
 	if err := services.Editor.Undo(change); err != nil {

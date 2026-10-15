@@ -46,6 +46,7 @@ type Deps struct {
 	Persona    PersonaSource
 	Projects   Projects
 	Tools      ToolSet
+	Gate       ToolGate
 	IDs        IDs
 	Notify     Notifier
 	// Computer says what the agent's run_command can use; optional.

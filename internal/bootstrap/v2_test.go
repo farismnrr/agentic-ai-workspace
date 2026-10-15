@@ -83,7 +83,7 @@ func TestWriteToolRefusesUntilSwitchedOn(t *testing.T) {
 
 	app := newApp(t)
 	cookie, clientID := signedInClient(t, app)
-	root := userWorkspace(t, app, cookie)
+	root := userWorkspace(t, app, cookie, "ChatGPT")
 	token := connect(t, app, cookie, clientID, "coding:read coding:write")
 	args := `{"path":"hello.txt","old_text":"hello","new_text":"howdy"}`
 
@@ -121,7 +121,7 @@ func TestUndoRestoresTheFileOnce(t *testing.T) {
 
 	app := newApp(t)
 	cookie, clientID := signedInClient(t, app)
-	root := userWorkspace(t, app, cookie)
+	root := userWorkspace(t, app, cookie, "ChatGPT")
 	token := connect(t, app, cookie, clientID, "coding:read coding:write")
 	enableTool(t, app, cookie, "edit_file")
 	callTool(t, app, token, "edit_file", `{"path":"hello.txt","old_text":"hello","new_text":"howdy"}`)

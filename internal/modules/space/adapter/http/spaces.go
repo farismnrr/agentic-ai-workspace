@@ -29,6 +29,8 @@ type spacePayload struct {
 	URL    string         `json:"url"`
 	Scopes []scopePayload `json:"scopes"`
 	Tools  []toolPayload  `json:"tools"`
+	// SkipApprovals lets the assistant use every enabled tool of the space without asking.
+	SkipApprovals bool `json:"skipApprovals"`
 }
 
 // list returns every hosted space with the person's tool switches.
@@ -46,7 +48,14 @@ func (a *API) list(c fiber.Ctx) error {
 			return fail(c, err)
 		}
 
-		payload = append(payload, a.describe(space, states))
+		skip, err := a.permissions.SkipApprovals(c.Context(), userID, space.Slug)
+		if err != nil {
+			return fail(c, err)
+		}
+
+		described := a.describe(space, states)
+		described.SkipApprovals = skip
+		payload = append(payload, described)
 	}
 
 	return c.JSON(payload)

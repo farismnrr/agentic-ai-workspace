@@ -40,25 +40,53 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, call Call) (outco
 	return r.tool(ctx, task, call)
 }
 
-// tool runs a project tool, asking the person first when the step is risky enough.
+// tool runs a project tool, unless the person switched it off or has to say yes first.
 func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
 
-	if risk := r.deps.Tools.Risk(call.Name); needsApproval(risk) {
-		decision, wait := r.approval(ctx, task, call, risk, described)
-		if wait {
-			return outcome{stop: stopWaiting}, true
-		}
-
-		if decision == domain.Denied {
-			r.result(ctx, task, call.ID, "The person did not allow this step. Try another way, or ask them.", true)
-			r.action(ctx, task, domain.Event{Text: "Skipped, because you said no: " + lowerFirst(described.Text)})
-
-			return outcome{}, false
-		}
+	if blocked, out, done := r.checkTool(ctx, task, call, described); blocked {
+		return out, done
 	}
 
-	result := r.deps.Tools.Execute(ctx, task.ProjectID, call)
+	r.report(ctx, task, call, described, r.deps.Tools.Execute(ctx, task.ProjectID, call))
+
+	return outcome{}, false
+}
+
+// checkTool decides whether a call may run now. blocked is true when it must not: either the
+// run goes on without it, or done says the task has to wait for the person's answer.
+func (r *Runner) checkTool(
+	ctx context.Context, task domain.Task, call Call, described Described,
+) (blocked bool, out outcome, done bool) {
+	if !r.toolOn(ctx, task.UserID, call.Name) {
+		r.result(ctx, task, call.ID, toolOffText, true)
+		r.action(ctx, task, domain.Event{Text: "Skipped, because that tool is turned off: " + lowerFirst(described.Text)})
+
+		return true, outcome{}, false
+	}
+
+	risk := r.deps.Tools.Risk(call.Name)
+	if !needsApproval(risk) || r.skipsApprovals(ctx, task.UserID) {
+		return false, outcome{}, false
+	}
+
+	decision, wait := r.approval(ctx, task, call, risk, described)
+	if wait {
+		return true, outcome{stop: stopWaiting}, true
+	}
+
+	if decision == domain.Denied {
+		r.result(ctx, task, call.ID, "The person did not allow this step. Try another way, or ask them.", true)
+		r.action(ctx, task, domain.Event{Text: "Skipped, because you said no: " + lowerFirst(described.Text)})
+
+		return true, outcome{}, false
+	}
+
+	return false, outcome{}, false
+}
+
+// report puts what a tool did into the transcript and the thread.
+func (r *Runner) report(ctx context.Context, task domain.Task, call Call, described Described, result ToolResult) {
 	r.result(ctx, task, call.ID, result.Output, result.IsError)
 
 	event := domain.Event{
@@ -80,12 +108,10 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome
 			Kind: domain.EventSite, Text: "Your app is running", URL: result.Link, Time: r.deps.Now(),
 		})
 	}
-
-	return outcome{}, false
 }
 
 // needsApproval is the approval policy: looking around (read tools) runs on its own,
-// anything that changes files or runs a command asks the person first.
+// anything that changes files or runs a command asks the person first, unless they skip approvals.
 func needsApproval(risk domain.Risk) bool {
 	return risk != domain.RiskNone
 }

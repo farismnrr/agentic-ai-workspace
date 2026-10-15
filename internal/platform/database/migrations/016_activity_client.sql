@@ -1,0 +1,1 @@
+ALTER TABLE activity ADD COLUMN client TEXT NOT NULL DEFAULT '';
