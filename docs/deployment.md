@@ -55,7 +55,7 @@ Settings are environment variables, set in the shell or in a `.env` file next to
 | `MAX_SANDBOXES` | How many checks may run at the same time across all people (default 4). Extra ones wait up to 30 seconds, then are told the server is busy. |
 | `AGENT_WORKERS` | How many tasks the AI runs at the same time (default 2; one project runs one task at a time). |
 | `CLIENT_IP_HEADER` | The header that carries the real visitor address when the app sits behind a tunnel or proxy, for example `CF-Connecting-IP`. Used by the sign-in rate limits and to tie private site tickets to the visitor's address; without it every visitor behind a tunnel looks like one address. |
-| `DATA_DIR` | Where accounts and connections are stored (default `data`). Each person's private coding folder lives inside it, under `workspaces/`. |
+| `DATA_DIR` | Where accounts and connections are stored (default `data`). Projects, including the ones connected AI apps work in, live inside it, under `projects/`. |
 
 ## Docker and the sandbox
 

@@ -6,35 +6,30 @@ import (
 	"errors"
 	"fmt"
 
+	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	sitedomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// The agent's tools for web apps. They need the project id, so they are handled apart from
-// the file and command tools, and they are not offered to connected apps like ChatGPT.
-const (
-	toolStartSite = "start_site"
-	toolStopSite  = "stop_site"
+// The site tools need the project id, so they are handled apart from the file and command tools.
+var (
+	toolStartSite = codingdomain.ToolStartSite.Name
+	toolStopSite  = codingdomain.ToolStopSite.Name
 )
-
-const startSiteHelp = "Start a web app in the sandbox so the person can open it in their browser. The command " +
-	"must keep running and listen on 127.0.0.1 at the given port. The page is opened under a path, so the server " +
-	"removes that path before the request reaches the app: use relative links (./style.css), or read BASE_PATH. " +
-	"Use a production-style server, not a dev server with hot reload. Pages run in a sandbox: cookies, " +
-	"localStorage and service workers do not work. Starting again replaces the running app."
 
 func siteDefinitions() []taskdomain.ToolDef {
 	return []taskdomain.ToolDef{
 		{
-			Name: toolStartSite, Description: startSiteHelp,
+			Name: toolStartSite, Description: codingdomain.ToolStartSite.Description,
 			Schema: json.RawMessage(`{"type":"object","properties":{"command":{"type":"string","description":` +
 				`"Shell command that starts the server and keeps running, such as python3 -m http.server 8000"},` +
 				`"port":{"type":"integer","description":"The port it listens on, 1024 to 65535"}},` +
 				`"required":["command","port"]}`),
 		},
 		{
-			Name: toolStopSite, Description: "Stop the project's running web app.",
+			Name: toolStopSite, Description: codingdomain.ToolStopSite.Description,
 			Schema: json.RawMessage(`{"type":"object","properties":{}}`),
 		},
 	}
@@ -106,4 +101,29 @@ func truncateText(text string, limit int) string {
 	}
 
 	return text[len(text)-limit:]
+}
+
+// projectSites lets a connected app start and stop the web app of its project, the way the agent does.
+type projectSites struct {
+	tools     *agentTools
+	projectID string
+}
+
+func (s projectSites) Start(ctx context.Context, command string, port int) codingmcp.SiteStart {
+	if s.tools.sites == nil {
+		return codingmcp.SiteStart{Problem: "Web apps are not available right now."}
+	}
+
+	site, err := s.tools.sites.Start(ctx, s.projectID, command, port)
+	if err != nil {
+		return codingmcp.SiteStart{Problem: siteFailure(err)}
+	}
+
+	return codingmcp.SiteStart{Link: s.tools.public + site.BasePath() + "/"}
+}
+
+func (s projectSites) Stop(ctx context.Context) {
+	if s.tools.sites != nil {
+		s.tools.sites.StopProject(ctx, s.projectID)
+	}
 }

@@ -16,12 +16,17 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 )
 
+// ClientKey names the token field that carries the connected app's name.
+const ClientKey = "client"
+
 // Access describes a verified bearer token.
 type Access struct {
 	ExpiresAt time.Time
 	UserID    string
 	Resource  string
-	Scopes    []string
+	// Client is the name of the app the person connected, such as ChatGPT.
+	Client string
+	Scopes []string
 }
 
 // TokenVerifier is the consumer-owned boundary to the authorization server.
@@ -82,6 +87,9 @@ func (m *Mounter) verify(resource string) auth.TokenVerifier {
 			return nil, errors.Join(auth.ErrInvalidToken, errAudience)
 		}
 
-		return &auth.TokenInfo{Scopes: access.Scopes, Expiration: access.ExpiresAt, UserID: access.UserID}, nil
+		return &auth.TokenInfo{
+			Scopes: access.Scopes, Expiration: access.ExpiresAt, UserID: access.UserID,
+			Extra: map[string]any{ClientKey: access.Client},
+		}, nil
 	}
 }

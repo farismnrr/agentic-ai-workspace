@@ -11,13 +11,16 @@ import (
 )
 
 var codingScopes = []spacedomain.Scope{
-	{ID: codingdomain.ScopeRead, Description: "Read files and search code in your coding workspace"},
+	{ID: codingdomain.ScopeRead, Description: "Read files and search code in the project made for this app"},
 	{
 		ID: codingdomain.ScopeWrite,
-		Description: "Create, change, move and delete files in your coding workspace " +
+		Description: "Create, change, move and delete files in the project made for this app " +
 			"(every change can be undone in Settings)",
 	},
-	{ID: codingdomain.ScopeExec, Description: "Run the tasks you set up, such as tests"},
+	{
+		ID:          codingdomain.ScopeExec,
+		Description: "Run tasks and commands in the sandbox and start the project's web app",
+	},
 }
 
 func codingSpace() spacedomain.Space {

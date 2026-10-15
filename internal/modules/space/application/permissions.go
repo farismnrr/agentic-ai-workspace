@@ -74,3 +74,31 @@ func (p *Permissions) Set(ctx context.Context, userID, slug, tool string, enable
 
 	return nil
 }
+
+// SkipApprovals reports whether a person lets the assistant run the enabled tools of a space without
+// asking. A tool that is switched off stays off either way.
+func (p *Permissions) SkipApprovals(ctx context.Context, userID, slug string) (bool, error) {
+	if _, ok := p.registry.FindBySlug(slug); !ok {
+		return false, domain.ErrUnknownSpace
+	}
+
+	skip, err := p.store.SkipApprovals(ctx, userID, slug)
+	if err != nil {
+		return false, fmt.Errorf("load approval setting: %w", err)
+	}
+
+	return skip, nil
+}
+
+// SetSkipApprovals turns "skip approvals" on or off for one space of a person.
+func (p *Permissions) SetSkipApprovals(ctx context.Context, userID, slug string, skip bool) error {
+	if _, ok := p.registry.FindBySlug(slug); !ok {
+		return domain.ErrUnknownSpace
+	}
+
+	if err := p.store.SetSkipApprovals(ctx, userID, slug, skip, p.now()); err != nil {
+		return fmt.Errorf("save approval setting: %w", err)
+	}
+
+	return nil
+}

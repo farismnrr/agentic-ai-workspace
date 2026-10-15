@@ -12,6 +12,9 @@ type PermissionStore interface {
 	// ToolStates returns the tools the person switched on or off themselves.
 	ToolStates(ctx context.Context, userID, space string) (map[string]bool, error)
 	SetTool(ctx context.Context, userID, space, tool string, enabled bool, at time.Time) error
+	// SkipApprovals reports whether the person lets the assistant use every enabled tool of a space without asking first.
+	SkipApprovals(ctx context.Context, userID, space string) (bool, error)
+	SetSkipApprovals(ctx context.Context, userID, space string, skip bool, at time.Time) error
 }
 
 // ActivityStore persists the activity log.

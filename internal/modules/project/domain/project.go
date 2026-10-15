@@ -19,6 +19,7 @@ var (
 	ErrInvalidDescription = errors.New("the description can have up to 500 characters")
 	ErrNotFound           = errors.New("project not found")
 	ErrInvalidChecks      = errors.New("those checks are not valid")
+	ErrSourceTaken        = errors.New("a project for that app already exists")
 )
 
 // Project is a piece of work with its own folder of files.
@@ -29,6 +30,9 @@ type Project struct {
 	UserID      string
 	Name        string
 	Description string
+	// Source names the connected app that owns the project, such as ChatGPT; it is empty for
+	// projects the person made themselves.
+	Source string
 }
 
 // Normalize trims and validates the editable fields.

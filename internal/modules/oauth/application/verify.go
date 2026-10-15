@@ -10,12 +10,14 @@ import (
 
 // AccessInfo describes a verified access token.
 type AccessInfo struct {
-	UserID    string
-	GrantID   string
-	ClientID  string
-	Resource  string
-	Scopes    []string
-	ExpiresAt int64
+	UserID   string
+	GrantID  string
+	ClientID string
+	// ClientName is the app's name as the person saw it when they allowed it.
+	ClientName string
+	Resource   string
+	Scopes     []string
+	ExpiresAt  int64
 }
 
 // VerifyAccessToken resolves a bearer token to the grant behind it. Callers
@@ -42,8 +44,8 @@ func (s *Service) VerifyAccessToken(ctx context.Context, token string) (AccessIn
 	}
 
 	return AccessInfo{
-		UserID: grant.UserID, GrantID: grant.ID, ClientID: grant.ClientID, Resource: grant.Resource,
-		Scopes: grant.Scopes, ExpiresAt: record.ExpiresAt.Unix(),
+		UserID: grant.UserID, GrantID: grant.ID, ClientID: grant.ClientID, ClientName: grant.ClientName,
+		Resource: grant.Resource, Scopes: grant.Scopes, ExpiresAt: record.ExpiresAt.Unix(),
 	}, nil
 }
 

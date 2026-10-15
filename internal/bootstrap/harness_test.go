@@ -44,24 +44,14 @@ func (r reply) JSON(t *testing.T) map[string]any {
 func newApp(t *testing.T) *fiber.App {
 	t.Helper()
 
-	app, _ := newWorkspace(t)
+	app := newEnv(t).app
 
 	return app
-}
-
-// newWorkspace starts the app on a temporary workspace and returns its folder too.
-func newWorkspace(t *testing.T) (*fiber.App, string) {
-	t.Helper()
-
-	env := newEnv(t)
-
-	return env.app, env.root
 }
 
 // testEnv is a running app with the folders it works in.
 type testEnv struct {
 	app     *fiber.App
-	root    string
 	dataDir string
 }
 
@@ -82,10 +72,8 @@ func newEnvWith(t *testing.T, adjust func(*config.Config)) testEnv {
 func newEnvServing(t *testing.T, adjust func(*config.Config), frontend fs.FS) testEnv {
 	t.Helper()
 
-	root := filepath.Join(t.TempDir(), "workspaces")
-
 	cfg := config.Config{
-		Port: "0", PublicURL: publicURL, DataDir: t.TempDir(), WorkspacesDir: root, CookieSecure: true,
+		Port: "0", PublicURL: publicURL, DataDir: t.TempDir(), CookieSecure: true,
 		SandboxImage: testImage, MaxSandboxes: 4, SiteMaxPerUser: 2, SiteMaxTotal: 6,
 		AllowedOrigins: []string{"http://localhost:8081", "http://127.0.0.1:8081"},
 		CORSOrigins:    []string{"http://localhost:8081"},
@@ -111,9 +99,9 @@ func newEnvServing(t *testing.T, adjust func(*config.Config), frontend fs.FS) te
 
 	app := httpserver.New(frontend, httpserver.Settings{}, mounts...)
 
-	workspaceRoots.Store(app, root)
+	testStores.Store(app, testStore{db: db, dataDir: cfg.DataDir})
 
-	return testEnv{app: app, root: root, dataDir: cfg.DataDir}
+	return testEnv{app: app, dataDir: cfg.DataDir}
 }
 
 // connect runs the whole OAuth dance for scope and returns the access token.

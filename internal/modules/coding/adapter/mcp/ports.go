@@ -21,7 +21,10 @@ type Gate interface {
 // Entry is one tool call for the activity log. Undo, when set, is the opaque
 // description of how to reverse the call.
 type Entry struct {
-	UserID  string
+	UserID string
+	Client string
+	// Project is where the call worked, so an undo can find it again.
+	Project string
 	Tool    string
 	Summary string
 	Detail  string

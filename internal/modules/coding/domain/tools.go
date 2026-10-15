@@ -74,10 +74,27 @@ var ToolRunCommand = ToolInfo{
 		"only package registries can be reached) and return its exit code and output.",
 }
 
+// The site tools start and stop the project's web app, so the person can open it in a browser.
+var (
+	ToolStartSite = ToolInfo{
+		Name: "start_site", Title: "Start the web app", Scope: ScopeExec, Group: GroupExec,
+		Description: "Start a web app in the sandbox so the person can open it in their browser. The command " +
+			"must keep running and listen on 127.0.0.1 at the given port. The page is opened under a path, so the " +
+			"server removes that path before the request reaches the app: use relative links (./style.css), or " +
+			"read BASE_PATH. Use a production-style server, not a dev server with hot reload. Pages run in a " +
+			"sandbox: cookies, localStorage and service workers do not work. Starting again replaces the running app.",
+	}
+	ToolStopSite = ToolInfo{
+		Name: "stop_site", Title: "Stop the web app", Scope: ScopeExec, Group: GroupExec,
+		Description: "Stop the project's running web app.",
+	}
+)
+
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami,
 		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand,
+		ToolStartSite, ToolStopSite,
 	}
 }

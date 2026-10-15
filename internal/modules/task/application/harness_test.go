@@ -86,6 +86,7 @@ type rig struct {
 	models  *fakeModels
 	model   *scriptModel
 	tools   *fakeTools
+	gate    *fakeGate
 	runner  *application.Runner
 	service *application.Service
 	disp    *fakeDispatcher
@@ -100,10 +101,11 @@ func newRig(model application.Model, steps ...step) *rig {
 	}
 
 	models := &fakeModels{model: model}
+	gate := &fakeGate{off: map[string]bool{}}
 	tools := &fakeTools{risks: map[string]domain.Risk{}, results: map[string]application.ToolResult{}}
 	deps := application.Deps{
 		Tasks: mem, Events: mem, Transcript: mem, Usage: mem, Models: models, Persona: fakePersona{},
-		Projects: fakeProjects{}, Tools: tools, IDs: mem, Now: time.Now,
+		Projects: fakeProjects{}, Tools: tools, Gate: gate, IDs: mem, Now: time.Now,
 	}
 	limits := application.Limits{
 		Backoff: func(int) time.Duration { return 0 }, WallTime: 5 * time.Second, TokenCap: 1000, MaxSteps: 10,
@@ -112,7 +114,7 @@ func newRig(model application.Model, steps ...step) *rig {
 	disp := &fakeDispatcher{}
 
 	return &rig{
-		mem: mem, models: models, model: script, tools: tools, runner: application.NewRunner(deps, limits),
+		mem: mem, models: models, model: script, tools: tools, gate: gate, runner: application.NewRunner(deps, limits),
 		service: application.NewService(deps, disp), disp: disp,
 	}
 }

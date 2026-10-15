@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -57,6 +58,36 @@ func (s *Store) SetTool(ctx context.Context, userID, space, tool string, enabled
 		userID, space, tool, enabled, at.Unix())
 	if err != nil {
 		return fmt.Errorf("upsert tool permission: %w", err)
+	}
+
+	return nil
+}
+
+// SkipApprovals reports whether a person skips approvals; the default is to ask.
+func (s *Store) SkipApprovals(ctx context.Context, userID, space string) (bool, error) {
+	var skip bool
+
+	err := s.db.QueryRowContext(ctx,
+		`SELECT skip FROM approval_settings WHERE user_id = ? AND space = ?`, userID, space).Scan(&skip)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, fmt.Errorf("select approval setting: %w", err)
+	}
+
+	return skip, nil
+}
+
+// SetSkipApprovals records a person's choice.
+func (s *Store) SetSkipApprovals(ctx context.Context, userID, space string, skip bool, at time.Time) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO approval_settings (user_id, space, skip, updated_at) VALUES (?, ?, ?, ?)
+		 ON CONFLICT (user_id, space) DO UPDATE SET skip = excluded.skip, updated_at = excluded.updated_at`,
+		userID, space, skip, at.Unix())
+	if err != nil {
+		return fmt.Errorf("upsert approval setting: %w", err)
 	}
 
 	return nil
