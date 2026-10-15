@@ -26,6 +26,7 @@ const helper = `!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; 
 func gitEnvironment(g Git) []string {
 	return []string{
 		"GH_TOKEN=" + g.Token, "GIT_TERMINAL_PROMPT=0", "GH_PROMPT_DISABLED=1",
+		"GH_NO_UPDATE_NOTIFIER=1", "GH_NO_EXTENSION_UPDATE_NOTIFIER=1",
 		"GIT_CONFIG_COUNT=1",
 		"GIT_CONFIG_KEY_0=credential.https://github.com.helper", "GIT_CONFIG_VALUE_0=" + helper,
 		"GIT_AUTHOR_NAME=" + g.Name, "GIT_AUTHOR_EMAIL=" + g.Email,
