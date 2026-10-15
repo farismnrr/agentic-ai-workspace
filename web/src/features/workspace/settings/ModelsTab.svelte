@@ -4,6 +4,7 @@
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
   import { effortChoices, hasEffortChoice } from '../logic/effort';
+  import { groupModels, modelValue } from '../logic/model-groups';
   import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, removeProvider, type ModelOption, type Provider } from '../logic/providers-api';
   import { describeProviderError } from '../logic/provider-errors';
@@ -23,7 +24,6 @@
   let notice = $state('');
   let failed = $state(false);
 
-  const encode = (option: ModelOption): string => `${option.providerId}::${option.model}`;
   const chosen = $derived(prefs === undefined || prefs.defaultModel === '' ? '' : `${prefs.defaultProviderId}::${prefs.defaultModel}`);
 
   async function refresh(): Promise<void> {
@@ -94,7 +94,11 @@
       <SettingRow label="Model" for="default-model">
         <select id="default-model" class="select select-sm w-72" value={chosen} onchange={(event) => pick(event.currentTarget.value)}>
           <option value="">Choose when I start a task</option>
-          {#each options as option (encode(option))}<option value={encode(option)}>{option.model} · {option.providerName}</option>{/each}
+          {#each groupModels(options) as group (group.label)}
+            <optgroup label={group.label}>
+              {#each group.models as option (modelValue(option))}<option value={modelValue(option)}>{option.model}</option>{/each}
+            </optgroup>
+          {/each}
         </select>
       </SettingRow>
       {#if hasEffortChoice(defaultLevels)}

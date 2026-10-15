@@ -126,6 +126,8 @@ type ModelOption struct {
 	ProviderID   string
 	ProviderName string
 	Model        string
+	// Group is who serves the model when the provider is a gateway that says so, such as cc or cx behind 9router.
+	Group string
 }
 
 // Models lists the models of every enabled, verified provider.
@@ -143,7 +145,9 @@ func (s *Service) Models(ctx context.Context, userID string) ([]ModelOption, err
 		}
 
 		for _, model := range provider.Models {
-			options = append(options, ModelOption{ProviderID: provider.ID, ProviderName: provider.Name, Model: model})
+			options = append(options, ModelOption{
+				ProviderID: provider.ID, ProviderName: provider.Name, Model: model, Group: provider.GroupOf(model),
+			})
 		}
 	}
 

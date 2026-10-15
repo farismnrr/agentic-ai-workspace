@@ -22,10 +22,10 @@ func replaceCatalog(ctx context.Context, tx *sql.Tx, id string, models []domain.
 		}
 
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO model_catalog (provider_id, model, context_window, reported, reasoning, can_disable, levels)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO model_catalog (provider_id, model, context_window, reported, reasoning, can_disable, levels, owner)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 			id, model.Name, model.ContextWindow, model.Thinking.Reported, model.Thinking.Reasoning,
-			model.Thinking.CanDisable, string(levels)); err != nil {
+			model.Thinking.CanDisable, string(levels), model.Owner); err != nil {
 			return fmt.Errorf("save model catalog: %w", err)
 		}
 	}
@@ -33,7 +33,8 @@ func replaceCatalog(ctx context.Context, tx *sql.Tx, id string, models []domain.
 	return nil
 }
 
-const catalogRows = `SELECT m.provider_id, m.model, m.context_window, m.reported, m.reasoning, m.can_disable, m.levels
+const catalogRows = `SELECT m.provider_id, m.model, m.context_window, m.reported, m.reasoning, m.can_disable, m.levels,
+	 m.owner
 	 FROM model_catalog m JOIN providers p ON p.id = m.provider_id WHERE p.user_id = ?`
 
 // loadCatalog reads what a person's providers reported about their models, keyed by provider id and model.
@@ -55,7 +56,7 @@ func (s *Store) loadCatalog(ctx context.Context, userID string) (map[string]map[
 		)
 
 		err := rows.Scan(&id, &info.Name, &info.ContextWindow, &info.Thinking.Reported, &info.Thinking.Reasoning,
-			&info.Thinking.CanDisable, &levels)
+			&info.Thinking.CanDisable, &levels, &info.Owner)
 		if err != nil {
 			return nil, fmt.Errorf("scan model catalog: %w", err)
 		}

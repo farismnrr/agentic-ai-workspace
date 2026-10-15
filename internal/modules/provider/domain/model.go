@@ -14,8 +14,11 @@ type Thinking struct {
 
 // ModelInfo is a model a provider listed, with what it reported about it.
 type ModelInfo struct {
-	Name          string
-	Thinking      Thinking
+	Name string
+	// Owner is who serves the model, as a gateway reports it (9router: cc, cx, kr, a combo name); empty when unsaid.
+	Owner    string
+	Thinking Thinking
+	// ContextWindow is zero when the provider did not say.
 	ContextWindow int64
 }
 
@@ -72,4 +75,14 @@ func without(levels []string, drop string) []string {
 	}
 
 	return kept
+}
+
+// GroupOf is who serves a model, for providers that host many: a gateway's models are grouped by the owner it
+// reports. A direct provider serves its own models, so they are not split (OpenAI calls everything "system").
+func (p Provider) GroupOf(model string) string {
+	if !p.Kind.CustomAddress() {
+		return ""
+	}
+
+	return p.Catalog[model].Owner
 }

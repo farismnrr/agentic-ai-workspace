@@ -21,6 +21,8 @@ export interface ModelOption {
   providerId: string;
   providerName: string;
   model: string;
+  /** Who serves the model when the provider is a gateway that says so (cc, cx, kr, a combo...); empty otherwise. */
+  group: string;
 }
 
 export interface NewProvider {

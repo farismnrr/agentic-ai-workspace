@@ -120,3 +120,33 @@ func TestWhatAGatewayReportsAboutThinkingIsKept(t *testing.T) {
 		}
 	}
 }
+
+// 9router reports who serves each model as owned_by. Without it the part of the id before a slash is used, and a
+// plain id (a combo, or a hosted provider's model) has no owner.
+func TestTheOwnerOfAModelComesFromOwnedByThenTheIDPrefix(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"id":"cc/claude","owned_by":"cc"},{"id":"kr/glm-5"},` +
+			`{"id":"my-combo"},{"id":"gpt-5","owned_by":"system"}]}`))
+	}))
+	t.Cleanup(server.Close)
+
+	got, err := probe.New(local, local).Models(context.Background(),
+		domain.Credential{Kind: domain.KindCompatible, BaseURL: server.URL, APIKey: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	owners := map[string]string{}
+	for _, model := range got {
+		owners[model.Name] = model.Owner
+	}
+
+	want := map[string]string{"cc/claude": "cc", "kr/glm-5": "kr", "my-combo": "", "gpt-5": "system"}
+	for name, owner := range want {
+		if owners[name] != owner {
+			t.Fatalf("%s: owner %q, want %q", name, owners[name], owner)
+		}
+	}
+}
