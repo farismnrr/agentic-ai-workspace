@@ -45,6 +45,19 @@ func TestALongTaskIsSummarisedAndKeepsGoing(t *testing.T) {
 	}
 }
 
+func TestATaskThatHasNotRunYetStillShowsItsWindow(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(nil)
+	r.windows.tokens = 123_000
+	task := r.start(t, "Not run yet")
+
+	shown, err := r.service.Get(t.Context(), "u1", task.ID)
+	if err != nil || shown.ContextWindow != 123_000 {
+		t.Fatalf("want the model's window before any call: %+v, %v", shown, err)
+	}
+}
+
 func TestACumulativelyHugeTaskDoesNotStop(t *testing.T) {
 	t.Parallel()
 
