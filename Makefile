@@ -14,13 +14,14 @@ MAX_FILE_LINES := 200
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-.PHONY: help image sandbox-image e2e-sites build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
+.PHONY: help image sandbox-image redeploy-dev e2e-sites build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
 
 help:
 	@echo "make build    - verify, then build the single static binary ($(BIN_PATH))"
 	@echo "make run      - build, then run the binary on PORT (default $(PORT))"
 	@echo "make image    - build the Docker image ($(IMAGE):latest and :dev, what the compose files use)"
 	@echo "make sandbox-image - build the toolbox image the agent's commands run in"
+	@echo "make redeploy-dev - pull the app image published from dev and recreate the app container"
 	@echo "make e2e-sites - drive a private site with a real browser (needs Docker and Playwright)"
 	@echo "make verify   - run every quality check (Go + frontend)"
 	@echo "make clean    - remove bin/, node_modules and generated frontend output"
@@ -43,6 +44,12 @@ image:
 # The toolbox the agent's commands run in. Use it locally with SANDBOX_IMAGE=$(IMAGE)-sandbox:latest make run.
 sandbox-image:
 	docker build -f sandbox/Dockerfile -t $(IMAGE)-sandbox:latest .
+
+# Pull only the app image, recreate its container and wait until it is healthy. The sandbox image is left
+# alone on purpose: only Full publishes it, so pulling it would replace the one `make sandbox-image` built.
+redeploy-dev:
+	docker compose -f compose.dev.yaml pull app
+	docker compose -f compose.dev.yaml up -d --wait app
 
 # Browser end-to-end check of sites; not part of verify because it needs Docker and Playwright.
 e2e-sites:
