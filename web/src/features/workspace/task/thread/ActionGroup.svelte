@@ -29,7 +29,7 @@
           {#if item.undone}<span class="badge badge-ghost badge-sm ml-1">Undone</span>
           {:else if item.canUndo}<button class="link link-hover ml-1 text-xs font-medium text-primary" type="button" onclick={() => { onundo(item.id); }}>Undo</button>{/if}
         </p>
-        {#if item.technical !== undefined}<code class="mt-1 block break-words rounded-md bg-base-200 px-2 py-1 text-xs text-[var(--brand-text-secondary)]">{item.technical}</code>{/if}
+        {#if item.technical !== undefined}<code class="mt-1 block wrap-anywhere rounded-md bg-base-200 px-2 py-1 text-xs text-[var(--brand-text-secondary)]">{item.technical}</code>{/if}
       </li>
     {/each}
   </ol>

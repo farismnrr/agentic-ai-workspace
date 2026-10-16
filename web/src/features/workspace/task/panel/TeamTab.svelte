@@ -37,7 +37,7 @@
         {#if job.report !== ''}
           <details class="mt-2">
             <summary class="cursor-pointer text-xs font-medium text-primary">Report</summary>
-            <p class="mt-1 whitespace-pre-wrap break-words rounded-md bg-base-200 px-3 py-2">{job.report}</p>
+            <p class="mt-1 whitespace-pre-wrap wrap-anywhere rounded-md bg-base-200 px-3 py-2">{job.report}</p>
           </details>
         {/if}
       </li>
