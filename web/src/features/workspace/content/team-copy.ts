@@ -9,6 +9,7 @@ export const teamCopy = {
     write: { title: 'Change files', note: 'Create, edit, move and delete. You still approve each step.' },
     exec: { title: 'Run commands', note: 'Run checks and commands. You still approve each step.' },
   } as Record<string, { title: string; note: string }>,
+  builtInNote: 'Built-in role: what it may do is fixed.',
   newRoleName: 'New teammate',
   saved: 'Saved.',
   reset: 'Back to the built-in team.',
@@ -18,3 +19,11 @@ export const teamCopy = {
     invalid_agent_team: 'Check the team: every role needs a short name, and there must be exactly one lead.',
   } as Record<string, string>,
 };
+
+/** What a role may do, in words, from its access groups. */
+export function accessSummary(access: string[]): string {
+  const can = ['look at files'];
+  if (access.includes('write')) can.push('change files');
+  if (access.includes('exec')) can.push('run commands');
+  return `Can ${can.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`;
+}

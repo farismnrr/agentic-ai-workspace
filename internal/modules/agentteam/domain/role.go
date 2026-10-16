@@ -81,6 +81,10 @@ func (r Role) normalize() (Role, error) {
 	}
 
 	r.Access = access
+	if built, ok := presetByKey(r.Key); ok {
+		r.Access = slices.Clone(built.access) // a built-in role keeps the access that fits it
+	}
+
 	r.Enabled = r.Enabled || r.Lead
 
 	return r, nil
