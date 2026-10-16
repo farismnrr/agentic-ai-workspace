@@ -21,7 +21,7 @@ func (r *Runner) offered(ctx context.Context, userID string, state *runState) ([
 	defs := []domain.ToolDef{}
 
 	for _, def := range r.deps.Tools.Definitions() {
-		if enabled[def.Name] {
+		if enabled[def.Name] && (!r.leads || r.deps.Tools.Risk(def.Name) == domain.RiskNone) {
 			defs = append(defs, def)
 		}
 	}

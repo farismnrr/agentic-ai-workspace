@@ -28,8 +28,8 @@ func (r *Runner) process(
 }
 
 func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
-	if !r.loopToolAllowed(call.Name) {
-		r.result(ctx, task, call.ID, "That tool is not available to you here.", true)
+	if why := r.refusal(call.Name); why != "" {
+		r.result(ctx, task, call.ID, why, true)
 
 		return outcome{}, false
 	}
