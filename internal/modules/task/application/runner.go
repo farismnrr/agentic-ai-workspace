@@ -98,7 +98,7 @@ func (r *Runner) loop(ctx context.Context, task domain.Task) outcome {
 	steps := r.lim.steps(task.Team)
 	state := &runState{budget: &budget{left: steps}, segment: steps, roster: r.roster(ctx, task)}
 
-	return r.drive(ctx, task, state, fmt.Sprintf("I stopped after %d steps without finishing.", steps))
+	return r.leading(state).drive(ctx, task, state, fmt.Sprintf("I stopped after %d steps without finishing.", steps))
 }
 
 // advance does one unit of work: answer pending tool calls, or ask the model for the next move.

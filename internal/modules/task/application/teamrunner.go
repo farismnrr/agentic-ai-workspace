@@ -22,6 +22,19 @@ func (r *Runner) roster(ctx context.Context, task domain.Task) *Roster {
 	return &roster
 }
 
+// leading is the runner that leads a run: on a team task its steps carry the lead's name, so every step of
+// the thread says who did it. It is a copy, because a Runner is shared by every task running at once.
+func (r *Runner) leading(state *runState) *Runner {
+	if state.roster == nil {
+		return r
+	}
+
+	lead := *r
+	lead.deps.Events = labelledEvents{EventStore: r.deps.Events, agent: state.roster.Lead.Name}
+
+	return &lead
+}
+
 // child is the runner a teammate works with: the same loop, with its own transcript, only the
 // tools its role allows, and every step it records labelled with its name.
 func (r *Runner) child(role AgentRole, d Delegation) *Runner {

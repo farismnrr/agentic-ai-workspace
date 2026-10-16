@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -86,4 +87,58 @@ func TestSmallTaskNeedsNoPlanToReachReview(t *testing.T) {
 	if got := r.task(t, task.ID); got.Status != domain.StatusReview || len(got.Plan) != 0 {
 		t.Fatalf("a small job needs no plan and still reaches review: %v %v", got.Status, got.Plan)
 	}
+}
+
+func TestEveryStepOfATeamTaskNamesWhoDidIt(t *testing.T) {
+	t.Parallel()
+
+	qa := application.AgentRole{Key: "qa", Name: "QA", ProviderID: "prov", Model: "qa-model", Tools: []string{"run_task"}}
+	r := newTeamRig(nil, []application.AgentRole{developer(), qa},
+		delegate("d1", "developer", "Change it"),
+		call("c1", "edit_file", map[string]string{"path": "a.html"}),
+		report("r1", "Changed"),
+		delegate("d2", "qa", "Run the tests"),
+		call("c2", "run_task", map[string]string{"name": "test"}),
+		report("r2", "Passed"),
+		finish("Done"),
+	)
+	r.gate.skip = true
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}}
+	r.tools.results["run_task"] = application.ToolResult{Output: "ok", Run: &domain.RunInfo{Name: "test"}}
+	task := r.startTeam(t, "Change and test")
+	r.run(task.ID)
+
+	who := stepOwners(t, r.rig, task.ID)
+	if who["Did edit_file"] != "Developer" || who["Did run_task"] != "QA" {
+		t.Fatalf("each step names the teammate who did it: %v", who)
+	}
+
+	proof := r.task(t, task.ID).Proof
+	if proof == nil || len(proof.Checks) != 1 || proof.Checks[0].By != "QA" {
+		t.Fatalf("the proof says who ran the check: %+v", proof)
+	}
+
+	if lead := r.lastEvent(task.ID, domain.EventReceipt); lead.Agent != "Orchestrator" {
+		t.Fatalf("the lead's own steps carry its name too: %+v", lead)
+	}
+}
+
+// stepOwners maps what each step says to who did it, and checks every handoff names the model.
+func stepOwners(t *testing.T, r *rig, taskID string) map[string]string {
+	t.Helper()
+
+	events, _ := r.mem.EventsAfter(context.Background(), taskID, 0)
+	who := map[string]string{}
+
+	for _, event := range events {
+		if event.Kind == domain.EventAction {
+			who[event.Text] = event.Agent
+		}
+
+		if event.Kind == domain.EventHandoff && event.Action == "assigned" && event.Model == "" {
+			t.Errorf("a handoff says which model the teammate works with: %+v", event)
+		}
+	}
+
+	return who
 }

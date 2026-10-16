@@ -33,7 +33,7 @@
     {:else if event.kind === 'error'}
       <ResultCard kind="error" text={event.text} hint={event.hint} {onretry} />
     {:else if event.kind === 'handoff'}
-      <HandoffCard text={event.text} detail={event.technical} state={event.action} />
+      <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} />
     {:else if event.kind === 'site'}
       <SiteCard text={event.text} url={event.url} />
     {:else}

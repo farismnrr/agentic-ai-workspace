@@ -100,7 +100,9 @@ Under Settings, Agent team you can change each role:
 
 Good to know:
 
-- Every step shows who did it, with a card when work changes hands.
+- Every step shows who did it, including the lead's own, with a card when work changes hands.
+- The Team tab lists each job: who has it, which model, what was asked, how many steps, files and checks, and the report.
+- The Proof tab names who ran each check.
 - A teammate still asks before changing anything, with the same Allow button.
 - Proof counts the checks any teammate ran after the last change.
 - A team task may run 100 model turns and 30 minutes, shared by everyone on it.

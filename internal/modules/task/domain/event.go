@@ -57,6 +57,8 @@ type Event struct {
 	Resolved  string    `json:"resolved,omitempty"`
 	Answered  string    `json:"answered,omitempty"`
 	Hint      string    `json:"hint,omitempty"`
+	// Model is the AI model a teammate works with, shown on its handoffs (EventHandoff only).
+	Model string `json:"model,omitempty"`
 	// Agent names the teammate who did the step; empty for the orchestrator or a task without a team.
 	Agent string `json:"agent,omitempty"`
 	// URL is where a running site can be opened (EventSite only).
