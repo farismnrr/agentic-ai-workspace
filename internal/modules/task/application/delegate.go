@@ -142,7 +142,8 @@ func (r *Runner) endDelegation(
 
 func (r *Runner) handoff(ctx context.Context, task domain.Task, d Delegation, action, text, detail string) {
 	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-		Kind: domain.EventHandoff, Text: text, Technical: detail, Action: action, Agent: d.RoleName, Time: r.deps.Now(),
+		Kind: domain.EventHandoff, Text: text, Technical: detail, Action: action, Agent: d.RoleName, Model: d.Model,
+		Time: r.deps.Now(),
 	})
 }
 

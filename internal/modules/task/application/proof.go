@@ -10,14 +10,15 @@ import (
 // the server ran itself after the last change ("verified"); anything the agent
 // only says it checked is listed as claimed and never counts as proof.
 func buildProof(events []domain.Event, claims []string) *domain.Proof {
-	runs := runsSinceLastChange(events)
+	runs, by := runsSinceLastChange(events)
 	proof := &domain.Proof{Checks: []domain.Check{}}
 	failed := false
 
-	for _, run := range runs {
+	for i, run := range runs {
 		passed := passedRun(run)
 		failed = failed || !passed
-		proof.Checks = append(proof.Checks, domain.Check{Text: runText(run, passed), Verified: true, Passed: passed})
+		check := domain.Check{Text: runText(run, passed), Verified: true, Passed: passed, By: by[i]}
+		proof.Checks = append(proof.Checks, check)
 	}
 
 	for _, claim := range claims {
@@ -34,7 +35,8 @@ func buildProof(events []domain.Event, claims []string) *domain.Proof {
 	return proof
 }
 
-func runsSinceLastChange(events []domain.Event) []domain.RunInfo {
+// runsSinceLastChange are the checks the server ran after the last change, and who ran each one.
+func runsSinceLastChange(events []domain.Event) ([]domain.RunInfo, []string) {
 	start := 0
 
 	for i, event := range events {
@@ -43,15 +45,15 @@ func runsSinceLastChange(events []domain.Event) []domain.RunInfo {
 		}
 	}
 
-	runs := []domain.RunInfo{}
+	runs, by := []domain.RunInfo{}, []string{}
 
 	for _, event := range events[start:] {
 		if event.Run != nil {
-			runs = append(runs, *event.Run)
+			runs, by = append(runs, *event.Run), append(by, event.Agent)
 		}
 	}
 
-	return runs
+	return runs, by
 }
 
 func runText(run domain.RunInfo, passed bool) string {

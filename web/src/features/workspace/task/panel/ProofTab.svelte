@@ -31,7 +31,7 @@
     {#each proof.checks as check, index (index)}
       <li class="flex items-start gap-2">
         <Icon name={check.verified ? (check.passed ? 'check-circle' : 'x-circle') : 'info'} class="mt-0.5 size-4 shrink-0 {check.verified ? (check.passed ? 'text-success' : 'text-error') : 'text-[var(--brand-text-tertiary)]'}" />
-        <span class="flex-1">{check.text}</span>
+        <span class="flex-1">{check.text}{#if check.by !== undefined}<span class="badge badge-outline badge-sm ml-1.5 align-middle">{check.by}</span>{/if}</span>
         <span class="badge badge-sm {check.verified ? 'badge-success badge-soft' : 'badge-ghost'}">{check.verified ? proofCopy.verified : proofCopy.claimed}</span>
       </li>
     {:else}

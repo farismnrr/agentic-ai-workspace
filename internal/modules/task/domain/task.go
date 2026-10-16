@@ -49,7 +49,9 @@ type ProofRow struct {
 // Check is something that was tested. Verified checks come from tasks the
 // server ran itself; the rest are only claimed by the agent.
 type Check struct {
-	Text     string `json:"text"`
+	Text string `json:"text"`
+	// By names the teammate who ran the check; empty for the lead and for tasks without a team.
+	By       string `json:"by,omitempty"`
 	Verified bool   `json:"verified"`
 	Passed   bool   `json:"passed"`
 }

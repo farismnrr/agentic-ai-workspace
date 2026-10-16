@@ -46,7 +46,7 @@ export type TaskEvent =
   | (EventBase & { kind: 'error'; text: string; hint?: string })
   | (EventBase & { kind: 'receipt'; text: string })
   | (EventBase & { kind: 'site'; text: string; url: string })
-  | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState });
+  | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string });
 
 export type ActionEvent = Extract<TaskEvent, { kind: 'action' }>;
 
@@ -60,6 +60,8 @@ export interface Check {
   text: string;
   verified: boolean;
   passed: boolean;
+  /** The teammate who ran the check; absent for the lead and for tasks without a team. */
+  by?: string;
 }
 
 export interface Proof {

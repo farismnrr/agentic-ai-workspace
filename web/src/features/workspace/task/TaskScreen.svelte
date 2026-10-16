@@ -9,7 +9,7 @@
   import { projects } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import WorkPanel from './panel/WorkPanel.svelte';
-  import { panelTabs, type PanelTab } from './panel/tabs';
+  import { panelTabsFor, type PanelTab } from './panel/tabs';
   import ReviewBar from './ReviewBar.svelte';
   import TaskHeader from './TaskHeader.svelte';
   import TaskThread from './thread/TaskThread.svelte';
@@ -33,7 +33,7 @@
 
   const project = $derived(findProject($projects, projectId));
   const crumbs = $derived([{ label: 'Projects', href: '/app/projects' }, { label: project?.name ?? 'Project', href: `/app/projects/${projectId}` }]);
-  const views: { id: View; label: string }[] = [{ id: 'chat', label: 'Chat' }, ...panelTabs];
+  const views = $derived<{ id: View; label: string }[]>([{ id: 'chat', label: 'Chat' }, ...panelTabsFor($task?.team ?? false)]);
   const canWrite = $derived($task?.status === 'review' || $task?.status === 'done' || $task?.status === 'failed');
   let view = $state<View>('chat');
   let follow = $state('');
