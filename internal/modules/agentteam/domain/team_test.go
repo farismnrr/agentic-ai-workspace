@@ -24,12 +24,13 @@ func TestPresetsAreTheSDLCTeamWithOneLead(t *testing.T) {
 	team := domain.Presets()
 	lead, ok := team.Lead()
 
-	if keys := keysOf(team); !ok || lead.Key != "orchestrator" || len(keys) != 8 || !slices.Contains(keys, "qa") {
-		t.Fatalf("expected the 8 SDLC roles led by the orchestrator: %v", keys)
+	keys := keysOf(team)
+	if !ok || lead.Key != "orchestrator" || len(keys) != 9 || !slices.Contains(keys, "planner") {
+		t.Fatalf("expected the 9 SDLC roles led by the orchestrator: %v", keys)
 	}
 
-	if len(team.Members()) != 7 {
-		t.Fatalf("the lead hands work to the other seven: %d", len(team.Members()))
+	if len(team.Members()) != 8 {
+		t.Fatalf("the lead hands work to the other eight: %d", len(team.Members()))
 	}
 
 	if _, err := team.Normalize(); err != nil {
@@ -41,8 +42,9 @@ func TestPresetAccessFollowsTheRole(t *testing.T) {
 	t.Parallel()
 
 	want := map[string][]string{
-		"researcher": {"read"}, "business-analyst": {"read"}, "architect": {"read"}, "reviewer": {"read"},
-		"qa": {"read", "exec"}, "developer": {"read", "write", "exec"}, "devops": {"read", "write", "exec"},
+		"planner": {"read"}, "researcher": {"read"}, "business-analyst": {"read"}, "architect": {"read"},
+		"reviewer": {"read"},
+		"qa":       {"read", "exec"}, "developer": {"read", "write", "exec"}, "devops": {"read", "write", "exec"},
 	}
 
 	for _, role := range domain.Presets().Members() {

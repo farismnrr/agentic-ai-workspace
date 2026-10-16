@@ -1,0 +1,86 @@
+package application_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+)
+
+func TestTeammateIsShownTheTeamsPlan(t *testing.T) {
+	t.Parallel()
+
+	plan := map[string]any{"steps": []map[string]string{
+		{"title": "Fix the button colour", "state": "active"}, {"title": "Check the page", "state": "pending"},
+	}}
+	r := newTeamRig(nil, []application.AgentRole{developer()},
+		call("p1", "update_plan", plan),
+		delegate("d1", "developer", "Fix the button"),
+		report("r1", "Fixed"),
+		finish("Done"),
+	)
+	task := r.startTeam(t, "Fix the button")
+	r.run(task.ID)
+
+	brief := r.model.requests[2].Messages[0].Blocks[0].Text
+	if !strings.Contains(brief, "Fix the button") || !strings.Contains(brief, "The team's plan so far") ||
+		!strings.Contains(brief, "[active] Fix the button colour") {
+		t.Fatalf("a teammate starts from the brief and the shared plan: %q", brief)
+	}
+}
+
+func TestTeamCannotHandOutJobsWithoutEnd(t *testing.T) {
+	t.Parallel()
+
+	r := newTeamRig(func(l *application.Limits) { l.MaxDelegations = 2 }, []application.AgentRole{developer()},
+		delegate("d1", "developer", "One"), report("r1", "Done one"),
+		delegate("d2", "developer", "Two"), report("r2", "Done two"),
+		delegate("d3", "developer", "Three"),
+		finish("Did the rest myself"),
+	)
+	task := r.startTeam(t, "Do many things")
+	r.run(task.ID)
+
+	third := resultFor(r.model.requests[5], "d3")
+	if !third.IsError || !strings.Contains(third.Text, "2 jobs") || len(r.model.requests) != 6 {
+		t.Fatalf("a third job is refused and no teammate starts: %+v requests=%d", third, len(r.model.requests))
+	}
+}
+
+func TestLeadSizesTheRequestBeforeUsingTheTeam(t *testing.T) {
+	t.Parallel()
+
+	r := newTeamRig(nil, []application.AgentRole{developer()},
+		delegate("d1", "developer", "Work"), report("r1", "Done"), finish("Done"))
+	task := r.startTeam(t, "Do it")
+	r.run(task.ID)
+
+	lead, mate := r.model.requests[0].System, r.model.requests[1].System
+
+	wanted := []string{"Size the request first", "Small:", "Medium:", "Large:", "pick the smaller size", "two rounds"}
+	for _, want := range wanted {
+		if !strings.Contains(lead, want) {
+			t.Errorf("the lead should be told %q", want)
+		}
+	}
+
+	if strings.Contains(mate, "Size the request first") {
+		t.Error("a teammate does not size or delegate")
+	}
+}
+
+func TestSmallTaskNeedsNoPlanToReachReview(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(nil, call("c1", "edit_file", map[string]string{"path": "a.html"}), finish("Fixed the typo"))
+	r.gate.skip = true
+	r.tools.risks["edit_file"] = domain.RiskLow
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}}
+	task := r.start(t, "Fix the typo")
+	r.run(task.ID)
+
+	if got := r.task(t, task.ID); got.Status != domain.StatusReview || len(got.Plan) != 0 {
+		t.Fatalf("a small job needs no plan and still reaches review: %v %v", got.Status, got.Plan)
+	}
+}

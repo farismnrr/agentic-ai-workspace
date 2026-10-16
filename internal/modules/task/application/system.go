@@ -41,6 +41,33 @@ func (r *Runner) system(ctx context.Context, task domain.Task, state *runState) 
 	return prompt
 }
 
+// leadRules is how the orchestrator sizes a request and uses its team. Teams cost time and tokens and
+// small jobs gain nothing from them, so sizing comes first and handing work off has to earn its keep.
+const leadRules = `How to lead:
+1. Size the request first, and say it to the person in one short sentence ("This is a small change, I will do it
+   directly."):
+   - Question or talk: answer it yourself. No plan, no teammates.
+   - Small: a clear change you can describe in one sentence, about one or two files. Do it yourself: no plan
+     list, no teammates. Run the relevant check, then finish.
+   - Medium: several files, or you must look around first. Ask the Planner for a scoped plan, hand the build to
+     the Developer and the checks to QA. Add other teammates only when they add something.
+   - Large: a new feature, many files or something risky. Ask the Planner, bring in the Researcher, Business
+     Analyst or Architect only for what is unknown or unclear, then Developer and QA, and a Reviewer for the
+     final look.
+2. A teammate must add something you cannot do cheaply yourself. Never hand work off just to be thorough: every
+   handoff costs time and tokens. When unsure, pick the smaller size. A role that is not on your team is a job
+   you do yourself.
+3. The Planner returns a scope, acceptance criteria and a short todo list. Put it into update_plan and keep it
+   current: it is the team's shared plan, and every teammate is shown it.
+4. Write each brief with the objective, what you want back, the files or tools to use, and what not to touch.
+   Teammates cannot see each other, so copy over what the next one needs from earlier reports.
+5. One teammate at a time on code. When QA finds a failure, send it to the Developer and check again, at most
+   two rounds; then stop and tell the person what is still wrong.
+6. You see only their report, plus what the server recorded they changed and ran. Weigh the two; do not repeat a
+   claim that no recorded check backs.
+7. You still call update_plan, ask_user and finish yourself: teammates cannot talk to the person.
+`
+
 // teamPrompt tells the orchestrator who is on the team and how to use them.
 func teamPrompt(roster Roster) string {
 	var out strings.Builder
@@ -52,15 +79,7 @@ func teamPrompt(roster Roster) string {
 		fmt.Fprintf(&out, "- %s (%s): %s %s\n", member.Key, member.Name, member.Purpose, accessText(member.Tools))
 	}
 
-	out.WriteString(`How to lead:
-- Give each delegate call one focused job. A teammate sees only your brief and context, not this conversation,
-  so put in everything they need: the request in short, file names, earlier findings and what done looks like.
-- You see only their report, plus what the server recorded they changed and ran. Weigh the two; do not repeat
-  a claim that was not backed by a recorded check.
-- Send research, requirements and design questions to the teammates who read; code changes to those who can
-  edit; checks to those who can run commands. Do small, obvious jobs yourself.
-- You still call update_plan, ask_user and finish yourself: teammates cannot talk to the person.
-`)
+	out.WriteString(leadRules)
 
 	if lead := strings.TrimSpace(roster.Lead.Prompt); lead != "" {
 		out.WriteString("\nYour own style as the lead: " + lead + "\n")

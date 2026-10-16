@@ -54,20 +54,26 @@ func (r *Runner) startDelegation(
 		return Delegation{}, false
 	}
 
+	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if assignedCount(events) >= r.lim.delegations() {
+		r.result(ctx, task, call.ID, capText(r.lim.delegations()), true)
+
+		return Delegation{}, false
+	}
+
 	providerID, model, effort := r.pickModel(ctx, task, role)
 	d := Delegation{
 		ID: call.ID, RoleKey: role.Key, RoleName: role.Name, ProviderID: providerID, Model: model, Effort: effort,
 		Brief: truncate(args.Brief, maxBrief), Status: DelegationWorking,
 	}
 
-	seed := domain.Block{Kind: domain.BlockText, Text: args.briefText()}
+	seed := domain.Block{Kind: domain.BlockText, Text: r.briefWithPlan(ctx, task, args)}
 	if err := r.deps.Scopes.Scope(d.ID).AppendBlock(ctx, task.ID, domain.RoleUser, seed); err != nil {
 		r.result(ctx, task, call.ID, "I could not brief "+role.Name+".", true)
 
 		return Delegation{}, false
 	}
 
-	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
 	if n := len(events); n > 0 {
 		d.StartSeq = events[n-1].Seq
 	}
