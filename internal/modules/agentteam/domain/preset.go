@@ -65,7 +65,8 @@ var presets = []preset{
 	},
 	{
 		key: "reviewer", name: "Reviewer", access: []string{AccessRead},
-		purpose: "Reviews the finished change for mistakes, risks and anything that does not match the request.",
+		purpose: "Reviews the finished change for mistakes, risks and anything that does not match the request, and " +
+			"judges a finished interface in five design dimensions.",
 		prompt: "You are a strict but fair code reviewer. Read the changed files and judge them against the " +
 			"request: correctness, security, clarity, missing tests. List concrete problems with file names. " +
 			"Do not change anything.",
@@ -95,7 +96,8 @@ func Presets() Team {
 	for _, p := range presets {
 		roles = append(roles, Role{
 			Key: p.key, Name: p.name, Purpose: p.purpose, Prompt: p.prompt,
-			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true, Skills: SkillsFor(p.key),
+			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true,
+			Skills: SkillsFor(p.key), Library: LibraryFor(p.key),
 		})
 	}
 

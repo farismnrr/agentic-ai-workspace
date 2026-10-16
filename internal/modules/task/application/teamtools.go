@@ -135,6 +135,8 @@ func (r *Runner) loopToolRefused(name string) bool {
 		return r.role == nil
 	case toolUseSkill:
 		return !r.hasSkillList()
+	case toolReadReference:
+		return !r.hasLibrary()
 	}
 
 	return false

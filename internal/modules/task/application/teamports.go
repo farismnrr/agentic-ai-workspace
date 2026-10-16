@@ -13,8 +13,12 @@ type AgentRole struct {
 	Name    string
 	Purpose string
 	Prompt  string
-	// Skills are the role's built-in playbooks: one is added to its prompt, several are listed to pick from.
-	Skills     []Skill
+	// Skills are the role's built-in playbooks: the ones marked Always are put in its prompt, the others are
+	// listed and loaded when the job needs them.
+	Skills []Skill
+	// Library lists what the role can look up while it works, and Lookup reads one item of it.
+	Library    []Reference
+	Lookup     func(name string) (string, bool)
 	ProviderID string
 	Model      string
 	// Effort is empty when the role has none of its own.
@@ -29,6 +33,15 @@ type Skill struct {
 	Name        string
 	Description string
 	Body        string
+	// Craft names the library items that are loaded together with the skill.
+	Craft  []string
+	Always bool
+}
+
+// Reference is one item a role can look up, such as a style family or a craft rule.
+type Reference struct {
+	Name    string
+	Summary string
 }
 
 // Roster is the team on one task: the orchestrator and the teammates it may hand work to.

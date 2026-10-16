@@ -84,6 +84,7 @@ For a medium or large task:
 3. The lead asks once whether to start building. Say what to change and the Planner revises it.
 4. If you will see a screen or page, the Designer sets the look and builds it, and writes it down in `DESIGN.md` for the Developer.
 5. Every teammate is shown the PRD with its job.
+6. A screen ends with a design review by the Reviewer. Its list of fixes goes back to the Designer, at most two rounds.
 
 When unsure, the lead picks the smaller size. There is no cap on how many jobs a team may hand out, as long as they keep getting somewhere.
 
@@ -91,7 +92,7 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | --- | --- |
 | Orchestrator (lead) | Plans, hands out work, answers you |
 | Planner | Asks you what it needs in a short form, then writes the PRD. It follows a built-in playbook (its skill) that ships with the app |
-| Designer | Sets the visual direction, writes `DESIGN.md` and builds the interface. It has three built-in skills (design brief, frontend design, UI polish) and picks the one that fits the job |
+| Designer | Sets the visual direction, writes `DESIGN.md` and builds the interface. It has built-in skills (design brief, frontend design, UI polish) and a library of craft rules, style families and page templates, and picks what fits the job |
 | Researcher | Reads the project and gathers facts |
 | Business Analyst | Turns your request into requirements |
 | Architect | Designs the change |

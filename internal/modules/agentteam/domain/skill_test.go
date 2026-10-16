@@ -8,7 +8,7 @@ import (
 
 func TestThePlannerCarriesItsPlaybook(t *testing.T) {
 	skills := SkillsFor("planner")
-	if len(skills) != 1 || skills[0].Name != "prd" || !strings.Contains(skills[0].Body, "ask_user") ||
+	if len(skills) != 1 || skills[0].Name != "prd" || !skills[0].Always || !strings.Contains(skills[0].Body, "ask_user") ||
 		strings.HasPrefix(skills[0].Body, "---") {
 		t.Fatalf("playbook = %+v", skills)
 	}
@@ -35,18 +35,80 @@ func TestASavedTeamGetsTheCurrentAccessAndPlaybook(t *testing.T) {
 	}
 }
 
-func TestTheDesignerHasThreeSkillsWithADescription(t *testing.T) {
-	names := []string{}
+func TestTheDesignerHasItsPlaybooksWithTheirCraft(t *testing.T) {
+	t.Parallel()
+
+	byName := map[string]Skill{}
 
 	for _, skill := range SkillsFor("designer") {
 		if skill.Description == "" || skill.Body == "" || strings.HasPrefix(skill.Body, "---") {
 			t.Fatalf("skill %q is incomplete: %+v", skill.Name, skill)
 		}
 
-		names = append(names, skill.Name)
+		byName[skill.Name] = skill
 	}
 
-	if !slices.Equal(names, []string{"baseline-ui", "design-brief", "frontend-design"}) {
-		t.Fatalf("designer skills = %v", names)
+	if len(byName) != 4 || !byName["designer-workflow"].Always || byName["design-brief"].Always {
+		t.Fatalf("designer skills = %v", byName)
+	}
+
+	if !slices.Contains(byName["frontend-design"].Craft, "anti-ai-slop") {
+		t.Fatalf("frontend-design loads the anti-slop rules: %v", byName["frontend-design"].Craft)
+	}
+}
+
+func TestEveryLibraryItemOfARoleCanBeRead(t *testing.T) {
+	t.Parallel()
+
+	for _, key := range []string{"designer", "reviewer"} {
+		library := LibraryFor(key)
+		if len(library) == 0 {
+			t.Fatalf("%s has no library", key)
+		}
+
+		for _, ref := range library {
+			if text, ok := ReferenceText(key, ref.Name); !ok || text == "" || ref.Summary == "" {
+				t.Errorf("%s: %s cannot be read", key, ref.Name)
+			}
+		}
+	}
+}
+
+func TestEverySkillAsksOnlyForCraftThatExists(t *testing.T) {
+	t.Parallel()
+
+	for _, skill := range append(SkillsFor("designer"), SkillsFor("reviewer")...) {
+		for _, name := range skill.Craft {
+			if _, ok := ReferenceText("designer", "craft/"+name); !ok {
+				t.Errorf("%s asks for craft/%s, which does not exist", skill.Name, name)
+			}
+		}
+	}
+}
+
+func TestTheLibraryIsLimitedToTheRolesGroups(t *testing.T) {
+	t.Parallel()
+
+	if text, ok := ReferenceText("designer", "style/minimal"); !ok || !strings.Contains(text, "### tokens.css") {
+		t.Fatalf("the Designer reads a style family: %v", ok)
+	}
+
+	if text, ok := ReferenceText("designer", "template/saas-landing"); !ok || !strings.Contains(text, "### example.html") {
+		t.Fatalf("and a template with its example: %v", ok)
+	}
+
+	denied := [][2]string{
+		{"reviewer", "style/minimal"},
+		{"planner", "craft/color"},
+		{"designer", "../x/y"},
+		{"designer", "style/../../x"},
+		{"designer", "style/none"},
+		{"designer", "craft"},
+	}
+
+	for _, denied := range denied {
+		if _, ok := ReferenceText(denied[0], denied[1]); ok {
+			t.Errorf("%s must not read %s", denied[0], denied[1])
+		}
 	}
 }

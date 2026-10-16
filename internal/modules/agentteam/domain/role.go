@@ -49,6 +49,8 @@ type Role struct {
 	// Skills are the built-in playbooks of a built-in role. They are not saved or sent out: they are read from the
 	// app each time.
 	Skills []Skill `json:"-"`
+	// Library lists the references the role may look up while it works; their text is read when asked for.
+	Library []Reference `json:"-"`
 	// Access lists the groups of tools the role may use; read is always included.
 	Access  []string `json:"access"`
 	Lead    bool     `json:"lead"`
@@ -91,11 +93,11 @@ func (r Role) normalize() (Role, error) {
 	// The orchestrator is the only lead, and a built-in role keeps the access that fits it.
 	r.Lead = isBuiltIn && built.lead
 
-	r.Skills = nil
+	r.Skills, r.Library = nil, nil
 
 	if isBuiltIn {
 		r.Access = slices.Clone(built.access)
-		r.Skills = SkillsFor(built.key)
+		r.Skills, r.Library = SkillsFor(built.key), LibraryFor(built.key)
 	}
 
 	r.Enabled = r.Enabled || r.Lead

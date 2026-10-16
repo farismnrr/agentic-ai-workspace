@@ -63,5 +63,9 @@ func (r *Runner) teammateTools() []domain.ToolDef {
 		extra = append(extra, useSkillTool())
 	}
 
+	if r.hasLibrary() {
+		extra = append(extra, readReferenceTool())
+	}
+
 	return extra
 }

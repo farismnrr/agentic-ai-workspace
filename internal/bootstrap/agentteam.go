@@ -53,6 +53,7 @@ func agentRole(role teamdomain.Role) taskapp.AgentRole {
 
 	return taskapp.AgentRole{
 		Key: role.Key, Name: role.Name, Purpose: role.Purpose, Prompt: role.Prompt, Skills: skillsFor(role),
+		Library: libraryFor(role), Lookup: lookupFor(role),
 		ProviderID: role.ProviderID, Model: role.Model, Effort: effort, Tools: toolsFor(role), Lead: role.Lead,
 	}
 }
@@ -82,8 +83,28 @@ func toolsFor(role teamdomain.Role) []string {
 func skillsFor(role teamdomain.Role) []taskapp.Skill {
 	skills := make([]taskapp.Skill, 0, len(role.Skills))
 	for _, skill := range role.Skills {
-		skills = append(skills, taskapp.Skill{Name: skill.Name, Description: skill.Description, Body: skill.Body})
+		skills = append(skills, taskapp.Skill{
+			Name: skill.Name, Description: skill.Description, Body: skill.Body, Craft: skill.Craft, Always: skill.Always,
+		})
 	}
 
 	return skills
+}
+
+func libraryFor(role teamdomain.Role) []taskapp.Reference {
+	refs := make([]taskapp.Reference, 0, len(role.Library))
+	for _, ref := range role.Library {
+		refs = append(refs, taskapp.Reference{Name: ref.Name, Summary: ref.Summary})
+	}
+
+	return refs
+}
+
+// lookupFor reads library items for a role; only built-in roles have any.
+func lookupFor(role teamdomain.Role) func(string) (string, bool) {
+	if len(role.Library) == 0 {
+		return nil
+	}
+
+	return func(name string) (string, bool) { return teamdomain.ReferenceText(role.Key, name) }
 }
