@@ -64,6 +64,7 @@ An agent team works like a small software company. A lead takes your request and
 - Turn on **Team** in the box where you type a task, or set it for every new task under Settings, Agent team.
 - Without Team, one AI does the whole task, as before.
 - The lead decides who to call and when. Only the lead talks to you.
+- The lead never changes anything itself, even a one-line fix. It reads, plans, asks you and hands every change to a teammate.
 - A teammate you did not need is simply never called.
 - Teammates do not chat with each other. The lead passes on what each one needs, so nobody works from a different picture.
 
@@ -72,7 +73,7 @@ The lead sizes your request first and tells you:
 | Size | What happens |
 | --- | --- |
 | Question | The lead answers. No plan, no team. |
-| Small | A quick change to something that exists, such as a typo or a title. The lead does it alone, with no plan list. |
+| Small | A quick change to something that exists, such as a typo or a title. The lead hands it straight to the Developer, with no Planner and no plan list. |
 | Medium | Anything new, such as a page or a script, or three or more files. The Planner asks you a few questions and writes a short PRD, then the Developer builds and QA checks. |
 | Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Reviewer looks it over. |
 

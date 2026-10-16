@@ -104,19 +104,38 @@ func parseReport(input json.RawMessage) (text, document string, ok bool) {
 	return truncate(text, maxBrief), strings.TrimSpace(args.Document), true
 }
 
-// loopToolAllowed says whether this runner may use one of the loop's own tools: only the orchestrator
-// plans, asks, finishes and delegates, and only a teammate reports.
-func (r *Runner) loopToolAllowed(name string) bool {
-	switch name {
-	case toolUpdatePlan, toolFinish, toolDelegate:
-		return r.role == nil
-	case toolAskUser:
-		return r.role == nil || r.canAsk()
-	case toolReport:
-		return r.role != nil
+const (
+	notHere          = "That tool is not available to you here."
+	leadNeverChanges = "You never change files or run commands yourself, however small the fix: hand the job " +
+		"to a teammate with delegate."
+)
+
+// refusal is why this runner may not use a tool, or empty when it may. Only the orchestrator plans, finishes and
+// delegates; only a teammate reports; and the orchestrator of a team looks, asks and hands out work but never
+// changes or runs anything itself, so it cannot take over a job it was meant to delegate.
+func (r *Runner) refusal(name string) string {
+	switch {
+	case r.loopToolRefused(name):
+		return notHere
+	case r.leads && r.deps.Tools.Risk(name) != domain.RiskNone:
+		return leadNeverChanges
 	}
 
-	return true
+	return ""
+}
+
+// loopToolRefused is whether one of the loop's own tools is not for this runner.
+func (r *Runner) loopToolRefused(name string) bool {
+	switch name {
+	case toolUpdatePlan, toolFinish, toolDelegate:
+		return r.role != nil
+	case toolAskUser:
+		return r.role != nil && !r.canAsk()
+	case toolReport:
+		return r.role == nil
+	}
+
+	return false
 }
 
 // reportBack ends a teammate's job with their report.

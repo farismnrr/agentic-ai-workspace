@@ -41,6 +41,8 @@ type Runner struct {
 	// role is set on the runner of a teammate; the orchestrator and solo tasks have none.
 	role *AgentRole
 	lim  Limits
+	// leads is set on the runner that leads a team: it hands out work but never changes anything itself.
+	leads bool
 }
 
 // NewRunner builds the agent loop.

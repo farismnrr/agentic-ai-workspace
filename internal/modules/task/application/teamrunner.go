@@ -30,6 +30,7 @@ func (r *Runner) leading(state *runState) *Runner {
 	}
 
 	lead := *r
+	lead.leads = true
 	lead.deps.Events = labelledEvents{EventStore: r.deps.Events, agent: state.roster.Lead.Name}
 
 	return &lead
