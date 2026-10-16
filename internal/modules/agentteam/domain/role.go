@@ -10,7 +10,7 @@ import (
 
 // Limits keep the instructions that reach the model small and sane.
 const (
-	MaxRoles   = 12
+	MaxRoles   = 20
 	MaxName    = 40
 	MaxPurpose = 200
 	MaxPrompt  = 2000
@@ -81,8 +81,13 @@ func (r Role) normalize() (Role, error) {
 	}
 
 	r.Access = access
-	if built, ok := presetByKey(r.Key); ok {
-		r.Access = slices.Clone(built.access) // a built-in role keeps the access that fits it
+
+	built, isBuiltIn := presetByKey(r.Key)
+	// The orchestrator is the only lead, and a built-in role keeps the access that fits it.
+	r.Lead = isBuiltIn && built.lead
+
+	if isBuiltIn {
+		r.Access = slices.Clone(built.access)
 	}
 
 	r.Enabled = r.Enabled || r.Lead

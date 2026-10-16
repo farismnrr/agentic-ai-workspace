@@ -38,7 +38,8 @@ func (s *Service) Get(ctx context.Context, userID string) (domain.Team, error) {
 		return domain.Presets(), nil
 	}
 
-	return team, nil
+	// A team saved before a built-in role existed still gets it.
+	return team.WithBuiltIns(), nil
 }
 
 // Update replaces a person's team.

@@ -64,7 +64,7 @@
     {#if !role.lead}
       <div class="flex items-center justify-between gap-3">
         <label class="flex items-center gap-2 text-sm font-medium"><input class="toggle toggle-sm toggle-primary" type="checkbox" bind:checked={role.enabled} />On the team</label>
-        <button class="btn btn-ghost btn-sm text-error" type="button" onclick={onremove}><Icon name="trash" class="size-4" />Remove</button>
+        {#if !role.preset}<button class="btn btn-ghost btn-sm text-error" type="button" onclick={onremove}><Icon name="trash" class="size-4" />Remove</button>{/if}
       </div>
     {/if}
   </div>

@@ -9,7 +9,7 @@ export const teamCopy = {
     write: { title: 'Change files', note: 'Create, edit, move and delete. You still approve each step.' },
     exec: { title: 'Run commands', note: 'Run checks and commands. You still approve each step.' },
   } as Record<string, { title: string; note: string }>,
-  builtInNote: 'Built-in role: what it may do is fixed.',
+  builtInNote: 'Built-in role: it stays on your team and what it may do is fixed.',
   newRoleName: 'New teammate',
   saved: 'Saved.',
   reset: 'Back to the built-in team.',

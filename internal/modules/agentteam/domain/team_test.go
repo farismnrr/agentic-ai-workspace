@@ -58,7 +58,7 @@ func TestNormalizeMintsUniqueKeysAndAlwaysKeepsRead(t *testing.T) {
 	t.Parallel()
 
 	team, err := domain.Team{Roles: []domain.Role{
-		{Name: "Boss", Lead: true},
+		{Key: "orchestrator", Name: "Boss", Lead: true},
 		{Name: "Data Scientist", Enabled: true, Access: []string{"exec"}},
 		{Name: "Data Scientist", Enabled: true},
 	}}.Normalize()
@@ -66,24 +66,22 @@ func TestNormalizeMintsUniqueKeysAndAlwaysKeepsRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := keysOf(team)[1:]
-	if !slices.Equal(got, []string{"data-scientist", "data-scientist-2"}) || !team.Roles[0].Enabled {
-		t.Fatalf("keys come from names and stay unique, the lead is always on: %v", got)
+	keys := keysOf(team)
+	if !slices.Contains(keys, "data-scientist") || !slices.Contains(keys, "data-scientist-2") || !team.Roles[0].Enabled {
+		t.Fatalf("keys come from names and stay unique, the lead is always on: %v", keys)
 	}
 
-	if !slices.Equal(team.Roles[1].Access, []string{"read", "exec"}) {
-		t.Fatalf("read is always included: %v", team.Roles[1].Access)
+	if mine := team.Roles[1]; !slices.Equal(mine.Access, []string{"read", "exec"}) {
+		t.Fatalf("read is always included: %v", mine.Access)
 	}
 }
 
 func TestNormalizeRefusesBadTeams(t *testing.T) {
 	t.Parallel()
 
-	lead := domain.Role{Key: "lead", Name: "Lead", Lead: true}
+	lead := domain.Role{Key: "orchestrator", Name: "Orchestrator", Lead: true}
 	cases := map[string]domain.Team{
 		"no roles":       {},
-		"no lead":        {Roles: []domain.Role{{Name: "A"}}},
-		"two leads":      {Roles: []domain.Role{lead, {Key: "b", Name: "B", Lead: true}}},
 		"duplicate key":  {Roles: []domain.Role{lead, {Key: "x", Name: "X"}, {Key: "x", Name: "Y"}}},
 		"bad key":        {Roles: []domain.Role{lead, {Key: "No Spaces", Name: "X"}}},
 		"empty name":     {Roles: []domain.Role{lead, {Name: " "}}},
@@ -99,10 +97,53 @@ func TestNormalizeRefusesBadTeams(t *testing.T) {
 	}
 }
 
+func TestOnlyTheOrchestratorLeads(t *testing.T) {
+	t.Parallel()
+
+	team, err := domain.Team{Roles: []domain.Role{{Name: "Pretender", Lead: true, Enabled: true}}}.Normalize()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lead, _ := team.Lead()
+	if lead.Key != "orchestrator" {
+		t.Fatalf("a role the person adds never leads: %+v", lead)
+	}
+}
+
+func TestBuiltInRolesCannotBeRemoved(t *testing.T) {
+	t.Parallel()
+
+	team, err := domain.Team{Roles: []domain.Role{{Name: "Only mine", Enabled: true}}}.Normalize()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keys := keysOf(team)
+	for _, built := range keysOf(domain.Presets()) {
+		if !slices.Contains(keys, built) {
+			t.Errorf("built-in role %s must stay on the team: %v", built, keys)
+		}
+	}
+
+	if lead, ok := team.Lead(); !ok || lead.Key != "orchestrator" || !slices.Contains(keys, "only-mine") {
+		t.Fatalf("the lead is restored and the person's own role stays: %v", keys)
+	}
+}
+
+func TestOlderSavedTeamsGetNewBuiltInRoles(t *testing.T) {
+	t.Parallel()
+
+	old := domain.Team{Roles: []domain.Role{{Key: "orchestrator", Name: "Orchestrator", Lead: true, Enabled: true}}}
+	if keys := keysOf(old.WithBuiltIns()); !slices.Contains(keys, "planner") || len(keys) != 9 {
+		t.Fatalf("a team saved before the Planner existed gets it: %v", keys)
+	}
+}
+
 func TestModelNeedsBothProviderAndName(t *testing.T) {
 	t.Parallel()
 
-	team, err := domain.Team{Roles: []domain.Role{{Name: "Lead", Lead: true, Model: "only-model"}}}.Normalize()
+	team, err := domain.Team{Roles: []domain.Role{{Key: "orchestrator", Name: "Lead", Model: "only-model"}}}.Normalize()
 	if err != nil {
 		t.Fatal(err)
 	}

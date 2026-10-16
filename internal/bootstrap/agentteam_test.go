@@ -38,15 +38,14 @@ func TestAgentTeamStartsAsTheSDLCPresetsAndCanBeSavedAndReset(t *testing.T) {
 	mustContain(t, reset.Body, `"key":"developer"`, `"useByDefault":false`)
 }
 
-func TestAgentTeamRefusesATeamWithoutExactlyOneLead(t *testing.T) {
+func TestAgentTeamRefusesAnEmptyOrOversizedTeam(t *testing.T) {
 	t.Parallel()
 
 	a := newAgentRig(t)
 
 	for _, body := range []string{
 		`{"roles":[]}`,
-		`{"roles":[{"key":"a","name":"A","enabled":true},{"key":"b","name":"B","enabled":true}]}`,
-		`{"roles":[{"key":"a","name":"A","lead":true},{"key":"b","name":"B","lead":true}]}`,
+		`{"roles":[{"key":"orchestrator","name":"A"},{"key":"b","name":"B","purpose":"` + strings.Repeat("x", 300) + `"}]}`,
 	} {
 		if got := do(t, a.env.app, "PUT", "/api/agent-team", body, jsonCookie(a.cookie)).Status; got != 400 {
 			t.Errorf("%s: want 400, got %d", body, got)
@@ -119,4 +118,26 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 	}
 
 	mustContain(t, do(t, a.env.app, "GET", "/api/tasks/"+id, "", jsonCookie(a.cookie)).Body, `"summary":"Made hello.txt"`)
+}
+
+func TestBuiltInRolesStayWhateverIsSaved(t *testing.T) {
+	t.Parallel()
+
+	a := newAgentRig(t)
+	cookie := jsonCookie(a.cookie)
+
+	saved := do(t, a.env.app, "PUT", "/api/agent-team",
+		`{"roles":[{"key":"orchestrator","name":"Boss","lead":true},{"name":"Mine","enabled":true}]}`, cookie)
+	mustContain(t, saved.Body, `"key":"planner"`, `"key":"developer"`, `"key":"qa"`, `"key":"mine"`)
+
+	// Another person's team is their own: what one person saves never reaches another.
+	second := cookieOf(t, do(t, a.env.app, "POST", "/api/auth/register",
+		`{"name":"Budi","email":"budi@example.com","password":"correct horse"}`, jsonHeaders()))
+	theirs := do(t, a.env.app, "GET", "/api/agent-team", "", jsonCookie(second))
+
+	mustContain(t, theirs.Body, `"name":"Orchestrator"`, `"key":"planner"`)
+
+	if strings.Contains(string(theirs.Body), `"key":"mine"`) {
+		t.Fatalf("a role one person added must not appear for another: %s", theirs.Body)
+	}
 }

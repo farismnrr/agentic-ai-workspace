@@ -1,6 +1,9 @@
 package domain
 
-import "strconv"
+import (
+	"slices"
+	"strconv"
+)
 
 // Team is a person's agent team: whether new tasks use it, and its roles in display order.
 type Team struct {
@@ -32,13 +35,33 @@ func (t Team) Members() []Role {
 	return members
 }
 
-// Normalize validates the team: 1 to MaxRoles roles, exactly one lead, unique keys.
+// WithBuiltIns is the team with every built-in role on it: any the person's team lacks is added back with
+// its defaults. Built-in roles are the same for everyone and cannot be removed, only turned off or edited.
+func (t Team) WithBuiltIns() Team {
+	roles := slices.Clone(t.Roles)
+
+	for _, built := range Presets().Roles {
+		if !slices.ContainsFunc(roles, func(role Role) bool { return role.Key == built.Key }) {
+			roles = append(roles, built)
+		}
+	}
+
+	return Team{Roles: roles, UseByDefault: t.UseByDefault}
+}
+
+// Normalize validates the team: it has every built-in role, at most MaxRoles roles, exactly one lead and
+// unique keys.
 func (t Team) Normalize() (Team, error) {
-	if len(t.Roles) == 0 || len(t.Roles) > MaxRoles {
+	if len(t.Roles) == 0 {
 		return Team{}, ErrInvalid
 	}
 
-	roles, taken, err := cleanRoles(t.Roles)
+	full := t.WithBuiltIns()
+	if len(full.Roles) > MaxRoles {
+		return Team{}, ErrInvalid
+	}
+
+	roles, taken, err := cleanRoles(full.Roles)
 	if err != nil {
 		return Team{}, err
 	}
