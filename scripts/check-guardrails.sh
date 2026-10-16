@@ -22,6 +22,7 @@ file_violations="$(
     ! -path './internal/platform/webassets/dist/*' \
     ! -path './docs/*' \
     ! -path './agents/*' \
+    ! -path './internal/modules/agentteam/domain/skills/*' \
     ! -path './README.md' \
     ! -path './AGENTS.md' \
     ! -name 'package-lock.json' \

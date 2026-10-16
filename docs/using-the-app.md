@@ -75,14 +75,15 @@ The lead sizes your request first and tells you:
 | Question | The lead answers. No plan, no team. |
 | Small | A quick change to something that exists, such as a typo or a title. The lead hands it straight to the Developer, with no Planner and no plan list. |
 | Medium | Anything new, such as a page or a script, or three or more files. The Planner asks you a few questions and writes a short PRD, then the Developer builds and QA checks. |
-| Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Reviewer looks it over. |
+| Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Designer shapes anything you will see. A Reviewer looks it over. |
 
 For a medium or large task:
 
 1. The Planner asks only what blocks the scope, such as what kind of site it is, who it is for or what to leave out. It shows one short form: pick one option, tick several, or type your own answer, then send. At most three questions for medium, five for large.
 2. It writes a short PRD: overview, goals, what is not included, acceptance criteria, requirements and a todo. It shows in the thread and under the Plan tab.
 3. The lead asks once whether to start building. Say what to change and the Planner revises it.
-4. Every teammate is shown the PRD with its job.
+4. If you will see a screen or page, the Designer sets the look and builds it, and writes it down in `DESIGN.md` for the Developer.
+5. Every teammate is shown the PRD with its job.
 
 When unsure, the lead picks the smaller size. There is no cap on how many jobs a team may hand out, as long as they keep getting somewhere.
 
@@ -90,6 +91,7 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | --- | --- |
 | Orchestrator (lead) | Plans, hands out work, answers you |
 | Planner | Asks you what it needs in a short form, then writes the PRD. It follows a built-in playbook (its skill) that ships with the app |
+| Designer | Sets the visual direction, writes `DESIGN.md` and builds the interface. It has three built-in skills (design brief, frontend design, UI polish) and picks the one that fits the job |
 | Researcher | Reads the project and gathers facts |
 | Business Analyst | Turns your request into requirements |
 | Architect | Designs the change |

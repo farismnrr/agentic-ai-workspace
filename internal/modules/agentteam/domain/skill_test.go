@@ -7,12 +7,13 @@ import (
 )
 
 func TestThePlannerCarriesItsPlaybook(t *testing.T) {
-	skill := SkillFor("planner")
-	if !strings.Contains(skill, "ask_user") || strings.HasPrefix(skill, "---") {
-		t.Fatalf("playbook = %q", skill)
+	skills := SkillsFor("planner")
+	if len(skills) != 1 || skills[0].Name != "prd" || !strings.Contains(skills[0].Body, "ask_user") ||
+		strings.HasPrefix(skills[0].Body, "---") {
+		t.Fatalf("playbook = %+v", skills)
 	}
 
-	if SkillFor("developer") != "" || SkillFor("../x") != "" {
+	if len(SkillsFor("developer")) != 0 || len(SkillsFor("../x")) != 0 {
 		t.Fatal("a role without a playbook has none")
 	}
 }
@@ -29,7 +30,23 @@ func TestASavedTeamGetsTheCurrentAccessAndPlaybook(t *testing.T) {
 		}
 	}
 
-	if !slices.Contains(planner.Access, AccessAsk) || planner.Skill == "" || planner.Prompt != "old" {
+	if !slices.Contains(planner.Access, AccessAsk) || len(planner.Skills) == 0 || planner.Prompt != "old" {
 		t.Fatalf("planner = %+v", planner)
+	}
+}
+
+func TestTheDesignerHasThreeSkillsWithADescription(t *testing.T) {
+	names := []string{}
+
+	for _, skill := range SkillsFor("designer") {
+		if skill.Description == "" || skill.Body == "" || strings.HasPrefix(skill.Body, "---") {
+			t.Fatalf("skill %q is incomplete: %+v", skill.Name, skill)
+		}
+
+		names = append(names, skill.Name)
+	}
+
+	if !slices.Equal(names, []string{"baseline-ui", "design-brief", "frontend-design"}) {
+		t.Fatalf("designer skills = %v", names)
 	}
 }

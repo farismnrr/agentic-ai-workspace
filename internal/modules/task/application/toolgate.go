@@ -27,10 +27,8 @@ func (r *Runner) offered(ctx context.Context, userID string, state *runState) ([
 	}
 
 	switch {
-	case r.canAsk():
-		return append(defs, reportTool(), askTool()), nil
 	case r.role != nil:
-		return append(defs, reportTool()), nil
+		return append(append(defs, reportTool()), r.teammateTools()...), nil
 	case state.roster != nil:
 		return append(append(defs, agentTools()...), delegateTool(state.roster.Members)), nil
 	}
@@ -52,4 +50,18 @@ func (r *Runner) skipsApprovals(ctx context.Context, userID string) bool {
 	skip, err := r.deps.Gate.SkipApprovals(ctx, userID)
 
 	return err == nil && skip
+}
+
+// teammateTools are the loop tools a teammate has besides report: asking, and picking a playbook.
+func (r *Runner) teammateTools() []domain.ToolDef {
+	extra := []domain.ToolDef{}
+	if r.canAsk() {
+		extra = append(extra, askTool())
+	}
+
+	if r.hasSkillList() {
+		extra = append(extra, useSkillTool())
+	}
+
+	return extra
 }

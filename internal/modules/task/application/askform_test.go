@@ -53,7 +53,8 @@ func TestAnswerQuestionChecksTheFormAndSummarises(t *testing.T) {
 }
 
 func TestATeammatePromptCarriesItsPlaybook(t *testing.T) {
-	role := AgentRole{Name: "Planner", Prompt: "persona", Skill: "# Playbook text", Tools: []string{toolAskUser}}
+	playbook := []Skill{{Name: "prd", Body: "# Playbook text"}}
+	role := AgentRole{Name: "Planner", Prompt: "persona", Skills: playbook, Tools: []string{toolAskUser}}
 
 	prompt := childPrompt(role, "demo", Persona{}, nil, "")
 	if !strings.Contains(prompt, "# Playbook text") || !strings.Contains(prompt, "a form of one to four questions") {

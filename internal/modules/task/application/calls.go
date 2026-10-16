@@ -47,6 +47,10 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 		return r.delegate(ctx, task, state, call)
 	case toolReport:
 		return r.reportBack(ctx, task, call)
+	case toolUseSkill:
+		r.useSkill(ctx, task, call)
+
+		return outcome{}, false
 	}
 
 	return r.tool(ctx, task, call)
