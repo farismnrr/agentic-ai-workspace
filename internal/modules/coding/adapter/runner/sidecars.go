@@ -16,6 +16,8 @@ const (
 	// DefaultCacheBytes is how large one workspace's package cache may grow before it is emptied.
 	DefaultCacheBytes = 5 << 30
 	proxyAddress      = "http://127.0.0.1:3128"
+	// loopback never goes through the registry-only proxy, so a command can reach a server it started itself.
+	loopback = "127.0.0.1,localhost,::1"
 )
 
 // Extras are the optional folders a command gets next to its workspace: a package
@@ -106,6 +108,7 @@ func environment(spec sandbox.Spec) []string {
 	if spec.Egress != "" {
 		env = append(env, "HTTPS_PROXY="+proxyAddress, "HTTP_PROXY="+proxyAddress,
 			"https_proxy="+proxyAddress, "http_proxy="+proxyAddress,
+			"NO_PROXY="+loopback, "no_proxy="+loopback,
 			"JAVA_TOOL_OPTIONS=-Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=3128")
 	}
 

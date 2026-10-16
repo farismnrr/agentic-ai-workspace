@@ -22,7 +22,8 @@ func TestPromptNamesTheInstalledToolchainsOnlyWhenKnown(t *testing.T) {
 func TestSmallWorkNeedsNoPlanButBiggerWorkDoes(t *testing.T) {
 	prompt := systemPrompt("Site", Persona{}, nil, "")
 
-	for _, want := range []string{"needs no plan", "one outcome you can check", "Keep exactly one step active"} {
+	wanted := []string{"needs no plan", "one outcome you can check", "Keep exactly one step active", "is never small"}
+	for _, want := range wanted {
 		if !strings.Contains(prompt, want) {
 			t.Errorf("the workflow should say %q", want)
 		}

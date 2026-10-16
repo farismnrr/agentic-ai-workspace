@@ -58,7 +58,10 @@ func TestLeadSizesTheRequestBeforeUsingTheTeam(t *testing.T) {
 
 	lead, mate := r.model.requests[0].System, r.model.requests[1].System
 
-	wanted := []string{"Size the request first", "Small:", "Medium:", "Large:", "pick the smaller size", "two rounds"}
+	wanted := []string{
+		"Size the request first", "Small:", "Medium:", "Large:", "pick the smaller size", "two rounds", "never Small",
+		"is not done until a check ran",
+	}
 	for _, want := range wanted {
 		if !strings.Contains(lead, want) {
 			t.Errorf("the lead should be told %q", want)
