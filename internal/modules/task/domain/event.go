@@ -68,7 +68,9 @@ type Event struct {
 	// ToolUseID links an approval or question to the model's pending tool call.
 	ToolUseID string   `json:"-"`
 	Options   []string `json:"options,omitempty"`
-	Files     []string `json:"files,omitempty"`
+	// Questions is the form of a question event; Options only fills in for questions saved before forms.
+	Questions []Question `json:"questions,omitempty"`
+	Files     []string   `json:"files,omitempty"`
 	// Undo describes how to reverse the step; only the owning tools understand it.
 	Undo   []byte `json:"-"`
 	Undone bool   `json:"undone,omitempty"`

@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 // Answer is the person's reply to a question or approval.
 type Answer struct {
-	Allow  *bool
-	Choice string
+	Allow *bool
+	// Choice answers a question with one reply; Answers holds one list of replies per question of a form.
+	Choice  string
+	Answers [][]string
 }
 
 // Answer resolves a pending approval or question and lets the agent continue.
@@ -47,13 +47,13 @@ func resolve(event *domain.Event, answer Answer) error {
 		if *answer.Allow {
 			event.Resolved = domain.Allowed
 		}
-	case event.Kind == domain.EventQuestion && event.Answered == "" && strings.TrimSpace(answer.Choice) != "":
-		choice := strings.TrimSpace(answer.Choice)
-		if utf8.RuneCountInString(choice) > maxText {
-			return domain.ErrBadRequest
+	case event.Kind == domain.EventQuestion && event.Answered == "":
+		summary, err := answerQuestion(*event, answer)
+		if err != nil {
+			return err
 		}
 
-		event.Answered = choice
+		event.Answered = summary
 	default:
 		return domain.ErrNotWaiting
 	}

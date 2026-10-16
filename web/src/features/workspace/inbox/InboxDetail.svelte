@@ -6,6 +6,7 @@
   import StatusBadge from '../components/StatusBadge.svelte';
   import { findProject, lastProblem, pendingApproval, pendingQuestion, type InboxItem } from '../logic/derive';
   import { createController } from '../logic/task-actions';
+  import { questionsOf } from '../logic/question-form';
   import type { Task, TaskEvent } from '../logic/task-types';
   import { createThread } from '../logic/thread';
   import { projects } from '../logic/workspace-store';
@@ -44,7 +45,7 @@
   {#if approval !== undefined}
     <ApprovalCard text={approval.text} action={approval.action} risk={approval.risk} onanswer={(allow: boolean) => { controller.actions.allow(approval.id, allow); }} />
   {:else if question !== undefined}
-    <QuestionCard text={question.text} options={question.options} onanswer={(choice: string) => { controller.actions.choose(question.id, choice); }} />
+    <QuestionCard questions={questionsOf(question)} onanswer={(answers: string[][]) => { controller.actions.choose(question.id, answers); }} />
   {:else if task.status === 'failed' && problem !== undefined}
     <ResultCard kind="error" text={problem.text} hint={problem.hint} onretry={controller.retry} />
   {:else if task.status === 'review'}
