@@ -8,17 +8,23 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// assignedCount is how many jobs the orchestrator has handed out on this task so far.
-func assignedCount(events []domain.Event) int {
-	count := 0
+// idleJobs is how many jobs in a row the orchestrator has handed out since anything last got anywhere: a file
+// changed, a check ran or a document was written. Reading and reporting alone is not progress.
+func idleJobs(events []domain.Event) int {
+	idle := 0
 
-	for _, event := range events {
-		if event.Kind == domain.EventHandoff && event.Action == handoffAssigned {
-			count++
+	for i := len(events) - 1; i >= 0; i-- {
+		event := events[i]
+
+		switch {
+		case event.Kind == domain.EventPRD, event.Kind == domain.EventAction && (len(event.Files) > 0 || event.Run != nil):
+			return idle
+		case event.Kind == domain.EventHandoff && event.Action == handoffAssigned:
+			idle++
 		}
 	}
 
-	return count
+	return idle
 }
 
 const maxDocument = 12_000
@@ -43,9 +49,10 @@ func (r *Runner) deliver(ctx context.Context, task domain.Task, d Delegation, re
 	return text + "\n\nThe PRD is saved and shown to the person:\n" + document
 }
 
-func capText(limit int) string {
-	return fmt.Sprintf("The team has already been given %d jobs on this task. Do the rest yourself, or finish "+
-		"and tell the person what is left.", limit)
+func stuckText(jobs int) string {
+	return fmt.Sprintf("The last %d jobs changed nothing, ran no check and wrote no document, so the team is stuck. "+
+		"Stop handing out the same kind of job: change the approach, or finish and tell the person plainly what is "+
+		"blocking and what is left.", jobs)
 }
 
 // briefWithPlan is what a teammate reads first: the brief, plus the team's shared plan as it stands, so

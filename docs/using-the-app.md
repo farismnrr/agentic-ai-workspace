@@ -84,7 +84,7 @@ For a medium or large task:
 3. The lead asks once whether to start building. Say what to change and the Planner revises it.
 4. Every teammate is shown the PRD with its job.
 
-When unsure, the lead picks the smaller size. A task can hand out at most 8 jobs.
+When unsure, the lead picks the smaller size. There is no cap on how many jobs a team may hand out, as long as they keep getting somewhere.
 
 | Role | What it does |
 | --- | --- |
@@ -113,7 +113,9 @@ Good to know:
 - The Proof tab names who ran each check.
 - A teammate still asks before changing anything, with the same Allow button.
 - Proof counts the checks any teammate ran after the last change.
-- A team task may run 100 model turns and 30 minutes, shared by everyone on it.
+- A team task may run 400 model turns and 2 hours, shared by everyone on it. A teammate may take 60 turns per job.
+- If a limit is reached, the task pauses with Continue. Nothing is lost: the work stays and the team carries on.
+- If six jobs in a row change nothing, run no check and write nothing, the lead is told the team is stuck and must change its approach or tell you what blocks it.
 
 ## Checks
 
