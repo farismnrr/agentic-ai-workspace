@@ -36,14 +36,22 @@ func (t Team) Members() []Role {
 }
 
 // WithBuiltIns is the team with every built-in role on it: any the person's team lacks is added back with
-// its defaults. Built-in roles are the same for everyone and cannot be removed, only turned off or edited.
+// its defaults, and the ones it has get the current access and playbook. Built-in roles are the same for
+// everyone and cannot be removed, only turned off or edited.
 func (t Team) WithBuiltIns() Team {
 	roles := slices.Clone(t.Roles)
 
 	for _, built := range Presets().Roles {
-		if !slices.ContainsFunc(roles, func(role Role) bool { return role.Key == built.Key }) {
+		at := slices.IndexFunc(roles, func(role Role) bool { return role.Key == built.Key })
+		if at < 0 {
 			roles = append(roles, built)
+
+			continue
 		}
+
+		// A role saved before an update keeps its prompt and model, but gets the access and playbook that ship now.
+		roles[at].Access = slices.Clone(built.Access)
+		roles[at].Skill = built.Skill
 	}
 
 	return Team{Roles: roles, UseByDefault: t.UseByDefault}

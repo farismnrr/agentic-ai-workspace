@@ -52,8 +52,8 @@ func agentRole(role teamdomain.Role) taskapp.AgentRole {
 	}
 
 	return taskapp.AgentRole{
-		Key: role.Key, Name: role.Name, Purpose: role.Purpose, Prompt: role.Prompt, ProviderID: role.ProviderID,
-		Model: role.Model, Effort: effort, Tools: toolsFor(role), Lead: role.Lead,
+		Key: role.Key, Name: role.Name, Purpose: role.Purpose, Prompt: role.Prompt, Skill: role.Skill,
+		ProviderID: role.ProviderID, Model: role.Model, Effort: effort, Tools: toolsFor(role), Lead: role.Lead,
 	}
 }
 

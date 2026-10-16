@@ -1,6 +1,7 @@
 <script lang="ts">
   import { clock } from '../../logic/time';
   import type { TaskEvent } from '../../logic/task-types';
+  import { questionsOf } from '../../logic/question-form';
   import type { ThreadActions } from '../../logic/task-actions';
   import ApprovalCard from './ApprovalCard.svelte';
   import ChatBubble from './ChatBubble.svelte';
@@ -28,7 +29,7 @@
 {:else if event.kind !== 'action'}
   <div class="ml-9">
     {#if event.kind === 'question'}
-      <QuestionCard text={event.text} options={event.options} answered={event.answered} agent={event.agent} onanswer={(choice: string) => { actions.choose(event.id, choice); }} />
+      <QuestionCard questions={questionsOf(event)} answered={event.answered} agent={event.agent} onanswer={(answers: string[][]) => { actions.choose(event.id, answers); }} />
     {:else if event.kind === 'approval'}
       <ApprovalCard text={event.text} action={event.action} risk={event.risk} resolved={event.resolved} agent={event.agent} onanswer={(allow: boolean) => { actions.allow(event.id, allow); }} />
     {:else if event.kind === 'error'}

@@ -37,8 +37,9 @@ export const sendMessage = (id: string, text: string): Promise<undefined> => req
 export const answerApproval = (id: string, eventId: string, allow: boolean): Promise<undefined> =>
   request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/answer`, { allow });
 
-export const answerQuestion = (id: string, eventId: string, choice: string): Promise<undefined> =>
-  request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/answer`, { choice });
+/** One list of replies per question of the form, in order. */
+export const answerQuestion = (id: string, eventId: string, answers: string[][]): Promise<undefined> =>
+  request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/answer`, { answers });
 
 export const undoStep = (id: string, eventId: string): Promise<undefined> =>
   request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/undo`);

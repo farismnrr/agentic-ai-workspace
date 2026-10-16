@@ -41,13 +41,28 @@ export type TaskEvent =
       undone?: boolean;
       run?: RunInfo;
     })
-  | (EventBase & { kind: 'question'; text: string; options?: string[]; answered?: string })
+  | (EventBase & { kind: 'question'; text: string; options?: string[]; questions?: Question[]; answered?: string })
   | (EventBase & { kind: 'approval'; text: string; action: string; risk: Risk; resolved?: 'allowed' | 'denied' })
   | (EventBase & { kind: 'error'; text: string; hint?: string })
   | (EventBase & { kind: 'receipt'; text: string })
   | (EventBase & { kind: 'site'; text: string; url: string })
   | (EventBase & { kind: 'prd'; text: string; technical: string })
   | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string });
+
+/** How one question of a form is answered: pick one, pick several, or type. */
+export type QuestionType = 'single' | 'multi' | 'text';
+
+export interface QuestionOption {
+  label: string;
+  description?: string;
+}
+
+export interface Question {
+  header?: string;
+  text: string;
+  type: QuestionType;
+  options?: QuestionOption[];
+}
 
 export type ActionEvent = Extract<TaskEvent, { kind: 'action' }>;
 

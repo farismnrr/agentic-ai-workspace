@@ -9,10 +9,12 @@ import (
 
 // AgentRole is one member of the agent team, as the loop needs to know it.
 type AgentRole struct {
-	Key        string
-	Name       string
-	Purpose    string
-	Prompt     string
+	Key     string
+	Name    string
+	Purpose string
+	Prompt  string
+	// Skill is the role's built-in playbook, added after its prompt.
+	Skill      string
 	ProviderID string
 	Model      string
 	// Effort is empty when the role has none of its own.

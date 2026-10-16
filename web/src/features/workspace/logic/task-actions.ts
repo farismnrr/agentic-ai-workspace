@@ -7,7 +7,7 @@ import { refresh } from './workspace-store';
 /** What the person can do from inside the thread; the page that owns the task provides these. */
 export interface ThreadActions {
   allow: (eventId: string, allow: boolean) => void;
-  choose: (eventId: string, choice: string) => void;
+  choose: (eventId: string, answers: string[][]) => void;
   undo: (eventId: string) => void;
 }
 
@@ -44,7 +44,7 @@ export function createController(taskId: string, thread: Thread): TaskController
     error,
     actions: {
       allow: (eventId, allow) => void act(() => answerApproval(taskId, eventId, allow)),
-      choose: (eventId, choice) => void act(() => answerQuestion(taskId, eventId, choice)),
+      choose: (eventId, answers) => void act(() => answerQuestion(taskId, eventId, answers)),
       undo: (eventId) => void act(() => undoStep(taskId, eventId)),
     },
     accept: () => void act(() => acceptTask(taskId)),

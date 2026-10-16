@@ -34,15 +34,16 @@ func (h *Handler) events(c fiber.Ctx) error {
 
 func (h *Handler) answer(c fiber.Ctx) error {
 	var body struct {
-		Allow  *bool  `json:"allow"`
-		Choice string `json:"choice"`
+		Allow   *bool      `json:"allow"`
+		Choice  string     `json:"choice"`
+		Answers [][]string `json:"answers"`
 	}
 	if err := c.Bind().JSON(&body); err != nil {
 		return badBody(c)
 	}
 
 	err := h.service.Answer(c.Context(), httpserver.UserID(c), c.Params("id"), c.Params("event"),
-		application.Answer{Allow: body.Allow, Choice: body.Choice})
+		application.Answer{Allow: body.Allow, Choice: body.Choice, Answers: body.Answers})
 
 	return h.done(c, err)
 }

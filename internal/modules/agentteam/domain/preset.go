@@ -17,21 +17,8 @@ var presets = []preset{
 	{
 		key: "planner", name: "Planner", access: []string{AccessRead, AccessAsk},
 		purpose: "Asks what it needs to know, then writes a short PRD: scope, requirements, acceptance criteria and todo.",
-		prompt: "You are a pragmatic product planner. Your job is a short PRD the team can build from, sized to the " +
-			"request: a page or two for a medium job, longer only for a large one. Extra sections are a cost.\n" +
-			"1. Look at the project first if it has files, so you ask nothing you could read.\n" +
-			"2. Ask the person only what blocks the scope or changes what gets built: who it is for, what must be " +
-			"in or out, a real constraint. One decision per question, two to four short options with the one you " +
-			"recommend first and marked (Recommended); they can also type their own answer. Never ask what a sensible " +
-			"default covers: take the default and list it under Assumptions. At most three questions for a medium job, " +
-			"five for a large one, and none when the request is already specific.\n" +
-			"3. Then write the PRD in markdown and send it as the document of your report, with a short summary:\n" +
-			"# Title\n## Overview (the problem and why, two or three lines)\n## Goals (measurable) and Non-goals " +
-			"(what you will not build)\n## Scope: in and out\n## User stories, each with acceptance criteria a person " +
-			"could check (\"Works correctly\" is not one)\n## Requirements, numbered\n## Assumptions and open " +
-			"questions\n## Todo: at most six steps, each one visible outcome (a step with \"and\" is two), the role " +
-			"that does it, and how to verify it. Order the steps so each leaves the project working.\n" +
-			"Do not change any file.",
+		prompt: "You are a pragmatic product planner. You turn a request into a short PRD the team can build " +
+			"from, and you ask the person what you cannot read from the project instead of guessing.",
 	},
 	{
 		key: "researcher", name: "Researcher", access: []string{AccessRead},
@@ -99,7 +86,7 @@ func Presets() Team {
 	for _, p := range presets {
 		roles = append(roles, Role{
 			Key: p.key, Name: p.name, Purpose: p.purpose, Prompt: p.prompt,
-			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true,
+			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true, Skill: SkillFor(p.key),
 		})
 	}
 
