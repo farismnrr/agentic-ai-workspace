@@ -111,3 +111,26 @@ func TestModelNeedsBothProviderAndName(t *testing.T) {
 		t.Fatalf("half a model choice means the default: %+v", team.Roles[0])
 	}
 }
+
+func TestBuiltInRolesKeepTheirAccessWhateverIsSent(t *testing.T) {
+	t.Parallel()
+
+	team, err := domain.Team{Roles: []domain.Role{
+		{Key: "orchestrator", Name: "Orchestrator", Lead: true},
+		{Key: "researcher", Name: "Researcher", Enabled: true, Access: []string{"read", "write", "exec"}},
+		{Key: "developer", Name: "Developer", Enabled: true, Access: []string{"read"}},
+		{Name: "My own", Enabled: true, Access: []string{"write"}},
+	}}.Normalize()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := [][]string{team.Roles[1].Access, team.Roles[2].Access, team.Roles[3].Access}
+	want := [][]string{{"read"}, {"read", "write", "exec"}, {"read", "write"}}
+
+	for i := range want {
+		if !slices.Equal(got[i], want[i]) {
+			t.Errorf("role %d: access %v, want %v", i, got[i], want[i])
+		}
+	}
+}

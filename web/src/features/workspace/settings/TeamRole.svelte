@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
   import ModelPicker from '../home/ModelPicker.svelte';
-  import { teamCopy } from '../content/team-copy';
+  import { accessSummary, teamCopy } from '../content/team-copy';
   import { applyPick, modelPick, newRole, type TeamRole } from '../logic/agent-team-api';
 
   interface Props {
@@ -44,7 +44,10 @@
       <span class="text-sm font-medium">Model</span>
       <ModelPicker bind:model={() => modelPick(role), (value: string) => { applyPick(role, value); }} bind:effort={role.effort} />
     </div>
-    {#if !role.lead}
+    {#if !role.lead && role.preset}
+      <p class="text-sm text-[var(--brand-text-secondary)]">{accessSummary(role.access)} <span class="text-xs text-[var(--brand-text-tertiary)]">{teamCopy.builtInNote}</span></p>
+    {/if}
+    {#if !role.lead && !role.preset}
       <fieldset class="flex flex-col gap-1.5">
         <legend class="mb-1 text-sm font-medium">What it may do</legend>
         <label class="flex items-center gap-2 text-sm text-[var(--brand-text-secondary)]">
@@ -57,6 +60,8 @@
           </label>
         {/each}
       </fieldset>
+    {/if}
+    {#if !role.lead}
       <div class="flex items-center justify-between gap-3">
         <label class="flex items-center gap-2 text-sm font-medium"><input class="toggle toggle-sm toggle-primary" type="checkbox" bind:checked={role.enabled} />On the team</label>
         <button class="btn btn-ghost btn-sm text-error" type="button" onclick={onremove}><Icon name="trash" class="size-4" />Remove</button>
