@@ -57,6 +57,20 @@ Web apps the AI starts (`modules/site`) use the same sandbox with a long-lived c
 - Proof is built only from checks the server ran after the last change. "How it was tested" only counts them ("Ran 3 checks: 2 passed, 1 failed"); each command is named under "What was checked". Claims the AI makes without running anything are listed as claimed.
 - A project's checks live in `.workspace/tasks.json`; only the Checks tab changes them.
 
+## The agent team
+
+`modules/agentteam` holds a person's roles; `modules/task` runs them. Built on the loop above, not beside it.
+
+- **Config.** `agent_roles` (one row per role, keyed `(user_id, key)`) and `agent_teams.use_by_default`. No saved team means the built-in SDLC presets (`agentteam/domain/preset.go`); saving replaces the whole team; reset deletes it. Exactly one lead, at most 12 roles. `access` is a list of groups (`read` always, plus `write`, `exec`), turned into tool names in `bootstrap/agentteam.go`; the lead is not limited by it.
+- **Per task.** `tasks.team` is set at creation (`CreateInput.Team`, else `use_by_default`). A team task with no enabled teammate runs solo. With a team the lead's model is the composer's pick, else the lead role's, else the default.
+- **Delegation.** The lead gets a `delegate{role, brief, context}` tool and runs the teammate inside the same run (`delegate.go`): a second `Runner` (`teamrunner.go`) with its own transcript, a tool gate narrowed to the role, and every event labelled `Agent`. One level only: teammates get `report`, never `delegate`, `ask_user`, `update_plan` or `finish`. Hallucinated loop tools are refused in `handle`.
+- **Transcript scope.** A teammate's blocks live in `task_transcript.scope` (the delegate call id; empty is the lead). `LoadTranscript` reads scope `''` only. `seq` stays shared per task. Compaction and the context meter follow the lead (`saveContext` skips teammates).
+- **Pause and resume.** A teammate that needs an approval returns `stopWaiting` through `delegate`; the lead's `delegate` call stays unanswered. After the answer the task is requeued and the same teammate continues from its own transcript. `task_delegations` stores the model chosen at the start, so a resume never changes model. A finished delegation is idempotent: the stored report is replayed as the tool result.
+- **Model for a role.** The role's provider and model if the person can reach it, else `Models.Default`, else the task's model. Usage is recorded against that model.
+- **Limits.** One `budget` per run, drawn by the lead and every teammate (`TeamSteps` 100, `TeamWallTime` 30 minutes). Each delegation also gets `DelegateSteps` 25 per segment; running out fails only that delegation (the lead reads an error result). Running out of the shared budget ends the run with the usual Continue hint.
+- **Report and proof.** The result of `delegate` is the teammate's report plus what the server recorded for them (files changed, checks run). Their events sit in the same thread, so `buildProof` and `workDone` count them like any others; their claims never count.
+- **Thread.** `Event.Agent` names the teammate; `EventHandoff` (`action` assigned, reported or failed) marks work changing hands.
+
 ## Models, effort and context
 
 **Providers.** Anthropic Messages and OpenAI Chat Completions over plain HTTP. Gemini uses Google's OpenAI-compatible endpoint (`/v1beta/openai`) with the same client. A gateway works if it runs on the same computer. Every outgoing model call goes through `platform/egress`, which checks the real IP when the connection opens: hosted providers may reach only public addresses, gateways only loopback and never this server's own port, with no redirects and no proxy variables. API keys are sealed with AES-256-GCM (`platform/secretbox`) using `DATA_DIR/secret.key`.
@@ -71,7 +85,7 @@ Web apps the AI starts (`modules/site`) use the same sandbox with a long-lived c
 - Every model call, including the summary that shortens a long task, uses the task's effort.
 
 **Limits and context.**
-- 40 model turns and 15 minutes per run. No total token budget per task. A project runs one task at a time. Interrupted tasks are marked and can be continued.
+- 40 model turns and 15 minutes per run (team tasks: see The agent team). No total token budget per task. A project runs one task at a time. Interrupted tasks are marked and can be continued.
 - A model's context window is the size the person chose in Settings, else the size its provider reported when the key was verified (`model_catalog`; 9router, OpenRouter and Anthropic list it in `/v1/models`), else 1M for a name ending in `[1m]`, else 200K.
 - Before a turn, when the conversation nears the window (window minus 33K), the model writes a summary of the task so far. The summary replaces the earlier messages in what is sent; the full history stays on record, and the thread shows "I shortened my notes to keep going".
 - The task row keeps the last measured size and the window (`context_used`, `context_window`), shown as a meter. If no summary comes back the task goes on, and after three misses in a run it stops trying.

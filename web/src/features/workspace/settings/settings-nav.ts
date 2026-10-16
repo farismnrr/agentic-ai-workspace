@@ -18,6 +18,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { id: 'models', label: 'AI models', icon: 'box' },
       { id: 'persona', label: 'Persona & rules', icon: 'chat' },
+      { id: 'team', label: 'Agent team', icon: 'user' },
       { id: 'spaces', label: 'Spaces & tools', icon: 'folder' },
       { id: 'connected', label: 'Connected apps', icon: 'globe' },
       { id: 'integrations', label: 'Integrations', icon: 'link' },

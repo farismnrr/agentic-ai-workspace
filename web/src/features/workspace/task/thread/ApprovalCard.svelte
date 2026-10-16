@@ -7,16 +7,18 @@
     action: string;
     risk: Risk;
     resolved?: 'allowed' | 'denied' | undefined;
+    /** The teammate asking, when it is not the lead. */
+    agent?: string | undefined;
     onanswer: (allow: boolean) => void;
   }
 
-  const { text, action, risk, resolved, onanswer }: Props = $props();
+  const { text, action, risk, resolved, agent, onanswer }: Props = $props();
 </script>
 
 <section class="card border border-warning/50 bg-base-100 p-3" aria-label="Permission request">
   <div class="flex items-start gap-2">
     <Icon name="shield" class="mt-0.5 size-5 shrink-0 text-warning" />
-    <p class="flex-1 font-medium">{text}</p>
+    <p class="flex-1 font-medium">{#if agent !== undefined}<span class="badge badge-outline badge-sm mr-1.5 align-middle">{agent}</span>{/if}{text}</p>
     {#if risk === 'high'}<span class="badge badge-sm badge-error badge-soft">Be careful</span>{/if}
   </div>
   <details class="mt-2 text-sm">

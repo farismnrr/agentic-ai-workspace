@@ -8,9 +8,11 @@ import (
 
 // process works through the tool calls that still need a result, in order. It
 // stops at the first call that has to wait for the person, or that ends the task.
-func (r *Runner) process(ctx context.Context, task domain.Task, pending []Call) (outcome, bool) {
+func (r *Runner) process(
+	ctx context.Context, task domain.Task, state *runState, pending []Call,
+) (outcome, bool) {
 	for index, call := range pending {
-		result, done := r.handle(ctx, task, call)
+		result, done := r.handle(ctx, task, state, call)
 		if !done {
 			continue
 		}
@@ -25,7 +27,13 @@ func (r *Runner) process(ctx context.Context, task domain.Task, pending []Call) 
 	return outcome{}, false
 }
 
-func (r *Runner) handle(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
+func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
+	if !r.loopToolAllowed(call.Name) {
+		r.result(ctx, task, call.ID, "That tool is not available to you here.", true)
+
+		return outcome{}, false
+	}
+
 	switch call.Name {
 	case toolUpdatePlan:
 		r.updatePlan(ctx, task, call)
@@ -35,6 +43,10 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, call Call) (outco
 		return r.askUser(ctx, task, call)
 	case toolFinish:
 		return r.finish(ctx, task, call), true
+	case toolDelegate:
+		return r.delegate(ctx, task, state, call)
+	case toolReport:
+		return r.reportBack(ctx, task, call)
 	}
 
 	return r.tool(ctx, task, call)

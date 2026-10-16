@@ -67,15 +67,16 @@ type Task struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	Proof      *Proof
-	ID         string
-	ProjectID  string
-	UserID     string
-	Title      string
-	Summary    string
 	ProviderID string
-	Model      string
 	// Source names the connected app the thread was recorded from; empty for tasks the agent ran.
-	Source string
+	Source  string
+	UserID  string
+	Title   string
+	Summary string
+	ID      string
+	Model   string
+	// ProjectID is the project the task works in.
+	ProjectID string
 	// Effort is how hard the model was asked to think; empty is the provider's default.
 	Effort Effort
 	Status Status
@@ -84,4 +85,6 @@ type Task struct {
 	// Zero until the first call.
 	ContextUsed   int64
 	ContextWindow int64
+	// Team is true when the agent hands work to teammates instead of doing it all itself.
+	Team bool
 }

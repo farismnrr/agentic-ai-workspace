@@ -2,6 +2,7 @@
   import { navigate } from '../../../app/router';
   import ComposerBox from '../components/ComposerBox.svelte';
   import ModelPicker from './ModelPicker.svelte';
+  import TeamToggle from './TeamToggle.svelte';
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
   import { describeTaskError } from '../logic/task-errors';
@@ -12,6 +13,7 @@
   let project = $state('');
   let model = $state('');
   let effort = $state('');
+  let team = $state(false);
   let busy = $state(false);
   let error = $state('');
 
@@ -28,7 +30,7 @@
     error = '';
     try {
       const [providerId = '', name = ''] = model.split('::');
-      const task = await createTask({ projectId: chosen, prompt, effort, ...(model === '' ? {} : { providerId, model: name }) });
+      const task = await createTask({ projectId: chosen, prompt, effort, team, ...(model === '' ? {} : { providerId, model: name }) });
       text = '';
       await refresh();
       navigate(`/app/projects/${task.projectId}/tasks/${task.id}`);
@@ -55,7 +57,7 @@
     {error}
     onsend={send}
   >
-    {#snippet tools()}<ModelPicker bind:model bind:effort disabled={busy} />{/snippet}
+    {#snippet tools()}<ModelPicker bind:model bind:effort disabled={busy} /><TeamToggle bind:team disabled={busy} />{/snippet}
   </ComposerBox>
   <ul class="mt-3 flex flex-wrap gap-2">
     {#each suggestions as suggestion (suggestion)}

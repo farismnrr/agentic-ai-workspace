@@ -10,17 +10,26 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// AppendBlock adds one block to the model-facing conversation.
+// AppendBlock adds one block to the orchestrator's model-facing conversation.
 func (s *Store) AppendBlock(ctx context.Context, taskID string, role domain.Role, block domain.Block) error {
+	return s.appendIn(ctx, taskID, "", role, block)
+}
+
+// LoadTranscript returns the orchestrator's conversation, joining consecutive blocks of one role into messages.
+func (s *Store) LoadTranscript(ctx context.Context, taskID string) ([]domain.Message, error) {
+	return s.loadIn(ctx, taskID, "")
+}
+
+func (s *Store) appendIn(ctx context.Context, taskID, scope string, role domain.Role, block domain.Block) error {
 	encoded, err := json.Marshal(block)
 	if err != nil {
 		return fmt.Errorf("encode block: %w", err)
 	}
 
 	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO task_transcript (task_id, seq, role, block)
-		 VALUES (?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM task_transcript WHERE task_id = ?), ?, ?)`,
-		taskID, taskID, string(role), string(encoded))
+		`INSERT INTO task_transcript (task_id, seq, role, block, scope)
+		 VALUES (?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM task_transcript WHERE task_id = ?), ?, ?, ?)`,
+		taskID, taskID, string(role), string(encoded), scope)
 	if err != nil {
 		return fmt.Errorf("insert block: %w", err)
 	}
@@ -28,9 +37,9 @@ func (s *Store) AppendBlock(ctx context.Context, taskID string, role domain.Role
 	return nil
 }
 
-// LoadTranscript returns the conversation, joining consecutive blocks of one role into messages.
-func (s *Store) LoadTranscript(ctx context.Context, taskID string) ([]domain.Message, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT role, block FROM task_transcript WHERE task_id = ? ORDER BY seq`, taskID)
+func (s *Store) loadIn(ctx context.Context, taskID, scope string) ([]domain.Message, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT role, block FROM task_transcript WHERE task_id = ? AND scope = ? ORDER BY seq`, taskID, scope)
 	if err != nil {
 		return nil, fmt.Errorf("select transcript: %w", err)
 	}

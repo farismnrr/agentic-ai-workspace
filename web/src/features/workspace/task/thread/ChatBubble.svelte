@@ -5,9 +5,11 @@
     who: 'you' | 'ai';
     text: string;
     time: string;
+    /** The teammate speaking, when it is not the lead. */
+    agent?: string | undefined;
   }
 
-  const { who, text, time }: Props = $props();
+  const { who, text, time, agent }: Props = $props();
 </script>
 
 {#if who === 'you'}
@@ -19,7 +21,7 @@
   <div class="flex gap-3">
     <LogoMark class="mt-0.5 size-6 shrink-0" />
     <div class="min-w-0">
-      <p class="text-xs text-[var(--brand-text-secondary)]">Masih Awam · {time}</p>
+      <p class="text-xs text-[var(--brand-text-secondary)]">Masih Awam{agent === undefined ? '' : ` · ${agent}`} · {time}</p>
       <p class="mt-0.5 text-[15px] leading-6">{text}</p>
     </div>
   </div>

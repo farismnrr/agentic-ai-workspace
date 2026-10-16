@@ -57,6 +57,40 @@ Two settings shape how a model works:
 
 The context window comes from what the provider reports, else 200K, or 1M for names ending in `[1m]`.
 
+## Agent team
+
+An agent team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.
+
+- Turn on **Team** in the box where you type a task, or set it for every new task under Settings, Agent team.
+- Without Team, one AI does the whole task, as before.
+- The lead decides who to call and when. Only the lead talks to you.
+- A teammate you did not need is simply never called.
+
+| Role | What it does |
+| --- | --- |
+| Orchestrator (lead) | Plans, hands out work, answers you |
+| Researcher | Reads the project and gathers facts |
+| Business Analyst | Turns your request into requirements |
+| Architect | Designs the change |
+| Developer | Writes the code |
+| QA Tester | Runs the checks |
+| Reviewer | Reads the finished work |
+| DevOps | Builds, scripts and running the app |
+
+Under Settings, Agent team you can change each role:
+
+- Pick its own model and effort. Leave it empty to use your default.
+- Write its personality and way of working.
+- Choose what it may do: look at files, change files, run commands.
+- Turn a role off, remove it, or add your own.
+
+Good to know:
+
+- Every step shows who did it, with a card when work changes hands.
+- A teammate still asks before changing anything, with the same Allow button.
+- Proof counts the checks any teammate ran after the last change.
+- A team task may run 100 model turns and 30 minutes, shared by everyone on it.
+
 ## Checks
 
 A check is a command a project defines, such as `go test ./...`. The AI runs checks to prove its work.

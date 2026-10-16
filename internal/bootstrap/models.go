@@ -6,6 +6,9 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	agentteamhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/agentteam/adapter/http"
+	agentteamsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/agentteam/adapter/sqlite"
+	agentteamapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/agentteam/application"
 	prefhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/preference/adapter/http"
 	prefsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/preference/adapter/sqlite"
 	prefapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/preference/application"
@@ -25,6 +28,7 @@ type modelsWiring struct {
 	ownPort   string
 	providers *providerapp.Service
 	prefs     *prefapp.Service
+	team      *agentteamapp.Service
 	mounts    []httpserver.Mount
 }
 
@@ -37,10 +41,12 @@ func newModels(db *sql.DB, cfg config.Config, auth, sameOrigin fiber.Handler) (m
 	checker := probe.New(hostedProviders, gateways(cfg.Port))
 	providers := providerapp.NewService(providersqlite.NewStore(db), cipher, checker, opaque.Generator{}, time.Now)
 	prefs := prefapp.NewService(prefsqlite.NewStore(db), opaque.Generator{}, time.Now)
+	team := agentteamapp.NewService(agentteamsqlite.NewStore(db), time.Now)
 
-	return modelsWiring{ownPort: cfg.Port, providers: providers, prefs: prefs, mounts: []httpserver.Mount{
+	return modelsWiring{ownPort: cfg.Port, providers: providers, prefs: prefs, team: team, mounts: []httpserver.Mount{
 		providerhttp.NewHandler(providers).Mount(auth, sameOrigin),
 		prefhttp.NewHandler(prefs).Mount(auth, sameOrigin),
+		agentteamhttp.NewHandler(team).Mount(auth, sameOrigin),
 	}}, nil
 }
 

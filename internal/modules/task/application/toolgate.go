@@ -10,8 +10,9 @@ import (
 const toolOffText = "This tool is turned off in Settings, Spaces & tools. " +
 	"Try another way, or ask the person to turn it on."
 
-// offered lists the project tools the person switched on, plus the agent's own loop tools.
-func (r *Runner) offered(ctx context.Context, userID string) ([]domain.ToolDef, error) {
+// offered lists the project tools the person switched on, plus the agent's own loop tools: the
+// orchestrator also gets delegate, a teammate only report.
+func (r *Runner) offered(ctx context.Context, userID string, state *runState) ([]domain.ToolDef, error) {
 	enabled, err := r.deps.Gate.Enabled(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("check tool switches: %w", err)
@@ -23,6 +24,13 @@ func (r *Runner) offered(ctx context.Context, userID string) ([]domain.ToolDef, 
 		if enabled[def.Name] {
 			defs = append(defs, def)
 		}
+	}
+
+	switch {
+	case r.role != nil:
+		return append(defs, reportTool()), nil
+	case state.roster != nil:
+		return append(append(defs, agentTools()...), delegateTool(state.roster.Members)), nil
 	}
 
 	return append(defs, agentTools()...), nil

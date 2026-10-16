@@ -9,31 +9,6 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-const (
-	defaultWallTime  = 15 * time.Minute
-	defaultMaxSteps  = 40
-	defaultRetries   = 2
-	defaultMaxResult = 24_000
-)
-
-// Limits keep one task from running away with time or steps.
-type Limits struct {
-	Backoff   func(attempt int) time.Duration
-	WallTime  time.Duration
-	MaxSteps  int
-	Retries   int
-	MaxResult int
-}
-
-// DefaultLimits are the production limits.
-func DefaultLimits() Limits {
-	return Limits{
-		Backoff:  func(attempt int) time.Duration { return time.Duration(attempt+1) * 3 * time.Second },
-		WallTime: defaultWallTime, MaxSteps: defaultMaxSteps,
-		Retries: defaultRetries, MaxResult: defaultMaxResult,
-	}
-}
-
 // Deps are the runner's collaborators.
 type Deps struct {
 	Tasks      TaskStore
@@ -52,13 +27,19 @@ type Deps struct {
 	Activity ActivitySink
 	// Computer says what the agent's run_command can use; optional.
 	Computer Computer
-	Now      func() time.Time
+	// Team, Scopes and Delegations together turn on agent teams; all three are optional.
+	Team        Team
+	Scopes      ScopedTranscripts
+	Delegations DelegationStore
+	Now         func() time.Time
 }
 
 // Runner is the agent loop: it talks to the model, runs tools, and records every
 // step, until the task needs the person, is finished, or fails.
 type Runner struct {
 	deps Deps
+	// role is set on the runner of a teammate; the orchestrator and solo tasks have none.
+	role *AgentRole
 	lim  Limits
 }
 
@@ -96,7 +77,7 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 	// The task must still be recorded as stopped even if ctx was cancelled.
 	settle := context.WithoutCancel(ctx)
 
-	runCtx, cancel := context.WithTimeout(ctx, r.lim.WallTime)
+	runCtx, cancel := context.WithTimeout(ctx, r.lim.wallTime(task.Team))
 	defer cancel()
 
 	result := r.loop(runCtx, task)
@@ -114,21 +95,10 @@ func (r *Runner) loop(ctx context.Context, task domain.Task) outcome {
 	}
 
 	// A step is one model turn; working through its tool calls does not count.
-	state := &runState{}
+	steps := r.lim.steps(task.Team)
+	state := &runState{budget: &budget{left: steps}, segment: steps, roster: r.roster(ctx, task)}
 
-	for turns := 0; turns < r.lim.MaxSteps; {
-		result, done, modelTurn := r.advance(ctx, task, state)
-		if done {
-			return result
-		}
-
-		if modelTurn {
-			turns++
-		}
-	}
-
-	return failed(fmt.Sprintf("I stopped after %d steps without finishing.", r.lim.MaxSteps),
-		"Press Continue if you want me to keep going.")
+	return r.drive(ctx, task, state, fmt.Sprintf("I stopped after %d steps without finishing.", steps))
 }
 
 // advance does one unit of work: answer pending tool calls, or ask the model for the next move.
@@ -145,7 +115,7 @@ func (r *Runner) advance(
 	}
 
 	if pending := pendingCalls(transcript); len(pending) > 0 {
-		result, done = r.process(ctx, task, pending)
+		result, done = r.process(ctx, task, state, pending)
 
 		return result, done, false
 	}
