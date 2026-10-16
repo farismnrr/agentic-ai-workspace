@@ -55,8 +55,8 @@ func (r *Runner) startDelegation(
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if assignedCount(events) >= r.lim.delegations() {
-		r.result(ctx, task, call.ID, capText(r.lim.delegations()), true)
+	if idleJobs(events) >= r.lim.idleJobs() {
+		r.result(ctx, task, call.ID, stuckText(r.lim.idleJobs()), true)
 
 		return Delegation{}, false
 	}

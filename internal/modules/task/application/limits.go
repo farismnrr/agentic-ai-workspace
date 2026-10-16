@@ -8,12 +8,14 @@ const (
 	defaultRetries   = 2
 	defaultMaxResult = 24_000
 
-	// A team task has several agents working inside one run, so it gets more room.
-	defaultTeamWallTime  = 30 * time.Minute
-	defaultTeamSteps     = 100
-	defaultDelegateSteps = 25
-	// A team that keeps handing out jobs is usually looping or over-doing a small task.
-	defaultMaxDelegations = 8
+	// A team task has several agents working inside one run and can build something big, so it gets a lot of
+	// room. Running out is a pause, not a loss: Continue picks up where the work stopped, with a fresh budget.
+	defaultTeamWallTime  = 2 * time.Hour
+	defaultTeamSteps     = 400
+	defaultDelegateSteps = 60
+	// A team does not stop for how many jobs it hands out, only when jobs stop getting anywhere: this many in a
+	// row that changed nothing, ran no check and wrote no document means it is stuck.
+	defaultMaxIdleJobs = 6
 )
 
 // Limits keep one task from running away with time or steps.
@@ -26,10 +28,10 @@ type Limits struct {
 	MaxSteps      int
 	TeamSteps     int
 	DelegateSteps int
-	// MaxDelegations is how many jobs the orchestrator may hand out on one task.
-	MaxDelegations int
-	Retries        int
-	MaxResult      int
+	// MaxIdleJobs is how many jobs in a row may hand nothing back, before the orchestrator is told it is stuck.
+	MaxIdleJobs int
+	Retries     int
+	MaxResult   int
 }
 
 // DefaultLimits are the production limits.
@@ -38,8 +40,8 @@ func DefaultLimits() Limits {
 		Backoff:  func(attempt int) time.Duration { return time.Duration(attempt+1) * 3 * time.Second },
 		WallTime: defaultWallTime, MaxSteps: defaultMaxSteps,
 		TeamWallTime: defaultTeamWallTime, TeamSteps: defaultTeamSteps, DelegateSteps: defaultDelegateSteps,
-		MaxDelegations: defaultMaxDelegations,
-		Retries:        defaultRetries, MaxResult: defaultMaxResult,
+		MaxIdleJobs: defaultMaxIdleJobs,
+		Retries:     defaultRetries, MaxResult: defaultMaxResult,
 	}
 }
 
@@ -73,10 +75,10 @@ func (l Limits) delegateSteps() int {
 	return l.MaxSteps
 }
 
-func (l Limits) delegations() int {
-	if l.MaxDelegations > 0 {
-		return l.MaxDelegations
+func (l Limits) idleJobs() int {
+	if l.MaxIdleJobs > 0 {
+		return l.MaxIdleJobs
 	}
 
-	return defaultMaxDelegations
+	return defaultMaxIdleJobs
 }

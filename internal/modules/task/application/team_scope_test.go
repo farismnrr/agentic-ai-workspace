@@ -31,21 +31,48 @@ func TestTeammateIsShownTheTeamsPlan(t *testing.T) {
 	}
 }
 
-func TestTeamCannotHandOutJobsWithoutEnd(t *testing.T) {
+func TestTeamIsStoppedOnlyWhenJobsStopGettingAnywhere(t *testing.T) {
 	t.Parallel()
 
-	r := newTeamRig(func(l *application.Limits) { l.MaxDelegations = 2 }, []application.AgentRole{developer()},
+	r := newTeamRig(func(l *application.Limits) { l.MaxIdleJobs = 2 }, []application.AgentRole{developer()},
 		delegate("d1", "developer", "One"), report("r1", "Done one"),
 		delegate("d2", "developer", "Two"), report("r2", "Done two"),
 		delegate("d3", "developer", "Three"),
-		finish("Did the rest myself"),
+		finish("Told the person what is stuck"),
 	)
 	task := r.startTeam(t, "Do many things")
 	r.run(task.ID)
 
 	third := resultFor(r.model.requests[5], "d3")
-	if !third.IsError || !strings.Contains(third.Text, "2 jobs") || len(r.model.requests) != 6 {
-		t.Fatalf("a third job is refused and no teammate starts: %+v requests=%d", third, len(r.model.requests))
+	if !third.IsError || !strings.Contains(third.Text, "last 2 jobs") || len(r.model.requests) != 6 {
+		t.Fatalf("a third job that would get nowhere is refused and no teammate starts: %+v requests=%d",
+			third, len(r.model.requests))
+	}
+}
+
+func TestAnyNumberOfJobsIsFineWhileTheyGetSomewhere(t *testing.T) {
+	t.Parallel()
+
+	var script []step
+
+	for _, id := range []string{"1", "2", "3", "4", "5"} {
+		script = append(script,
+			delegate("d"+id, "developer", "Module "+id),
+			call("c"+id, "edit_file", map[string]string{"path": "m" + id + ".py"}),
+			report("r"+id, "Built module "+id))
+	}
+
+	script = append(script, finish("All five modules are built"))
+	r := newTeamRig(func(l *application.Limits) { l.MaxIdleJobs = 2; l.TeamSteps = 60 },
+		[]application.AgentRole{developer()}, script...)
+	r.gate.skip = true
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"m.py"}}
+	task := r.startTeam(t, "Build five modules")
+	r.run(task.ID)
+
+	if got := r.task(t, task.ID); got.Status != domain.StatusReview || len(r.tools.executed) != 5 {
+		t.Fatalf("a team that keeps making progress is never cut off for its number of jobs: %v %d",
+			got.Status, len(r.tools.executed))
 	}
 }
 
