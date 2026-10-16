@@ -13,8 +13,8 @@ type AgentRole struct {
 	Name    string
 	Purpose string
 	Prompt  string
-	// Skill is the role's built-in playbook, added after its prompt.
-	Skill      string
+	// Skills are the role's built-in playbooks: one is added to its prompt, several are listed to pick from.
+	Skills     []Skill
 	ProviderID string
 	Model      string
 	// Effort is empty when the role has none of its own.
@@ -22,6 +22,13 @@ type AgentRole struct {
 	// Tools names the project tools the role may use; the lead is not limited by it.
 	Tools []string
 	Lead  bool
+}
+
+// Skill is one playbook of a role: what it is for, and the instructions themselves.
+type Skill struct {
+	Name        string
+	Description string
+	Body        string
 }
 
 // Roster is the team on one task: the orchestrator and the teammates it may hand work to.

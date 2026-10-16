@@ -52,7 +52,7 @@ func agentRole(role teamdomain.Role) taskapp.AgentRole {
 	}
 
 	return taskapp.AgentRole{
-		Key: role.Key, Name: role.Name, Purpose: role.Purpose, Prompt: role.Prompt, Skill: role.Skill,
+		Key: role.Key, Name: role.Name, Purpose: role.Purpose, Prompt: role.Prompt, Skills: skillsFor(role),
 		ProviderID: role.ProviderID, Model: role.Model, Effort: effort, Tools: toolsFor(role), Lead: role.Lead,
 	}
 }
@@ -77,4 +77,13 @@ func toolsFor(role teamdomain.Role) []string {
 	}
 
 	return names
+}
+
+func skillsFor(role teamdomain.Role) []taskapp.Skill {
+	skills := make([]taskapp.Skill, 0, len(role.Skills))
+	for _, skill := range role.Skills {
+		skills = append(skills, taskapp.Skill{Name: skill.Name, Description: skill.Description, Body: skill.Body})
+	}
+
+	return skills
 }

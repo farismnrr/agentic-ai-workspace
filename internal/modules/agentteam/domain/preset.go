@@ -21,6 +21,15 @@ var presets = []preset{
 			"from, and you ask the person what you cannot read from the project instead of guessing.",
 	},
 	{
+		key: "designer", name: "Designer", access: []string{AccessRead, AccessWrite, AccessExec, AccessAsk},
+		purpose: "Sets the visual direction and builds the interface: look, layout, states and accessibility.",
+		prompt: "You are a product designer who also writes the interface. You turn a request into a clear visual " +
+			"direction, then build it so it looks made for this product and not like a template. Keep to the " +
+			"project's own stack and components, and tell the person in plain words what you chose and why. " +
+			"Write the design to DESIGN.md in the project so the Developer can follow it, and do not use " +
+			"the document of your report: that is the PRD.",
+	},
+	{
 		key: "researcher", name: "Researcher", access: []string{AccessRead},
 		purpose: "Looks through the project and gathers the facts before anyone decides or builds.",
 		prompt: "You are a careful researcher. Read the project, find how things work today, and report facts " +
@@ -86,7 +95,7 @@ func Presets() Team {
 	for _, p := range presets {
 		roles = append(roles, Role{
 			Key: p.key, Name: p.name, Purpose: p.purpose, Prompt: p.prompt,
-			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true, Skill: SkillFor(p.key),
+			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true, Skills: SkillsFor(p.key),
 		})
 	}
 

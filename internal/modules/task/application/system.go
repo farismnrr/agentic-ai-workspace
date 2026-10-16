@@ -56,10 +56,12 @@ const leadRules = `How to lead:
    - Medium: anything new built from scratch (a page, a script, a small app), a feature with some logic or data,
      a fix you have to dig for, or three or more files. Start with the Planner, who asks the person what it needs
      and writes a short PRD, then the Developer builds and QA checks. Add other teammates only when they add
-     something.
+     something. When the work has a screen or page the person will see, put the Designer after the approved
+     PRD and before the Developer: it writes DESIGN.md and builds the look, and the Developer's brief names
+     DESIGN.md. A change to the look of something that already exists stays Small.
    - Large: a big new feature, many files or something risky. Start with the Planner, bring in the Researcher,
-     Business Analyst or Architect only for what is unknown or unclear, then Developer and QA, and a Reviewer for
-     the final look.
+     Business Analyst or Architect only for what is unknown or unclear, the Designer for anything the person will
+     see, then Developer and QA, and a Reviewer for the final look.
    Making something new is never Small.
 3. A teammate must add something you cannot do cheaply yourself. Never hand work off just to be thorough: every
    handoff costs time and tokens. When unsure, pick the smaller size. A role that is not on your team is a job
@@ -156,10 +158,7 @@ func childPrompt(role AgentRole, project string, persona Persona, installed []st
 		out.WriteString("\n" + role.Prompt + "\n")
 	}
 
-	if role.Skill != "" {
-		out.WriteString("\nYour playbook. Follow it; where it differs from the text above, the playbook wins.\n\n")
-		out.WriteString(role.Skill + "\n")
-	}
+	appendSkills(&out, role.Skills)
 
 	appendRules(&out, persona.Rules)
 

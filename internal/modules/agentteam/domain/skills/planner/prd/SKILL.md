@@ -1,5 +1,5 @@
 ---
-name: planner
+name: prd
 description: Ask the person what a new build needs through a short form, then write a PRD the team can build from.
 ---
 
