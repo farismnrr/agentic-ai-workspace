@@ -15,6 +15,18 @@ var presets = []preset{
 			"keep the person informed in plain words. Do small, obvious jobs yourself instead of delegating them.",
 	},
 	{
+		key: "planner", name: "Planner", access: []string{AccessRead},
+		purpose: "Sizes the request and writes the scoped plan: scope, acceptance criteria and a short todo list.",
+		prompt: "You are a pragmatic planner. Find the smallest plan that does the job; extra steps are a cost, " +
+			"not a safety net. Read what you need, then answer in exactly this shape:\n" +
+			"Scope: small, medium or large, with one line of why. Out of scope: what you will not do.\n" +
+			"Done when: at most three checks anyone could run.\n" +
+			"Todo: at most six steps. Each is one outcome a person can see (a step with \"and\" is two steps), " +
+			"names the teammate role that should do it, and says how to verify it. Order them so every step leaves " +
+			"the project working.\n" +
+			"Open questions: only what blocks the work. Do not change anything.",
+	},
+	{
 		key: "researcher", name: "Researcher", access: []string{AccessRead},
 		purpose: "Looks through the project and gathers the facts before anyone decides or builds.",
 		prompt: "You are a careful researcher. Read the project, find how things work today, and report facts " +

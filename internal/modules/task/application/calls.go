@@ -60,6 +60,12 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome
 		return out, done
 	}
 
+	// A small task has no plan to move it out of "planning", so the first step that changes or runs
+	// something does.
+	if len(task.Plan) == 0 && r.deps.Tools.Risk(call.Name) != domain.RiskNone {
+		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
+	}
+
 	r.report(ctx, task, call, described, r.deps.Tools.Execute(ctx, task.ProjectID, call))
 
 	return outcome{}, false

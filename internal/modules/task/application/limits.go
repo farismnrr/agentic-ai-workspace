@@ -12,6 +12,8 @@ const (
 	defaultTeamWallTime  = 30 * time.Minute
 	defaultTeamSteps     = 100
 	defaultDelegateSteps = 25
+	// A team that keeps handing out jobs is usually looping or over-doing a small task.
+	defaultMaxDelegations = 8
 )
 
 // Limits keep one task from running away with time or steps.
@@ -24,8 +26,10 @@ type Limits struct {
 	MaxSteps      int
 	TeamSteps     int
 	DelegateSteps int
-	Retries       int
-	MaxResult     int
+	// MaxDelegations is how many jobs the orchestrator may hand out on one task.
+	MaxDelegations int
+	Retries        int
+	MaxResult      int
 }
 
 // DefaultLimits are the production limits.
@@ -34,7 +38,8 @@ func DefaultLimits() Limits {
 		Backoff:  func(attempt int) time.Duration { return time.Duration(attempt+1) * 3 * time.Second },
 		WallTime: defaultWallTime, MaxSteps: defaultMaxSteps,
 		TeamWallTime: defaultTeamWallTime, TeamSteps: defaultTeamSteps, DelegateSteps: defaultDelegateSteps,
-		Retries: defaultRetries, MaxResult: defaultMaxResult,
+		MaxDelegations: defaultMaxDelegations,
+		Retries:        defaultRetries, MaxResult: defaultMaxResult,
 	}
 }
 
@@ -66,4 +71,12 @@ func (l Limits) delegateSteps() int {
 	}
 
 	return l.MaxSteps
+}
+
+func (l Limits) delegations() int {
+	if l.MaxDelegations > 0 {
+		return l.MaxDelegations
+	}
+
+	return defaultMaxDelegations
 }

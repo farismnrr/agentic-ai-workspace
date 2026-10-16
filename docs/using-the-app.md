@@ -65,10 +65,23 @@ An agent team works like a small software company. A lead takes your request and
 - Without Team, one AI does the whole task, as before.
 - The lead decides who to call and when. Only the lead talks to you.
 - A teammate you did not need is simply never called.
+- Teammates do not chat with each other. The lead passes on what each one needs, so nobody works from a different picture.
+
+The lead sizes your request first and tells you:
+
+| Size | What happens |
+| --- | --- |
+| Question | The lead answers. No plan, no team. |
+| Small | One clear change. The lead does it alone, with no plan list. |
+| Medium | The Planner writes a short plan, then the Developer builds and QA checks. |
+| Large | The Planner plans. Research, requirements and design are added only if needed. A Reviewer looks it over. |
+
+When unsure, the lead picks the smaller size. A task can hand out at most 8 jobs.
 
 | Role | What it does |
 | --- | --- |
 | Orchestrator (lead) | Plans, hands out work, answers you |
+| Planner | Sizes the request and writes the plan |
 | Researcher | Reads the project and gathers facts |
 | Business Analyst | Turns your request into requirements |
 | Architect | Designs the change |
@@ -83,6 +96,7 @@ Under Settings, Agent team you can change each role:
 - Write its personality and way of working.
 - Choose what it may do: look at files, change files, run commands.
 - Turn a role off, remove it, or add your own.
+- Reset to built-in restores the default team, including roles added in later versions.
 
 Good to know:
 
