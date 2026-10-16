@@ -46,6 +46,7 @@ export type TaskEvent =
   | (EventBase & { kind: 'error'; text: string; hint?: string })
   | (EventBase & { kind: 'receipt'; text: string })
   | (EventBase & { kind: 'site'; text: string; url: string })
+  | (EventBase & { kind: 'prd'; text: string; technical: string })
   | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string });
 
 export type ActionEvent = Extract<TaskEvent, { kind: 'action' }>;
@@ -82,6 +83,8 @@ export interface Task {
   effort: string;
   /** A lead hands the work to the AI team. */
   team: boolean;
+  /** The requirements document the team's Planner wrote, in markdown; empty when there is none. */
+  prd: string;
   plan: PlanStep[];
   proof?: Proof;
   /** Tokens the last model call carried and the model's window; both 0 before the first call. */

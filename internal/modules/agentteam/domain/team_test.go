@@ -42,7 +42,7 @@ func TestPresetAccessFollowsTheRole(t *testing.T) {
 	t.Parallel()
 
 	want := map[string][]string{
-		"planner": {"read"}, "researcher": {"read"}, "business-analyst": {"read"}, "architect": {"read"},
+		"planner": {"read", "ask"}, "researcher": {"read"}, "business-analyst": {"read", "ask"}, "architect": {"read"},
 		"reviewer": {"read"},
 		"qa":       {"read", "exec"}, "developer": {"read", "write", "exec"}, "devops": {"read", "write", "exec"},
 	}

@@ -5,10 +5,12 @@
     text: string;
     options?: string[] | undefined;
     answered?: string | undefined;
+    /** The teammate asking, when it is not the lead. */
+    agent?: string | undefined;
     onanswer: (choice: string) => void;
   }
 
-  const { text, options = [], answered, onanswer }: Props = $props();
+  const { text, options = [], answered, agent, onanswer }: Props = $props();
   let typed = $state('');
 
   function submit(event: SubmitEvent): void {
@@ -18,7 +20,7 @@
 </script>
 
 <section class="card border border-warning/50 bg-base-100 p-3" aria-label="Question for you">
-  <p class="flex items-start gap-2 font-medium"><Icon name="help-circle" class="mt-0.5 size-5 shrink-0 text-warning" />{text}</p>
+  <p class="flex items-start gap-2 font-medium"><Icon name="help-circle" class="mt-0.5 size-5 shrink-0 text-warning" />{#if agent !== undefined}<span class="badge badge-outline badge-sm mr-1.5 align-middle">{agent}</span>{/if}{text}</p>
   {#if answered !== undefined}
     <p class="mt-3 text-sm font-medium">You answered: {answered}</p>
   {:else}

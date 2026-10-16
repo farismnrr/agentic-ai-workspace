@@ -103,6 +103,10 @@ func (m *memory) SavePlan(_ context.Context, id string, plan []domain.PlanStep, 
 	return m.update(id, func(t *domain.Task) { t.Plan = plan })
 }
 
+func (m *memory) SavePRD(_ context.Context, id, prd string, _ time.Time) error {
+	return m.update(id, func(t *domain.Task) { t.PRD = prd })
+}
+
 func (m *memory) Finish(_ context.Context, id, summary string, proof *domain.Proof, _ time.Time) error {
 	return m.update(id, func(t *domain.Task) { t.Status, t.Summary, t.Proof = domain.StatusReview, summary, proof })
 }

@@ -27,7 +27,7 @@
   {/each}
 </div>
 <div class="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel" aria-label={tab}>
-  {#if tab === 'plan'}<PlanTab plan={task.plan} />
+  {#if tab === 'plan'}<PlanTab plan={task.plan} prd={task.prd} />
   {:else if tab === 'team'}<TeamTab {events} waiting={task.status === 'needs-input'} />
   {:else if tab === 'proof'}<ProofTab proof={task.proof} />
   {:else if tab === 'changes'}<ChangesTab {changes} {onundo} />

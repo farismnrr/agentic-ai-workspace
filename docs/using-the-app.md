@@ -73,15 +73,22 @@ The lead sizes your request first and tells you:
 | --- | --- |
 | Question | The lead answers. No plan, no team. |
 | Small | A quick change to something that exists, such as a typo or a title. The lead does it alone, with no plan list. |
-| Medium | Anything new, such as a page or a script, or three or more files. The Planner writes a short plan, then the Developer builds and QA checks. |
-| Large | The Planner plans. Research, requirements and design are added only if needed. A Reviewer looks it over. |
+| Medium | Anything new, such as a page or a script, or three or more files. The Planner asks you a few questions and writes a short PRD, then the Developer builds and QA checks. |
+| Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Reviewer looks it over. |
+
+For a medium or large task:
+
+1. The Planner asks only what blocks the scope, such as who it is for or what to leave out. Pick an option or type your own answer. At most three questions for medium, five for large.
+2. It writes a short PRD: overview, goals, what is not included, acceptance criteria, requirements and a todo. It shows in the thread and under the Plan tab.
+3. The lead asks once whether to start building. Say what to change and the Planner revises it.
+4. Every teammate is shown the PRD with its job.
 
 When unsure, the lead picks the smaller size. A task can hand out at most 8 jobs.
 
 | Role | What it does |
 | --- | --- |
 | Orchestrator (lead) | Plans, hands out work, answers you |
-| Planner | Sizes the request and writes the plan |
+| Planner | Asks you what it needs, then writes the PRD |
 | Researcher | Reads the project and gathers facts |
 | Business Analyst | Turns your request into requirements |
 | Architect | Designs the change |

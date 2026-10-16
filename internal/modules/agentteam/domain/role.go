@@ -25,6 +25,8 @@ const (
 	AccessRead  = "read"
 	AccessWrite = "write"
 	AccessExec  = "exec"
+	// AccessAsk lets a role ask the person questions, with options to pick from or free text.
+	AccessAsk = "ask"
 )
 
 var (
@@ -114,7 +116,7 @@ func cleanAccess(groups []string) ([]string, error) {
 	for _, group := range groups {
 		switch group {
 		case AccessRead:
-		case AccessWrite, AccessExec:
+		case AccessWrite, AccessExec, AccessAsk:
 			if !slices.Contains(clean, group) {
 				clean = append(clean, group)
 			}

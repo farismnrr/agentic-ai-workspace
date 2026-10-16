@@ -8,6 +8,7 @@ export const teamCopy = {
     read: { title: 'Look at files', note: 'Always allowed.' },
     write: { title: 'Change files', note: 'Create, edit, move and delete. You still approve each step.' },
     exec: { title: 'Run commands', note: 'Run checks and commands. You still approve each step.' },
+    ask: { title: 'Ask you questions', note: 'Asks what it needs to know, with options you can pick or your own answer.' },
   } as Record<string, { title: string; note: string }>,
   builtInNote: 'Built-in role: it stays on your team and what it may do is fixed.',
   newRoleName: 'New teammate',
@@ -25,5 +26,6 @@ export function accessSummary(access: string[]): string {
   const can = ['look at files'];
   if (access.includes('write')) can.push('change files');
   if (access.includes('exec')) can.push('run commands');
+  if (access.includes('ask')) can.push('ask you questions');
   return `Can ${can.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`;
 }

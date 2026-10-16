@@ -132,6 +132,8 @@ type TaskStore interface {
 	List(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error)
 	SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error
 	SavePlan(ctx context.Context, id string, plan []domain.PlanStep, at time.Time) error
+	// SavePRD records the product requirements document the team builds from.
+	SavePRD(ctx context.Context, id, prd string, at time.Time) error
 	Finish(ctx context.Context, id, summary string, proof *domain.Proof, at time.Time) error
 	// SetContext records how full the model's context window is, in tokens.
 	SetContext(ctx context.Context, id string, used, window int64) error

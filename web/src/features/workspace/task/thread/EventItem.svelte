@@ -5,6 +5,7 @@
   import ApprovalCard from './ApprovalCard.svelte';
   import ChatBubble from './ChatBubble.svelte';
   import HandoffCard from './HandoffCard.svelte';
+  import PrdCard from './PrdCard.svelte';
   import QuestionCard from './QuestionCard.svelte';
   import ResultCard from './ResultCard.svelte';
   import SiteCard from './SiteCard.svelte';
@@ -27,11 +28,13 @@
 {:else if event.kind !== 'action'}
   <div class="ml-9">
     {#if event.kind === 'question'}
-      <QuestionCard text={event.text} options={event.options} answered={event.answered} onanswer={(choice: string) => { actions.choose(event.id, choice); }} />
+      <QuestionCard text={event.text} options={event.options} answered={event.answered} agent={event.agent} onanswer={(choice: string) => { actions.choose(event.id, choice); }} />
     {:else if event.kind === 'approval'}
       <ApprovalCard text={event.text} action={event.action} risk={event.risk} resolved={event.resolved} agent={event.agent} onanswer={(allow: boolean) => { actions.allow(event.id, allow); }} />
     {:else if event.kind === 'error'}
       <ResultCard kind="error" text={event.text} hint={event.hint} {onretry} />
+    {:else if event.kind === 'prd'}
+      <PrdCard text={event.text} document={event.technical} agent={event.agent} />
     {:else if event.kind === 'handoff'}
       <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} />
     {:else if event.kind === 'site'}

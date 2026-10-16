@@ -75,8 +75,10 @@ type Task struct {
 	UserID  string
 	Title   string
 	Summary string
-	ID      string
-	Model   string
+	// PRD is the product requirements document the team builds from; empty until a teammate writes one.
+	PRD   string
+	ID    string
+	Model string
 	// ProjectID is the project the task works in.
 	ProjectID string
 	// Effort is how hard the model was asked to think; empty is the provider's default.
