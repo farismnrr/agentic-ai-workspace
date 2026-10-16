@@ -72,8 +72,8 @@ The lead sizes your request first and tells you:
 | Size | What happens |
 | --- | --- |
 | Question | The lead answers. No plan, no team. |
-| Small | One clear change. The lead does it alone, with no plan list. |
-| Medium | The Planner writes a short plan, then the Developer builds and QA checks. |
+| Small | A quick change to something that exists, such as a typo or a title. The lead does it alone, with no plan list. |
+| Medium | Anything new, such as a page or a script, or three or more files. The Planner writes a short plan, then the Developer builds and QA checks. |
 | Large | The Planner plans. Research, requirements and design are added only if needed. A Reviewer looks it over. |
 
 When unsure, the lead picks the smaller size. A task can hand out at most 8 jobs.

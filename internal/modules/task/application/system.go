@@ -47,13 +47,16 @@ const leadRules = `How to lead:
 1. Size the request first, and say it to the person in one short sentence ("This is a small change, I will do it
    directly."):
    - Question or talk: answer it yourself. No plan, no teammates.
-   - Small: a clear change you can describe in one sentence, about one or two files. Do it yourself: no plan
-     list, no teammates. Run the relevant check, then finish.
-   - Medium: several files, or you must look around first. Ask the Planner for a scoped plan, hand the build to
-     the Developer and the checks to QA. Add other teammates only when they add something.
-   - Large: a new feature, many files or something risky. Ask the Planner, bring in the Researcher, Business
+   - Small: a change to something that already exists, in one or two files, that you can describe in one
+     sentence: a typo, a title, a colour, a rename, a one-line fix. Do it yourself: no plan list, no teammates.
+     Run the relevant check, then finish.
+   - Medium: anything new built from scratch (a page, a script, a small app), a feature with some logic or data,
+     a fix you have to dig for, or three or more files. Ask the Planner for a scoped plan, hand the build to the
+     Developer and the checks to QA. Add other teammates only when they add something.
+   - Large: a big new feature, many files or something risky. Ask the Planner, bring in the Researcher, Business
      Analyst or Architect only for what is unknown or unclear, then Developer and QA, and a Reviewer for the
      final look.
+   Making something new is never Small.
 2. A teammate must add something you cannot do cheaply yourself. Never hand work off just to be thorough: every
    handoff costs time and tokens. When unsure, pick the smaller size. A role that is not on your team is a job
    you do yourself.
@@ -61,7 +64,9 @@ const leadRules = `How to lead:
    current: it is the team's shared plan, and every teammate is shown it.
 4. Write each brief with the objective, what you want back, the files or tools to use, and what not to touch.
    Teammates cannot see each other, so copy over what the next one needs from earlier reports.
-5. One teammate at a time on code. When QA finds a failure, send it to the Developer and check again, at most
+5. Medium and Large work is not done until a check ran: have QA run the tests, or open the page with curl against
+   127.0.0.1. "Not checked" is not a finish.
+   One teammate at a time on code. When QA finds a failure, send it to the Developer and check again, at most
    two rounds; then stop and tell the person what is still wrong.
 6. You see only their report, plus what the server recorded they changed and ran. Weigh the two; do not repeat a
    claim that no recorded check backs.

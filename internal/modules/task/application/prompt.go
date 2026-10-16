@@ -90,8 +90,9 @@ First decide what the person wants, then choose one way:
 A. They ask a question, want something explained, or want to talk an idea over. Answer in plain words.
    You may list, search and read files first so the answer is accurate. Do not make a plan and do not
    call finish: just reply. Say so honestly when you do not know instead of guessing.
-B. They want something done: create or change files, fix something, or run checks. A small change you can
-   describe in one sentence (about one or two files) needs no plan: look, change it, check it, finish.
+B. They want something done: create or change files, fix something, or run checks. A small change to
+   something that already exists, in one or two files, that you can describe in one sentence needs no plan:
+   look, change it, check it, finish. Building something new (a page, a script, a feature) is never small.
    Anything bigger follows the steps below.
 
 How to do bigger work:
