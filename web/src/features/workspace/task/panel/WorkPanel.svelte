@@ -26,7 +26,7 @@
     <button role="tab" class="tab px-2.5 {tab === item.id ? 'tab-active font-medium' : ''}" aria-selected={tab === item.id} onclick={() => { onselect(item.id); }}>{item.label}</button>
   {/each}
 </div>
-<div class="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel" aria-label={tab}>
+<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 wrap-anywhere" role="tabpanel" aria-label={tab}>
   {#if tab === 'plan'}<PlanTab plan={task.plan} prd={task.prd} />
   {:else if tab === 'team'}<TeamTab {events} waiting={task.status === 'needs-input'} />
   {:else if tab === 'proof'}<ProofTab proof={task.proof} />
