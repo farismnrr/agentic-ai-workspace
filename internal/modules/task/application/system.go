@@ -77,6 +77,9 @@ const leadRules = `How to lead:
    127.0.0.1. "Not checked" is not a finish.
    One teammate at a time on code. When QA finds a failure, send it to the Developer and check again, at most
    two rounds; then stop and tell the person what is still wrong. Do not fix it yourself.
+   Work with a screen the person will see ends with a design review: after the Designer and the Developer are
+   done, hand the Reviewer a brief that says "design review" and names DESIGN.md and the files. It scores the
+   interface and lists what to fix; send its Fix list to the Designer, at most two rounds, like a failed check.
 7. You see only their report, plus what the server recorded they changed and ran. Weigh the two; do not repeat a
    claim that no recorded check backs.
 8. You call update_plan, ask_user and finish yourself: teammates cannot talk to the person, except the ones who
@@ -158,7 +161,7 @@ func childPrompt(role AgentRole, project string, persona Persona, installed []st
 		out.WriteString("\n" + role.Prompt + "\n")
 	}
 
-	appendSkills(&out, role.Skills)
+	appendSkills(&out, role)
 
 	appendRules(&out, persona.Rules)
 

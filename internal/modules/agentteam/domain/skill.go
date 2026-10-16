@@ -18,6 +18,10 @@ type Skill struct {
 	Name        string
 	Description string
 	Body        string
+	// Craft names the library references loaded together with the skill.
+	Craft []string
+	// Always puts the skill in the role's prompt; otherwise the role loads it when the job needs it.
+	Always bool
 }
 
 // SkillsFor lists the playbooks of a built-in role in name order, or none for a role without any. They ship
@@ -39,6 +43,10 @@ func SkillsFor(key string) []Skill {
 		skill := parseSkill(string(data))
 		if skill.Name == "" {
 			skill.Name = entry.Name()
+		}
+
+		if craft, err := skillFiles.ReadFile("skills/" + key + "/" + entry.Name() + "/craft.txt"); err == nil {
+			skill.Craft = strings.Fields(string(craft))
 		}
 
 		skills = append(skills, skill)
@@ -67,6 +75,8 @@ func parseSkill(text string) Skill {
 		switch {
 		case strings.HasPrefix(line, "name:"):
 			skill.Name = scalar(strings.TrimPrefix(line, "name:"))
+		case strings.HasPrefix(line, "always:"):
+			skill.Always = scalar(strings.TrimPrefix(line, "always:")) == "true"
 		case strings.HasPrefix(line, "description:"):
 			skill.Description = describe(strings.TrimPrefix(line, "description:"), lines[index+1:])
 		}

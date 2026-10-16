@@ -51,6 +51,10 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 		r.useSkill(ctx, task, call)
 
 		return outcome{}, false
+	case toolReadReference:
+		r.readReference(ctx, task, call)
+
+		return outcome{}, false
 	}
 
 	return r.tool(ctx, task, call)
@@ -172,17 +176,6 @@ func (r *Runner) approval(
 	}
 
 	return event.Resolved, event.Resolved == ""
-}
-
-func (r *Runner) result(ctx context.Context, task domain.Task, callID, text string, isError bool) {
-	_ = r.deps.Transcript.AppendBlock(ctx, task.ID, domain.RoleUser, domain.Block{
-		Kind: domain.BlockToolResult, ID: callID, Text: truncate(text, r.lim.MaxResult), IsError: isError,
-	})
-}
-
-func (r *Runner) action(ctx context.Context, task domain.Task, event domain.Event) {
-	event.Kind, event.Time = domain.EventAction, r.deps.Now()
-	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, event)
 }
 
 func lowerFirst(text string) string {

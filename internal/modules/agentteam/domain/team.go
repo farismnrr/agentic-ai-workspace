@@ -51,7 +51,7 @@ func (t Team) WithBuiltIns() Team {
 
 		// A role saved before an update keeps its prompt and model, but gets the access and playbook that ship now.
 		roles[at].Access = slices.Clone(built.Access)
-		roles[at].Skills = built.Skills
+		roles[at].Skills, roles[at].Library = built.Skills, built.Library
 	}
 
 	return Team{Roles: roles, UseByDefault: t.UseByDefault}

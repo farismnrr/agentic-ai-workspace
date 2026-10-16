@@ -1,0 +1,11 @@
+typography: type scale, line length, tracking and weights for any text. Read for every UI.
+typography-hierarchy: make hierarchy feel authored, not assembled; entry point, levels and rhythm.
+typography-hierarchy-editorial: long reading surfaces such as blog posts, docs and e-guides.
+color: palette roles, contrast and how much accent is too much.
+anti-ai-slop: the seven cardinal sins and soft tells that make a page look machine-made; how to add soul.
+state-coverage: empty, loading, error, partial and success states for anything stateful.
+animation-discipline: motion that earns its place; durations, easing, reduced motion.
+accessibility-baseline: focus, labels, keyboard paths, contrast, targets for interactive UI.
+rtl-and-bidi: Arabic, Hebrew and Persian text and layout, mirrored UI.
+form-validation: when and how to validate and report errors in forms.
+laws-of-ux: named cognitive limits (Hick, Fitts, Von Restorff...) for pricing, dashboards, onboarding, modals.

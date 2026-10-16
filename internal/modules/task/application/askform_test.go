@@ -53,7 +53,7 @@ func TestAnswerQuestionChecksTheFormAndSummarises(t *testing.T) {
 }
 
 func TestATeammatePromptCarriesItsPlaybook(t *testing.T) {
-	playbook := []Skill{{Name: "prd", Body: "# Playbook text"}}
+	playbook := []Skill{{Name: "prd", Body: "# Playbook text", Always: true}}
 	role := AgentRole{Name: "Planner", Prompt: "persona", Skills: playbook, Tools: []string{toolAskUser}}
 
 	prompt := childPrompt(role, "demo", Persona{}, nil, "")
