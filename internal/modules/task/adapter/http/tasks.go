@@ -11,19 +11,21 @@ import (
 )
 
 type taskPayload struct {
-	CreatedAt  time.Time         `json:"createdAt"`
-	UpdatedAt  time.Time         `json:"updatedAt"`
-	Proof      *domain.Proof     `json:"proof,omitempty"`
-	ProviderID string            `json:"providerId"`
-	ProjectID  string            `json:"projectId"`
-	Title      string            `json:"title"`
-	Summary    string            `json:"summary"`
-	Status     domain.Status     `json:"status"`
-	ID         string            `json:"id"`
-	Model      string            `json:"model"`
-	Effort     string            `json:"effort"`
-	Source     string            `json:"source"`
-	Plan       []domain.PlanStep `json:"plan"`
+	CreatedAt  time.Time     `json:"createdAt"`
+	UpdatedAt  time.Time     `json:"updatedAt"`
+	Proof      *domain.Proof `json:"proof,omitempty"`
+	ProviderID string        `json:"providerId"`
+	ProjectID  string        `json:"projectId"`
+	Title      string        `json:"title"`
+	Summary    string        `json:"summary"`
+	// PRD is the requirements document the team's Planner wrote, in markdown; empty when there is none.
+	PRD    string            `json:"prd"`
+	Status domain.Status     `json:"status"`
+	ID     string            `json:"id"`
+	Model  string            `json:"model"`
+	Effort string            `json:"effort"`
+	Source string            `json:"source"`
+	Plan   []domain.PlanStep `json:"plan"`
 	// ContextUsed and ContextWindow are tokens; both are zero before the first model call.
 	ContextUsed   int64 `json:"contextUsed"`
 	ContextWindow int64 `json:"contextWindow"`
@@ -34,7 +36,8 @@ type taskPayload struct {
 func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
-		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Team: t.Team, Proof: t.Proof,
+		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Team: t.Team,
+		PRD: t.PRD, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
 	}

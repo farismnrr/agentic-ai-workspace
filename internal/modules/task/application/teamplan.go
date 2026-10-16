@@ -21,6 +21,28 @@ func assignedCount(events []domain.Event) int {
 	return count
 }
 
+const maxDocument = 12_000
+
+// deliver is what the orchestrator reads of a teammate's report. A document that came with it, such as the PRD,
+// is saved on the task and shown to the person, so everything after works from the same one.
+func (r *Runner) deliver(ctx context.Context, task domain.Task, d Delegation, result outcome) string {
+	text := reportText(result.text)
+
+	document := strings.TrimSpace(result.document)
+	if document == "" {
+		return text
+	}
+
+	document = truncate(document, maxDocument)
+	_ = r.deps.Tasks.SavePRD(ctx, task.ID, document, r.deps.Now())
+	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
+		Kind: domain.EventPRD, Text: "The " + d.RoleName + " wrote the PRD", Technical: document, Agent: d.RoleName,
+		Time: r.deps.Now(),
+	})
+
+	return text + "\n\nThe PRD is saved and shown to the person:\n" + document
+}
+
 func capText(limit int) string {
 	return fmt.Sprintf("The team has already been given %d jobs on this task. Do the rest yourself, or finish "+
 		"and tell the person what is left.", limit)
@@ -32,7 +54,15 @@ func (r *Runner) briefWithPlan(ctx context.Context, task domain.Task, args deleg
 	text := args.briefText()
 
 	current, err := r.deps.Tasks.Find(ctx, "", task.ID)
-	if err != nil || len(current.Plan) == 0 {
+	if err != nil {
+		return text
+	}
+
+	if current.PRD != "" {
+		text += "\n\nThe team's PRD:\n" + truncate(current.PRD, maxDocument)
+	}
+
+	if len(current.Plan) == 0 {
 		return text
 	}
 

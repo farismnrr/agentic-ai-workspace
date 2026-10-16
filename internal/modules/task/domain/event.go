@@ -17,6 +17,8 @@ const (
 	EventSite     EventKind = "site"
 	// EventHandoff marks work passing to a teammate, or coming back from one.
 	EventHandoff EventKind = "handoff"
+	// EventPRD is the product requirements document a teammate wrote; its text is the document.
+	EventPRD EventKind = "prd"
 )
 
 // Risk grades how careful the agent must be before a step.

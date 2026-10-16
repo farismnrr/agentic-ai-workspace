@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -48,9 +49,11 @@ func reportTool() domain.ToolDef {
 	return domain.ToolDef{
 		Name: toolReport,
 		Description: "Call when your job is done. Say what you found or did, what you ran and how it ended, " +
-			"and anything still open.",
+			"and anything still open. When your job is to write a document such as the PRD, put it in document.",
 		Schema: json.RawMessage(`{"type":"object","properties":{"summary":{"type":"string"},` +
-			`"findings":{"type":"array","items":{"type":"string"}}},"required":["summary"]}`),
+			`"findings":{"type":"array","items":{"type":"string"}},` +
+			`"document":{"type":"string","description":"A markdown document the person and the team will read."}},` +
+			`"required":["summary"]}`),
 	}
 }
 
@@ -81,31 +84,34 @@ func (a delegateArgs) briefText() string {
 	return text
 }
 
-// parseReport turns a report call into the text the orchestrator reads.
-func parseReport(input json.RawMessage) (string, bool) {
+// parseReport turns a report call into the text the orchestrator reads and the document it came with, if any.
+func parseReport(input json.RawMessage) (text, document string, ok bool) {
 	var args struct {
 		Summary  string   `json:"summary"`
+		Document string   `json:"document"`
 		Findings []string `json:"findings"`
 	}
 
 	if err := json.Unmarshal(input, &args); err != nil || strings.TrimSpace(args.Summary) == "" {
-		return "", false
+		return "", "", false
 	}
 
-	text := strings.TrimSpace(args.Summary)
+	text = strings.TrimSpace(args.Summary)
 	for _, finding := range args.Findings {
 		text += "\n- " + strings.TrimSpace(finding)
 	}
 
-	return truncate(text, maxBrief), true
+	return truncate(text, maxBrief), strings.TrimSpace(args.Document), true
 }
 
 // loopToolAllowed says whether this runner may use one of the loop's own tools: only the orchestrator
 // plans, asks, finishes and delegates, and only a teammate reports.
 func (r *Runner) loopToolAllowed(name string) bool {
 	switch name {
-	case toolUpdatePlan, toolAskUser, toolFinish, toolDelegate:
+	case toolUpdatePlan, toolFinish, toolDelegate:
 		return r.role == nil
+	case toolAskUser:
+		return r.role == nil || r.canAsk()
 	case toolReport:
 		return r.role != nil
 	}
@@ -115,7 +121,7 @@ func (r *Runner) loopToolAllowed(name string) bool {
 
 // reportBack ends a teammate's job with their report.
 func (r *Runner) reportBack(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
-	text, ok := parseReport(call.Input)
+	text, document, ok := parseReport(call.Input)
 	if !ok {
 		r.result(ctx, task, call.ID, "report needs a summary.", true)
 
@@ -124,5 +130,21 @@ func (r *Runner) reportBack(ctx context.Context, task domain.Task, call Call) (o
 
 	r.result(ctx, task, call.ID, "Report sent.", false)
 
-	return outcome{stop: stopFinished, text: text}, true
+	return outcome{stop: stopFinished, text: text, document: document}, true
+}
+
+// canAsk reports whether this runner is a teammate allowed to ask the person questions, such as the Planner.
+func (r *Runner) canAsk() bool {
+	return r.role != nil && slices.Contains(r.role.Tools, toolAskUser)
+}
+
+// askTool is the loop's ask_user tool, for the teammates who may use it.
+func askTool() domain.ToolDef {
+	for _, tool := range agentTools() {
+		if tool.Name == toolAskUser {
+			return tool
+		}
+	}
+
+	return domain.ToolDef{}
 }

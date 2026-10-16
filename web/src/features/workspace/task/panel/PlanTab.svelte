@@ -1,16 +1,25 @@
 <script lang="ts">
   import Icon from '../../../../shared/ui/Icon.svelte';
+  import DocText from '../../components/DocText.svelte';
   import type { PlanState, PlanStep } from '../../logic/task-types';
 
   interface Props {
     plan: PlanStep[];
+    /** The requirements document the team builds from, in markdown. */
+    prd?: string | undefined;
   }
 
   const labels: Record<PlanState, string> = { done: 'Done', active: 'In progress', pending: 'Not started', failed: "Didn't work" };
 
-  const { plan }: Props = $props();
+  const { plan, prd = '' }: Props = $props();
 </script>
 
+{#if prd !== ''}
+  <details class="mb-4 rounded-lg border border-[var(--brand-border)] bg-base-100 px-3 py-2">
+    <summary class="cursor-pointer font-medium">Requirements (PRD)</summary>
+    <div class="mt-2 max-h-96 overflow-y-auto"><DocText text={prd} /></div>
+  </details>
+{/if}
 {#if plan.length === 0}
   <p class="rounded-lg border border-dashed border-[var(--brand-border-strong)] p-4 text-[var(--brand-text-secondary)]">The plan appears here as soon as the AI has made one.</p>
 {:else}

@@ -51,17 +51,21 @@ const leadRules = `How to lead:
      sentence: a typo, a title, a colour, a rename, a one-line fix. Do it yourself: no plan list, no teammates.
      Run the relevant check, then finish.
    - Medium: anything new built from scratch (a page, a script, a small app), a feature with some logic or data,
-     a fix you have to dig for, or three or more files. Ask the Planner for a scoped plan, hand the build to the
-     Developer and the checks to QA. Add other teammates only when they add something.
-   - Large: a big new feature, many files or something risky. Ask the Planner, bring in the Researcher, Business
-     Analyst or Architect only for what is unknown or unclear, then Developer and QA, and a Reviewer for the
-     final look.
+     a fix you have to dig for, or three or more files. Start with the Planner, who asks the person what it needs
+     and writes a short PRD, then the Developer builds and QA checks. Add other teammates only when they add
+     something.
+   - Large: a big new feature, many files or something risky. Start with the Planner, bring in the Researcher,
+     Business Analyst or Architect only for what is unknown or unclear, then Developer and QA, and a Reviewer for
+     the final look.
    Making something new is never Small.
 2. A teammate must add something you cannot do cheaply yourself. Never hand work off just to be thorough: every
    handoff costs time and tokens. When unsure, pick the smaller size. A role that is not on your team is a job
    you do yourself.
-3. The Planner returns a scope, acceptance criteria and a short todo list. Put it into update_plan and keep it
-   current: it is the team's shared plan, and every teammate is shown it.
+3. The Planner asks the person its own questions, so do not ask them for it. It returns a PRD, which is shown to
+   the person and to every teammate with its brief. Then ask the person once, with ask_user, whether to start
+   building, offering "Start building (Recommended)" and "Change something". Do what they answer: changes go
+   back to the Planner. Only then put the PRD's todo into update_plan, and keep it current: it is the team's
+   shared plan.
 4. Write each brief with the objective, what you want back, the files or tools to use, and what not to touch.
    Teammates cannot see each other, so copy over what the next one needs from earlier reports.
 5. Medium and Large work is not done until a check ran: have QA run the tests, or open the page with curl against
@@ -94,23 +98,28 @@ func teamPrompt(roster Roster) string {
 }
 
 func accessText(tools []string) string {
+	can := "read files"
+
 	switch {
 	case slices.Contains(tools, "run_command") && slices.Contains(tools, "edit_file"):
-		return "(can read and edit files and run commands)"
+		can = "read and edit files and run commands"
 	case slices.Contains(tools, "run_command"):
-		return "(can read files and run commands)"
+		can = "read files and run commands"
 	case slices.Contains(tools, "edit_file"):
-		return "(can read and edit files)"
+		can = "read and edit files"
 	}
 
-	return "(can read files)"
+	if slices.Contains(tools, toolAskUser) {
+		can += ", and ask the person questions"
+	}
+
+	return "(can " + can + ")"
 }
 
 const childWorkflow = `
 How you work:
 1. Do only the job in the brief. Look before you change: list, search and read the relevant files first.
-2. You cannot talk to the person. When something is unclear, take the safest reasonable assumption and say so
-   in your report.
+2. %s
 3. If you can run checks, run the relevant ones after your last change.
 4. When you are done, call report with a short plain summary: what you found or did, what you ran and how it
    ended, and anything left open. Never claim a check you did not run; the server records what you ran.
@@ -140,7 +149,25 @@ func childPrompt(role AgentRole, project string, persona Persona, installed []st
 		appendGitHub(&out, installed, github)
 	}
 
-	out.WriteString(childWorkflow)
+	fmt.Fprintf(&out, childWorkflow, childTalk(role))
 
 	return out.String()
+}
+
+const (
+	cannotAsk = "You cannot talk to the person. When something is unclear, take the safest reasonable assumption " +
+		"and say so in your report."
+	canAsk = "You may ask the person with ask_user: one decision per question, two to four short options with " +
+		"the one you recommend first and marked (Recommended); they can also type their own answer. Ask only what " +
+		"blocks the work and never repeat a question. For anything else take the safest reasonable assumption " +
+		"and say so in your report."
+)
+
+// childTalk is what a teammate is told about talking to the person.
+func childTalk(role AgentRole) string {
+	if slices.Contains(role.Tools, toolAskUser) {
+		return canAsk
+	}
+
+	return cannotAsk
 }

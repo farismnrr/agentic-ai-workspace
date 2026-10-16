@@ -11,6 +11,9 @@ import (
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
+// askUserTool is the loop tool with which a role asks the person a question.
+const askUserTool = "ask_user"
+
 // agentTeam gives the agent loop a person's team, with each role's access turned into tool names.
 type agentTeam struct {
 	team *teamapp.Service
@@ -67,6 +70,10 @@ func toolsFor(role teamdomain.Role) []string {
 
 	if role.Can(teamdomain.AccessExec) {
 		names = append(names, toolStartSite, toolStopSite)
+	}
+
+	if role.Can(teamdomain.AccessAsk) {
+		names = append(names, askUserTool)
 	}
 
 	return names

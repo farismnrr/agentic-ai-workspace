@@ -27,6 +27,8 @@ func (r *Runner) offered(ctx context.Context, userID string, state *runState) ([
 	}
 
 	switch {
+	case r.canAsk():
+		return append(defs, reportTool(), askTool()), nil
 	case r.role != nil:
 		return append(defs, reportTool()), nil
 	case state.roster != nil:

@@ -59,7 +59,9 @@ const (
 type outcome struct {
 	text string
 	hint string
-	stop stop
+	// document is a markdown document a teammate sends with its report, such as the PRD.
+	document string
+	stop     stop
 }
 
 func failed(text, hint string) outcome {

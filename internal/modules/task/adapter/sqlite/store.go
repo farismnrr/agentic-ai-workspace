@@ -17,7 +17,7 @@ import (
 const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
-	`created_at, updated_at, source, context_used, context_window, effort, team`
+	`created_at, updated_at, source, context_used, context_window, effort, team, prd`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -116,6 +116,11 @@ func (s *Store) SavePlan(ctx context.Context, id string, plan []domain.PlanStep,
 	}
 
 	return s.exec(ctx, `UPDATE tasks SET plan = ?, updated_at = ? WHERE id = ?`, string(encoded), at.Unix(), id)
+}
+
+// SavePRD records the product requirements document the team builds from.
+func (s *Store) SavePRD(ctx context.Context, id, prd string, at time.Time) error {
+	return s.exec(ctx, `UPDATE tasks SET prd = ?, updated_at = ? WHERE id = ?`, prd, at.Unix(), id)
 }
 
 // Finish hands a task to review with its summary and proof.
