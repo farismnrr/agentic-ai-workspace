@@ -95,7 +95,7 @@ Under Settings, Agent team you can change each role:
 - Pick its own model and effort. Leave it empty to use your default.
 - Write its personality and way of working.
 - For a role you add, choose what it may do: look at files, change files, run commands. Built-in roles keep the access that fits them.
-- Turn a role off, remove it, or add your own.
+- Turn a role off, or add your own. Built-in roles cannot be removed, and what you add is yours alone.
 - Reset to built-in restores the default team, including roles added in later versions.
 
 Good to know:
