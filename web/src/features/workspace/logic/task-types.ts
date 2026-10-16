@@ -2,6 +2,9 @@ export type TaskStatus = 'queued' | 'planning' | 'working' | 'needs-input' | 're
 
 export type Risk = 'low' | 'medium' | 'high';
 
+/** Work handed to a teammate, handed back, or given up. */
+export type HandoffState = 'assigned' | 'reported' | 'failed';
+
 export type PlanState = 'done' | 'active' | 'pending' | 'failed';
 
 export interface PlanStep {
@@ -16,6 +19,8 @@ interface EventBase {
   seq: number;
   /** ISO timestamp. */
   time: string;
+  /** The teammate who did it; absent for the lead and for tasks without a team. */
+  agent?: string;
 }
 
 export interface RunInfo {
@@ -40,7 +45,8 @@ export type TaskEvent =
   | (EventBase & { kind: 'approval'; text: string; action: string; risk: Risk; resolved?: 'allowed' | 'denied' })
   | (EventBase & { kind: 'error'; text: string; hint?: string })
   | (EventBase & { kind: 'receipt'; text: string })
-  | (EventBase & { kind: 'site'; text: string; url: string });
+  | (EventBase & { kind: 'site'; text: string; url: string })
+  | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState });
 
 export type ActionEvent = Extract<TaskEvent, { kind: 'action' }>;
 
@@ -72,6 +78,8 @@ export interface Task {
   model: string;
   /** How hard the AI was asked to think; empty is the provider's default. */
   effort: string;
+  /** A lead hands the work to the AI team. */
+  team: boolean;
   plan: PlanStep[];
   proof?: Proof;
   /** Tokens the last model call carried and the model's window; both 0 before the first call. */

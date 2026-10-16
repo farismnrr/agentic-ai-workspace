@@ -25,12 +25,18 @@ const (
 
 // runState is what one run remembers between model turns.
 type runState struct {
+	// budget is the model turns left in the whole run; a teammate's loop shares the run's budget.
+	budget *budget
+	// roster is the team the orchestrator leads on this run; nil for a solo task and for teammates.
+	roster *Roster
 	// size is the tokens the last model call carried; zero while unknown.
 	size int64
 	// window is the model's context window in tokens, as of the last turn.
 	window int64
 	// failed counts compactions that produced no summary, so a stuck one is not retried forever.
 	failed int
+	// segment is the model turns this loop may still take; a teammate's has a share of its own.
+	segment int
 }
 
 // compaction is what summarising needs from the turn that asks for it.
@@ -87,6 +93,10 @@ func (r *Runner) compactIfNeeded(
 
 // saveContext tells the task page how full the model's window is.
 func (r *Runner) saveContext(ctx context.Context, task domain.Task, state *runState) {
+	if r.role != nil {
+		return // the meter follows the orchestrator
+	}
+
 	_ = r.deps.Tasks.SetContext(ctx, task.ID, state.size, state.window)
 }
 

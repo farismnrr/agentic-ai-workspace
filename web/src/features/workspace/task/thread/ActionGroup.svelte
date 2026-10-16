@@ -10,12 +10,14 @@
 
   const { items, onundo }: Props = $props();
   const first = $derived(items[0]?.text ?? '');
+  const agent = $derived(items[0]?.agent);
   const summary = $derived(items.length === 1 ? first : `${String(items.length)} steps · ${first}, …`);
 </script>
 
 <details class="group">
   <summary class="flex cursor-pointer list-none items-center gap-2 text-[var(--brand-text-secondary)] hover:text-base-content">
     <Icon name="check-circle" class="size-4 shrink-0 text-success" />
+    {#if agent !== undefined}<span class="badge badge-outline badge-sm shrink-0">{agent}</span>{/if}
     <span class="truncate">{summary}</span>
     <Icon name="chevron-down" class="size-3.5 shrink-0 transition-transform group-open:rotate-180" />
   </summary>

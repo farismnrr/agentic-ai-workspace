@@ -72,6 +72,7 @@ type threadEvent struct {
 	Kind     string   `json:"kind"`
 	Text     string   `json:"text"`
 	Resolved string   `json:"resolved"`
+	Agent    string   `json:"agent"`
 	Files    []string `json:"files"`
 	Seq      int64    `json:"seq"`
 	CanUndo  bool     `json:"canUndo"`

@@ -1,0 +1,73 @@
+package bootstrap
+
+import (
+	"context"
+	"fmt"
+
+	teamapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/agentteam/application"
+	teamdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/agentteam/domain"
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+)
+
+// agentTeam gives the agent loop a person's team, with each role's access turned into tool names.
+type agentTeam struct {
+	team *teamapp.Service
+}
+
+func (a agentTeam) Roster(ctx context.Context, userID string) (taskapp.Roster, error) {
+	team, err := a.team.Get(ctx, userID)
+	if err != nil {
+		return taskapp.Roster{}, fmt.Errorf("load agent team: %w", err)
+	}
+
+	var roster taskapp.Roster
+
+	for _, role := range team.Roles {
+		switch {
+		case role.Lead:
+			roster.Lead = agentRole(role)
+		case role.Enabled:
+			roster.Members = append(roster.Members, agentRole(role))
+		}
+	}
+
+	return roster, nil
+}
+
+func (a agentTeam) UseByDefault(ctx context.Context, userID string) bool {
+	team, err := a.team.Get(ctx, userID)
+
+	return err == nil && team.UseByDefault
+}
+
+func agentRole(role teamdomain.Role) taskapp.AgentRole {
+	effort := taskdomain.Effort(role.Effort)
+	if !effort.Valid() {
+		effort = taskdomain.EffortDefault
+	}
+
+	return taskapp.AgentRole{
+		Key: role.Key, Name: role.Name, Purpose: role.Purpose, Prompt: role.Prompt, ProviderID: role.ProviderID,
+		Model: role.Model, Effort: effort, Tools: toolsFor(role), Lead: role.Lead,
+	}
+}
+
+// toolsFor lists the tools a role may use: those of the access groups it has. Starting and stopping the
+// web app count as running commands.
+func toolsFor(role teamdomain.Role) []string {
+	names := []string{}
+
+	for _, tool := range codingdomain.Tools() {
+		if role.Can(string(tool.Group)) {
+			names = append(names, tool.Name)
+		}
+	}
+
+	if role.Can(teamdomain.AccessExec) {
+		names = append(names, toolStartSite, toolStopSite)
+	}
+
+	return names
+}

@@ -15,6 +15,8 @@ const (
 	EventError    EventKind = "error"
 	EventReceipt  EventKind = "receipt"
 	EventSite     EventKind = "site"
+	// EventHandoff marks work passing to a teammate, or coming back from one.
+	EventHandoff EventKind = "handoff"
 )
 
 // Risk grades how careful the agent must be before a step.
@@ -55,6 +57,8 @@ type Event struct {
 	Resolved  string    `json:"resolved,omitempty"`
 	Answered  string    `json:"answered,omitempty"`
 	Hint      string    `json:"hint,omitempty"`
+	// Agent names the teammate who did the step; empty for the orchestrator or a task without a team.
+	Agent string `json:"agent,omitempty"`
 	// URL is where a running site can be opened (EventSite only).
 	URL string `json:"url,omitempty"`
 	// ToolUseID links an approval or question to the model's pending tool call.
