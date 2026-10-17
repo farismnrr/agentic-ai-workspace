@@ -4,7 +4,8 @@
   import Icon from '../../../shared/ui/Icon.svelte';
   import { createFileStore } from '../logic/file-store';
   import { createFileView } from '../logic/file-view';
-  import { followFiles, saveFile } from '../logic/files-api';
+  import { deleteFolder, followFiles, saveFile } from '../logic/files-api';
+  import ConfirmModal from '../components/ConfirmModal.svelte';
   import FileView from './FileView.svelte';
   import TreeLevel from './TreeLevel.svelte';
 
@@ -24,6 +25,8 @@
   let naming = $state(false);
   let newPath = $state('');
   let problem = $state('');
+  let deleting = $state<string | undefined>();
+  let deleteProblem = $state('');
 
   onMount(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -34,6 +37,20 @@
     });
     return () => { clearTimeout(timer); stop(); };
   });
+
+  async function removeFolder(): Promise<void> {
+    const folder = deleting;
+    deleting = undefined;
+    if (folder === undefined) return;
+    try {
+      await deleteFolder(projectId, folder);
+      deleteProblem = '';
+      if ($shown.path?.startsWith(`${folder}/`) === true) view.close();
+      await store.reload();
+    } catch {
+      deleteProblem = 'That folder could not be deleted.';
+    }
+  }
 
   async function create(event: SubmitEvent): Promise<void> {
     event.preventDefault();
@@ -65,10 +82,21 @@
           {#if problem !== ''}<p class="text-xs text-error" role="alert">{problem}</p>{/if}
         </form>
       {/if}
-      <TreeLevel dirs={$dirs} expanded={$expanded} path="." depth={0} selected={$shown.path} {changed} ontoggle={(path: string) => void store.toggle(path)} onopen={(path: string) => void view.open(path)} />
+      {#if deleteProblem !== ''}<p class="px-1 pb-1 text-xs text-error" role="alert">{deleteProblem}</p>{/if}
+      <TreeLevel dirs={$dirs} expanded={$expanded} path="." depth={0} selected={$shown.path} {changed} ontoggle={(path: string) => void store.toggle(path)} onopen={(path: string) => void view.open(path)} ondeletefolder={(path: string) => { deleting = path; }} />
     </nav>
     <div class="min-h-0 min-w-0 {$shown.path === undefined ? 'hidden @2xl:block' : 'block'}">
       <FileView {view} onback={view.close} ondeleted={() => void store.reload()} />
     </div>
   </div>
 </div>
+
+<ConfirmModal
+  open={deleting !== undefined}
+  title="Delete this folder?"
+  body="The folder and everything inside it are removed from the project. This cannot be undone, so keep a copy if unsure."
+  confirmLabel="Delete folder"
+  cancelLabel="Keep"
+  oncancel={() => { deleting = undefined; }}
+  onconfirm={() => void removeFolder()}
+/>

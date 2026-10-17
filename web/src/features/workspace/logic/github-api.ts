@@ -9,6 +9,16 @@ export interface GitHubStatus {
   reposUrl: string;
 }
 
+export interface GitHubRepo {
+  /** owner/name */
+  name: string;
+  description: string;
+  private: boolean;
+}
+
+/** The repositories the person let the GitHub App reach, newest first. */
+export const loadRepos = async (): Promise<GitHubRepo[]> => (await request<{ repos: GitHubRepo[] }>('GET', '/api/integrations/github/repos')).repos;
+
 export const loadGitHub = (): Promise<GitHubStatus> => request<GitHubStatus>('GET', '/api/integrations/github');
 
 /** Returns the GitHub address where the person approves the connection. */

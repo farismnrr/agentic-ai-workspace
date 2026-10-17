@@ -32,6 +32,8 @@ type Provider interface {
 	Refresh(ctx context.Context, refresh string) (domain.Tokens, error)
 	Profile(ctx context.Context, access string) (domain.Profile, error)
 	Revoke(ctx context.Context, access string) error
+	// Repos lists the repositories the person let the app reach, newest first.
+	Repos(ctx context.Context, access string) ([]domain.Repo, error)
 }
 
 // Sealer encrypts tokens at rest.

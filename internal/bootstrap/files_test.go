@@ -117,3 +117,30 @@ func TestAFileCanBeDeletedAndTheOpenPagesAreToldWhenFilesChange(t *testing.T) {
 		t.Fatal("a page following the project is told when its files change")
 	}
 }
+
+func TestAFolderCanBeDeletedWithEverythingInItButOnlyWhenAsked(t *testing.T) {
+	t.Parallel()
+
+	a := newAgentRig(t)
+	a.put(t, "assets/img/a.png", "binary-ish")
+	a.put(t, "assets/b.txt", "text")
+	a.put(t, "keep.txt", "stays")
+
+	if plain := a.files(t, "DELETE", "/file?path=assets", ""); plain.Status != 400 {
+		t.Fatalf("a folder is never deleted by the plain file call: %d", plain.Status)
+	}
+
+	if wrong := a.files(t, "DELETE", "/file?path=keep.txt&folder=1", ""); wrong.Status != 400 || a.read("keep.txt") == "" {
+		t.Fatalf("a file is not a folder: %d", wrong.Status)
+	}
+
+	gone := a.files(t, "DELETE", "/file?path=assets&folder=1", "")
+	removed := a.read("assets/b.txt") == "" && a.read("assets/img/a.png") == ""
+	if gone.Status != 204 || !removed || a.read("keep.txt") != "stays" {
+		t.Fatalf("the folder goes with its files and nothing else: %d", gone.Status)
+	}
+
+	if root := a.files(t, "DELETE", "/file?path=&folder=1", ""); root.Status != 400 {
+		t.Fatalf("the project folder itself cannot be deleted: %d", root.Status)
+	}
+}

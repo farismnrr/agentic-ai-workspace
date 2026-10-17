@@ -16,6 +16,7 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
 
 1. Add a model under Settings, AI models (see [Models](#models)).
 2. Create a project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.
+   - With GitHub connected, choose "From GitHub" to start from one of your repositories. It is copied into the new project with its history.
 3. Describe what you need on Home. You can also pick a model and an effort for this task.
 4. Watch the plan and the steps. The AI asks before it edits, deletes or moves files, runs commands, or starts a web app.
 5. Review the result, then accept it or ask for changes.
@@ -43,6 +44,7 @@ About Files:
 - **The project page** has the same Files tab, so you can read the code without starting a task.
 - **Live:** when the AI or a command changes a file, the tree and the open file update at once.
 - **Your edits are safe.** If the AI changes a file you are editing, you choose: keep yours or see the new one.
+- **Delete a folder:** hover a folder and press the bin. It removes everything inside, and it cannot be undone.
 - **Hidden:** secrets such as `.env` files and keys never show.
 - **Save** with the button or Ctrl/Cmd+S.
 

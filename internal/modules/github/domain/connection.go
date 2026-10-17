@@ -39,6 +39,14 @@ func (p Profile) NoreplyEmail() string {
 	return fmt.Sprintf("%d+%s@users.noreply.github.com", p.ID, p.Login)
 }
 
+// Repo is a repository the person let the GitHub App reach.
+type Repo struct {
+	UpdatedAt   time.Time
+	FullName    string
+	Description string
+	Private     bool
+}
+
 // Tokens are the credentials GitHub issued. A zero expiry means the token never expires.
 type Tokens struct {
 	AccessExpires  time.Time

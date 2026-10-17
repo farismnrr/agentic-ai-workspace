@@ -103,14 +103,20 @@ func (h *Handler) save(c fiber.Ctx) error {
 	return c.JSON(map[string]string{"hash": domain.ContentHash(in.Content)})
 }
 
-// remove deletes one file, keeping a backup like any change.
+// remove deletes one file, keeping a backup like any change, or with folder=1 a whole folder.
 func (h *Handler) remove(c fiber.Ctx) error {
 	workspace, err := h.open(c)
 	if err != nil {
 		return fail(c, err)
 	}
 
-	if _, err = workspace.Editor.Delete(c.Query("path")); err != nil {
+	if c.Query("folder") == "1" {
+		err = workspace.Editor.DeleteFolder(c.Query("path"))
+	} else {
+		_, err = workspace.Editor.Delete(c.Query("path"))
+	}
+
+	if err != nil {
 		return fail(c, err)
 	}
 
