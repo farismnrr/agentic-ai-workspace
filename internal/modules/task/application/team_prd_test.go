@@ -12,6 +12,7 @@ import (
 func planner() application.AgentRole {
 	return application.AgentRole{
 		Key: "planner", Name: "Planner", Purpose: "Writes the PRD.", Tools: []string{"read_file", "ask_user"},
+		WritesPRD: true,
 	}
 }
 
@@ -118,5 +119,28 @@ func TestPromptsSayWhoAsksAndWhoDoesNot(t *testing.T) {
 	mayAsk, cannot := strings.Contains(planning, "You may ask the person"), strings.Contains(looking, "cannot talk")
 	if !mayAsk || !cannot {
 		t.Error("only a teammate allowed to ask is told it may")
+	}
+}
+
+func TestOnlyThePlannersDocumentBecomesThePRD(t *testing.T) {
+	t.Parallel()
+
+	reviewer := application.AgentRole{Key: "reviewer", Name: "Reviewer", Purpose: "Reviews.", Tools: []string{"read_file"}}
+	r := newTeamRig(nil, []application.AgentRole{planner(), reviewer},
+		delegate("d1", "planner", "Plan it"),
+		prdReport("r0", "# The PRD"),
+		delegate("d2", "reviewer", "Review it"),
+		call("r2", "report", map[string]string{"summary": "Reviewed", "document": "## Skor\n8/10"}),
+		finish("Done"),
+	)
+	task := r.startTeam(t, "Make a page")
+	r.run(task.ID)
+
+	if got := r.task(t, task.ID).PRD; got != "# The PRD" {
+		t.Fatalf("a review must not replace the PRD: %q", got)
+	}
+
+	if got := resultFor(r.model.requests[4], "d2"); !strings.Contains(got.Text, "8/10") {
+		t.Fatalf("the lead still reads what the Reviewer wrote: %q", got.Text)
 	}
 }
