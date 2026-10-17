@@ -32,6 +32,7 @@ func (r *Runner) report(ctx context.Context, task domain.Task, call Call, descri
 
 	r.action(ctx, task, event)
 	r.logStep(ctx, task, call, event, result.IsError)
+	r.announceFiles(task, call)
 
 	if result.Link != "" && !result.IsError {
 		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
@@ -50,4 +51,12 @@ func (r *Runner) logStep(ctx context.Context, task domain.Task, call Call, event
 		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID, Tool: call.Name,
 		Summary: event.Text, Detail: event.Technical, Failed: failed,
 	})
+}
+
+// announceFiles tells anyone looking at the project's files that a step which may have changed them has run: an
+// edit, a command or a check. Looking around changes nothing.
+func (r *Runner) announceFiles(task domain.Task, call Call) {
+	if r.deps.Notify != nil && r.deps.Tools.Risk(call.Name) != domain.RiskNone {
+		r.deps.Notify.FilesChanged(task.ProjectID)
+	}
 }

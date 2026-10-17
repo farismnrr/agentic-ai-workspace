@@ -29,7 +29,15 @@ The task page has the conversation on one side and a panel on the other. On a ph
 | Plan | The steps the AI intends to take, and where it is |
 | Proof | What changed, how it was tested, and what was checked |
 | Changes | Every edit, each with an Undo |
-| Files | The files the task touched |
+| Files | The whole project: open any file, edit it by hand and save |
+
+About Files:
+
+- **The project page** has the same Files tab, so you can read the code without starting a task.
+- **Live:** when the AI or a command changes a file, the tree and the open file update at once.
+- **Your edits are safe.** If the AI changes a file you are editing, you choose: keep yours or see the new one.
+- **Hidden:** secrets such as `.env` files and keys never show.
+- **Save** with the button or Ctrl/Cmd+S.
 
 About Proof:
 

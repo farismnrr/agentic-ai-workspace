@@ -114,6 +114,14 @@ func (h *Hub) Changed(userID, taskID string) {
 	h.Publish(UserTopic(userID), update)
 }
 
+// ProjectTopic is the topic of the files of one project.
+func ProjectTopic(projectID string) string { return "project:" + projectID }
+
+// FilesChanged implements Notifier: whoever has the project's files open should read them again.
+func (h *Hub) FilesChanged(projectID string) {
+	h.Publish(ProjectTopic(projectID), Update{})
+}
+
 // Delta implements Notifier: the model produced more text.
 func (h *Hub) Delta(taskID, text string) {
 	h.Publish(TaskTopic(taskID), Update{TaskID: taskID, Delta: text})

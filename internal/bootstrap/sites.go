@@ -86,5 +86,7 @@ func newAgentAndSites(
 		return nil, nil, nil, nil, err
 	}
 
-	return tasks, sites, []httpserver.Mount{siteMount, agentMount}, stop, nil
+	filesMount := newFiles(projects, tools, hub, auth, sameOrigin)
+
+	return tasks, sites, []httpserver.Mount{siteMount, agentMount, filesMount}, stop, nil
 }
