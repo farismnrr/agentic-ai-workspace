@@ -10,8 +10,8 @@ import (
 const (
 	defaultWorkers         = 2
 	defaultSandboxes       = 4
-	defaultSitesPerUser    = 2
-	defaultSitesTotal      = 6
+	defaultSitesPerUser    = 0
+	defaultSitesTotal      = 20
 	defaultSandboxMemoryMB = 2048
 	defaultSandboxCPUs     = 1
 	defaultPort            = "8081"

@@ -10,7 +10,8 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - A site is private by default: only you can open it, while signed in. Anyone else gets "This page is private" (403).
 - You can make a site public so anyone with the link can open it. Only you can do this, from the Sites page. The AI can't.
 - Sites run until you press Stop or the server restarts. There is no idle timeout.
-- Limits: `SITE_MAX_PER_USER` sites per person and `SITE_MAX_TOTAL` per server (defaults 2 and 6).
+- A project runs one app. Ten projects can run ten apps, so there is no limit per person by default.
+- `SITE_MAX_TOTAL` caps the apps one server runs at once (default 20); `SITE_MAX_PER_USER` can cap a person (default none).
 
 ## What a site can do
 

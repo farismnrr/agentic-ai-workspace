@@ -173,7 +173,7 @@ The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash an
 | --- | --- | --- |
 | `MAX_SANDBOXES` | Checks running at once. Extra ones wait 30 seconds, then get "busy". | 4 |
 | `AGENT_WORKERS` | Tasks the AI runs at once (one per project). | 2 |
-| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person and per server. | 2 / 6 |
+| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person and per server. 0 means no limit. | 0 / 20 |
 
 ### Other
 
