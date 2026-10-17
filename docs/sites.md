@@ -19,6 +19,13 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - The path prefix is removed before requests reach the app. Use relative links (`./style.css`); `BASE_PATH` holds the prefix.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
 
+## Screenshots
+
+- The AI can take a screenshot of your running app, on a desktop or a phone screen, to check how it looks. It shows in the thread.
+- It uses a headless browser in the sandbox. That browser has no internet, so fonts and images from other websites don't load in the screenshot, but they do for you.
+- It reaches only your project's own app.
+- Screenshots are kept with the task and deleted with it.
+
 ## How sites are kept apart from your account
 
 A site shares the domain with the main app. These protections are always on:

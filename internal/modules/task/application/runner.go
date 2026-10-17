@@ -32,6 +32,8 @@ type Deps struct {
 	Scopes      ScopedTranscripts
 	Delegations DelegationStore
 	Now         func() time.Time
+	// Shots keeps the screenshots tools produce; optional. Without it a screenshot is only described in words.
+	Shots Shots
 }
 
 // Runner is the agent loop: it talks to the model, runs tools, and records every

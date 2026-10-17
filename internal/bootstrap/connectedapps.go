@@ -48,7 +48,9 @@ func (g toolGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 		return nil, fmt.Errorf("load tool switches: %w", err)
 	}
 
-	for _, site := range []string{codingdomain.ToolStartSite.Name, codingdomain.ToolStopSite.Name} {
+	for _, site := range []string{
+		codingdomain.ToolStartSite.Name, codingdomain.ToolStopSite.Name, codingdomain.ToolScreenshot.Name,
+	} {
 		states[site] = states[codingdomain.SwitchOf(site)]
 	}
 

@@ -2,6 +2,7 @@ package anthropic
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 
@@ -34,9 +35,17 @@ type block struct {
 	ID        string          `json:"id,omitempty"`
 	Name      string          `json:"name,omitempty"`
 	ToolUseID string          `json:"tool_use_id,omitempty"`
-	Content   string          `json:"content,omitempty"`
+	Content   any             `json:"content,omitempty"`
+	Source    *imageSource    `json:"source,omitempty"`
 	Input     json.RawMessage `json:"input,omitempty"`
 	IsError   bool            `json:"is_error,omitempty"`
+}
+
+// imageSource is a picture sent inline: Anthropic reads base64 images inside tool results.
+type imageSource struct {
+	Type      string `json:"type"`
+	MediaType string `json:"media_type"`
+	Data      string `json:"data"`
 }
 
 type message struct {
@@ -136,7 +145,9 @@ func encodeBlocks(blocks []domain.Block) []block {
 		case domain.BlockToolUse:
 			out = append(out, block{Type: "tool_use", ID: item.ID, Name: item.Name, Input: objectOrEmpty(item.Input)})
 		case domain.BlockToolResult:
-			out = append(out, block{Type: "tool_result", ToolUseID: item.ID, Content: item.Text, IsError: item.IsError})
+			out = append(out, block{
+				Type: "tool_result", ToolUseID: item.ID, Content: resultContent(item), IsError: item.IsError,
+			})
 		}
 	}
 
@@ -157,4 +168,15 @@ func schemaOrEmpty(raw json.RawMessage) json.RawMessage {
 	}
 
 	return raw
+}
+
+// resultContent is a tool result's text, or for a screenshot the picture followed by the text.
+func resultContent(item domain.Block) any {
+	if len(item.Data) == 0 {
+		return item.Text
+	}
+
+	source := &imageSource{Type: "base64", MediaType: "image/png", Data: base64.StdEncoding.EncodeToString(item.Data)}
+
+	return []block{{Type: "image", Source: source}, {Type: "text", Text: item.Text}}
 }

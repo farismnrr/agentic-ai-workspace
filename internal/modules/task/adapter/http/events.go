@@ -79,3 +79,17 @@ func (h *Handler) usage(c fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"since": start, "models": out})
 }
+
+// shot sends one screenshot of a task. It is only an image, so a page may show it with an <img> tag.
+func (h *Handler) shot(c fiber.Ctx) error {
+	data, err := h.service.Shot(c.Context(), httpserver.UserID(c), c.Params("id"), c.Params("name"))
+	if err != nil {
+		return fail(c, err)
+	}
+
+	c.Set(fiber.HeaderContentType, "image/png")
+	c.Set(fiber.HeaderCacheControl, "private, max-age=31536000, immutable")
+	c.Set("X-Content-Type-Options", "nosniff")
+
+	return c.Send(data)
+}

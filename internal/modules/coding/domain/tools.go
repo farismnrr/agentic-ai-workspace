@@ -97,6 +97,16 @@ var (
 	}
 )
 
+// ToolScreenshot shows the agent the running web app, as the person's browser would. Like the site tools it has no
+// switch of its own: it follows run_command, because the app it looks at was started by one.
+var ToolScreenshot = ToolInfo{
+	Name: "screenshot", Title: "Look at the web app", Scope: ScopeRead, Group: GroupRead, ReadOnly: true,
+	Description: "Open a page of the running web app in a browser in the sandbox and get a picture of it, with " +
+		"facts the picture does not show (sideways scroll, broken images, low contrast, console errors). Start the " +
+		"app first. Pass device mobile for a phone, y to look further down a long page, overview for the whole " +
+		"page scaled down.",
+}
+
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {
 	return []ToolInfo{
@@ -108,7 +118,7 @@ func Tools() []ToolInfo {
 // SwitchOf names the switch that governs a tool. Most tools have their own; starting and stopping the web
 // app follow run_command.
 func SwitchOf(tool string) string {
-	if tool == ToolStartSite.Name || tool == ToolStopSite.Name {
+	if tool == ToolStartSite.Name || tool == ToolStopSite.Name || tool == ToolScreenshot.Name {
 		return ToolRunCommand.Name
 	}
 

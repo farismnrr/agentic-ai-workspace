@@ -69,6 +69,9 @@ func toolsFor(role teamdomain.Role) []string {
 		}
 	}
 
+	// Looking at the running app needs no more than reading, so a reviewer can do it too.
+	names = append(names, toolScreenshot)
+
 	if role.Can(teamdomain.AccessExec) {
 		names = append(names, toolStartSite, toolStopSite)
 	}

@@ -80,7 +80,7 @@
         {#if block.kind === 'actions'}
           <div class="ml-9"><ActionGroup items={block.items} onundo={actions.undo} /></div>
         {:else}
-          <EventItem event={block.event} {actions} proven={task.proof?.proven ?? false} {onretry} {onproof} />
+          <EventItem event={block.event} taskId={task.id} {actions} proven={task.proof?.proven ?? false} {onretry} {onproof} />
         {/if}
       </li>
     {/each}

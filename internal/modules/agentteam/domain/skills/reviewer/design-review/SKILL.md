@@ -5,8 +5,11 @@ description: Judge an interface in five dimensions with evidence, and list what 
 
 # Design review
 
-You review; you do not change files. Read the interface and its `DESIGN.md` (files, CSS, markup). If you can run
-commands, start the site and fetch the page. You cannot see it rendered: judge from the source and say so.
+You review; you do not change files. Read the interface and its `DESIGN.md` (files, CSS, markup). Then look at it
+with `screenshot`, if the app is running: desktop, then `device: mobile`, and `y` or `overview` for the rest of a
+long page. Judge what you see, not only the source, and use the facts that come with each picture (sideways
+scroll, low contrast, broken images, console errors). If the app is not running, say so and judge from the source;
+the Designer or Developer must start it.
 
 Score each dimension 0 to 10 with the band (0-4 broken, 5-6 works, 7-8 strong, 9-10 exceptional) and one paragraph
 of evidence that names files, selectors or lines. A dimension is independent: do not average away a failure.

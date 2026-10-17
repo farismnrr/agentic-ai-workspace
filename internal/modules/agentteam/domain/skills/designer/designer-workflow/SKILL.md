@@ -41,10 +41,14 @@ from a phone to a wide screen, visible focus, reduced motion.
 ## 5. Check yourself
 Before you report, read `craft/anti-ai-slop`, `craft/state-coverage` and `craft/accessibility-baseline` with
 `read_reference` and go through them against what you built. Fix what fails: it is your job, not the reviewer's.
-If you can run commands, start the site (`start_site`) and fetch the page with `curl` to see it answers and holds
-the key text. You cannot see it rendered, so say that plainly.
+Start the site (`start_site`), then look at it with `screenshot`: the desktop screen first, then `device: mobile`;
+use `y` to read further down a long page and `overview` for the whole composition. Check what you see against
+the direction in `DESIGN.md`: hierarchy, spacing, alignment, contrast, cut-off or overflowing text. The report that
+comes with the picture lists sideways scroll, broken images, low contrast and console errors: fix every one. Fix
+what you see, take another screenshot, and only then report. Fonts and images from other websites cannot load in
+the sandbox; they will for the person.
 
 ## 6. Report
 Call `report` with a short summary: the direction you chose and why, the files you wrote, the tokens you used,
-what you checked and how it ended, and what you could not check. Do not use the document of your report: that
+what you checked (say which screens you looked at) and how it ended, and what you could not check. Do not use the document of your report: that
 slot is the PRD. The design lives in `DESIGN.md` and in the interface; the Developer's brief will point to it.

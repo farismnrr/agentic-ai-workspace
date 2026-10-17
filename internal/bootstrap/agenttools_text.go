@@ -86,6 +86,10 @@ func describe(tool string, in toolArgs) taskapp.Described {
 		return describer(in, target)
 	}
 
+	if tool == toolScreenshot {
+		return describeShot(in)
+	}
+
 	return said("Used "+tool, "May I use "+tool+"?", tool)
 }
 

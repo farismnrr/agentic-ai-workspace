@@ -1,6 +1,7 @@
 package openai
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 
@@ -41,7 +42,7 @@ func encodeMessage(msg domain.Message) []message {
 		return []message{encodeAssistant(msg.Blocks)}
 	}
 
-	var out []message
+	var out, pictures []message
 
 	var texts []string
 
@@ -50,11 +51,17 @@ func encodeMessage(msg domain.Message) []message {
 		case domain.BlockToolResult:
 			content := item.Text
 			out = append(out, message{Role: "tool", ToolCallID: item.ID, Content: &content})
+
+			if len(item.Data) > 0 {
+				pictures = append(pictures, picture(item))
+			}
 		case domain.BlockText:
 			texts = append(texts, item.Text)
 		case domain.BlockToolUse:
 		}
 	}
+
+	out = append(out, pictures...)
 
 	if len(texts) > 0 {
 		joined := strings.Join(texts, "\n\n")
@@ -62,6 +69,28 @@ func encodeMessage(msg domain.Message) []message {
 	}
 
 	return out
+}
+
+// part is one piece of a message that holds a picture.
+type part struct {
+	ImageURL *imageURL `json:"image_url,omitempty"`
+	Type     string    `json:"type"`
+	Text     string    `json:"text,omitempty"`
+}
+
+type imageURL struct {
+	URL string `json:"url"`
+}
+
+// picture carries a screenshot to the model. Chat Completions takes pictures in user messages only, not in the
+// "tool" message that answers the call, so it follows the tool messages.
+func picture(item domain.Block) message {
+	url := "data:image/png;base64," + base64.StdEncoding.EncodeToString(item.Data)
+
+	return message{Role: "user", Content: []part{
+		{Type: "text", Text: "The screenshot that the tool call " + item.ID + " returned:"},
+		{Type: "image_url", ImageURL: &imageURL{URL: url}},
+	}}
 }
 
 func encodeAssistant(blocks []domain.Block) message {

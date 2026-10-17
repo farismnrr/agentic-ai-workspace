@@ -113,6 +113,14 @@ func (r *Runner) checkTool(
 
 // report puts what a tool did into the transcript and the thread.
 func (r *Runner) report(ctx context.Context, task domain.Task, call Call, described Described, result ToolResult) {
+	if shot := r.saveShot(ctx, task, call, result); shot != "" {
+		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
+			Kind: domain.EventShot, Text: described.Text, Image: shot, Time: r.deps.Now(),
+		})
+
+		return
+	}
+
 	r.result(ctx, task, call.ID, result.Output, result.IsError)
 
 	event := domain.Event{

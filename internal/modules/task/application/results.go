@@ -21,3 +21,10 @@ func (r *Runner) action(ctx context.Context, task domain.Task, event domain.Even
 	event.Kind, event.Time = domain.EventAction, r.deps.Now()
 	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, event)
 }
+
+// resultImage answers a call with a text and the screenshot it carries (saved under image).
+func (r *Runner) resultImage(ctx context.Context, task domain.Task, callID, text, image string) {
+	_ = r.deps.Transcript.AppendBlock(ctx, task.ID, domain.RoleUser, domain.Block{
+		Kind: domain.BlockToolResult, ID: callID, Text: truncate(text, r.lim.MaxResult), Image: image,
+	})
+}
