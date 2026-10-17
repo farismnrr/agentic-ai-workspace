@@ -3,7 +3,9 @@ package githubapi
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/github/domain"
@@ -48,5 +50,60 @@ func TestReposRejectATokenGitHubRefuses(t *testing.T) {
 
 	if _, err := c.Repos(context.Background(), "wrong"); !errors.Is(err, domain.ErrRejected) {
 		t.Fatalf("a token GitHub refuses is rejected: %v", err)
+	}
+}
+
+// fakeCreate answers the calls a repository creation makes and notes what it saw.
+func fakeCreate(created, shared *bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/user/repos":
+			body, _ := io.ReadAll(r.Body)
+			*created = strings.Contains(string(body), `"auto_init":true`) && strings.Contains(string(body), `"private":true`)
+
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":42,"full_name":"ann/shop","private":true}`))
+		case r.URL.Path == "/user/installations":
+			_, _ = w.Write([]byte(`{"installations":[{"id":7}]}`))
+		case r.Method == http.MethodPut && r.URL.Path == "/user/installations/7/repositories/42":
+			*shared = true
+
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}
+}
+
+func TestANewRepositoryIsCreatedWithAReadmeAndSharedWithTheApp(t *testing.T) {
+	t.Parallel()
+
+	var created, shared bool
+
+	c := testClient(t, fakeCreate(&created, &shared))
+
+	repo, err := c.CreateRepo(context.Background(), "tok", domain.NewRepo{Name: "shop", Private: true})
+	if err != nil || repo.FullName != "ann/shop" || !repo.Private {
+		t.Fatalf("the repository comes back: %+v %v", repo, err)
+	}
+
+	if !created || !shared {
+		t.Fatalf("created with a README and added to the installation: created=%v shared=%v", created, shared)
+	}
+}
+
+func TestCreatingARepositoryExplainsWhyItFailed(t *testing.T) {
+	t.Parallel()
+
+	for status, want := range map[int]error{
+		http.StatusUnprocessableEntity: domain.ErrRepoExists,
+		http.StatusForbidden:           domain.ErrCannotCreate,
+		http.StatusUnauthorized:        domain.ErrRejected,
+	} {
+		c := testClient(t, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(status) })
+
+		if _, err := c.CreateRepo(context.Background(), "tok", domain.NewRepo{Name: "shop"}); !errors.Is(err, want) {
+			t.Errorf("status %d: %v, want %v", status, err, want)
+		}
 	}
 }

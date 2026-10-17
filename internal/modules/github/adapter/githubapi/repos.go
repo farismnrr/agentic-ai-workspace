@@ -1,7 +1,9 @@
 package githubapi
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -85,4 +87,74 @@ func (c *Client) get(ctx context.Context, access, path string, out any) error {
 	}
 
 	return nil
+}
+
+// CreateRepo makes a repository for the person, with a README, and then adds it to the app's installation so the
+// app can clone and push to it. Sharing is best effort: an installation that already covers every repository
+// needs nothing, and GitHub says so with a refusal that is not an error here.
+func (c *Client) CreateRepo(ctx context.Context, access string, spec domain.NewRepo) (domain.Repo, error) {
+	body, _ := json.Marshal(map[string]any{
+		"name": spec.Name, "description": spec.Description, "private": spec.Private, "auto_init": true,
+	})
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.api+"/user/repos", bytes.NewReader(body))
+	if err != nil {
+		return domain.Repo{}, fmt.Errorf("build request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+access)
+	req.Header.Set("Content-Type", "application/json")
+
+	var made struct {
+		FullName string `json:"full_name"`
+		ID       int64  `json:"id"`
+		Private  bool   `json:"private"`
+	}
+
+	status, err := c.do(req, &made)
+	if err != nil {
+		return domain.Repo{}, err
+	}
+
+	switch {
+	case status == http.StatusUnprocessableEntity:
+		return domain.Repo{}, domain.ErrRepoExists
+	case status == http.StatusCreated && made.FullName != "":
+	case status == http.StatusUnauthorized:
+		return domain.Repo{}, domain.ErrRejected
+	case status >= http.StatusBadRequest && status < http.StatusInternalServerError:
+		return domain.Repo{}, domain.ErrCannotCreate
+	default:
+		return domain.Repo{}, errUnavailable
+	}
+
+	c.share(ctx, access, made.ID)
+
+	return domain.Repo{FullName: made.FullName, Private: made.Private, UpdatedAt: c.now()}, nil
+}
+
+// share adds a repository to the app's first installation.
+func (c *Client) share(ctx context.Context, access string, repoID int64) {
+	var installs struct {
+		Installations []struct {
+			ID int64 `json:"id"`
+		} `json:"installations"`
+	}
+
+	err := c.get(ctx, access, "/user/installations?per_page=1", &installs)
+	if err != nil || len(installs.Installations) == 0 {
+		return
+	}
+
+	path := "/user/installations/" + strconv.FormatInt(installs.Installations[0].ID, 10) + "/repositories/" +
+		strconv.FormatInt(repoID, 10)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.api+path, http.NoBody)
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Authorization", "Bearer "+access)
+
+	_, _ = c.do(req, nil)
 }
