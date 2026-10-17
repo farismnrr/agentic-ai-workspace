@@ -70,10 +70,12 @@ export const route = writable<Route>(resolve(window.location.pathname));
 
 /**
  * Goes to a same-site path after sign-in. App routes stay inside the page; anything else, such as an
- * app under /run, is a real page load because the server (not the SPA) answers it.
+ * app under /run, is a real page load because the server (not the SPA) answers it. `replace` leaves no
+ * history entry behind, so Back does not return to the page that was left.
  */
-export function goTo(path: string): void {
-  if (matchRoute(pathOf(path)) !== undefined) navigate(path);
+export function goTo(path: string, replace = false): void {
+  if (matchRoute(pathOf(path)) !== undefined) navigate(path, replace);
+  else if (replace) window.location.replace(path);
   else window.location.assign(path);
 }
 

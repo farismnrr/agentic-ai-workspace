@@ -5,8 +5,6 @@
   import AuthLayout from './AuthLayout.svelte';
   import PasswordField from '../../shared/forms/PasswordField.svelte';
   import TextField from './components/TextField.svelte';
-  import { goTo } from '../../app/router';
-  import { nextPath } from '../../shared/session/next-path';
   import { setUser } from '../../shared/session/session';
   import { loginCopy } from './content';
   import { describeError, signIn } from './logic/auth-api';
@@ -34,7 +32,7 @@
     busy = true;
     try {
       setUser(await signIn(email, password));
-      goTo(nextPath(window.location.search));
+      // The app takes a signed-in person on from here (see App.svelte), so no navigation is needed.
     } catch (failure) {
       error = describeError(failure);
     } finally {

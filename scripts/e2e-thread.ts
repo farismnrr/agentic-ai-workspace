@@ -23,6 +23,26 @@ await page.getByLabel(/email/i).fill(info.email);
 await page.locator('#password').fill(info.password);
 await page.getByRole('button', { name: /sign in/i }).click();
 await page.waitForURL(/\/app/, { timeout: 15000 });
+
+// A signed-in person who opens the sign-in or register page goes straight on, and Back does not return to it.
+const landed = async (url: string): Promise<string> => {
+  await page.goto(info.base + url);
+  await page.waitForFunction(() => !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register'), null, { timeout: 8000 }).catch(() => undefined);
+  return new URL(page.url()).pathname + new URL(page.url()).search;
+};
+check('signed in, /login goes to the dashboard', (await landed('/login')) === '/app', page.url());
+check('...and /register too', (await landed('/register')) === '/app', page.url());
+check('...to where ?next= points', (await landed('/login?next=%2Fapp%2Finbox')) === '/app/inbox', page.url());
+check('...but never to another site', (await landed('/login?next=//evil.example')) === '/app', page.url());
+await page.goto(info.base + info.path);
+await page.goto(info.base + '/login');
+await page.waitForURL(/\/app$/);
+await page.goBack();
+check('Back does not return to the sign-in page', !page.url().includes('/login'), page.url());
+const stranger = await (await browser.newContext()).newPage();
+await stranger.goto(`${info.base}/login`);
+check('signed out, /login still shows the form', (await stranger.locator('h1').innerText()).startsWith('Welcome'), await stranger.locator('h1').innerText());
+await stranger.close();
 await page.goto(info.base + info.path);
 
 const figures = page.locator('figure[aria-label="Screenshot of your app"]');
