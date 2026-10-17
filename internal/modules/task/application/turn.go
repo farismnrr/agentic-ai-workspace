@@ -29,10 +29,14 @@ func (r *Runner) turn(
 	system := r.system(ctx, task, state)
 	messages := r.compactIfNeeded(ctx, task, state, compaction{client: client, system: system, tools: offered}, transcript)
 
-	reply, err := r.ask(ctx, client, Request{
+	if !state.noImages {
+		messages = r.withImages(ctx, task, messages)
+	}
+
+	reply, err := r.askSeeing(ctx, client, Request{
 		Model: task.Model, System: system, Effort: task.Effort, Messages: orderBlocks(messages), OnText: r.streamTo(task.ID),
 		Tools: offered,
-	})
+	}, state)
 	if err != nil {
 		return r.modelFailure(ctx, err), true
 	}

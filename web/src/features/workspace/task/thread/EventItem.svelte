@@ -2,6 +2,7 @@
   import { clock } from '../../logic/time';
   import type { TaskEvent } from '../../logic/task-types';
   import { questionsOf } from '../../logic/question-form';
+  import { shotUrl } from '../../logic/tasks-api';
   import type { ThreadActions } from '../../logic/task-actions';
   import ApprovalCard from './ApprovalCard.svelte';
   import ChatBubble from './ChatBubble.svelte';
@@ -9,17 +10,19 @@
   import PrdCard from './PrdCard.svelte';
   import QuestionCard from './QuestionCard.svelte';
   import ResultCard from './ResultCard.svelte';
+  import ShotCard from './ShotCard.svelte';
   import SiteCard from './SiteCard.svelte';
 
   interface Props {
     event: TaskEvent;
+    taskId: string;
     actions: ThreadActions;
     proven: boolean;
     onretry?: (() => void) | undefined;
     onproof?: (() => void) | undefined;
   }
 
-  const { event, actions, proven, onretry, onproof }: Props = $props();
+  const { event, taskId, actions, proven, onretry, onproof }: Props = $props();
 </script>
 
 {#if event.kind === 'request'}
@@ -38,6 +41,8 @@
       <PrdCard text={event.text} document={event.technical} agent={event.agent} />
     {:else if event.kind === 'handoff'}
       <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} />
+    {:else if event.kind === 'shot'}
+      <ShotCard text={event.text} src={shotUrl(taskId, event.image)} agent={event.agent} />
     {:else if event.kind === 'site'}
       <SiteCard text={event.text} url={event.url} />
     {:else}

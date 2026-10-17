@@ -38,7 +38,8 @@ type toolCall struct {
 }
 
 type message struct {
-	Content    *string    `json:"content"`
+	// Content is text, or for a message with a picture a list of parts (see encode).
+	Content    any        `json:"content"`
 	Role       string     `json:"role"`
 	ToolCallID string     `json:"tool_call_id,omitempty"`
 	ToolCalls  []toolCall `json:"tool_calls,omitempty"`

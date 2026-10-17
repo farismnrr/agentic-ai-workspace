@@ -23,12 +23,15 @@ type toolArgs struct {
 	To            string `json:"to"`
 	Name          string `json:"name"`
 	Command       string `json:"command"`
+	Device        string `json:"device"`
 	Port          int    `json:"port"`
+	Y             int    `json:"y"`
 	StartLine     int    `json:"start_line"`
 	TimeoutSecs   int    `json:"timeout_seconds"`
 	EndLine       int    `json:"end_line"`
 	ReplaceAll    bool   `json:"replace_all"`
 	CaseSensitive bool   `json:"case_sensitive"`
+	Overview      bool   `json:"overview"`
 }
 
 type toolHandler func(ctx context.Context, services codingmcp.Services, in toolArgs) taskapp.ToolResult
@@ -37,6 +40,10 @@ type toolHandler func(ctx context.Context, services codingmcp.Services, in toolA
 func (a *agentTools) Execute(ctx context.Context, projectID string, call taskapp.Call) taskapp.ToolResult {
 	if isSiteTool(call.Name) {
 		return a.executeSite(ctx, projectID, call)
+	}
+
+	if call.Name == toolScreenshot {
+		return a.executeShot(ctx, projectID, call)
 	}
 
 	handler, known := a.handlers[call.Name]

@@ -42,6 +42,7 @@ ARG PYTHON_VERSION
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash build-essential ca-certificates curl git socat unzip zip jq ripgrep procps \
+        chromium-headless-shell fonts-liberation fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /uvx /usr/local/bin/
@@ -66,6 +67,7 @@ COPY --from=java /opt/java/openjdk /opt/java/openjdk
 COPY --from=maven /usr/share/maven /opt/maven
 
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
+COPY sandbox/capture/ /usr/local/share/capture/
 RUN chmod 0755 /usr/local/bin/sandbox-entry
 
 # Read-only toolchains stay put; downloads and build output go to /cache, which the server mounts per person.
@@ -79,7 +81,7 @@ ENV RUSTUP_HOME=/opt/rustup \
 LABEL org.opencontainers.image.title="agentic-ai-workspace-sandbox" \
       org.opencontainers.image.source="https://github.com/farismnrr/agentic-ai-workspace" \
       org.opencontainers.image.description="Isolated toolbox for the agent's commands" \
-      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"}]"
+      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"}]"
 
 USER 65532:65532
 WORKDIR /workspace

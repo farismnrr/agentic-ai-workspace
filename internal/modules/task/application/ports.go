@@ -92,8 +92,10 @@ type ToolResult struct {
 	// Note is a short extra for the technical line, such as an exit code.
 	Note string
 	// Link, when set, is an address the person can open, such as a running site; the thread shows it.
-	Link    string
-	Output  string
+	Link   string
+	Output string
+	// Image is a PNG the tool produced, such as a screenshot; the model and the person both see it.
+	Image   []byte
 	Files   []string
 	Undo    []byte
 	IsError bool

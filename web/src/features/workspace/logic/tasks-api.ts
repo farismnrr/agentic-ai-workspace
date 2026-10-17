@@ -52,3 +52,6 @@ export const retryTask = (id: string): Promise<undefined> => request<undefined>(
 
 export const loadUsage = (): Promise<{ since: string; models: UsageRow[] }> =>
   request<{ since: string; models: UsageRow[] }>('GET', '/api/usage');
+
+/** Where a screenshot of a task is served; the page sends the session cookie with the image request. */
+export const shotUrl = (id: string, image: string): string => `${base(id)}/shots/${encodeURIComponent(image)}`;

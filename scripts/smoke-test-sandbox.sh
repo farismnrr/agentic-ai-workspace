@@ -1,6 +1,6 @@
 #!/bin/sh
 # Starts the toolbox image the way the server does (no network, read-only root, no
-# capabilities) and proves every language runs and can compile something.
+# capabilities) and proves every language runs and can compile something, and that the browser takes a screenshot.
 set -eu
 
 image="${1:?usage: smoke-test-sandbox.sh <image>}"
@@ -17,11 +17,16 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     printf "class H{public static void main(String[] a){System.out.println(\"java-ok\");}}" > H.java && java H.java
     python3 -c "print(\"python-ok\")"
     node -e "console.log(\"node-ok\")"
+    mkdir s && echo "<title>t</title><h1>hi</h1>" > s/index.html
+    (cd s && python3 -m http.server 8000 --bind 127.0.0.1 > /dev/null 2>&1 &)
+    sleep 1
+    node /usr/local/share/capture/capture.ts "{\"url\":\"http://127.0.0.1:8000/\",\"width\":800,\"height\":600,\"y\":0}" \
+      | grep -q "\"ok\":true" && echo shot-ok
   ' 2>&1)"
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok"; do
+for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 

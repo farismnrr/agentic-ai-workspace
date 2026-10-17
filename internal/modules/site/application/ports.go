@@ -39,6 +39,8 @@ type Runtime interface {
 	Alive(ctx context.Context, containerID string) bool
 	// Socket is the Unix socket the app is reachable through.
 	Socket(projectID string) string
+	// Capture runs the browser against the app and returns what it printed.
+	Capture(ctx context.Context, req CaptureRequest) (output string, err error)
 }
 
 // Projects says who owns a project.

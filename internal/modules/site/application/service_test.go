@@ -76,8 +76,14 @@ func (m *memStore) MarkStopped(_ context.Context, id string) error {
 
 type fakeRuntime struct {
 	failure error
+	// output is what the capture command prints.
+	output  string
 	stopped []string
 	started int
+}
+
+func (r *fakeRuntime) Capture(context.Context, application.CaptureRequest) (string, error) {
+	return r.output, r.failure
 }
 
 func (r *fakeRuntime) Start(context.Context, application.StartSpec) (string, error) {

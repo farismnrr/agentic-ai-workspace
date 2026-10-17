@@ -26,12 +26,16 @@ const (
 
 // Block is one piece of a message in the provider-neutral transcript.
 type Block struct {
-	Kind    BlockKind       `json:"kind"`
-	Text    string          `json:"text,omitempty"`
-	ID      string          `json:"id,omitempty"`
-	Name    string          `json:"name,omitempty"`
-	Input   json.RawMessage `json:"input,omitempty"`
-	IsError bool            `json:"isError,omitempty"`
+	Kind  BlockKind       `json:"kind"`
+	Text  string          `json:"text,omitempty"`
+	ID    string          `json:"id,omitempty"`
+	Name  string          `json:"name,omitempty"`
+	Input json.RawMessage `json:"input,omitempty"`
+	// Image names a screenshot the result carries (a PNG saved for the task). Data holds its bytes only while a
+	// request to the model is built; it is never stored.
+	Image   string `json:"image,omitempty"`
+	Data    []byte `json:"-"`
+	IsError bool   `json:"isError,omitempty"`
 	// Summary marks the notes that replace everything before them once a long task is compacted.
 	Summary bool `json:"summary,omitempty"`
 }

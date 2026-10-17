@@ -85,6 +85,7 @@ For a medium or large task:
 4. If you will see a screen or page, the Designer sets the look and builds it, and writes it down in `DESIGN.md` for the Developer.
 5. Every teammate is shown the PRD with its job.
 6. A screen ends with a design review by the Reviewer. Its list of fixes goes back to the Designer, at most two rounds.
+7. The Designer and the Reviewer look at your running app through screenshots, on a desktop and a phone screen. You see each screenshot in the thread.
 
 When unsure, the lead picks the smaller size. There is no cap on how many jobs a team may hand out, as long as they keep getting somewhere.
 

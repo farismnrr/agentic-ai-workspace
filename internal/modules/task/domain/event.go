@@ -17,6 +17,8 @@ const (
 	EventSite     EventKind = "site"
 	// EventHandoff marks work passing to a teammate, or coming back from one.
 	EventHandoff EventKind = "handoff"
+	// EventShot is a screenshot of the running app; Image names the saved PNG and Text says what it shows.
+	EventShot EventKind = "shot"
 	// EventPRD is the product requirements document a teammate wrote; its text is the document.
 	EventPRD EventKind = "prd"
 )
@@ -65,6 +67,8 @@ type Event struct {
 	Agent string `json:"agent,omitempty"`
 	// URL is where a running site can be opened (EventSite only).
 	URL string `json:"url,omitempty"`
+	// Image names the saved screenshot (EventShot only).
+	Image string `json:"image,omitempty"`
 	// ToolUseID links an approval or question to the model's pending tool call.
 	ToolUseID string   `json:"-"`
 	Options   []string `json:"options,omitempty"`

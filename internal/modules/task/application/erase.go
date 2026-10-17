@@ -18,6 +18,10 @@ func (s *Service) DeleteAll(ctx context.Context, userID string) error {
 		if task.Status.Running() {
 			s.dispatcher.Cancel(task.ID)
 		}
+
+		if s.deps.Shots != nil {
+			_ = s.deps.Shots.Remove(ctx, task.ID)
+		}
 	}
 
 	if err := s.deps.Tasks.DeleteAll(ctx, userID); err != nil {

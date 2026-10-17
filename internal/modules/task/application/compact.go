@@ -37,6 +37,8 @@ type runState struct {
 	failed int
 	// segment is the model turns this loop may still take; a teammate's has a share of its own.
 	segment int
+	// noImages is set once the model refused a request with screenshots; it then gets their text reports only.
+	noImages bool
 }
 
 // compaction is what summarising needs from the turn that asks for it.

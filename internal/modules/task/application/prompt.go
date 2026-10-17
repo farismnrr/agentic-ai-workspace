@@ -69,7 +69,8 @@ func appendComputer(out *strings.Builder, installed []string) {
 	out.WriteString("To show the person a web app, start it with start_site: a server that keeps running and listens on " +
 		"127.0.0.1 at a port you choose; they open it from a link in the thread. Use a production-style server (no " +
 		"hot reload) and relative links such as ./style.css, because the page is shown under a path. The page runs in " +
-		"a sandbox, so cookies, localStorage and service workers do not work in it.\n")
+		"a sandbox, so cookies, localStorage and service workers do not work in it. To see how the page looks, call " +
+		"screenshot once it runs (device mobile for a phone): you get the picture and the facts a picture hides.\n")
 }
 
 // appendGitHub says the commands are signed in to the person's GitHub, so the model uses it
