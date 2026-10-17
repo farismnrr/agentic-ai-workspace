@@ -43,18 +43,24 @@ func toPayload(t domain.Task) taskPayload {
 	}
 }
 
-func (h *Handler) list(c fiber.Ctx) error {
-	tasks, err := h.service.List(c.Context(), httpserver.UserID(c), c.Query("project"))
+// sendList answers with a list converted to its payload shape, or with the failure that stopped it.
+func sendList[T, P any](c fiber.Ctx, items []T, err error, convert func(T) P) error {
 	if err != nil {
 		return fail(c, err)
 	}
 
-	out := make([]taskPayload, 0, len(tasks))
-	for _, task := range tasks {
-		out = append(out, toPayload(task))
+	out := make([]P, 0, len(items))
+	for _, item := range items {
+		out = append(out, convert(item))
 	}
 
 	return c.JSON(out)
+}
+
+func (h *Handler) list(c fiber.Ctx) error {
+	tasks, err := h.service.List(c.Context(), httpserver.UserID(c), c.Query("project"))
+
+	return sendList(c, tasks, err, toPayload)
 }
 
 func (h *Handler) get(c fiber.Ctx) error {

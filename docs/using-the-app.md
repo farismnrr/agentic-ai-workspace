@@ -28,8 +28,15 @@ The task page has the conversation on one side and a panel on the other. On a ph
 | --- | --- |
 | Plan | The steps the AI intends to take, and where it is |
 | Proof | What changed, how it was tested, and what was checked |
-| Changes | Every edit, each with an Undo |
+| Changes | Each file the task changed, as a diff, with every step and its Undo |
 | Files | The whole project: open any file, edit it by hand and save |
+
+About Changes:
+
+- **One diff per file,** against how the task found it, even if the AI edited the file many times.
+- **Green** lines were added and **red** lines removed; each file shows its `+` and `−` counts.
+- **Unified** shows one column. **Split** shows old and new side by side. A wide panel starts in Split.
+- **It updates as the AI works.** Steps, with Undo, is listed under the files.
 
 About Files:
 

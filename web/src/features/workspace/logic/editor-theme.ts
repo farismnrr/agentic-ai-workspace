@@ -26,3 +26,19 @@ export const syntaxColors = syntaxHighlighting(
     { tag: tags.link, textDecoration: 'underline' },
   ]),
 );
+
+const added = 'color-mix(in oklab, var(--color-success) 16%, transparent)';
+const removed = 'color-mix(in oklab, var(--color-error) 16%, transparent)';
+
+// The merge view brings its own red and green; these take its place so a diff wears the app's status colours.
+// A bar at the edge of each changed line says the same without colour.
+export const diffTheme = EditorView.theme({
+  '&.cm-merge-a .cm-changedLine, .cm-deletedChunk': { backgroundColor: removed, boxShadow: 'inset 3px 0 0 var(--color-error)' },
+  '&.cm-merge-b .cm-changedLine, .cm-inlineChangedLine': { backgroundColor: added, boxShadow: 'inset 3px 0 0 var(--color-success)' },
+  '&.cm-merge-a .cm-changedText, .cm-deletedChunk .cm-deletedText': { backgroundColor: 'color-mix(in oklab, var(--color-error) 32%, transparent)' },
+  '&.cm-merge-b .cm-changedText, .cm-insertedLine': { backgroundColor: 'color-mix(in oklab, var(--color-success) 32%, transparent)' },
+  '.cm-changedLineGutter, .cm-deletedLineGutter': { background: 'var(--color-warning)' },
+  '&.cm-merge-b .cm-changedLineGutter': { background: 'var(--color-success)' },
+  '&.cm-merge-a .cm-changedLineGutter, .cm-deletedLineGutter': { background: 'var(--color-error)' },
+  '.cm-collapsedLines': { backgroundColor: 'var(--color-base-200)', color: 'var(--color-base-content)', cursor: 'pointer' },
+});

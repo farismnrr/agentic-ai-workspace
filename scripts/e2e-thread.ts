@@ -99,6 +99,24 @@ check('the page does not scroll sideways', await page.evaluate(() => document.do
 await bubble.screenshot({ path: `${shots}/message.png` });
 await figures.first().screenshot({ path: `${shots}/shot-card.png` });
 
+// The Changes tab: each changed file once, as a diff against how the task found it.
+await page.goto(info.base + info.path);
+await page.getByRole('tab', { name: 'Changes' }).click();
+await page.getByText('2 files changed').waitFor({ timeout: 15000 });
+const readme = page.locator('section[aria-label="Changes in README.md"]');
+const notes = page.locator('section[aria-label="Changes in notes.md"]');
+check('a file the task made is Added with its lines counted', (await notes.innerText()).includes('Added') && (await notes.innerText()).includes('+3'), (await notes.innerText()).replace(/\n/g, ' '));
+await readme.getByRole('button').first().waitFor();
+await readme.getByRole('button').first().click();
+await readme.locator('.cm-deletedChunk').waitFor({ timeout: 10000 });
+check('a changed file is Modified, +1 -1', (await readme.innerText()).includes('Modified') && (await readme.innerText()).includes('+1') && (await readme.innerText()).includes('−1'));
+check('unified shows the removed line among the added', (await readme.locator('.cm-deletedChunk').innerText()).includes('two'));
+await page.getByRole('button', { name: 'Split' }).click();
+await readme.locator('.cm-merge-a').waitFor({ timeout: 10000 });
+check('split shows old and new side by side', (await readme.locator('.cm-merge-b').count()) === 1);
+await page.screenshot({ path: `${shots}/changes.png` });
+await page.getByRole('group', { name: 'How to compare' }).screenshot({ path: `${shots}/toggle.png` });
+
 // The Files tab: the project's own tree, a real editor, saving by hand, and the agent's changes arriving live.
 const projectId = String(info.path).split('/')[3] as string;
 const api = (method: string, path: string, body?: unknown): Promise<{ status: number; json: Record<string, unknown> }> =>

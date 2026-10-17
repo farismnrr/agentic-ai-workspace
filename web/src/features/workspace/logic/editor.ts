@@ -36,7 +36,7 @@ const languages: Record<string, () => Promise<Extension>> = {
 };
 
 /** The language of a file by its name, or none, so plain text still opens. */
-const language = async (path: string): Promise<Extension> => (await languages[path.toLowerCase().split('.').at(-1) ?? '']?.()) ?? [];
+export const languageFor = async (path: string): Promise<Extension> => (await languages[path.toLowerCase().split('.').at(-1) ?? '']?.()) ?? [];
 
 /** Opens a code editor in the element. CodeMirror is loaded on first use, so the rest of the app does not carry it. */
 export async function createEditor(options: EditorOptions): Promise<Editor> {
@@ -53,7 +53,7 @@ export async function createEditor(options: EditorOptions): Promise<Editor> {
       doc: options.doc,
       extensions: [
         lineNumbers(), highlightActiveLine(), history(), keymap.of([...defaultKeymap, ...historyKeymap]),
-        theme.editorTheme, theme.syntaxColors, await language(options.path),
+        theme.editorTheme, theme.syntaxColors, await languageFor(options.path),
         EditorState.readOnly.of(options.readOnly), EditorView.editable.of(!options.readOnly),
         EditorView.updateListener.of((update) => { if (update.docChanged && !quiet) options.onchange(update.state.doc.toString()); }),
       ],
