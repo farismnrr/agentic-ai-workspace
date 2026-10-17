@@ -147,7 +147,7 @@ agents/                                   self-improvement, memory and notes for
 2. Go uses strict golangci-lint; the frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
 3. Warnings fail verification. Fix diagnostics instead of silencing them. `//nolint` must name the linter and explain the exception.
 4. Keep exactly two workflow files in `.github/workflows/`: `fast.yml` and `full.yml`. Neither gets extra files or full-release auto-triggers without approval. Shared setup lives in `.github/actions/`.
-5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs `make verify` equivalents, builds and smoke-tests the static binary, then builds the image (`.github/actions/build-image`), smoke-tests it, and on pushes only publishes `ghcr.io/<repo>:dev` and `:sha-<short>`. Checks run in parallel. Documentation-only changes skip it.
+5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs `make verify` equivalents, builds and smoke-tests the static binary, then builds the app image and the sandbox image (`.github/actions/build-image`), smoke-tests both, and on pushes only publishes `ghcr.io/<repo>:dev` and `:sha-<short>` for each (`-sandbox` too). Checks run in parallel. Documentation-only changes skip it.
 6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. It repeats every fast check from a clean checkout, and only then merges `dev` -> `main` and publishes the image built from the merge commit as `:latest` and `:sha-<short>`.
 7. Fast stays quicker than full by skipping clean-room rebuilds, cross-checks, merging, and publishing. It must never skip a lint, type, test, or guardrail gate.
 8. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`. CI verifies dependency drift instead of fixing it.
@@ -158,7 +158,7 @@ agents/                                   self-improvement, memory and notes for
 
 ## Container image
 
-1. Only the image jobs publish, to GHCR under `ghcr.io/<owner>/agentic-ai-workspace` and `-sandbox` (the toolbox the agent's commands run in, from `sandbox/Dockerfile`; fast only builds and smoke-tests it, full publishes `:latest` and `:sha-<short>`, no `:dev`). Pull requests never publish. There are no GitHub Releases or release tags.
+1. Only the image jobs publish, to GHCR under `ghcr.io/<owner>/agentic-ai-workspace` and `-sandbox` (the toolbox the agent's commands run in, from `sandbox/Dockerfile`; fast publishes `:dev` and `:sha-<short>`, full publishes `:latest` and `:sha-<short>`). Pull requests never publish. There are no GitHub Releases or release tags.
 2. Tags: `dev` (fast, from `dev`), `latest` (full, from the merged `main` commit) and `sha-<short>`. No semantic or dated versions unless the user changes this rule.
 3. Smoke-test the image before pushing, and push what was tested (same cached build, never different source). Base images in the `Dockerfile` are pinned by digest.
 
