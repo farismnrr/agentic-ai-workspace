@@ -102,6 +102,8 @@ export interface Task {
   effort: string;
   /** A lead hands the work to the AI team. */
   team: boolean;
+  /** The team stops when the PRD is written and builds only after the person says yes. */
+  planFirst: boolean;
   /** The requirements document the team's Planner wrote, in markdown; empty when there is none. */
   prd: string;
   research: string;

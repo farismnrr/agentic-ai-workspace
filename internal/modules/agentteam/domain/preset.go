@@ -6,7 +6,7 @@ type preset struct {
 	lead                       bool
 	// prd is set for the role whose document is the team's PRD, research for the role whose documents are its research,
 	// security for the role that must check the code before an app is started.
-	prd, research, security bool
+	prd, research, security, architecture bool
 }
 
 var presets = []preset{
@@ -56,17 +56,19 @@ var presets = []preset{
 			"Do not change anything.",
 	},
 	{
-		key: "architect", name: "Architect", access: []string{AccessRead},
-		purpose: "Designs how the change fits the project: the approach, the files and the risks.",
+		key: "architect", name: "Architect", access: []string{AccessRead}, architecture: true,
+		purpose: "Designs how the change fits the project, and verifies the final code against that design.",
 		prompt: "You are a software architect. Propose the smallest design that fits the existing code. Name the " +
 			"files to change, the order of the steps, the risks and the alternatives you rejected. " +
-			"Do not change anything.",
+			"When the work is built you read the final code and check it against the design, SOLID and Clean " +
+			"Architecture, and say what must change. Do not change anything yourself.",
 	},
 	{
 		key: "developer", name: "Developer", access: []string{AccessRead, AccessWrite, AccessExec},
 		purpose: "Writes and changes the code, following the design.",
 		prompt: "You are a careful developer. Look before you change, make small focused edits that match the " +
-			"surrounding code, and run the relevant build or tests after your last change. " +
+			"surrounding code, write it with SOLID and Clean Architecture, and run the relevant build or tests " +
+			"after your last change. " +
 			"Report what you changed and what you ran.",
 	},
 	{
@@ -118,7 +120,7 @@ func Presets() Team {
 			Key: p.key, Name: p.name, Purpose: p.purpose, Prompt: p.prompt,
 			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true,
 			Skills: SkillsFor(p.key), Library: LibraryFor(p.key), WritesPRD: p.prd, WritesResearch: p.research,
-			ChecksSecurity: p.security,
+			ChecksSecurity: p.security, ChecksArchitecture: p.architecture,
 		})
 	}
 

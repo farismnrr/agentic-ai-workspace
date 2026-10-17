@@ -40,7 +40,8 @@ Write the secret once: `printf 'NUXT_AUTH_SECRET=%s\n' "$(openssl rand -hex 32)"
 and `.output` in `.gitignore`. A secret is never written into code, a page or a report.
 
 ## 3. Data with SQLite
-`server/utils/db.ts` (Node's built-in SQLite: nothing to compile, works offline):
+`server/infrastructure/db.ts` (Node's built-in SQLite: nothing to compile, works offline; it is an adapter, see
+`clean-code` for the layers):
 ```ts
 import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync } from 'node:fs'
@@ -54,12 +55,15 @@ never built by joining strings.
 
 ## 4. Login (only when the app has accounts)
 The app has its own register and login forms, in the app's own design, backed by Better Auth.
-- `server/utils/auth.ts`:
-  `export const auth = betterAuth({ database: db, secret: useRuntimeConfig().authSecret, emailAndPassword: { enabled: true, minPasswordLength: 10 } })`
-  with `import { betterAuth } from 'better-auth'`.
-- `server/api/auth/[...all].ts`: `export default defineEventHandler((event) => auth.handler(toWebRequest(event)))`.
-- `server/plugins/migrate.ts`: `import { getMigrations } from 'better-auth/db/migration'`; in a `defineNitroPlugin`, run
-  `const { runMigrations } = await getMigrations(auth.options); await runMigrations()`.
+- `server/infrastructure/auth.ts`:
+  `const config = useRuntimeConfig()` and
+  `export const auth = betterAuth({ database: db, secret: config.authSecret, basePath: `${config.app.baseURL.replace(/\/$/, '')}/api/auth`, emailAndPassword: { enabled: true, minPasswordLength: 10 } })`
+  with `import { betterAuth } from 'better-auth'` and `import { db } from './db'`. The `basePath` must include the app's
+  base URL: under the sites proxy the app lives below an address prefix, and without it every login route answers 404.
+- `server/api/auth/[...all].ts`: `import { auth } from '../../infrastructure/auth'` and
+  `export default defineEventHandler((event) => auth.handler(toWebRequest(event)))`.
+- `server/plugins/migrate.ts`: `import { getMigrations } from 'better-auth/db/migration'` and the same `auth` import; in a
+  `defineNitroPlugin`, run `const { runMigrations } = await getMigrations(auth.options); await runMigrations()`.
 - Forms post to `${useRuntimeConfig().app.baseURL}api/auth/sign-up/email` (`{ name, email, password }`) and
   `.../sign-in/email` (`{ email, password }`) with `$fetch`, and show a plain-language error. Sign out is
   `.../sign-out`.

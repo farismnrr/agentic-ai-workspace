@@ -128,13 +128,29 @@ func newTeamRig(limits func(*application.Limits), members []application.AgentRol
 	return &teamRig{rig: rig, delegations: delegations}
 }
 
+// startTeam starts a team task that builds without waiting for a yes after the PRD.
 func (r *teamRig) startTeam(t *testing.T, prompt string) domain.Task {
+	t.Helper()
+
+	no := false
+
+	return r.startWith(t, prompt, &no)
+}
+
+// startPlanned starts a team task in plan mode, the default: nobody builds before the person says yes to the PRD.
+func (r *teamRig) startPlanned(t *testing.T, prompt string) domain.Task {
+	t.Helper()
+
+	return r.startWith(t, prompt, nil)
+}
+
+func (r *teamRig) startWith(t *testing.T, prompt string, planFirst *bool) domain.Task {
 	t.Helper()
 
 	yes := true
 
 	task, err := r.service.Create(context.Background(), "u1", application.CreateInput{
-		ProjectID: "proj", Prompt: prompt, Team: &yes,
+		ProjectID: "proj", Prompt: prompt, Team: &yes, PlanFirst: planFirst,
 	})
 	if err != nil {
 		t.Fatal(err)

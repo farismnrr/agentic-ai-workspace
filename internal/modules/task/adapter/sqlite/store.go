@@ -17,7 +17,7 @@ import (
 const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
-	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research`
+	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, plan_first`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -43,9 +43,10 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 
 	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO tasks (id, project_id, user_id, title, summary, status, mode, provider_id, model, plan,
-		   created_at, updated_at, source, effort, team) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		   created_at, updated_at, source, effort, team, plan_first)
+		 VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		t.ID, t.ProjectID, t.UserID, t.Title, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
-		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team)
+		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team, t.PlanFirst)
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
 	}

@@ -101,6 +101,13 @@ Research always comes first on a medium or large task, and again after the PRD f
 
 You can read them under the Plan tab, in Research notes. Later teammates build from them.
 
+Plan first is on by default for a team task. The team plans, then stops and waits for your yes:
+
+- It researches, turns your request into requirements, asks you what it still needs, and writes the PRD.
+- Then it asks "Start building?". Nothing is built, run or started until you say yes. Say what to change and it revises the PRD.
+- After your yes the team only executes: build, security check, tests and a check of the final code.
+- Turn Plan first off in the composer if you want it to go ahead on its own. A small change never needs a plan.
+
 For a medium or large task:
 
 1. The Planner asks only what blocks the scope, such as who it is for or what to leave out.
@@ -108,7 +115,7 @@ For a medium or large task:
    - For the look of a page, each choice comes with a picture. The one it suggests comes first.
    - At most three questions for medium, five for large.
 2. It writes a short PRD: overview, goals, what is not included, acceptance criteria, requirements and a todo. It shows in the thread and under the Plan tab.
-3. The lead asks once whether to start building. Say what to change and the Planner revises it.
+3. The lead asks once whether to start building. The team waits for your yes. Say what to change and the Planner revises it.
 4. If you will see a screen or page, the Designer sets the look and builds it, and writes it down in `DESIGN.md` for the Developer.
 5. Every teammate is shown the PRD with its job.
 6. A screen ends with a design review by the Reviewer. Its list of fixes goes back to the Designer, at most two rounds.
@@ -124,8 +131,8 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Designer | Sets the visual direction, writes `DESIGN.md` and builds the interface. It has built-in skills (design brief, frontend design, UI polish) and a library of craft rules, style families and page templates, and picks what fits the job |
 | Researcher | Reads the project and looks things up on the web. It writes notes with sources before the PRD, the design or the build. It cannot change files |
 | Media | Finds pictures you may use and edits them: resize, crop, convert, remove a background. Every picture it saves has its licence and credit written in `assets/CREDITS.md`, never on the page. It lists pictures that need no credit first |
-| Business Analyst | Turns your request into requirements |
-| Architect | Designs the change |
+| Business Analyst | Turns your request, and what the Researcher found, into requirements before the PRD |
+| Architect | Designs the change, and checks the final code against the design, SOLID and Clean Architecture before the task is done. It cannot change files |
 | Developer | Writes the code. A new app is built with Nuxt, SQLite and the latest stable versions, with its own register and login forms when it needs accounts |
 | Security | Checks an app for known vulnerabilities, risky code and missing protections. An app with code is not started until it has reported. It cannot change files |
 | QA Tester | Runs the checks |
