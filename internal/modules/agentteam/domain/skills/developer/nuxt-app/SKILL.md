@@ -71,6 +71,19 @@ The app has its own register and login forms, in the app's own design, backed by
   and answer 401 when it is null. Never trust a check that exists only in the browser.
 - Passwords are hashed by Better Auth; never store, log or return one. Keep the rate limit on `/api/auth/**`.
 
+## 4b. The pages of a product
+A product is not one page. Use two layouts and these routes unless the PRD says otherwise:
+- `app/layouts/landing.vue` (public header, footer) for `app/pages/index.vue`, the landing page: hero with the value in
+  one line and one call to action, benefits, how it works, pricing or the call to action again, FAQ, footer.
+- `app/pages/login.vue` and `app/pages/register.vue`: a centred card, labelled fields, one primary button, plain-language
+  errors, a link to the other page. A signed-in visitor is sent on to the app.
+- `app/layouts/app.vue` (sidebar or top navigation, the person's name, sign out) for everything under `app/pages/app/`.
+  `app/pages/app/index.vue` is the dashboard: three or four number cards (big number, label, change), one or two charts
+  of real stored data, recent activity, quick actions and empty states that say what to do first. Then one page per
+  feature (list, create, edit, delete), `settings.vue`, and `app/error.vue` as the 404.
+- A route middleware in `app/middleware/` sends a visitor without a session to `/login` for every `/app` page; the API
+  still checks the session on the server as well.
+
 ## 5. Safe by default
 Check every body and query with `zod` (`readValidatedBody`, `getValidatedQuery`). Vue escapes text; never use
 `v-html` on anything a visitor wrote. Secrets stay on the server (`runtimeConfig`, not `runtimeConfig.public`). Allow only

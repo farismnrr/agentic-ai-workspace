@@ -11,7 +11,7 @@ const (
 	// A team task has several agents working inside one run and can build something big, so it gets a lot of
 	// room. Running out is a pause, not a loss: Continue picks up where the work stopped, with a fresh budget.
 	defaultTeamWallTime  = 2 * time.Hour
-	defaultTeamSteps     = 400
+	defaultTeamSteps     = 800
 	defaultDelegateSteps = 60
 	// A team does not stop for how many jobs it hands out, only when jobs stop getting anywhere: this many in a
 	// row that changed nothing, ran no check and wrote no document means it is stuck.

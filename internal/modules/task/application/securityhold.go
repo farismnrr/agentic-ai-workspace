@@ -32,7 +32,7 @@ func (r *Runner) securityHold(ctx context.Context, task domain.Task, call Call) 
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if !codeChangedSinceReview(events, r.security) {
+	if !changedSinceReview(events, r.security, hasCode, maxSecurityRounds) {
 		return ""
 	}
 
@@ -40,24 +40,24 @@ func (r *Runner) securityHold(ctx context.Context, task domain.Task, call Call) 
 		"the code is ready for the security check; the orchestrator will ask the " + r.security + " first."
 }
 
-// codeChangedSinceReview reports whether code was changed after the last time the Security role reported, and that
-// role has not yet used up its rounds.
-func codeChangedSinceReview(events []domain.Event, security string) bool {
+// changedSinceReview reports whether files that touches matches were changed after the last time the named reviewer
+// reported, and that reviewer has not yet used up its rounds.
+func changedSinceReview(events []domain.Event, reviewer string, touches func([]string) bool, maxRounds int) bool {
 	var lastChange, lastReview int64
 
 	rounds := 0
 
 	for _, event := range events {
 		switch {
-		case event.Kind == domain.EventHandoff && event.Agent == security && event.Action == handoffReported:
+		case event.Kind == domain.EventHandoff && event.Agent == reviewer && event.Action == handoffReported:
 			lastReview = event.Seq
 			rounds++
-		case !event.Undone && hasCode(event.Files):
+		case !event.Undone && touches(event.Files):
 			lastChange = event.Seq
 		}
 	}
 
-	return lastChange > lastReview && rounds < maxSecurityRounds
+	return lastChange > lastReview && rounds < maxRounds
 }
 
 func hasCode(files []string) bool {
@@ -111,7 +111,7 @@ func (r *Runner) architectNotAsked(ctx context.Context, task domain.Task, state 
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if !codeChangedSinceReview(events, architect) {
+	if !changedSinceReview(events, architect, hasCode, maxArchitectRounds) {
 		return false
 	}
 
