@@ -42,6 +42,23 @@ pricing-page, dashboard, docs-page, blog-post, mobile-app, waitlist-page, web-pr
 wireframe-* ones. Take its section order, rules and self-check. Adapt it to the project's stack. Ignore what is
 specific to another tool: `data-od-id` attributes, "artifact" output, typed inputs and sliders.
 
+## 3c. Plan the layout before any code
+Layout is most of what a person judges at first sight, so decide it on paper first. Add a "Layout" section to
+`DESIGN.md` and fill every line; do not start building until it is complete:
+- Container: the maximum content width, the side padding on a phone and on a wide screen.
+- Grid: how many columns at 390, 768 and 1280 px wide, the gutter, and which blocks span how many.
+- Spacing scale: one scale (multiples of 4 or 8 px) used for every gap, with the space between sections and
+  inside a section named. Equal things get equal space; unequal space must mean something.
+- Section by section: what the person sees, in order, and how each is arranged (text and picture side by side,
+  stacked, a row of cards) and what changes on a phone. Alternate rhythm; do not stack the same block six times.
+- Hierarchy: one focal point per screen, the call to action visible without scrolling on a phone, reading width
+  of 45 to 75 characters for body text, tap targets of at least 44 px.
+- Alignment: what lines up with what (left edges, baselines), and what is centred on purpose.
+Base it on the "Layout references" in the research notes: how the best sites of this kind are laid out, and what
+the official layout guidance says. If they are missing or do not cover this page type, put "Needs research: layout
+references for <page type>, on a phone and on a wide screen" in your report and stop; do not invent a layout.
+Say which reference shaped which choice.
+
 ## 4. Build
 Call `use_skill` with `frontend-design` and follow it. Use `baseline-ui` for spacing, hierarchy, interaction and
 motion rules when the project uses Tailwind; with another stack apply its principles, not its libraries.
@@ -53,7 +70,10 @@ Before you report, read `craft/anti-ai-slop`, `craft/state-coverage` and `craft/
 `read_reference` and go through them against what you built. Fix what fails: it is your job, not the reviewer's.
 Start the site (`start_site`), then look at it with `screenshot`: the desktop screen first, then `device: mobile`;
 use `y` to read further down a long page and `overview` for the whole composition. Check what you see against
-the direction in `DESIGN.md`: hierarchy, spacing, alignment, contrast, cut-off or overflowing text. The report that
+the Layout section of `DESIGN.md`, one section at a time, on both screens: columns and gutters as planned, equal
+gaps where they should be equal, edges that line up, one clear focal point, a balanced mix of text and picture,
+nothing cramped or floating in empty space, nothing cut off, covered by a fixed header, or running past the
+edge. Then hierarchy, contrast and overflowing text. The report that
 comes with the picture lists sideways scroll, broken images, low contrast and console errors: fix every one. Fix
 what you see, take another screenshot, and only then report. Fonts and images from other websites cannot load in
 the sandbox; they will for the person.

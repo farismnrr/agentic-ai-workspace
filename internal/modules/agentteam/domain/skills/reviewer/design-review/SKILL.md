@@ -18,7 +18,8 @@ of evidence that names files, selectors or lines. A dimension is independent: do
    styles in a trench coat? Does it follow the project's `DESIGN.md` and tokens, with no raw colours?
 2. **Hierarchy.** One obvious entry point, a readable order, a type scale used with intent, one accent used
    sparingly. Check `craft/typography` and `craft/color` with `read_reference`.
-3. **Detail.** Spacing rhythm, alignment, states of every control (hover, focus, disabled, loading, empty,
+3. **Detail.** Layout against the "Layout" section of `DESIGN.md` on a phone and a wide screen (container, columns,
+   gutters, equal gaps, edges that line up, nothing cramped, floating or cut off), spacing rhythm, alignment, states of every control (hover, focus, disabled, loading, empty,
    error), real content instead of filler. Check `craft/state-coverage`.
 4. **Function and access.** Keyboard path, visible focus, labels, contrast, targets, responsive from phone to
    wide, reduced motion, forms that explain errors. Check `craft/accessibility-baseline`.
