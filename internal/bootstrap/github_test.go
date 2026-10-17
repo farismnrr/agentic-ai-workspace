@@ -151,3 +151,30 @@ func TestCommandsActOnlyAsTheProjectOwner(t *testing.T) {
 		}
 	}
 }
+
+func TestImportingARepoNeedsTheOwnerAGoodNameAndAConnection(t *testing.T) {
+	t.Parallel()
+
+	a := rigOn(t, newEnvWith(t, withGitHub))
+	path := "/api/projects/" + a.project + "/import"
+
+	for _, bad := range []string{`{"repo":""}`, `{"repo":"no-slash"}`, `{"repo":"a/b; rm -rf /"}`, `{"repo":"../x/y"}`} {
+		if got := do(t, a.env.app, "POST", path, bad, jsonCookie(a.cookie)).Status; got != 400 {
+			t.Errorf("%s must be refused as a bad name, got %d", bad, got)
+		}
+	}
+
+	if got := do(t, a.env.app, "POST", path, `{"repo":"ann/shop"}`, jsonCookie(a.cookie)); got.Status != 409 {
+		t.Errorf("without a GitHub connection the import is refused: %d %s", got.Status, got.Body)
+	}
+
+	other := cookieOf(t, do(t, a.env.app, "POST", "/api/auth/register",
+		`{"name":"Eve","email":"eve@example.com","password":"`+testPassword+`"}`, jsonHeaders()))
+	if got := do(t, a.env.app, "POST", path, `{"repo":"ann/shop"}`, jsonCookie(other)).Status; got != 404 {
+		t.Errorf("someone else's project is not found: %d", got)
+	}
+
+	if got := do(t, a.env.app, "GET", "/api/integrations/github/repos", "", jsonCookie(a.cookie)).Status; got != 409 {
+		t.Errorf("the repo list needs a connection too: %d", got)
+	}
+}

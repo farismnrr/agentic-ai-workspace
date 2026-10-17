@@ -56,6 +56,11 @@ func (r *Root) Remove(rel string) error {
 	return translate(r.root.Remove(rel))
 }
 
+// RemoveAll deletes a folder and everything in it.
+func (r *Root) RemoveAll(rel string) error {
+	return translate(r.root.RemoveAll(rel))
+}
+
 // Rename moves a file, creating the destination's folders.
 func (r *Root) Rename(from, to string) error {
 	if err := r.root.MkdirAll(path.Dir(to), dirMode); err != nil {

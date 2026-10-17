@@ -36,6 +36,10 @@ export const saveFile = (projectId: string, path: string, content: string, baseH
 
 export const deleteFile = (projectId: string, path: string): Promise<undefined> => request<undefined>('DELETE', `${base(projectId)}/file${query(path)}`);
 
+/** Deletes a folder and everything in it. There is no way back, so the page asks first. */
+export const deleteFolder = (projectId: string, path: string): Promise<undefined> =>
+  request<undefined>('DELETE', `${base(projectId)}/file${query(path)}&folder=1`);
+
 /** Calls onchange whenever the project's files may have changed (the agent worked, or another page saved). */
 export function followFiles(projectId: string, onchange: () => void): () => void {
   const source = new EventSource(`${base(projectId)}/files/stream`);

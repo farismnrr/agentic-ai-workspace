@@ -50,7 +50,12 @@ func connectGitHub(
 
 	tools.useGitHub(service, projects)
 
-	return mount, nil
+	importing := newImport(service, tools, projects, auth, sameOrigin)
+
+	return func(app *fiber.App) {
+		mount(app)
+		importing(app)
+	}, nil
 }
 
 // projectOwners says who owns a project.

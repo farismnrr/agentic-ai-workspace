@@ -14,6 +14,8 @@ type Writer interface {
 	WriteFile(rel string, data []byte) error
 	// Remove deletes one file.
 	Remove(rel string) error
+	// RemoveAll deletes a folder and everything in it.
+	RemoveAll(rel string) error
 	// Rename moves a file, creating the destination's folders.
 	Rename(from, to string) error
 }
