@@ -17,7 +17,8 @@
   let description = $state('');
   let busy = $state(false);
   let error = $state('');
-  let canImport = $state(false);
+  /** off: the server has no GitHub App; connect: it has one but the person has not connected; ready: connected. */
+  let github = $state<'off' | 'connect' | 'ready'>('off');
   let source = $state<'empty' | 'github' | 'new'>('empty');
   let repo = $state('');
   let repoName = $state('');
@@ -29,7 +30,7 @@
   });
 
   $effect(() => {
-    if (show) void loadGitHub().then((status) => { canImport = status.connected; }, () => { canImport = false; });
+    if (show) void loadGitHub().then((status) => { github = status.connected ? 'ready' : status.configured ? 'connect' : 'off'; }, () => { github = 'off'; });
   });
 
   function pick(chosen: string): void {
@@ -77,12 +78,15 @@
 <dialog bind:this={dialog} class="modal" onclose={() => (show = false)} aria-labelledby="new-project-title">
   <form class="modal-box max-w-md" onsubmit={submit}>
     <h2 id="new-project-title" class="text-base font-semibold">New project</h2>
-    {#if canImport}
+    {#if github !== 'off'}
       <div class="join mt-4" role="group" aria-label="Where it starts">
         <button type="button" class="btn btn-sm join-item {source === 'empty' ? 'btn-primary' : ''}" aria-pressed={source === 'empty'} onclick={() => { source = 'empty'; }}>{projectsCopy.github.empty}</button>
-        <button type="button" class="btn btn-sm join-item {source === 'github' ? 'btn-primary' : ''}" aria-pressed={source === 'github'} onclick={() => { source = 'github'; }}>{projectsCopy.github.fromGitHub}</button>
-        <button type="button" class="btn btn-sm join-item {source === 'new' ? 'btn-primary' : ''}" aria-pressed={source === 'new'} onclick={() => { source = 'new'; if (repoName === '') repoName = slug(name); }}>{projectsCopy.github.newRepo}</button>
+        <button type="button" class="btn btn-sm join-item {source === 'github' ? 'btn-primary' : ''} {github === 'connect' ? '!border-[var(--brand-border-strong)] !bg-base-100 !text-[var(--brand-text-secondary)] cursor-not-allowed' : ''}" aria-pressed={source === 'github'} aria-disabled={github === 'connect'} aria-describedby={github === 'connect' ? 'github-hint' : undefined} onclick={() => { if (github === 'ready') source = 'github'; }}>{projectsCopy.github.fromGitHub}</button>
+        <button type="button" class="btn btn-sm join-item {source === 'new' ? 'btn-primary' : ''} {github === 'connect' ? '!border-[var(--brand-border-strong)] !bg-base-100 !text-[var(--brand-text-secondary)] cursor-not-allowed' : ''}" aria-pressed={source === 'new'} aria-disabled={github === 'connect'} aria-describedby={github === 'connect' ? 'github-hint' : undefined} onclick={() => { if (github === 'ready') { source = 'new'; if (repoName === '') repoName = slug(name); } }}>{projectsCopy.github.newRepo}</button>
       </div>
+      {#if github === 'connect'}
+        <p id="github-hint" class="mt-2 text-sm text-[var(--brand-text-secondary)]">{projectsCopy.github.connectHint} <a class="link link-primary font-medium" href="/app/settings/integrations">{projectsCopy.github.connectLink}</a></p>
+      {/if}
       {#if source === 'github'}<RepoPicker value={repo} onpick={pick} />{/if}
       {#if source === 'new'}
         <label class="mt-4 block font-medium" for="project-repo-name">{projectsCopy.github.repoName}</label>

@@ -18,6 +18,7 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
 2. Create a project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.
    - With GitHub connected, choose "From GitHub" to start from one of your repositories. Type to search; the list scrolls. It is copied into the new project with its history.
    - Or choose "New repository" to create a repository on your GitHub account, and a project from it. It starts with a README, and you pick public or private.
+   - Without GitHub connected, these two choices stay visible but unavailable, with a link to connect GitHub. If the server has no GitHub App set up, they are hidden.
    - If GitHub does not let the app create it, you are told. Create it on GitHub, share it with the app, then pick it under "From GitHub".
 3. Describe what you need on Home. You can also pick a model and an effort for this task.
 4. Watch the plan and the steps. The AI asks before it edits, deletes or moves files, runs commands, or starts a web app.
