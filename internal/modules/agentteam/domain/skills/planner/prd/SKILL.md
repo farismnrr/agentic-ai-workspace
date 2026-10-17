@@ -10,7 +10,8 @@ Your result is a short PRD the team builds from. Size it to the request: a page 
 longer only for a large one. Extra sections are a cost.
 
 ## 1. Look first
-If the project has files, read them so you never ask what you could read.
+If the project has files, read them so you never ask what you could read. If the brief carries research notes, read
+them too: what they establish is not asked again, and the PRD cites their sources under Assumptions.
 
 ## 2. Ask with one form
 Use `ask_user` once, with a form of 1 to 4 questions. Do not ask one question per call.

@@ -19,13 +19,15 @@ type taskPayload struct {
 	Title      string        `json:"title"`
 	Summary    string        `json:"summary"`
 	// PRD is the requirements document the team's Planner wrote, in markdown; empty when there is none.
-	PRD    string            `json:"prd"`
-	Status domain.Status     `json:"status"`
-	ID     string            `json:"id"`
-	Model  string            `json:"model"`
-	Effort string            `json:"effort"`
-	Source string            `json:"source"`
-	Plan   []domain.PlanStep `json:"plan"`
+	PRD string `json:"prd"`
+	// Research is what the team found out from the web and the project, in markdown; empty when none.
+	Research string            `json:"research"`
+	Status   domain.Status     `json:"status"`
+	ID       string            `json:"id"`
+	Model    string            `json:"model"`
+	Effort   string            `json:"effort"`
+	Source   string            `json:"source"`
+	Plan     []domain.PlanStep `json:"plan"`
 	// ContextUsed and ContextWindow are tokens; both are zero before the first model call.
 	ContextUsed   int64 `json:"contextUsed"`
 	ContextWindow int64 `json:"contextWindow"`
@@ -37,7 +39,7 @@ func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
 		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Team: t.Team,
-		PRD: t.PRD, Proof: t.Proof,
+		PRD: t.PRD, Research: t.Research, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
 	}

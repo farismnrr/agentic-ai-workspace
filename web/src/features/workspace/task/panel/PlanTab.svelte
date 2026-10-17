@@ -7,13 +7,21 @@
     plan: PlanStep[];
     /** The requirements document the team builds from, in markdown. */
     prd?: string | undefined;
+    /** What the team found out on the web before building, in markdown. */
+    research?: string | undefined;
   }
 
   const labels: Record<PlanState, string> = { done: 'Done', active: 'In progress', pending: 'Not started', failed: "Didn't work" };
 
-  const { plan, prd = '' }: Props = $props();
+  const { plan, prd = '', research = '' }: Props = $props();
 </script>
 
+{#if research !== ''}
+  <details class="mb-4 rounded-lg border border-[var(--brand-border)] bg-base-100 px-3 py-2">
+    <summary class="cursor-pointer font-medium">Research notes</summary>
+    <div class="mt-2 max-h-96 overflow-y-auto"><DocText text={research} /></div>
+  </details>
+{/if}
 {#if prd !== ''}
   <details class="mb-4 rounded-lg border border-[var(--brand-border)] bg-base-100 px-3 py-2">
     <summary class="cursor-pointer font-medium">Requirements (PRD)</summary>

@@ -48,6 +48,7 @@ export type TaskEvent =
   | (EventBase & { kind: 'site'; text: string; url: string })
   | (EventBase & { kind: 'shot'; text: string; image: string })
   | (EventBase & { kind: 'prd'; text: string; technical: string })
+  | (EventBase & { kind: 'research'; text: string; technical: string })
   | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string });
 
 /** How one question of a form is answered: pick one, pick several, or type. */
@@ -103,6 +104,7 @@ export interface Task {
   team: boolean;
   /** The requirements document the team's Planner wrote, in markdown; empty when there is none. */
   prd: string;
+  research: string;
   plan: PlanStep[];
   proof?: Proof;
   /** Tokens the last model call carried and the model's window; both 0 before the first call. */

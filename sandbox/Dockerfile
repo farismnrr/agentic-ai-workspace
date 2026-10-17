@@ -36,6 +36,21 @@ RUN apt-get update \
     && tar -xzf /tmp/gh.tar.gz -C /tmp \
     && install -m 0755 "/tmp/gh_${GH_VERSION}_linux_${TARGETARCH}/bin/gh" /usr/local/bin/gh
 
+# Background removal: rembg (CPU) in its own virtual environment, with the two models downloaded now so that
+# nothing is fetched while the agent works. Models are named explicitly because the library's default is a
+# 1 GB model under a paid commercial licence; these two are Apache-2.0.
+FROM python AS rembg
+ARG REMBG_VERSION=2.0.85
+ENV REMBG_HOME=/opt/rembg-models
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv venv /opt/rembg --python "$(ls -d /opt/python/cpython-*/bin/python3 | head -n1)" \
+    && uv pip install --python /opt/rembg/bin/python "rembg[cpu]==${REMBG_VERSION}" pillow \
+    && /opt/rembg/bin/python -c "from rembg import new_session; [new_session(m) for m in ('u2netp', 'isnet-general-use')]"
+RUN chmod -R a+rX /opt/rembg /opt/rembg-models
+
 FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
 ARG PYTHON_VERSION
 
@@ -43,6 +58,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash build-essential ca-certificates curl git socat unzip zip jq ripgrep procps \
         chromium-headless-shell fonts-liberation fonts-noto-color-emoji \
+        libvips-tools imagemagick librsvg2-bin webp libavif-bin optipng pngquant libimage-exiftool-perl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /uvx /usr/local/bin/
@@ -66,14 +82,19 @@ COPY --from=rust /usr/local/rustup /opt/rustup
 COPY --from=java /opt/java/openjdk /opt/java/openjdk
 COPY --from=maven /usr/share/maven /opt/maven
 
+COPY --from=rembg /opt/rembg /opt/rembg
+COPY --from=rembg /opt/rembg-models /opt/rembg-models
+COPY sandbox/removebg.py /usr/local/bin/removebg
+COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
 COPY sandbox/capture/ /usr/local/share/capture/
-RUN chmod 0755 /usr/local/bin/sandbox-entry
+RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg
 
 # Read-only toolchains stay put; downloads and build output go to /cache, which the server mounts per person.
 ENV RUSTUP_HOME=/opt/rustup \
     JAVA_HOME=/opt/java/openjdk \
     MAVEN_HOME=/opt/maven \
+    REMBG_HOME=/opt/rembg-models \
     GOFLAGS="-modcacherw -buildvcs=false" \
     PATH=/usr/local/go/bin:/opt/cargo/bin:/opt/java/openjdk/bin:/opt/maven/bin:/usr/local/bin:/usr/bin:/bin
 
@@ -81,7 +102,7 @@ ENV RUSTUP_HOME=/opt/rustup \
 LABEL org.opencontainers.image.title="agentic-ai-workspace-sandbox" \
       org.opencontainers.image.source="https://github.com/farismnrr/agentic-ai-workspace" \
       org.opencontainers.image.description="Isolated toolbox for the agent's commands" \
-      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"}]"
+      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"}]"
 
 USER 65532:65532
 WORKDIR /workspace

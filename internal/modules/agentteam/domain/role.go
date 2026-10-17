@@ -27,6 +27,12 @@ const (
 	AccessExec  = "exec"
 	// AccessAsk lets a role ask the person questions, with options to pick from or free text.
 	AccessAsk = "ask"
+	// AccessWeb lets a role search the web and read pages. What it reads comes from strangers, so only a role that
+	// cannot change anything has it, and the orchestrator never reads it raw.
+	AccessWeb = "web"
+	// AccessImages lets a role find pictures with a licence and save them in the project. It does not read web pages:
+	// a role that can write and run commands must not read text from strangers.
+	AccessImages = "images"
 )
 
 var (
@@ -58,6 +64,8 @@ type Role struct {
 	// WritesPRD is true for the built-in role whose document is the team's PRD; no other role's document is
 	// saved as one. It is not saved: it follows the built-in role.
 	WritesPRD bool `json:"-"`
+	// WritesResearch is the same for the role whose documents are the team's research notes.
+	WritesResearch bool `json:"-"`
 }
 
 // Preset reports whether the role is one of the built-in SDLC roles.
@@ -90,17 +98,18 @@ func (r Role) normalize() (Role, error) {
 		return Role{}, err
 	}
 
-	r.Access = access
+	r.Access = withoutWebWhenItCanChange(access)
 
 	built, isBuiltIn := presetByKey(r.Key)
 	// The orchestrator is the only lead, and a built-in role keeps the access that fits it.
 	r.Lead = isBuiltIn && built.lead
 
-	r.Skills, r.Library, r.WritesPRD = nil, nil, false
+	r.Skills, r.Library, r.WritesPRD, r.WritesResearch = nil, nil, false, false
 
 	if isBuiltIn {
 		r.Access = slices.Clone(built.access)
-		r.Skills, r.Library, r.WritesPRD = SkillsFor(built.key), LibraryFor(built.key), built.prd
+		r.Skills, r.Library = SkillsFor(built.key), LibraryFor(built.key)
+		r.WritesPRD, r.WritesResearch = built.prd, built.research
 	}
 
 	r.Enabled = r.Enabled || r.Lead
@@ -127,7 +136,7 @@ func cleanAccess(groups []string) ([]string, error) {
 	for _, group := range groups {
 		switch group {
 		case AccessRead:
-		case AccessWrite, AccessExec, AccessAsk:
+		case AccessWrite, AccessExec, AccessAsk, AccessWeb, AccessImages:
 			if !slices.Contains(clean, group) {
 				clean = append(clean, group)
 			}
@@ -161,4 +170,15 @@ func slug(name string) string {
 	}
 
 	return key
+}
+
+// withoutWebWhenItCanChange drops web access from a role that can also change files or run commands: text from
+// strangers must not reach a role that could act on it. Pictures (a separate group) stay.
+func withoutWebWhenItCanChange(access []string) []string {
+	changes := slices.Contains(access, AccessWrite) || slices.Contains(access, AccessExec)
+	if !slices.Contains(access, AccessWeb) || !changes {
+		return access
+	}
+
+	return slices.DeleteFunc(slices.Clone(access), func(group string) bool { return group == AccessWeb })
 }

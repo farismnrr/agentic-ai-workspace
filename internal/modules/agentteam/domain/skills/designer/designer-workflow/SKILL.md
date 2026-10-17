@@ -11,7 +11,10 @@ work to anyone, and you change only what the job needs: design files and the int
 If the job is only advice or a review, do not write files.
 
 ## 1. Look first
-Read the brief and the PRD in it. Look at the project: `DESIGN.md`, CSS variables or tokens, existing components,
+Read the brief, the PRD in it and, if there are research notes, their "Design references": the real sites in the
+niche, the usual structure of the page, the words the audience uses and the directions suggested. Use them: say
+which reference shaped a choice, and do not copy a site. If a fact you need is missing, put "Needs research:
+<question>" in your report instead of guessing. Look at the project: `DESIGN.md`, CSS variables or tokens, existing components,
 the stack (plain HTML, a framework, Tailwind, daisyUI...). If the project already has a design system, it is the
 source of truth: follow it and do not start a new look. Build with the stack that is there.
 
@@ -27,7 +30,13 @@ Only when the project has no `DESIGN.md`:
   project root: palette, accent, type, layout, mood, density and what to exclude. Say which defaults you took.
 - Put the tokens where the project keeps its CSS variables. Use them everywhere; no raw colours in components.
 
-## 3. Pick a page recipe
+## 3. List the pictures the page needs
+Add an "Assets needed" section to `DESIGN.md`: for each picture its name, subject, where it goes, its shape (wide,
+square, round, cut-out) and the size it is shown at. If the team has a Media teammate, the orchestrator hands the list
+to it and you build with what it saves in `assets/`; until then draw with CSS or SVG. Never link a picture from
+another website. Show a picture credit on the page when `assets/CREDITS.md` says one is required.
+
+## 3b. Pick a page recipe
 For a known page type, read the closest template with `read_reference` (`template/<name>`): saas-landing,
 pricing-page, dashboard, docs-page, blog-post, mobile-app, waitlist-page, web-prototype, kanban-board and the
 wireframe-* ones. Take its section order, rules and self-check. Adapt it to the project's stack. Ignore what is

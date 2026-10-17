@@ -25,12 +25,12 @@ func TestPresetsAreTheSDLCTeamWithOneLead(t *testing.T) {
 	lead, ok := team.Lead()
 
 	keys := keysOf(team)
-	if !ok || lead.Key != "orchestrator" || len(keys) != 10 || !slices.Contains(keys, "planner") {
-		t.Fatalf("expected the 10 SDLC roles led by the orchestrator: %v", keys)
+	if !ok || lead.Key != "orchestrator" || len(keys) != 11 || !slices.Contains(keys, "planner") {
+		t.Fatalf("expected the 11 SDLC roles led by the orchestrator: %v", keys)
 	}
 
-	if len(team.Members()) != 9 {
-		t.Fatalf("the lead hands work to the other nine: %d", len(team.Members()))
+	if len(team.Members()) != 10 {
+		t.Fatalf("the lead hands work to the other ten: %d", len(team.Members()))
 	}
 
 	if _, err := team.Normalize(); err != nil {
@@ -42,9 +42,10 @@ func TestPresetAccessFollowsTheRole(t *testing.T) {
 	t.Parallel()
 
 	want := map[string][]string{
-		"planner": {"read", "ask"}, "researcher": {"read"}, "business-analyst": {"read", "ask"}, "architect": {"read"},
-		"reviewer": {"read"}, "designer": {"read", "write", "exec", "ask"},
-		"qa": {"read", "exec"}, "developer": {"read", "write", "exec"}, "devops": {"read", "write", "exec"},
+		"planner": {"read", "ask"}, "researcher": {"read", "web"}, "media": {"read", "write", "exec", "images"},
+		"business-analyst": {"read", "ask"}, "architect": {"read"}, "reviewer": {"read"},
+		"designer": {"read", "write", "exec", "ask"},
+		"qa":       {"read", "exec"}, "developer": {"read", "write", "exec"}, "devops": {"read", "write", "exec"},
 	}
 
 	for _, role := range domain.Presets().Members() {
@@ -135,7 +136,7 @@ func TestOlderSavedTeamsGetNewBuiltInRoles(t *testing.T) {
 	t.Parallel()
 
 	old := domain.Team{Roles: []domain.Role{{Key: "orchestrator", Name: "Orchestrator", Lead: true, Enabled: true}}}
-	if keys := keysOf(old.WithBuiltIns()); !slices.Contains(keys, "planner") || len(keys) != 10 {
+	if keys := keysOf(old.WithBuiltIns()); !slices.Contains(keys, "planner") || len(keys) != 11 {
 		t.Fatalf("a team saved before the Planner existed gets it: %v", keys)
 	}
 }
@@ -167,7 +168,7 @@ func TestBuiltInRolesKeepTheirAccessWhateverIsSent(t *testing.T) {
 	}
 
 	got := [][]string{team.Roles[1].Access, team.Roles[2].Access, team.Roles[3].Access}
-	want := [][]string{{"read"}, {"read", "write", "exec"}, {"read", "write"}}
+	want := [][]string{{"read", "web"}, {"read", "write", "exec"}, {"read", "write"}}
 
 	for i := range want {
 		if !slices.Equal(got[i], want[i]) {

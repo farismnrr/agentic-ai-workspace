@@ -99,6 +99,7 @@ linters:
         - module: github.com/golang-jwt/jwt/v5
         - module: modernc.org/sqlite
         - module: golang.org/x/crypto
+        - module: golang.org/x/net
         - module: golang.org/x/sys
         - module: github.com/moby/moby/client
         - module: github.com/moby/moby/api

@@ -29,6 +29,9 @@ type AgentRole struct {
 	// WritesPRD makes the document of this role's report the team's PRD; any other role's document is only
 	// returned to the orchestrator.
 	WritesPRD bool
+	// WritesResearch makes the document of this role's report research notes, saved on the task and shared with
+	// every teammate after it.
+	WritesResearch bool
 }
 
 // Skill is one playbook of a role: what it is for, and the instructions themselves.

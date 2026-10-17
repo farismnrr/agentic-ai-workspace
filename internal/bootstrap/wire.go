@@ -54,7 +54,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	tools, err := newAgentTools(folders, cfg.DataDir, cfg.PublicURL, engine)
+	tools, err := newToolbox(folders, cfg, engine)
 	if err != nil {
 		return nil, nil, err
 	}

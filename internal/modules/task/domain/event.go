@@ -19,6 +19,8 @@ const (
 	EventHandoff EventKind = "handoff"
 	// EventShot is a screenshot of the running app; Image names the saved PNG and Text says what it shows.
 	EventShot EventKind = "shot"
+	// EventResearch is research notes a teammate wrote; its text is the document.
+	EventResearch EventKind = "research"
 	// EventPRD is the product requirements document a teammate wrote; its text is the document.
 	EventPRD EventKind = "prd"
 )
