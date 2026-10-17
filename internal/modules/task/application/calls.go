@@ -64,6 +64,12 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
 
+	if why := r.securityHold(ctx, task, call); why != "" {
+		r.result(ctx, task, call.ID, why, true)
+
+		return outcome{}, false
+	}
+
 	if blocked, out, done := r.checkTool(ctx, task, call, described); blocked {
 		return out, done
 	}

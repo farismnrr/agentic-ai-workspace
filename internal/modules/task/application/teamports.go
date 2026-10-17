@@ -32,6 +32,9 @@ type AgentRole struct {
 	// WritesResearch makes the document of this role's report research notes, saved on the task and shared with
 	// every teammate after it.
 	WritesResearch bool
+	// ChecksSecurity marks the role whose review must come before an app is started: start_site is refused for the
+	// team until it has looked at the latest code.
+	ChecksSecurity bool
 }
 
 // Skill is one playbook of a role: what it is for, and the instructions themselves.

@@ -13,7 +13,7 @@ func TestThePlannerCarriesItsPlaybook(t *testing.T) {
 		t.Fatalf("playbook = %+v", skills)
 	}
 
-	if len(SkillsFor("developer")) != 0 || len(SkillsFor("../x")) != 0 {
+	if len(SkillsFor("qa")) != 0 || len(SkillsFor("../x")) != 0 {
 		t.Fatal("a role without a playbook has none")
 	}
 }
@@ -109,6 +109,25 @@ func TestTheLibraryIsLimitedToTheRolesGroups(t *testing.T) {
 	for _, denied := range denied {
 		if _, ok := ReferenceText(denied[0], denied[1]); ok {
 			t.Errorf("%s must not read %s", denied[0], denied[1])
+		}
+	}
+}
+
+func TestTheStackAndSecurityPlaybooksAreAlwaysOn(t *testing.T) {
+	t.Parallel()
+
+	playbooks := map[string]string{"developer": "nuxt-app", "architect": "stack-defaults", "security": "security-review"}
+
+	for key, want := range playbooks {
+		skills := SkillsFor(key)
+		if len(skills) != 1 || skills[0].Name != want || !skills[0].Always {
+			t.Errorf("%s playbook = %+v, want %s", key, skills, want)
+		}
+	}
+
+	for _, role := range Presets().Members() {
+		if role.Key == "security" && (!role.ChecksSecurity || slices.Contains(role.Access, AccessWrite)) {
+			t.Errorf("the Security role checks and cannot write: %+v", role)
 		}
 	}
 }

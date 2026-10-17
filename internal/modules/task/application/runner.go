@@ -44,7 +44,9 @@ type Runner struct {
 	deps Deps
 	// role is set on the runner of a teammate; the orchestrator and solo tasks have none.
 	role *AgentRole
-	lim  Limits
+	// security names the team's Security role on a teammate's runner; start_site waits for its review.
+	security string
+	lim      Limits
 	// leads is set on the runner that leads a team: it hands out work but never changes anything itself.
 	leads bool
 }

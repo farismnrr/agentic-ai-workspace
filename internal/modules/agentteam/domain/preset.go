@@ -4,8 +4,9 @@ type preset struct {
 	key, name, purpose, prompt string
 	access                     []string
 	lead                       bool
-	// prd is set for the role whose document is the team's PRD, research for the role whose documents are its research.
-	prd, research bool
+	// prd is set for the role whose document is the team's PRD, research for the role whose documents are its research,
+	// security for the role that must check the code before an app is started.
+	prd, research, security bool
 }
 
 var presets = []preset{
@@ -69,6 +70,13 @@ var presets = []preset{
 			"Report what you changed and what you ran.",
 	},
 	{
+		key: "security", name: "Security", access: []string{AccessRead, AccessExec}, security: true,
+		purpose: "Checks an app for known vulnerabilities, risky code and missing protections before it is started.",
+		prompt: "You are an application security reviewer. You run the vulnerability audit, the linter and the " +
+			"secret and header checks, read the code for what tools miss, and report in plain words what is safe " +
+			"and what must be fixed first. You do not change the code yourself.",
+	},
+	{
 		key: "qa", name: "QA Tester", access: []string{AccessRead, AccessExec},
 		purpose: "Checks the work by running the tests and trying to break it.",
 		prompt: "You are a QA tester. Run the project's tests and checks, try the edge cases from the " +
@@ -110,6 +118,7 @@ func Presets() Team {
 			Key: p.key, Name: p.name, Purpose: p.purpose, Prompt: p.prompt,
 			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true,
 			Skills: SkillsFor(p.key), Library: LibraryFor(p.key), WritesPRD: p.prd, WritesResearch: p.research,
+			ChecksSecurity: p.security,
 		})
 	}
 
