@@ -106,3 +106,46 @@ func TestTheLeadSaysSoWhenNoOneCanChangeFiles(t *testing.T) {
 		t.Fatalf("the lead is told to ask for a Developer, not to do it itself: %q", lead)
 	}
 }
+
+func planWith(first, second string) step {
+	return call("p1", "update_plan", map[string]any{"steps": []map[string]string{
+		{"title": "Developer: build the page", "state": first},
+		{"title": "Check the page", "state": second},
+	}})
+}
+
+func TestThePlanFollowsTheTeammatesWork(t *testing.T) {
+	t.Parallel()
+
+	r := newTeamRig(nil, []application.AgentRole{developer()},
+		planWith("pending", "pending"),
+		delegate("d1", "developer", "Build it"),
+		report("r1", "Built"),
+		finish("Done"),
+		planWith("done", "done"),
+		finish("Done"),
+	)
+	task := r.startTeam(t, "Make a page")
+	r.run(task.ID)
+
+	plan := r.task(t, task.ID).Plan
+	if len(plan) != 2 || plan[0].State != domain.PlanDone {
+		t.Fatalf("the step that names the Developer is done once the Developer reports: %+v", plan)
+	}
+
+	var refused domain.Block
+
+	for _, request := range r.model.requests {
+		if block := resultFor(request, "fin"); block.IsError {
+			refused = block
+		}
+	}
+
+	if !refused.IsError || !strings.Contains(refused.Text, "Check the page") {
+		t.Fatalf("finishing with an unfinished step is refused once, naming it: %+v", refused)
+	}
+
+	if got := r.task(t, task.ID).Status; got == domain.StatusFailed || got == domain.StatusWorking {
+		t.Fatalf("after the plan is brought up to date the run finishes: %s", got)
+	}
+}

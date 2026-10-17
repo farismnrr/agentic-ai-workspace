@@ -85,6 +85,7 @@ func (r *Runner) startDelegation(
 	}
 
 	r.handoff(ctx, task, d, handoffAssigned, "Asked the "+role.Name+" to take this on", d.Brief)
+	r.trackPlan(ctx, task, d, domain.PlanActive)
 
 	return d, true
 }
@@ -131,10 +132,12 @@ func (r *Runner) endDelegation(
 ) {
 	_ = r.deps.Delegations.EndDelegation(ctx, task.ID, d.ID, status, report, r.deps.Now())
 
-	action, text := handoffReported, "The "+d.RoleName+" reported back"
+	action, text, plan := handoffReported, "The "+d.RoleName+" reported back", domain.PlanDone
 	if status == DelegationFailed {
-		action, text = handoffFailed, "The "+d.RoleName+" could not finish"
+		action, text, plan = handoffFailed, "The "+d.RoleName+" could not finish", domain.PlanFailed
 	}
+
+	r.trackPlan(ctx, task, d, plan)
 
 	r.handoff(ctx, task, d, action, text, report)
 	r.result(ctx, task, call.ID, report, status == DelegationFailed)
