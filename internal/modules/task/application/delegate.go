@@ -117,7 +117,7 @@ func (r *Runner) runDelegation(
 
 		return result, true
 	case stopFinished:
-		r.endDelegation(ctx, task, call, d, DelegationDone, r.deliver(ctx, task, d, result)+r.facts(ctx, task, d))
+		r.endDelegation(ctx, task, call, d, DelegationDone, r.deliver(ctx, task, d, role, result)+r.facts(ctx, task, d))
 	case stopFailed:
 		r.endDelegation(ctx, task, call, d, DelegationFailed, d.RoleName+" could not finish: "+result.text)
 	}

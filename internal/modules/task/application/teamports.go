@@ -26,6 +26,9 @@ type AgentRole struct {
 	// Tools names the project tools the role may use; the lead is not limited by it.
 	Tools []string
 	Lead  bool
+	// WritesPRD makes the document of this role's report the team's PRD; any other role's document is only
+	// returned to the orchestrator.
+	WritesPRD bool
 }
 
 // Skill is one playbook of a role: what it is for, and the instructions themselves.

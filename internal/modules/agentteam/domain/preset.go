@@ -4,6 +4,8 @@ type preset struct {
 	key, name, purpose, prompt string
 	access                     []string
 	lead                       bool
+	// prd is set for the role whose document is the team's PRD.
+	prd bool
 }
 
 var presets = []preset{
@@ -15,7 +17,7 @@ var presets = []preset{
 			"keep the person informed in plain words. Do small, obvious jobs yourself instead of delegating them.",
 	},
 	{
-		key: "planner", name: "Planner", access: []string{AccessRead, AccessAsk},
+		key: "planner", name: "Planner", access: []string{AccessRead, AccessAsk}, prd: true,
 		purpose: "Asks what it needs to know, then writes a short PRD: scope, requirements, acceptance criteria and todo.",
 		prompt: "You are a pragmatic product planner. You turn a request into a short PRD the team can build " +
 			"from, and you ask the person what you cannot read from the project instead of guessing.",
@@ -97,7 +99,7 @@ func Presets() Team {
 		roles = append(roles, Role{
 			Key: p.key, Name: p.name, Purpose: p.purpose, Prompt: p.prompt,
 			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true,
-			Skills: SkillsFor(p.key), Library: LibraryFor(p.key),
+			Skills: SkillsFor(p.key), Library: LibraryFor(p.key), WritesPRD: p.prd,
 		})
 	}
 

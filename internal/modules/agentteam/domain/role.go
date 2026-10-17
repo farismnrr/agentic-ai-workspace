@@ -55,6 +55,9 @@ type Role struct {
 	Access  []string `json:"access"`
 	Lead    bool     `json:"lead"`
 	Enabled bool     `json:"enabled"`
+	// WritesPRD is true for the built-in role whose document is the team's PRD; no other role's document is
+	// saved as one. It is not saved: it follows the built-in role.
+	WritesPRD bool `json:"-"`
 }
 
 // Preset reports whether the role is one of the built-in SDLC roles.
@@ -93,11 +96,11 @@ func (r Role) normalize() (Role, error) {
 	// The orchestrator is the only lead, and a built-in role keeps the access that fits it.
 	r.Lead = isBuiltIn && built.lead
 
-	r.Skills, r.Library = nil, nil
+	r.Skills, r.Library, r.WritesPRD = nil, nil, false
 
 	if isBuiltIn {
 		r.Access = slices.Clone(built.access)
-		r.Skills, r.Library = SkillsFor(built.key), LibraryFor(built.key)
+		r.Skills, r.Library, r.WritesPRD = SkillsFor(built.key), LibraryFor(built.key), built.prd
 	}
 
 	r.Enabled = r.Enabled || r.Lead

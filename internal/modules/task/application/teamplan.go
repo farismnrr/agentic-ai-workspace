@@ -31,7 +31,9 @@ const maxDocument = 12_000
 
 // deliver is what the orchestrator reads of a teammate's report. A document that came with it, such as the PRD,
 // is saved on the task and shown to the person, so everything after works from the same one.
-func (r *Runner) deliver(ctx context.Context, task domain.Task, d Delegation, result outcome) string {
+func (r *Runner) deliver(
+	ctx context.Context, task domain.Task, d Delegation, role AgentRole, result outcome,
+) string {
 	text := reportText(result.text)
 
 	document := strings.TrimSpace(result.document)
@@ -40,6 +42,11 @@ func (r *Runner) deliver(ctx context.Context, task domain.Task, d Delegation, re
 	}
 
 	document = truncate(document, maxDocument)
+	if !role.WritesPRD {
+		// A review or a spec is not the PRD: saving it would replace the document everyone builds from.
+		return text + "\n\nWhat the " + d.RoleName + " wrote:\n" + document
+	}
+
 	_ = r.deps.Tasks.SavePRD(ctx, task.ID, document, r.deps.Now())
 	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
 		Kind: domain.EventPRD, Text: "The " + d.RoleName + " wrote the PRD", Technical: document, Agent: d.RoleName,

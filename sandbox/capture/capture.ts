@@ -48,7 +48,7 @@ function watch(cdp: Cdp, console: string[], failed: string[]) {
   });
 }
 
-async function run(req: Request) {
+async function run(req: Request): Promise<object> {
   const browser = spawn('chromium-headless-shell', [
     '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars', '--force-color-profile=srgb',
     `--remote-debugging-port=${String(DEBUG_PORT)}`, '--user-data-dir=/tmp/chrome', 'about:blank',
@@ -73,7 +73,7 @@ async function run(req: Request) {
       : { x: 0, y: Math.min(req.y, Math.max(total - 1, 0)), width: req.width, height: 0, scale: 1 };
     if (!req.overview) clip.height = Math.min(req.height, total - clip.y);
     const shot = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip });
-    console.log('CAPTURE_JSON:' + JSON.stringify({ ok: true, png: shot.data, shot: clip, metrics, console: messages, failed }));
+    return { ok: true, png: shot.data, shot: clip, metrics, console: messages, failed };
   } finally {
     browser.kill('SIGKILL');
   }
@@ -92,7 +92,9 @@ function parse(text: string): Request {
   };
 }
 
-run(parse(process.argv[2] ?? '{}')).then(() => process.exit(0), (error: Error) => {
-  console.log('CAPTURE_JSON:' + JSON.stringify({ ok: false, error: error.message }));
-  process.exit(0);
-});
+// Exit only once the line is written: a screenshot is far bigger than a pipe, and exiting at once cuts it short.
+function finish(result: object): void {
+  process.stdout.write('CAPTURE_JSON:' + JSON.stringify(result) + '\n', () => { process.exit(0); });
+}
+
+run(parse(process.argv[2] ?? '{}')).then(finish, (error: Error) => { finish({ ok: false, error: error.message }); });
