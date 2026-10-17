@@ -21,10 +21,10 @@ const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
 let created: unknown;
 
-let github: 'connected' | 'not connected' | 'broken' = 'not connected';
+let github: 'connected' | 'not connected' | 'not set up' | 'broken' = 'not connected';
 await page.route('**/api/integrations/github', (route) => {
   if (github === 'broken') return route.fulfill({ status: 500, json: { error: 'internal' } });
-  return route.fulfill({ json: { configured: true, connected: github === 'connected', login: 'ann', name: 'Ann', reposUrl: '' } });
+  return route.fulfill({ json: { configured: github !== 'not set up', connected: github === 'connected', login: 'ann', name: 'Ann', reposUrl: '' } });
 });
 await page.route('**/api/integrations/github/repos', (route) =>
   route.request().method() === 'POST'
@@ -40,7 +40,7 @@ await page.getByLabel(/email/i).fill(info.email);
 await page.locator('#password').fill(info.password);
 await page.getByRole('button', { name: /sign in/i }).click();
 await page.waitForURL(/\/app/, { timeout: 15000 });
-for (const state of ['not connected', 'broken'] as const) {
+for (const state of ['not set up', 'broken'] as const) {
   github = state;
   await page.goto(`${info.base}/app/projects`);
   await page.getByRole('button', { name: /new project/i }).first().click();
@@ -50,6 +50,20 @@ for (const state of ['not connected', 'broken'] as const) {
   check(`GitHub ${state}: the dialog is the plain one`, (await plain.locator('.join').count()) === 0 && (await plain.getByRole('button', { name: 'Create project' }).count()) === 1);
   await plain.getByRole('button', { name: 'Cancel' }).click();
 }
+
+github = 'not connected';
+await page.goto(`${info.base}/app/projects`);
+await page.getByRole('button', { name: /new project/i }).first().click();
+const hinted = page.locator('dialog[open]');
+await hinted.locator('#github-hint').waitFor();
+check('not connected: both options show, with a way to connect', (await hinted.locator('.join button').count()) === 3 && (await hinted.locator('#github-hint a').getAttribute('href')) === '/app/settings/integrations');
+await hinted.getByRole('button', { name: 'From GitHub' }).click({ force: true });
+await page.waitForTimeout(300);
+check('not connected: the option does nothing', (await hinted.locator('#project-repo-list').count()) === 0 && (await hinted.getByRole('button', { name: 'From GitHub' }).getAttribute('aria-disabled')) === 'true');
+await hinted.getByRole('button', { name: 'From GitHub' }).focus();
+check('not connected: the option can be reached by keyboard', await hinted.getByRole('button', { name: 'From GitHub' }).evaluate((el) => el === document.activeElement));
+await hinted.screenshot({ path: `${shots}/new-project-connect.png` });
+await hinted.getByRole('button', { name: 'Cancel' }).click();
 
 github = 'connected';
 await page.goto(`${info.base}/app/projects`);

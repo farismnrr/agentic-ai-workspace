@@ -35,6 +35,8 @@ export const projectsCopy = {
     newRepo: 'New repository',
     repoName: 'Repository name',
     private: 'Private repository',
+    connectHint: 'Connect GitHub to start from a repository.',
+    connectLink: 'Connect GitHub',
     search: 'Search your repositories',
     noMatch: 'No repository matches.',
     pick: 'Repository',
