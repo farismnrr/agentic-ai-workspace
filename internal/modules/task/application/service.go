@@ -33,7 +33,9 @@ func NewService(deps Deps, dispatcher Dispatcher) *Service {
 // CreateInput is what the composer sends.
 type CreateInput struct {
 	// Team says whether the agent leads a team; nil uses the person's choice for new tasks.
-	Team       *bool
+	Team *bool
+	// PlanFirst says whether the team stops at the PRD and waits for a yes; nil means it does.
+	PlanFirst  *bool
 	ProjectID  string
 	Prompt     string
 	ProviderID string
@@ -74,7 +76,8 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 	now := s.deps.Now()
 	task := domain.Task{
 		ID: id, ProjectID: in.ProjectID, UserID: userID, Title: titleOf(prompt), ProviderID: providerID,
-		Model: model, Effort: effort, Team: team, Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now,
+		Model: model, Effort: effort, Team: team, PlanFirst: in.PlanFirst == nil || *in.PlanFirst,
+		Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now,
 		Plan: []domain.PlanStep{},
 	}
 

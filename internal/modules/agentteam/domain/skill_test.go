@@ -113,21 +113,46 @@ func TestTheLibraryIsLimitedToTheRolesGroups(t *testing.T) {
 	}
 }
 
-func TestTheStackAndSecurityPlaybooksAreAlwaysOn(t *testing.T) {
+func TestTheStackSecurityAndArchitecturePlaybooksAreAlwaysOn(t *testing.T) {
 	t.Parallel()
 
-	playbooks := map[string]string{"developer": "nuxt-app", "architect": "stack-defaults", "security": "security-review"}
-
-	for key, want := range playbooks {
-		skills := SkillsFor(key)
-		if len(skills) != 1 || skills[0].Name != want || !skills[0].Always {
-			t.Errorf("%s playbook = %+v, want %s", key, skills, want)
-		}
+	playbooks := map[string][]string{
+		"developer": {"clean-code", "nuxt-app"}, "architect": {"architecture-review", "stack-defaults"},
+		"security": {"security-review"},
 	}
 
+	for key, want := range playbooks {
+		names := []string{}
+
+		for _, skill := range SkillsFor(key) {
+			if !skill.Always {
+				t.Errorf("%s: %s must always be on", key, skill.Name)
+			}
+
+			names = append(names, skill.Name)
+		}
+
+		slices.Sort(names)
+
+		if !slices.Equal(names, want) {
+			t.Errorf("%s playbooks = %v, want %v", key, names, want)
+		}
+	}
+}
+
+func TestSecurityAndArchitectCheckButCannotWrite(t *testing.T) {
+	t.Parallel()
+
 	for _, role := range Presets().Members() {
-		if role.Key == "security" && (!role.ChecksSecurity || slices.Contains(role.Access, AccessWrite)) {
-			t.Errorf("the Security role checks and cannot write: %+v", role)
+		switch role.Key {
+		case "security":
+			if !role.ChecksSecurity || slices.Contains(role.Access, AccessWrite) {
+				t.Errorf("the Security role checks and cannot write: %+v", role)
+			}
+		case "architect":
+			if !role.ChecksArchitecture || slices.Contains(role.Access, AccessWrite) {
+				t.Errorf("the Architect verifies and cannot write: %+v", role)
+			}
 		}
 	}
 }

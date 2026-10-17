@@ -68,6 +68,8 @@ type Role struct {
 	WritesResearch bool `json:"-"`
 	// ChecksSecurity is true for the role whose review must come before an app is started.
 	ChecksSecurity bool `json:"-"`
+	// ChecksArchitecture is true for the role that must verify the final code before the task is finished.
+	ChecksArchitecture bool `json:"-"`
 }
 
 // Preset reports whether the role is one of the built-in SDLC roles.
@@ -106,12 +108,14 @@ func (r Role) normalize() (Role, error) {
 	// The orchestrator is the only lead, and a built-in role keeps the access that fits it.
 	r.Lead = isBuiltIn && built.lead
 
-	r.Skills, r.Library, r.WritesPRD, r.WritesResearch, r.ChecksSecurity = nil, nil, false, false, false
+	r.Skills, r.Library, r.WritesPRD, r.WritesResearch = nil, nil, false, false
+	r.ChecksSecurity, r.ChecksArchitecture = false, false
 
 	if isBuiltIn {
 		r.Access = slices.Clone(built.access)
 		r.Skills, r.Library = SkillsFor(built.key), LibraryFor(built.key)
-		r.WritesPRD, r.WritesResearch, r.ChecksSecurity = built.prd, built.research, built.security
+		r.WritesPRD, r.WritesResearch = built.prd, built.research
+		r.ChecksSecurity, r.ChecksArchitecture = built.security, built.architecture
 	}
 
 	r.Enabled = r.Enabled || r.Lead

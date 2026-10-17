@@ -33,13 +33,16 @@ type taskPayload struct {
 	ContextWindow int64 `json:"contextWindow"`
 	// Team is true when the agent leads a team of teammates on this task.
 	Team bool `json:"team"`
+	// PlanFirst is true when the team stops at the PRD and waits for the person.
+	PlanFirst bool `json:"planFirst"`
 }
 
 func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
 		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Team: t.Team,
-		PRD: t.PRD, Research: t.Research, Proof: t.Proof,
+		PlanFirst: t.PlanFirst,
+		PRD:       t.PRD, Research: t.Research, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
 	}
@@ -77,6 +80,7 @@ func (h *Handler) get(c fiber.Ctx) error {
 func (h *Handler) create(c fiber.Ctx) error {
 	var body struct {
 		Team       *bool  `json:"team"`
+		PlanFirst  *bool  `json:"planFirst"`
 		ProjectID  string `json:"projectId"`
 		Prompt     string `json:"prompt"`
 		ProviderID string `json:"providerId"`
@@ -89,7 +93,7 @@ func (h *Handler) create(c fiber.Ctx) error {
 
 	task, err := h.service.Create(c.Context(), httpserver.UserID(c), application.CreateInput{
 		ProjectID: body.ProjectID, Prompt: body.Prompt, ProviderID: body.ProviderID, Model: body.Model,
-		Effort: domain.Effort(body.Effort), Team: body.Team,
+		Effort: domain.Effort(body.Effort), Team: body.Team, PlanFirst: body.PlanFirst,
 	})
 	if err != nil {
 		return fail(c, err)

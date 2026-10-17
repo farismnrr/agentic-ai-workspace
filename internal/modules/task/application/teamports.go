@@ -35,6 +35,9 @@ type AgentRole struct {
 	// ChecksSecurity marks the role whose review must come before an app is started: start_site is refused for the
 	// team until it has looked at the latest code.
 	ChecksSecurity bool
+	// ChecksArchitecture marks the role that must verify the final code: the task is not finished until it has
+	// reported on the latest changes.
+	ChecksArchitecture bool
 }
 
 // Skill is one playbook of a role: what it is for, and the instructions themselves.

@@ -53,6 +53,7 @@ func (t Team) WithBuiltIns() Team {
 		roles[at].Access = slices.Clone(built.Access)
 		roles[at].Skills, roles[at].Library, roles[at].WritesPRD = built.Skills, built.Library, built.WritesPRD
 		roles[at].WritesResearch, roles[at].ChecksSecurity = built.WritesResearch, built.ChecksSecurity
+		roles[at].ChecksArchitecture = built.ChecksArchitecture
 	}
 
 	return Team{Roles: roles, UseByDefault: t.UseByDefault}

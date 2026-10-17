@@ -43,6 +43,8 @@ type runState struct {
 	planWarned bool
 	// siteAsked counts finishes held back because a page was built and no app was running.
 	siteAsked int
+	// architectAsked counts finishes held back for the Architect's check of the final code.
+	architectAsked int
 }
 
 // compaction is what summarising needs from the turn that asks for it.

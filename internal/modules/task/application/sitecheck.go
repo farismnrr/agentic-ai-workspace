@@ -62,7 +62,8 @@ func (r *Runner) siteNotRunning(ctx context.Context, task domain.Task, state *ru
 
 // tryFinish ends the run unless the plan is out of date or a page the person cannot open is waiting to be served.
 func (r *Runner) tryFinish(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
-	if r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) {
+	if r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
+		r.architectNotAsked(ctx, task, state, call) {
 		return outcome{}, false
 	}
 

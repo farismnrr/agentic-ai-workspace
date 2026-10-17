@@ -93,4 +93,7 @@ type Task struct {
 	ContextWindow int64
 	// Team is true when the agent hands work to teammates instead of doing it all itself.
 	Team bool
+	// PlanFirst is true for a task in plan mode: the team stops when the PRD is written and nobody builds until the
+	// person says yes.
+	PlanFirst bool
 }

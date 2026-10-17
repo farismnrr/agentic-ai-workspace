@@ -17,6 +17,9 @@ const toolStartSite = "start_site"
 // things cannot keep an app from ever starting.
 const maxSecurityRounds = 3
 
+// maxArchitectRounds bounds how often a finish is held back for the Architect.
+const maxArchitectRounds = 3
+
 var codeExtensions = []string{
 	".ts", ".tsx", ".js", ".mjs", ".cjs", ".vue", ".py", ".go", ".rs", ".java", ".kt", ".rb", ".php", ".sql",
 }
@@ -82,4 +85,40 @@ func securityOf(roster *Roster) string {
 	}
 
 	return ""
+}
+
+// architectOf names the team's Architect role, or "" when the team has none.
+func architectOf(roster *Roster) string {
+	if roster == nil {
+		return ""
+	}
+
+	for _, member := range roster.Members {
+		if member.ChecksArchitecture {
+			return member.Name
+		}
+	}
+
+	return ""
+}
+
+// architectNotAsked holds a finish back while code was changed after the Architect last reported: the one who
+// knows the architecture verifies the final code before the person is told it is done. At most a few rounds.
+func (r *Runner) architectNotAsked(ctx context.Context, task domain.Task, state *runState, call Call) bool {
+	architect := architectOf(state.roster)
+	if architect == "" || state.architectAsked >= maxArchitectRounds {
+		return false
+	}
+
+	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if !codeChangedSinceReview(events, architect) {
+		return false
+	}
+
+	state.architectAsked++
+	r.result(ctx, task, call.ID, "The "+architect+" has not verified the final code yet. Hand it the changed files "+
+		"to check against the design and against SOLID and Clean Architecture, send what it finds back to the "+
+		"Developer, and finish when it reports that the code is sound.", true)
+
+	return true
 }

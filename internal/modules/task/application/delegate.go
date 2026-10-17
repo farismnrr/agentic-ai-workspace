@@ -55,6 +55,12 @@ func (r *Runner) startDelegation(
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if why := awaitingApproval(task, state.roster.Lead.Name, role, events); why != "" {
+		r.result(ctx, task, call.ID, why, true)
+
+		return Delegation{}, false
+	}
+
 	if why := researchFirst(state.roster, role, events); why != "" {
 		r.result(ctx, task, call.ID, why, true)
 
