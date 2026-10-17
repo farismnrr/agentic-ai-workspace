@@ -121,7 +121,8 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Media | Finds pictures you may use and edits them: resize, crop, convert, remove a background. Every picture it saves has its licence and credit written in `assets/CREDITS.md`, never on the page. It lists pictures that need no credit first |
 | Business Analyst | Turns your request into requirements |
 | Architect | Designs the change |
-| Developer | Writes the code |
+| Developer | Writes the code. A new app is built with Nuxt, SQLite and the latest stable versions, with its own register and login forms when it needs accounts |
+| Security | Checks an app for known vulnerabilities, risky code and missing protections. An app with code is not started until it has reported. It cannot change files |
 | QA Tester | Runs the checks |
 | Reviewer | Reads the finished work |
 | DevOps | Builds, scripts and running the app |

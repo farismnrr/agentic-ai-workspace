@@ -97,6 +97,7 @@ COPY sandbox/removebg.py /usr/local/bin/removebg
 COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
 COPY sandbox/capture/ /usr/local/share/capture/
+COPY sandbox/nuxt-serve.ts /usr/local/share/serve/nuxt-serve.ts
 RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg \
     && ln -s /opt/vector/node_modules/.bin/svgo /usr/local/bin/svgo
 

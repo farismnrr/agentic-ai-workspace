@@ -113,7 +113,9 @@ func (r *Runner) runDelegation(
 	teammate.ProviderID, teammate.Model, teammate.Effort = d.ProviderID, d.Model, d.Effort
 	sub := &runState{budget: state.budget, segment: r.lim.delegateSteps()}
 
-	result := r.child(role, d).drive(ctx, teammate, sub, stepsText("The "+d.RoleName, r.lim.delegateSteps()))
+	worker := r.child(role, d)
+	worker.security = securityOf(state.roster)
+	result := worker.drive(ctx, teammate, sub, stepsText("The "+d.RoleName, r.lim.delegateSteps()))
 	if stopped, over := r.limitReached(ctx); over {
 		return stopped, true
 	}

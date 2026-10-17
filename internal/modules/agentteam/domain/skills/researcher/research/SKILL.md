@@ -48,6 +48,8 @@ The orchestrator says which kind of round this is. Write only the sections it as
 - The pictures the page needs, subject by subject (the Media teammate finds them; you download none).
 
 ### Technical references (for the Developer, Architect, DevOps)
+- For a new web app the default stack is Nuxt 4 with `nuxt-security`, Better Auth and Node's built-in SQLite: read
+  the current pages on nuxt.com, nuxt-security.vercel.app and better-auth.com, and the Node.js docs for `node:sqlite`.
 - The stack the PRD names or implies, from its official documentation: the current stable version and its
   date, what it requires, and anything deprecated or changed recently.
 - The official way to do what the job needs: the pages to follow and, if short, a minimal example from them.

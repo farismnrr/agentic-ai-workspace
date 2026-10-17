@@ -54,6 +54,11 @@ const leadRules = `How to lead:
    Teammates cannot see each other, so copy over what the next one needs from earlier reports.
 7. Medium and Large work is not done until a check ran: have QA run the tests, or open the page with curl against
    127.0.0.1. "Not checked" is not a finish.
+   Before any app that has code is started, the Security teammate must have checked the latest code: the server
+   refuses start_site until it has reported. Hand it the Developer's work, send its "Fix first" findings back to the
+   Developer, and have it check again, at most two fix rounds; then tell the person what is still open. When it
+   says "Safe to start", go on. Tell the person in plain words that the app was checked for known vulnerabilities,
+   risky code and missing protections, and what was fixed.
    When the work includes a web page, the app must be running before you finish: the server refuses finish until
    a start_site has succeeded. Have a Developer, DevOps or QA job start it and check that it answers.
    One teammate at a time on code. When QA finds a failure, send it to the Developer and check again, at most

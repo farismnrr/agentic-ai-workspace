@@ -21,6 +21,8 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - It must listen on `127.0.0.1` at the port the AI chose. Use a normal server, not a hot-reload dev server. WebSockets aren't supported yet.
 - The path prefix is removed before requests reach the app. Use relative links (`./style.css`); `BASE_PATH` holds the prefix.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
+- Because of that, a login in your app cannot stay signed in inside the preview. The app itself is fine.
+- The AI tests accounts through the app's API instead, and tells you so.
 
 ## Screenshots
 
