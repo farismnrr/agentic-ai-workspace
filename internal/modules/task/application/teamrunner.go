@@ -45,7 +45,7 @@ func (r *Runner) child(role AgentRole, d Delegation) *Runner {
 	deps.Gate = roleGate{ToolGate: r.deps.Gate, allow: toSet(role.Tools)}
 	deps.Team, deps.Scopes, deps.Delegations = nil, nil, nil
 
-	return &Runner{deps: deps, lim: r.lim, role: &role}
+	return &Runner{deps: deps, lim: r.lim, role: &role, since: d.StartSeq}
 }
 
 // labelledEvents puts the teammate's name on every step they add to the thread.

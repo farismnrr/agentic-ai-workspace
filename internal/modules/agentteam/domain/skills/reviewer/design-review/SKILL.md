@@ -14,6 +14,10 @@ the Designer or Developer must start it.
 Score each dimension 0 to 10 with the band (0-4 broken, 5-6 works, 7-8 strong, 9-10 exceptional) and one paragraph
 of evidence that names files, selectors or lines. A dimension is independent: do not average away a failure.
 
+0. **Is it a product?** Before the five dimensions, check a web product has what a product has: a public landing page,
+   register and login, an app shell, a dashboard with key numbers, charts and recent activity, empty states, settings
+   and a 404 page. A missing piece, or a page that looks like a tutorial (a heading and a table), goes first in the
+   Fix list.
 1. **Direction.** One clear direction held through every decision (type, colour, spacing, copy voice), or three
    styles in a trench coat? Does it follow the project's `DESIGN.md` and tokens, with no raw colours?
 2. **Hierarchy.** One obvious entry point, a readable order, a type scale used with intent, one accent used

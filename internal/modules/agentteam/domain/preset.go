@@ -6,7 +6,7 @@ type preset struct {
 	lead                       bool
 	// prd is set for the role whose document is the team's PRD, research for the role whose documents are its research,
 	// security for the role that must check the code before an app is started.
-	prd, research, security, architecture bool
+	prd, research, security, architecture, look, designs bool
 }
 
 var presets = []preset{
@@ -24,7 +24,7 @@ var presets = []preset{
 			"from, and you ask the person what you cannot read from the project instead of guessing.",
 	},
 	{
-		key: "designer", name: "Designer", access: []string{AccessRead, AccessWrite, AccessExec, AccessAsk},
+		key: "designer", name: "Designer", access: []string{AccessRead, AccessWrite, AccessExec, AccessAsk}, designs: true,
 		purpose: "Sets the visual direction and builds the interface: look, layout, states and accessibility.",
 		prompt: "You are a product designer who also writes the interface. You turn a request into a clear visual " +
 			"direction, then build it so it looks made for this product and not like a template. Keep to the " +
@@ -86,7 +86,7 @@ var presets = []preset{
 			"Do not fix the code yourself.",
 	},
 	{
-		key: "reviewer", name: "Reviewer", access: []string{AccessRead},
+		key: "reviewer", name: "Reviewer", access: []string{AccessRead}, look: true,
 		purpose: "Reviews the finished change for mistakes, risks and anything that does not match the request, and " +
 			"judges a finished interface in five design dimensions.",
 		prompt: "You are a strict but fair code reviewer. Read the changed files and judge them against the " +
@@ -121,6 +121,7 @@ func Presets() Team {
 			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true,
 			Skills: SkillsFor(p.key), Library: LibraryFor(p.key), WritesPRD: p.prd, WritesResearch: p.research,
 			ChecksSecurity: p.security, ChecksArchitecture: p.architecture,
+			ChecksLook: p.look, LooksAtScreens: p.designs,
 		})
 	}
 

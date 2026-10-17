@@ -31,7 +31,8 @@ func pageBuiltButNotRunning(events []domain.Event) bool {
 
 func hasPage(files []string) bool {
 	for _, name := range files {
-		if lower := strings.ToLower(name); strings.HasSuffix(lower, ".html") || strings.HasSuffix(lower, ".htm") {
+		lower := strings.ToLower(name)
+		if strings.HasSuffix(lower, ".html") || strings.HasSuffix(lower, ".htm") || strings.HasSuffix(lower, ".vue") {
 			return true
 		}
 	}
@@ -63,7 +64,7 @@ func (r *Runner) siteNotRunning(ctx context.Context, task domain.Task, state *ru
 // tryFinish ends the run unless the plan is out of date or a page the person cannot open is waiting to be served.
 func (r *Runner) tryFinish(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
 	if r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
-		r.architectNotAsked(ctx, task, state, call) {
+		r.architectNotAsked(ctx, task, state, call) || r.reviewerNotAsked(ctx, task, state, call) {
 		return outcome{}, false
 	}
 

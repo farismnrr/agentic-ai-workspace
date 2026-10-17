@@ -54,6 +54,7 @@ func (t Team) WithBuiltIns() Team {
 		roles[at].Skills, roles[at].Library, roles[at].WritesPRD = built.Skills, built.Library, built.WritesPRD
 		roles[at].WritesResearch, roles[at].ChecksSecurity = built.WritesResearch, built.ChecksSecurity
 		roles[at].ChecksArchitecture = built.ChecksArchitecture
+		roles[at].ChecksLook, roles[at].LooksAtScreens = built.ChecksLook, built.LooksAtScreens
 	}
 
 	return Team{Roles: roles, UseByDefault: t.UseByDefault}

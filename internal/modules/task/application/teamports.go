@@ -38,6 +38,10 @@ type AgentRole struct {
 	// ChecksArchitecture marks the role that must verify the final code: the task is not finished until it has
 	// reported on the latest changes.
 	ChecksArchitecture bool
+	// ChecksLook marks the Reviewer: the task is not finished until it has looked at the latest screens.
+	ChecksLook bool
+	// LooksAtScreens marks the Designer: it may not report screens it made without having looked at the running app.
+	LooksAtScreens bool
 }
 
 // Skill is one playbook of a role: what it is for, and the instructions themselves.

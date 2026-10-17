@@ -38,6 +38,9 @@ The orchestrator says which kind of round this is. Write only the sections it as
   the main call to action, tone of the words, colour and type, how it works on a phone.
 - The common structure of this kind of page (the sections people expect) and the one place to differ.
 - Words and phrases the audience uses, for the copy.
+- Product references: for a product people sign in to, three comparable products, and for each: the sections of its
+  landing page, how register and login work, what its dashboard shows first (the key numbers, the charts, the tables),
+  its empty states and its navigation. These show what a real product of this kind looks like.
 - Layout references: for each site above, how its page is built: container width, columns and gutters on a phone
   and on a wide screen, space between sections, how the first screen is composed, where the call to action sits,
   how text and pictures are balanced. Add what the official layout guidance says (the design system or platform

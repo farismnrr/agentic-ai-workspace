@@ -108,6 +108,16 @@ A team task always plans first. The team plans, then stops and waits for your ye
 - After your yes the team only executes: build, security check, tests and a check of the final code.
 - A small change never needs a plan. The lead sizes the request first and hands a small one straight to the Developer.
 
+A web product the AI builds is not a single page. Unless you say otherwise it has:
+
+- A public landing page, with what it is, the benefits, how it works, pricing or a call to action, and a short FAQ.
+- Register and login with its own forms, and pages behind the login.
+- An app with a dashboard: key numbers, charts of your real data, recent activity and a clear first step when it is empty.
+- Each feature as a full flow, plus settings and a friendly "not found" page.
+
+Before a task is finished, a Reviewer looks at every screen on the running app, and the Designer looks at its own
+screens first. The team builds one piece at a time, then styles every page.
+
 For a medium or large task:
 
 1. The Planner asks only what blocks the scope, such as who it is for or what to leave out.

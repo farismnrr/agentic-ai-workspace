@@ -70,6 +70,10 @@ type Role struct {
 	ChecksSecurity bool `json:"-"`
 	// ChecksArchitecture is true for the role that must verify the final code before the task is finished.
 	ChecksArchitecture bool `json:"-"`
+	// ChecksLook is true for the Reviewer, whose look at the screens must come before the task is finished.
+	ChecksLook bool `json:"-"`
+	// LooksAtScreens is true for the Designer, who must look at the running app before reporting screens it made.
+	LooksAtScreens bool `json:"-"`
 }
 
 // Preset reports whether the role is one of the built-in SDLC roles.
@@ -109,13 +113,14 @@ func (r Role) normalize() (Role, error) {
 	r.Lead = isBuiltIn && built.lead
 
 	r.Skills, r.Library, r.WritesPRD, r.WritesResearch = nil, nil, false, false
-	r.ChecksSecurity, r.ChecksArchitecture = false, false
+	r.ChecksSecurity, r.ChecksArchitecture, r.ChecksLook, r.LooksAtScreens = false, false, false, false
 
 	if isBuiltIn {
 		r.Access = slices.Clone(built.access)
 		r.Skills, r.Library = SkillsFor(built.key), LibraryFor(built.key)
 		r.WritesPRD, r.WritesResearch = built.prd, built.research
 		r.ChecksSecurity, r.ChecksArchitecture = built.security, built.architecture
+		r.ChecksLook, r.LooksAtScreens = built.look, built.designs
 	}
 
 	r.Enabled = r.Enabled || r.Lead

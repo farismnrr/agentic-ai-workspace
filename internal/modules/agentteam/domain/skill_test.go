@@ -13,7 +13,7 @@ func TestThePlannerCarriesItsPlaybook(t *testing.T) {
 		t.Fatalf("playbook = %+v", skills)
 	}
 
-	if len(SkillsFor("qa")) != 0 || len(SkillsFor("../x")) != 0 {
+	if len(SkillsFor("devops")) != 0 || len(SkillsFor("../x")) != 0 {
 		t.Fatal("a role without a playbook has none")
 	}
 }
@@ -117,8 +117,8 @@ func TestTheStackSecurityAndArchitecturePlaybooksAreAlwaysOn(t *testing.T) {
 	t.Parallel()
 
 	playbooks := map[string][]string{
-		"developer": {"clean-code", "nuxt-app"}, "architect": {"architecture-review", "stack-defaults"},
-		"security": {"security-review"},
+		"developer": {"clean-code", "delivery-rules", "nuxt-app"}, "architect": {"architecture-review", "stack-defaults"},
+		"security": {"security-review"}, "qa": {"qa-flows"}, "business-analyst": {"requirements"},
 	}
 
 	for key, want := range playbooks {
@@ -136,6 +136,20 @@ func TestTheStackSecurityAndArchitecturePlaybooksAreAlwaysOn(t *testing.T) {
 
 		if !slices.Equal(names, want) {
 			t.Errorf("%s playbooks = %v, want %v", key, names, want)
+		}
+	}
+}
+
+func TestTheDesignerLooksAndTheReviewerChecksTheLook(t *testing.T) {
+	t.Parallel()
+
+	for _, role := range Presets().Members() {
+		if role.Key == "designer" && !role.LooksAtScreens {
+			t.Error("the Designer must look at the running app before it reports")
+		}
+
+		if role.Key == "reviewer" && (!role.ChecksLook || slices.Contains(role.Access, AccessWrite)) {
+			t.Errorf("the Reviewer checks the look and cannot write: %+v", role)
 		}
 	}
 }

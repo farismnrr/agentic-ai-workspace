@@ -47,6 +47,8 @@ type Runner struct {
 	// security names the team's Security role on a teammate's runner; start_site waits for its review.
 	security string
 	lim      Limits
+	// since is the last thread event before this teammate began; its own steps are the ones after it.
+	since int64
 	// leads is set on the runner that leads a team: it hands out work but never changes anything itself.
 	leads bool
 }
