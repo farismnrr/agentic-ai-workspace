@@ -13,7 +13,7 @@
 
 <figure class="card overflow-hidden border border-base-300 bg-base-100" aria-label="Screenshot of your app">
   <a href={src} target="_blank" rel="noopener noreferrer" class="block bg-base-200">
-    <img class="max-h-96 w-full object-cover object-top" {src} alt={text} loading="lazy" />
+    <img class="mx-auto max-h-96 w-auto max-w-full object-contain object-top" {src} alt={text} loading="lazy" />
   </a>
   <figcaption class="flex items-center gap-2 p-3 text-sm">
     <Icon name="globe" class="size-4 shrink-0 text-[var(--brand-text-secondary)]" />

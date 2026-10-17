@@ -24,7 +24,7 @@
         <ul class="list-disc pl-5">{#each block.items as item, at (at)}<li class={indent[item.depth]}><InlineText text={item.text} /></li>{/each}</ul>
       {/if}
     {:else if block.kind === 'code'}
-      <pre class="overflow-x-auto rounded-lg bg-base-200 p-3 font-mono text-xs leading-5"><code>{block.text}</code></pre>
+      <pre class="overflow-x-auto rounded-lg border border-base-300 bg-base-200 p-3 font-mono text-xs leading-5"><code>{block.text}</code></pre>
     {:else if block.kind === 'table'}
       <div class="overflow-x-auto">
         <table class="table table-sm">

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../../../../shared/ui/Icon.svelte';
+  import DocText from '../../components/DocText.svelte';
   import { proofCopy } from '../../content/tasks-copy';
 
   interface Props {
@@ -17,9 +18,10 @@
 </script>
 
 <section class="card border bg-base-100 p-3 {good ? 'border-success/50' : 'border-error/50'}" aria-label={good ? 'Result' : 'Problem'}>
-  <p class="flex items-start gap-2 font-medium">
-    <Icon name={good ? 'check-circle' : 'alert-triangle'} class="mt-0.5 size-5 shrink-0 {good ? 'text-success' : 'text-error'}" />{text}
-  </p>
+  <div class="flex items-start gap-2">
+    <Icon name={good ? 'check-circle' : 'alert-triangle'} class="mt-0.5 size-5 shrink-0 {good ? 'text-success' : 'text-error'}" />
+    <DocText class="flex-1 text-[15px] leading-6" {text} />
+  </div>
   {#if good}
     {@const line = `${proven ? proofCopy.proven : proofCopy.unproven} · see the Proof tab`}
     {@const tone = proven ? 'font-medium text-success' : 'text-[var(--brand-text-secondary)]'}
