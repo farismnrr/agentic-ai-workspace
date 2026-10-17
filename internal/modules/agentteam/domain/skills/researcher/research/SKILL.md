@@ -38,6 +38,11 @@ The orchestrator says which kind of round this is. Write only the sections it as
   the main call to action, tone of the words, colour and type, how it works on a phone.
 - The common structure of this kind of page (the sections people expect) and the one place to differ.
 - Words and phrases the audience uses, for the copy.
+- Layout references: for each site above, how its page is built: container width, columns and gutters on a phone
+  and on a wide screen, space between sections, how the first screen is composed, where the call to action sits,
+  how text and pictures are balanced. Add what the official layout guidance says (the design system or platform
+  guidelines of the stack: Material, Apple Human Interface, GOV.UK, Tailwind or daisyUI docs) with the page address,
+  and one recommended layout for this page type in a few lines.
 - At least two clearly different directions that would fit, each with the reason, and what to avoid.
 - Accessibility and local habits that matter here (for example a WhatsApp button, how prices are written).
 - The pictures the page needs, subject by subject (the Media teammate finds them; you download none).
