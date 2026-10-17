@@ -84,3 +84,38 @@ func TestStartRefusesBadInputAndUnknownProjects(t *testing.T) {
 		}
 	}
 }
+
+func TestARefusedStartLeavesTheRunningAppAlone(t *testing.T) {
+	t.Parallel()
+
+	svc, runtime, store, _ := newService(application.Limits{PerUser: 1, Total: 4})
+
+	if _, err := svc.Start(ctx, "p1", "serve", 3000); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := svc.Start(ctx, "p2", "serve", 3001); !errors.Is(err, domain.ErrTooMany) {
+		t.Fatalf("a second app is over the cap of one: %v", err)
+	}
+
+	// A start in the project that already runs is a replacement, not a second app.
+	if _, err := svc.Start(ctx, "p1", "serve", 3002); err != nil {
+		t.Fatalf("replacing the project's own app: %v", err)
+	}
+
+	if len(runtime.stopped) != 1 || store.sites["p1"].Status != domain.Running {
+		t.Fatalf("only the replaced app was stopped: %v", runtime.stopped)
+	}
+}
+
+func TestEveryProjectCanRunItsOwnAppWhenThereIsNoCap(t *testing.T) {
+	t.Parallel()
+
+	svc, _, _, _ := newService(application.Limits{})
+
+	for project, port := range map[string]int{"p1": 3000, "p2": 3001, "p3": 3002} {
+		if _, err := svc.Start(ctx, project, "serve", port); err != nil {
+			t.Fatalf("%s: with no cap each project runs its own app: %v", project, err)
+		}
+	}
+}
