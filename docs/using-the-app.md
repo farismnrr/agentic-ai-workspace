@@ -101,12 +101,12 @@ Research always comes first on a medium or large task, and again after the PRD f
 
 You can read them under the Plan tab, in Research notes. Later teammates build from them.
 
-Plan first is on by default for a team task. The team plans, then stops and waits for your yes:
+A team task always plans first. The team plans, then stops and waits for your yes:
 
 - It researches, turns your request into requirements, asks you what it still needs, and writes the PRD.
 - Then it asks "Start building?". Nothing is built, run or started until you say yes. Say what to change and it revises the PRD.
 - After your yes the team only executes: build, security check, tests and a check of the final code.
-- Turn Plan first off in the composer if you want it to go ahead on its own. A small change never needs a plan.
+- A small change never needs a plan. The lead sizes the request first and hands a small one straight to the Developer.
 
 For a medium or large task:
 

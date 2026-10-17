@@ -80,7 +80,6 @@ func (h *Handler) get(c fiber.Ctx) error {
 func (h *Handler) create(c fiber.Ctx) error {
 	var body struct {
 		Team       *bool  `json:"team"`
-		PlanFirst  *bool  `json:"planFirst"`
 		ProjectID  string `json:"projectId"`
 		Prompt     string `json:"prompt"`
 		ProviderID string `json:"providerId"`
@@ -93,7 +92,7 @@ func (h *Handler) create(c fiber.Ctx) error {
 
 	task, err := h.service.Create(c.Context(), httpserver.UserID(c), application.CreateInput{
 		ProjectID: body.ProjectID, Prompt: body.Prompt, ProviderID: body.ProviderID, Model: body.Model,
-		Effort: domain.Effort(body.Effort), Team: body.Team, PlanFirst: body.PlanFirst,
+		Effort: domain.Effort(body.Effort), Team: body.Team,
 	})
 	if err != nil {
 		return fail(c, err)

@@ -34,7 +34,8 @@ func NewService(deps Deps, dispatcher Dispatcher) *Service {
 type CreateInput struct {
 	// Team says whether the agent leads a team; nil uses the person's choice for new tasks.
 	Team *bool
-	// PlanFirst says whether the team stops at the PRD and waits for a yes; nil means it does.
+	// PlanFirst says whether the team stops at the PRD and waits for a yes. It is not offered to the person: nil, the
+	// default, always waits. Only code that starts a task on someone's behalf may turn it off.
 	PlanFirst  *bool
 	ProjectID  string
 	Prompt     string
