@@ -130,3 +130,12 @@ func TestTheServerItselfCannotBeReachedThroughAFetch(t *testing.T) {
 		t.Fatalf("a cloud metadata address is blocked: %v", err)
 	}
 }
+
+func TestTheGuardedClientSpeaksHTTP1(t *testing.T) {
+	t.Parallel()
+
+	transport, ok := fetch.NewClient(egress.Policy{Rule: egress.PublicOnly}).Transport.(*http.Transport)
+	if !ok || transport.ForceAttemptHTTP2 || transport.TLSNextProto == nil {
+		t.Fatal("HTTP/2 must stay off: Flickr's CDN refuses Go's HTTP/2 requests")
+	}
+}
