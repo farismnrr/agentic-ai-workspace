@@ -17,6 +17,7 @@ const publicRate = 600
 type Service interface {
 	List(ctx context.Context, userID string) ([]domain.Site, error)
 	Stop(ctx context.Context, userID, projectID string) error
+	Restart(ctx context.Context, userID, projectID string) (domain.Site, error)
 	SetVisibility(ctx context.Context, userID, projectID, value string) error
 	Resolve(ctx context.Context, token string) (domain.Site, error)
 	Socket(projectID string) string
@@ -46,6 +47,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		api := app.Group("/api/sites", auth)
 		api.Get("/", h.list)
 		api.Post("/:project/stop", sameOrigin, h.stop)
+		api.Post("/:project/start", sameOrigin, h.start)
 		api.Patch("/:project", sameOrigin, h.visibility)
 
 		app.All("/run/:name/:token/*", httpserver.Limit(publicRate, time.Minute, nil, false), h.serve)

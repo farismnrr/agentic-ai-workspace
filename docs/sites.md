@@ -6,7 +6,9 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 
 - Ask the AI to build and run a web app. It asks first, then shows an Open link.
 - The address looks like `/run/my-shop/<uuid>/`, on the same domain and port as the app. You don't need any DNS setup.
-- Each project has one site. Starting it again gives it a new address, and old links stop working.
+- Each project has one site, and its address never changes, however often you stop and start it.
+- Press Start on the Sites page to run a stopped app again. You do not need the AI.
+- An app started before this button existed needs the AI to start it once.
 - A site is private by default: only you can open it, while signed in. Anyone else gets "This page is private" (403).
 - You can make a site public so anyone with the link can open it. Only you can do this, from the Sites page. The AI can't.
 - Sites run until you press Stop or the server restarts. There is no idle timeout.
@@ -38,7 +40,7 @@ A site shares the domain with the main app. These protections are always on:
 3. The proxy never forwards your session cookie or `Authorization` header.
    - It also drops `Set-Cookie`, `Clear-Site-Data`, `Service-Worker-Allowed` and similar headers from the app's responses.
 4. The proxy talks only to the app's Unix socket. The container has no network, so the address can't point anywhere else.
-5. Unknown, stopped or replaced addresses return 404. A private site returns 403 to anyone without your login or a valid ticket.
+5. Unknown or stopped addresses return 404. A private site returns 403 to anyone without your login or a valid ticket.
 
 ### How private sites work
 

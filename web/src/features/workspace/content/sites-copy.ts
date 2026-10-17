@@ -1,6 +1,6 @@
 export const sitesCopy = {
   title: 'Sites',
-  intro: 'Web apps your AI started. Open one to try it. They stop when you press Stop or when the server restarts.',
+  intro: 'Web apps your AI started. Open one to try it. Start or stop them here. Each keeps the same link.',
   empty: {
     title: 'No apps yet',
     body: 'Ask the AI to build a web page or app and run it. It shows up here, where you can open, share or stop it.',
@@ -12,13 +12,14 @@ export const sitesCopy = {
   copy: 'Copy link',
   copied: 'Copied',
   stop: 'Stop',
+  start: 'Start',
   publicLabel: 'Anyone with the link can open it',
   privateLabel: 'Only you can open it',
   publicTitle: 'Make this app public?',
   publicBody: "Anyone with the link can open it, without signing in. Don't put anything private in it. You can switch it back at any time.",
   publicConfirm: 'Make public',
   stopTitle: 'Stop this app?',
-  stopBody: 'Its link stops working until the AI starts it again.',
+  stopBody: 'Its link stops working until you start it again. The link stays the same.',
   stopConfirm: 'Stop app',
   cancel: 'Cancel',
   sidebarTitle: 'Running apps',
@@ -29,6 +30,9 @@ export const sitesCopy = {
   },
   errors: {
     not_found: 'We could not find that app. It may have been stopped already.',
+    never_started: 'This app was started before the Start button existed. Ask the AI to start it once, then you can start it here.',
+    too_many_sites: 'Too many apps are running. Stop one first.',
+    not_started: 'The app did not start. Ask the AI to look at it.',
     bad_visibility: 'Choose private or public.',
     cross_site: 'That request was blocked. Reload the page and try again.',
   } as Record<string, string>,

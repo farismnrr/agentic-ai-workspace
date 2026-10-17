@@ -19,5 +19,7 @@ export const loadSites = async (): Promise<Site[]> => (await request<{ sites: Si
 
 export const stopSite = (projectId: string): Promise<undefined> => request<undefined>('POST', `${path(projectId)}/stop`);
 
+export const startSite = (projectId: string): Promise<Site> => request<Site>('POST', `${path(projectId)}/start`);
+
 export const setVisibility = (projectId: string, visibility: Visibility): Promise<undefined> =>
   request<undefined>('PATCH', path(projectId), { visibility });

@@ -40,6 +40,7 @@ export type IconName =
   | 'x'
   | 'send'
   | 'square'
+  | 'play'
   | 'link'
   | 'key'
   | 'activity'

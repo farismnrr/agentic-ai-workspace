@@ -30,7 +30,7 @@ type Service struct{ deps Deps }
 func NewService(deps Deps) *Service { return &Service{deps: deps} }
 
 // Start runs the project's app and returns its site. A project has one site; starting it
-// again replaces the running app and gives it a new address.
+// again replaces the running app and keeps its address.
 func (s *Service) Start(ctx context.Context, projectID, command string, port int) (domain.Site, error) {
 	command, err := checkStart(command, port)
 	if err != nil {
@@ -52,13 +52,15 @@ func (s *Service) Start(ctx context.Context, projectID, command string, port int
 		return domain.Site{}, err
 	}
 
-	token, err := s.deps.IDs.UUID()
-	if err != nil {
-		return domain.Site{}, fmt.Errorf("make site address: %w", err)
+	token := previous.Token
+	if token == "" {
+		if token, err = s.deps.IDs.UUID(); err != nil {
+			return domain.Site{}, fmt.Errorf("make site address: %w", err)
+		}
 	}
 
 	site := domain.Site{
-		ProjectID: projectID, UserID: userID, Slug: domain.Slugify(name), Token: token,
+		ProjectID: projectID, UserID: userID, Slug: domain.Slugify(name), Token: token, Command: command,
 		Visibility: domain.Private, Status: domain.Running, Port: port, StartedAt: s.deps.Now(),
 	}
 	if previous.Visibility != "" {

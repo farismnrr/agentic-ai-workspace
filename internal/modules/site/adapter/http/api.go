@@ -48,6 +48,15 @@ func (h *Handler) stop(c fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+func (h *Handler) start(c fiber.Ctx) error {
+	site, err := h.service.Restart(c.Context(), httpserver.UserID(c), c.Params("project"))
+	if err != nil {
+		return fail(c, err)
+	}
+
+	return c.JSON(toPayload(site))
+}
+
 func (h *Handler) visibility(c fiber.Ctx) error {
 	var in struct {
 		Visibility string `json:"visibility"`
@@ -68,6 +77,12 @@ func fail(c fiber.Ctx, err error) error {
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		return c.Status(fiber.StatusNotFound).JSON(httpserver.Failure("not_found"))
+	case errors.Is(err, domain.ErrNeverStarted):
+		return c.Status(fiber.StatusConflict).JSON(httpserver.Failure("never_started"))
+	case errors.Is(err, domain.ErrTooMany), errors.Is(err, domain.ErrServerBusy):
+		return c.Status(fiber.StatusTooManyRequests).JSON(httpserver.Failure("too_many_sites"))
+	case errors.Is(err, domain.ErrNotStarted), errors.Is(err, domain.ErrNoSandboxes):
+		return c.Status(fiber.StatusBadGateway).JSON(httpserver.Failure("not_started"))
 	case errors.Is(err, domain.ErrBadChoice):
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("bad_visibility"))
 	}

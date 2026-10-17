@@ -4,7 +4,7 @@
   import { sitesCopy } from '../content/sites-copy';
   import { describeSiteError } from '../logic/site-errors';
   import { orderedSites } from '../logic/sites';
-  import { setVisibility, stopSite, type Site } from '../logic/sites-api';
+  import { setVisibility, startSite, stopSite, type Site } from '../logic/sites-api';
   import { projects, refresh, sites } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import SiteRow from './SiteRow.svelte';
@@ -14,7 +14,7 @@
   let busy = $state(false);
   let error = $state('');
 
-  async function run(action: () => Promise<undefined>): Promise<void> {
+  async function run(action: () => Promise<unknown>): Promise<void> {
     busy = true;
     error = '';
     try {
@@ -61,6 +61,7 @@
             {busy}
             onpublic={(target: Site) => (publishing = target)}
             onprivate={(target: Site) => void run(() => setVisibility(target.projectId, 'private'))}
+            onstart={(target: Site) => void run(() => startSite(target.projectId))}
             onstop={(target: Site) => (stopping = target)}
           />
         {/each}

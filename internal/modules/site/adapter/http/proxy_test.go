@@ -24,6 +24,10 @@ type fakeService struct {
 
 func (f fakeService) List(context.Context, string) ([]domain.Site, error) { return nil, nil }
 func (f fakeService) Stop(context.Context, string, string) error          { return nil }
+func (f fakeService) Restart(context.Context, string, string) (domain.Site, error) {
+	return domain.Site{}, nil
+}
+
 func (f fakeService) SetVisibility(context.Context, string, string, string) error {
 	return nil
 }
