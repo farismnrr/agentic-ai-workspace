@@ -13,8 +13,6 @@ export interface NewTask {
   effort?: string;
   /** Whether a lead hands the work to the AI team; leave out to follow the person's setting. */
   team?: boolean;
-  /** Whether the team stops at the PRD and waits for a yes; leave out for the default, which is to wait. */
-  planFirst?: boolean;
 }
 
 export interface UsageRow {
