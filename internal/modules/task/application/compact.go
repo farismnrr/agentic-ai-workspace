@@ -39,6 +39,8 @@ type runState struct {
 	segment int
 	// noImages is set once the model refused a request with screenshots; it then gets their text reports only.
 	noImages bool
+	// planWarned is set once the orchestrator was told its plan was out of date, so it is told only once.
+	planWarned bool
 }
 
 // compaction is what summarising needs from the turn that asks for it.
