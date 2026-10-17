@@ -42,11 +42,7 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 	case toolAskUser:
 		return r.askUser(ctx, task, call)
 	case toolFinish:
-		if r.planStale(ctx, task, state, call) {
-			return outcome{}, false
-		}
-
-		return r.finish(ctx, task, call), true
+		return r.tryFinish(ctx, task, state, call)
 	case toolDelegate:
 		return r.delegate(ctx, task, state, call)
 	case toolReport:

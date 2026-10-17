@@ -21,7 +21,7 @@ func (changing) Definitions() []domain.ToolDef {
 func newChangingRig(members []application.AgentRole, steps ...step) *teamRig {
 	r := newTeamRig(nil, members, steps...)
 	r.tools.risks["edit_file"] = domain.RiskLow
-	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}}
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.txt"}}
 	r.gate.skip = true
 
 	return r
@@ -43,15 +43,15 @@ func TestTheLeadNeverChangesAnythingItselfButTeammatesDo(t *testing.T) {
 		}}
 		deps.Scopes, deps.Delegations = deps.Transcript.(*memory), delegations
 	},
-		call("c1", "edit_file", map[string]string{"path": "a.html"}),
+		call("c1", "edit_file", map[string]string{"path": "a.txt"}),
 		delegate("d1", "developer", "Fix the typo"),
-		call("c2", "edit_file", map[string]string{"path": "a.html"}),
+		call("c2", "edit_file", map[string]string{"path": "a.txt"}),
 		report("r1", "Fixed"),
 		finish("Done"),
 	)
 	rig.gate.skip = true
 	rig.tools.risks["edit_file"] = domain.RiskLow
-	rig.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}}
+	rig.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.txt"}}
 	r := &teamRig{rig: rig, delegations: delegations}
 	task := r.startTeam(t, "Fix the typo")
 	r.run(task.ID)
@@ -82,10 +82,10 @@ func TestTheLeadNeverChangesAnythingItselfButTeammatesDo(t *testing.T) {
 func TestSoloTasksStillChangeThingsThemselves(t *testing.T) {
 	t.Parallel()
 
-	r := newRigWith(nil, withChangingTools, call("c1", "edit_file", map[string]string{"path": "a.html"}), finish("Done"))
+	r := newRigWith(nil, withChangingTools, call("c1", "edit_file", map[string]string{"path": "a.txt"}), finish("Done"))
 	r.gate.skip = true
 	r.tools.risks["edit_file"] = domain.RiskLow
-	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}}
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.txt"}}
 	task := r.start(t, "Fix the typo")
 	r.run(task.ID)
 

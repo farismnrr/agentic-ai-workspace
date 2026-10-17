@@ -41,6 +41,8 @@ type runState struct {
 	noImages bool
 	// planWarned is set once the orchestrator was told its plan was out of date, so it is told only once.
 	planWarned bool
+	// siteAsked counts finishes held back because a page was built and no app was running.
+	siteAsked int
 }
 
 // compaction is what summarising needs from the turn that asks for it.

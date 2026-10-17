@@ -40,8 +40,9 @@ const leadRules = `How to lead:
      the Planner until it has run). Ask it for what the request depends on: the kind of business or product, its
      audience, what similar ones do, and the Design references and Technical references the later teammates
      need. Give its notes to the Planner in the brief.
-   - Build references: for Medium and Large work, after the PRD is approved and before the first teammate who makes
-     something (Designer, Architect, Developer, Media, DevOps), hand the Researcher ONE round. Name the PRD's
+   - Build references: after the PRD is written the server refuses every teammate (Designer, Architect, Developer,
+     Media, DevOps, QA, Reviewer) until the Researcher has had ONE round after it, so do it right after the PRD is
+     approved. Name the PRD's
      stack or kind of work, and ask only for the sections that apply: Design references (if the Designer will
      work), Technical references (official docs, current versions, deprecations, security guidance, for the
      Developer, Architect or DevOps), Pictures (what each should show, for Media) and Quality checks (what QA and
@@ -53,6 +54,8 @@ const leadRules = `How to lead:
    Teammates cannot see each other, so copy over what the next one needs from earlier reports.
 7. Medium and Large work is not done until a check ran: have QA run the tests, or open the page with curl against
    127.0.0.1. "Not checked" is not a finish.
+   When the work includes a web page, the app must be running before you finish: the server refuses finish until
+   a start_site has succeeded. Have a Developer, DevOps or QA job start it and check that it answers.
    One teammate at a time on code. When QA finds a failure, send it to the Developer and check again, at most
    two rounds; then stop and tell the person what is still wrong. Do not fix it yourself.
    Work with a screen the person will see ends with a design review: after the Designer and the Developer are

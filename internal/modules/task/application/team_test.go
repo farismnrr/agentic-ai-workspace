@@ -36,7 +36,7 @@ func TestDelegatedJobRunsOnTheTeammatesModelAndReportsBack(t *testing.T) {
 
 	r := newTeamRig(nil, []application.AgentRole{developer()},
 		delegate("d1", "developer", "Fix the button"),
-		call("c1", "read_file", map[string]string{"path": "a.html"}),
+		call("c1", "read_file", map[string]string{"path": "a.txt"}),
 		report("r1", "The button is fixed"),
 		finish("All done"),
 	)
@@ -89,7 +89,7 @@ func TestTeammateStepsAreLabelledAndKeptApartFromTheOrchestrator(t *testing.T) {
 
 	r := newTeamRig(nil, []application.AgentRole{developer()},
 		delegate("d1", "developer", "Look at it"),
-		call("c1", "read_file", map[string]string{"path": "a.html"}),
+		call("c1", "read_file", map[string]string{"path": "a.txt"}),
 		report("r1", "Looked"),
 		finish("Done"),
 	)
