@@ -66,7 +66,7 @@ func TestPassingCheckAfterTheLastChangeMakesTheWorkProven(t *testing.T) {
 	requireDocker(t)
 
 	a := newAgentRig(t,
-		toolCall("w1", "write_file", map[string]string{"path": "page.html", "content": "<p>hi</p>"}),
+		toolCall("w1", "write_file", map[string]string{"path": "page.txt", "content": "hi"}),
 		toolCall("r1", "run_task", map[string]string{"name": "hello"}),
 		finishCall("Made the page and checked it"),
 	)

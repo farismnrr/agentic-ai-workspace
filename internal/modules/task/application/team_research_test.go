@@ -87,3 +87,57 @@ func TestThePlannerWaitsUntilTheResearcherHasBeenAsked(t *testing.T) {
 		t.Fatalf("after the research the Planner writes the PRD: prd=%q research=%q", got.PRD, got.Research)
 	}
 }
+
+func TestEveryoneAfterThePRDWaitsForOneResearchRound(t *testing.T) {
+	t.Parallel()
+
+	r := newTeamRig(nil, []application.AgentRole{webResearcher(), planner(), developer()},
+		delegate("d1", "researcher", "Look up coffee shops"),
+		notes("r1", "## Discovery\n- Orang mencari jam buka"),
+		delegate("d2", "planner", "Write the PRD"),
+		prdReport("r2", "# PRD"),
+		delegate("d3", "developer", "Build it"),
+		delegate("d4", "researcher", "Look up the stack"),
+		notes("r3", "## Technical references\n- Pakai HTML biasa"),
+		delegate("d5", "developer", "Build it"),
+		report("r4", "Built"),
+		finish("Done"),
+	)
+	task := r.startTeam(t, "Make a coffee shop site")
+	r.run(task.ID)
+
+	refused := resultFor(r.model.requests[5], "d3")
+	if !refused.IsError || !strings.Contains(refused.Text, "Researcher") || !strings.Contains(refused.Text, "PRD") {
+		t.Fatalf("the Developer is held back until a round after the PRD: %+v", refused)
+	}
+
+	if got := r.task(t, task.ID).Research; !strings.Contains(got, "Pakai HTML biasa") {
+		t.Fatalf("the second round is kept too: %q", got)
+	}
+}
+
+func TestAPageIsNotReportedUntilTheAppIsRunning(t *testing.T) {
+	t.Parallel()
+
+	r := newRigWith(nil, withChangingTools,
+		call("c1", "edit_file", map[string]string{"path": "index.html"}),
+		finish("Done"),
+		call("c2", "start_site", map[string]string{"command": "python3 -m http.server"}),
+		finish("Done and running"),
+	)
+	r.gate.skip = true
+	r.tools.risks["edit_file"] = domain.RiskLow
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"index.html"}}
+	r.tools.results["start_site"] = application.ToolResult{Output: "started", Link: "/run/test/x/"}
+	task := r.start(t, "Make a page")
+	r.run(task.ID)
+
+	refused := resultFor(r.model.requests[2], "fin")
+	if !refused.IsError || !strings.Contains(refused.Text, "start_site") {
+		t.Fatalf("finishing is refused while the page cannot be opened: %+v", refused)
+	}
+
+	if r.task(t, task.ID).Status != domain.StatusReview || r.lastEvent(task.ID, domain.EventSite).URL == "" {
+		t.Fatalf("after the app runs the task reaches review with a link: %v", r.task(t, task.ID).Status)
+	}
+}

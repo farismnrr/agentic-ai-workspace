@@ -15,12 +15,12 @@ func TestTeammateApprovalPausesTheTaskAndResumesTheSameTeammate(t *testing.T) {
 
 	r := newTeamRig(nil, []application.AgentRole{developer()},
 		delegate("d1", "developer", "Change it"),
-		call("c1", "edit_file", map[string]string{"path": "a.html"}),
+		call("c1", "edit_file", map[string]string{"path": "a.txt"}),
 		report("r1", "Changed"),
 		finish("Done"),
 	)
 	r.tools.risks["edit_file"] = domain.RiskLow
-	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}}
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.txt"}}
 	task := r.startTeam(t, "Change the page")
 	r.run(task.ID)
 
@@ -131,7 +131,7 @@ func TestTeammateChecksCountAsProofAndUsageGoesToTheirModel(t *testing.T) {
 	qa := application.AgentRole{Key: "qa", Name: "QA", ProviderID: "prov", Model: "qa-model", Tools: []string{"run_task"}}
 	r := newTeamRig(nil, []application.AgentRole{developer(), qa},
 		delegate("d1", "developer", "Change it"),
-		call("c1", "edit_file", map[string]string{"path": "a.html"}),
+		call("c1", "edit_file", map[string]string{"path": "a.txt"}),
 		report("r1", "Changed"),
 		delegate("d2", "qa", "Run the tests"),
 		call("c2", "run_task", map[string]string{"name": "test"}),
@@ -139,7 +139,7 @@ func TestTeammateChecksCountAsProofAndUsageGoesToTheirModel(t *testing.T) {
 		finish("Done"),
 	)
 	r.gate.skip = true
-	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}}
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.txt"}}
 	r.tools.results["run_task"] = application.ToolResult{Output: "ok", Run: &domain.RunInfo{Name: "test"}}
 	task := r.startTeam(t, "Change and test")
 	r.run(task.ID)

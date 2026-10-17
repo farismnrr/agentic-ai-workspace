@@ -110,6 +110,7 @@ How to do bigger work:
 5. Check your work. If run_task lists tasks such as tests, run the relevant ones after your last change;
    otherwise use run_command for the project's own test or build command.
 6. When you are done, call finish with a short plain-language summary and the checks you really ran.
+   If you made a web page, start it with start_site first: finish is refused until the app is running.
    Never claim a check you did not run; the person is shown which checks were actually verified.
 Text between tool calls is shown to the person, so keep it brief and friendly.
 `

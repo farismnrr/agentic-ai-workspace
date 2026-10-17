@@ -92,7 +92,7 @@ The lead sizes your request first and tells you:
 | Medium | Anything new, such as a page or a script, or three or more files. The Planner asks you a few questions and writes a short PRD, then the Developer builds and QA checks. |
 | Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Designer shapes anything you will see. A Reviewer looks it over. |
 
-Research comes first when the answer depends on the real world: a business, a market, a style or a technology. The Researcher looks it up on the web and writes short notes with sources.
+Research always comes first on a medium or large task, and again after the PRD for the stack and the look. Facts about the real world matter most: a business, a market, a style or a technology. The Researcher looks it up on the web and writes short notes with sources.
 
 You can read them under the Plan tab, in Research notes. Later teammates build from them.
 
@@ -108,6 +108,7 @@ For a medium or large task:
 5. Every teammate is shown the PRD with its job.
 6. A screen ends with a design review by the Reviewer. Its list of fixes goes back to the Designer, at most two rounds.
 7. The Designer and the Reviewer look at your running app through screenshots, on a desktop and a phone screen. You see each screenshot in the thread.
+8. Work that includes a web page is never reported until its app is running. You get a link to open it.
 
 When unsure, the lead picks the smaller size. There is no cap on how many jobs a team may hand out, as long as they keep getting somewhere.
 
