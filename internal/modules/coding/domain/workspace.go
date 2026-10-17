@@ -17,6 +17,7 @@ const (
 	MaxQueryLength     = 200
 	MaxMatchLineLength = 300
 	MaxWriteBytes      = 1 << 20
+	MaxAssetBytes      = 10 << 20
 	MaxFindResults     = 200
 	MaxOutputBytes     = 64 << 10
 )

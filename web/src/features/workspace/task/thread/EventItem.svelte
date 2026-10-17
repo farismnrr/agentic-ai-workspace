@@ -37,7 +37,7 @@
       <ApprovalCard text={event.text} action={event.action} risk={event.risk} resolved={event.resolved} agent={event.agent} onanswer={(allow: boolean) => { actions.allow(event.id, allow); }} />
     {:else if event.kind === 'error'}
       <ResultCard kind="error" text={event.text} hint={event.hint} {onretry} />
-    {:else if event.kind === 'prd'}
+    {:else if event.kind === 'prd' || event.kind === 'research'}
       <PrdCard text={event.text} document={event.technical} agent={event.agent} />
     {:else if event.kind === 'handoff'}
       <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} />

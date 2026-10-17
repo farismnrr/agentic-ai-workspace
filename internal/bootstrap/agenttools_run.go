@@ -8,6 +8,7 @@ import (
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -24,6 +25,7 @@ type toolArgs struct {
 	Name          string `json:"name"`
 	Command       string `json:"command"`
 	Device        string `json:"device"`
+	URL           string `json:"url"`
 	Port          int    `json:"port"`
 	Y             int    `json:"y"`
 	StartLine     int    `json:"start_line"`
@@ -44,6 +46,10 @@ func (a *agentTools) Execute(ctx context.Context, projectID string, call taskapp
 
 	if call.Name == toolScreenshot {
 		return a.executeShot(ctx, projectID, call)
+	}
+
+	if codingdomain.IsWebTool(call.Name) {
+		return a.executeWeb(ctx, projectID, call)
 	}
 
 	handler, known := a.handlers[call.Name]

@@ -165,7 +165,7 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check. | 2048 / 1 |
 | `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it. Leave it empty when you run the binary directly. | set by compose |
 
-The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. `make sandbox-image` builds it locally.
+The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. It also has picture tools: libvips, ImageMagick, `cwebp`, `avifenc` and background removal (`removebg`, models included, works offline). `make sandbox-image` builds it locally.
 
 ### Capacity
 
@@ -174,6 +174,20 @@ The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash an
 | `MAX_SANDBOXES` | Checks running at once. Extra ones wait 30 seconds, then get "busy". | 4 |
 | `AGENT_WORKERS` | Tasks the AI runs at once (one per project). | 2 |
 | `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person and per server. 0 means no limit. | 0 / 20 |
+
+### Web lookup
+
+The Researcher and Media roles look things up on the web from the app itself, not from the sandbox.
+
+| Variable | What it does | Default |
+| --- | --- | --- |
+| `SEARXNG_URL` | Address of your own [SearXNG](https://docs.searxng.org/) server. Empty turns web search off. | empty |
+
+- Pictures come from Openverse and Wikimedia Commons. They need no key and no setting. Only pictures under a licence that allows edited commercial use are offered.
+- Run SearXNG yourself, outside this compose file. In its `settings.yml`, add `json` to `search.formats`.
+- Check it with `curl "$SEARXNG_URL/search?q=test&format=json"`. A `403` means JSON is not enabled.
+- Keep SearXNG private. Its limiter may block the app when many searches arrive; relax it for the app's address.
+- The app refuses internal addresses on every web request, so a page cannot point it at your network. Your own `SEARXNG_URL` is the one address it is asked to reach.
 
 ### Other
 

@@ -9,6 +9,8 @@ export const teamCopy = {
     write: { title: 'Change files', note: 'Create, edit, move and delete. You still approve each step.' },
     exec: { title: 'Run commands', note: 'Run checks and commands. You still approve each step.' },
     ask: { title: 'Ask you questions', note: 'Asks what it needs to know, with options you can pick or your own answer.' },
+    web: { title: 'Search the web', note: 'Searches and reads pages. What it reads is only information, never orders. Only roles that cannot change files get this.' },
+    images: { title: 'Find pictures', note: 'Finds photos whose licence allows the use and saves them in the project with a credit.' },
   } as Record<string, { title: string; note: string }>,
   builtInNote: 'Built-in role: it stays on your team and what it may do is fixed.',
   newRoleName: 'New teammate',
@@ -27,5 +29,7 @@ export function accessSummary(access: string[]): string {
   if (access.includes('write')) can.push('change files');
   if (access.includes('exec')) can.push('run commands');
   if (access.includes('ask')) can.push('ask you questions');
+  if (access.includes('web')) can.push('search the web');
+  if (access.includes('images')) can.push('find pictures');
   return `Can ${can.join(', ').replace(/, ([^,]*)$/, ' and $1')}.`;
 }

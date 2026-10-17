@@ -53,7 +53,7 @@ func agentRole(role teamdomain.Role) taskapp.AgentRole {
 
 	return taskapp.AgentRole{
 		Key: role.Key, Name: role.Name, Purpose: role.Purpose, Prompt: role.Prompt, Skills: skillsFor(role),
-		Library: libraryFor(role), Lookup: lookupFor(role), WritesPRD: role.WritesPRD,
+		Library: libraryFor(role), Lookup: lookupFor(role), WritesPRD: role.WritesPRD, WritesResearch: role.WritesResearch,
 		ProviderID: role.ProviderID, Model: role.Model, Effort: effort, Tools: toolsFor(role), Lead: role.Lead,
 	}
 }
@@ -74,6 +74,19 @@ func toolsFor(role teamdomain.Role) []string {
 
 	if role.Can(teamdomain.AccessExec) {
 		names = append(names, toolStartSite, toolStopSite)
+	}
+
+	// What the web returns is a stranger's text, so the orchestrator, which holds the person's trust, never reads it raw.
+	if !role.Lead && role.Can(teamdomain.AccessWeb) {
+		names = append(names, toolWebSearch, toolFetchPage)
+	}
+
+	if !role.Lead && role.Can(teamdomain.AccessImages) {
+		names = append(names, toolSearchImages)
+
+		if role.Can(teamdomain.AccessWrite) {
+			names = append(names, toolDownloadAsset)
+		}
 	}
 
 	if role.Can(teamdomain.AccessAsk) {

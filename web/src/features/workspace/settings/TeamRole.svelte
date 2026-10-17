@@ -11,7 +11,7 @@
 
   let { role = $bindable(newRole()), onremove }: Props = $props();
   const id = $derived(`role-${role.key === '' ? 'new' : role.key}`);
-  const groups = ['write', 'exec', 'ask'] as const;
+  const groups = ['write', 'exec', 'ask', 'web', 'images'] as const;
 
   function allow(group: string, on: boolean): void {
     role.access = on ? [...role.access.filter((item) => item !== group), group] : role.access.filter((item) => item !== group);
