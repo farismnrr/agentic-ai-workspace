@@ -13,21 +13,29 @@
   import TaskPage from '../features/workspace/task/TaskPage.svelte';
   import ConsentPage from '../features/auth/ConsentPage.svelte';
   import { loadSession, session } from '../shared/session/session';
-  import { loginUrl, requiresSession } from './guard';
-  import { interceptLinkClick, navigate, route, syncFromLocation } from './router';
+  import { nextPath } from '../shared/session/next-path';
+  import { guestOnly, loginUrl, requiresSession } from './guard';
+  import { goTo, interceptLinkClick, navigate, route, syncFromLocation } from './router';
 
   const gated = $derived(requiresSession($route));
+  const guest = $derived(guestOnly($route));
 
   onMount(() => void loadSession());
 
   $effect(() => {
     if (gated && $session.status === 'anonymous') navigate(loginUrl(window.location.pathname + window.location.search), true);
   });
+
+  // Already signed in (or just signed in on this page): leave the sign-in and register pages for where the person
+  // was going, or the dashboard. Replacing the entry keeps Back from returning to a page they cannot use.
+  $effect(() => {
+    if (guest && $session.status === 'signed-in') goTo(nextPath(window.location.search), true);
+  });
 </script>
 
 <svelte:window onclick={interceptLinkClick} onpopstate={syncFromLocation} />
 
-{#if gated && $session.status !== 'signed-in'}
+{#if (gated && $session.status !== 'signed-in') || (guest && $session.status !== 'anonymous')}
   <main class="grid min-h-dvh place-items-center" aria-busy="true"><span class="loading loading-spinner"></span></main>
 {:else if $route.name === 'login'}
   <LoginPage />

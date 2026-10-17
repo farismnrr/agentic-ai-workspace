@@ -7,7 +7,7 @@ Add a model, create a project, and describe what you need. The AI shows every st
 | Address | What it is |
 | --- | --- |
 | `/` | Landing page |
-| `/login`, `/register` | Sign in, create an account |
+| `/login`, `/register` | Sign in, create an account. If you are already signed in, they take you straight to the dashboard (or to the page in `?next=`) |
 | `/app` | Your workspace: home, inbox, projects, tasks and settings |
 
 Press Ctrl/Cmd+K anywhere in the workspace to search.

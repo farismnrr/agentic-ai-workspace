@@ -24,10 +24,10 @@ const page = await owner.newPage();
 
 let res = await page.goto(url);
 check('a signed-out browser gets 403', res.status() === 403, `status ${res.status()}`);
-check('...with the private-app page', (await page.locator('h1').innerText()) === 'This app is private');
+check('...with the private page', /This page is\s+private/.test(await page.locator('h1').innerText()));
 await page.screenshot({ path: `${shots}/forbidden.png` });
 
-await page.getByRole('link', { name: 'Sign in' }).click();
+await page.getByText('Sign in', { exact: true }).click();
 await page.waitForURL(/\/login\?next=/);
 check('Sign in leads to login with a way back', page.url().includes('next=%2Frun%2F'), mask(page.url()));
 await page.getByLabel(/email/i).fill(info.email);
