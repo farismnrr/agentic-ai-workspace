@@ -11,10 +11,11 @@
     busy: boolean;
     onpublic: (site: Site) => void;
     onprivate: (site: Site) => void;
+    onstart: (site: Site) => void;
     onstop: (site: Site) => void;
   }
 
-  const { site, projects, busy, onpublic, onprivate, onstop }: Props = $props();
+  const { site, projects, busy, onpublic, onprivate, onstart, onstop }: Props = $props();
   const running = $derived(site.status === 'running');
   const isPublic = $derived(site.visibility === 'public');
   let copied = $state(false);
@@ -50,5 +51,7 @@
     <a class="btn btn-primary btn-sm rounded-lg" href={site.url} target="_blank" rel="noopener noreferrer">{sitesCopy.open} <Icon name="external-link" class="size-4" /></a>
     <button class="btn btn-ghost btn-sm" type="button" onclick={() => void copy()}>{copied ? sitesCopy.copied : sitesCopy.copy}</button>
     <button class="btn btn-outline btn-sm rounded-lg" type="button" disabled={busy} onclick={() => { onstop(site); }}><Icon name="square" class="size-4" /> {sitesCopy.stop}</button>
+  {:else}
+    <button class="btn btn-primary btn-sm rounded-lg" type="button" disabled={busy} onclick={() => { onstart(site); }}><Icon name="play" class="size-4" /> {sitesCopy.start}</button>
   {/if}
 </li>

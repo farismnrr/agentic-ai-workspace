@@ -18,7 +18,7 @@ type Store struct{ db *sql.DB }
 func NewStore(db *sql.DB) *Store { return &Store{db: db} }
 
 const (
-	columns     = "project_id, user_id, slug, token, visibility, status, port, container_id, started_at"
+	columns     = "project_id, user_id, slug, token, visibility, status, port, container_id, started_at, command"
 	selectSites = "SELECT " + columns + " FROM sites"
 
 	byProject = selectSites + " WHERE project_id = ?"
@@ -29,12 +29,13 @@ const (
 
 // Save inserts or replaces the project's site.
 func (s *Store) Save(ctx context.Context, site domain.Site) error {
-	_, err := s.db.ExecContext(ctx, `INSERT INTO sites (`+columns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	_, err := s.db.ExecContext(ctx, `INSERT INTO sites (`+columns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (project_id) DO UPDATE SET user_id = excluded.user_id, slug = excluded.slug,
 		token = excluded.token, visibility = excluded.visibility, status = excluded.status,
-		port = excluded.port, container_id = excluded.container_id, started_at = excluded.started_at`,
+		port = excluded.port, container_id = excluded.container_id, started_at = excluded.started_at,
+		command = excluded.command`,
 		site.ProjectID, site.UserID, site.Slug, site.Token, site.Visibility, site.Status, site.Port,
-		site.ContainerID, site.StartedAt.Unix())
+		site.ContainerID, site.StartedAt.Unix(), site.Command)
 	if err != nil {
 		return fmt.Errorf("save site: %w", err)
 	}
@@ -130,7 +131,7 @@ func scan(row scanner) (domain.Site, error) {
 	)
 
 	err := row.Scan(&site.ProjectID, &site.UserID, &site.Slug, &site.Token, &site.Visibility, &site.Status,
-		&site.Port, &site.ContainerID, &started)
+		&site.Port, &site.ContainerID, &started, &site.Command)
 	site.StartedAt = time.Unix(started, 0)
 
 	return site, err //nolint:wrapcheck // callers add the context
