@@ -1,7 +1,5 @@
 export const teamCopy = {
   intro: 'Your AI team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.',
-  defaultLabel: 'Use the team for new tasks',
-  defaultNote: 'Teams use more time and tokens. You can still switch it for a single task when you start it.',
   rolesIntro: 'Each teammate can use its own model and has its own way of working. The lead is always on.',
   leadNote: 'Talks to you, plans the work and hands it out. It can use every tool you switched on.',
   access: {

@@ -39,12 +39,6 @@ func (a agentTeam) Roster(ctx context.Context, userID string) (taskapp.Roster, e
 	return roster, nil
 }
 
-func (a agentTeam) UseByDefault(ctx context.Context, userID string) bool {
-	team, err := a.team.Get(ctx, userID)
-
-	return err == nil && team.UseByDefault
-}
-
 func agentRole(role teamdomain.Role) taskapp.AgentRole {
 	effort := taskdomain.Effort(role.Effort)
 	if !effort.Valid() {

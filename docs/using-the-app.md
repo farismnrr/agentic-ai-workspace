@@ -20,7 +20,7 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
    - Or choose "New repository" to create a repository on your GitHub account, and a project from it. It starts with a README, and you pick public or private.
    - Without GitHub connected, these two choices stay visible but unavailable, with a link to connect GitHub. If the server has no GitHub App set up, they are hidden.
    - If GitHub does not let the app create it, you are told. Create it on GitHub, share it with the app, then pick it under "From GitHub".
-3. Describe what you need on Home. You can also pick a model and an effort for this task.
+3. Describe what you need on Home. The model and effort come from Settings: each teammate has its own, and the default covers the rest.
 4. Watch the plan and the steps. The AI asks before it edits, deletes or moves files, runs commands, or starts a web app.
 5. Review the result, then accept it or ask for changes.
 
@@ -81,8 +81,8 @@ The context window comes from what the provider reports, else 200K, or 1M for na
 
 An agent team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.
 
-- Turn on **Team** in the box where you type a task, or set it for every new task under Settings, Agent team.
-- Without Team, one AI does the whole task, as before.
+- Every task has the team. There is no switch to turn it off.
+- A question, or a small change, never needs the whole team: the lead answers it or hands it straight to the Developer.
 - The lead decides who to call and when. Only the lead talks to you.
 - The lead never changes anything itself, even a one-line fix. It reads, plans, asks you and hands every change to a teammate.
 - A teammate you did not need is simply never called.

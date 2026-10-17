@@ -56,7 +56,7 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 		return domain.Task{}, domain.ErrNoProject
 	}
 
-	team := s.chooseTeam(ctx, userID, in.Team)
+	team := s.chooseTeam(in.Team)
 	in = s.leadModel(ctx, userID, in, team)
 
 	providerID, model, err := s.chooseModel(ctx, userID, in)

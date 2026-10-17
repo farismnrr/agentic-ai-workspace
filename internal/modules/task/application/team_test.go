@@ -135,14 +135,24 @@ func TestToolsOfferedDifferByRole(t *testing.T) {
 	}
 }
 
-func TestSoloTaskNeverSeesTheTeam(t *testing.T) {
+func TestEveryNewTaskHasATeamUnlessCodeAsksForNone(t *testing.T) {
 	t.Parallel()
 
 	r := newTeamRig(nil, []application.AgentRole{developer()}, finish("Hello"))
-	task := r.start(t, "Just talk")
-	r.run(task.ID)
 
-	if got := toolNames(r.model.requests[0]); slices.Contains(got, "delegate") || r.task(t, task.ID).Team {
-		t.Fatalf("a task without the team switch stays solo: %v", got)
+	ctx := context.Background()
+
+	task, err := r.service.Create(ctx, "u1", application.CreateInput{ProjectID: "proj", Prompt: "Just talk"})
+	if err != nil || !task.Team || !task.PlanFirst {
+		t.Fatalf("a task made without any choice has the team and plans first: %+v %v", task, err)
+	}
+
+	no := false
+
+	solo, err := r.service.Create(ctx, "u1", application.CreateInput{
+		ProjectID: "proj", Prompt: "Just talk", Team: &no,
+	})
+	if err != nil || solo.Team {
+		t.Fatalf("code that starts a task on someone's behalf can ask for none: %+v %v", solo, err)
 	}
 }

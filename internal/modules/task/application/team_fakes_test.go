@@ -30,12 +30,9 @@ func (s scoped) LoadTranscript(ctx context.Context, taskID string) ([]domain.Mes
 
 type fakeTeam struct {
 	roster application.Roster
-	byDef  bool
 }
 
 func (f *fakeTeam) Roster(context.Context, string) (application.Roster, error) { return f.roster, nil }
-
-func (f *fakeTeam) UseByDefault(context.Context, string) bool { return f.byDef }
 
 type fakeDelegations struct {
 	rows map[string]application.Delegation
