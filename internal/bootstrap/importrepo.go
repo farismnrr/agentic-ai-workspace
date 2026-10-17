@@ -67,15 +67,9 @@ type importFailure struct {
 func checkImport(
 	ctx context.Context, github *githubapp.Service, tools *agentTools, user, project, repo string,
 ) *importFailure {
-	repos, err := github.Repos(ctx, user)
+	listed, err := github.Reaches(ctx, user, repo)
 	if err != nil {
 		return &importFailure{"not_connected", fiber.StatusConflict}
-	}
-
-	listed := false
-
-	for _, item := range repos {
-		listed = listed || strings.EqualFold(item.FullName, repo)
 	}
 
 	if !listed {

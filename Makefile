@@ -16,7 +16,7 @@ VERSION ?= dev
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-.PHONY: help image sandbox-image redeploy-dev e2e-sites e2e-thread build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
+.PHONY: help image sandbox-image redeploy-dev e2e-sites e2e-thread e2e-projects build backend-build run verify guardrails frontend frontend-deps frontend-verify backend-test backend-lint backend-verify clean
 
 help:
 	@echo "make build    - verify, then build the single static binary ($(BIN_PATH))"
@@ -60,6 +60,9 @@ e2e-sites:
 
 e2e-thread:
 	sh ./scripts/e2e-thread.sh
+
+e2e-projects:
+	sh ./scripts/e2e-projects.sh
 
 guardrails:
 	MAX_FILE_LINES="$(MAX_FILE_LINES)" sh ./scripts/check-guardrails.sh

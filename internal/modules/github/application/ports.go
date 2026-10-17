@@ -34,6 +34,8 @@ type Provider interface {
 	Revoke(ctx context.Context, access string) error
 	// Repos lists the repositories the person let the app reach, newest first.
 	Repos(ctx context.Context, access string) ([]domain.Repo, error)
+	// CreateRepo makes an empty-but-initialised repository for the person and shares it with the app.
+	CreateRepo(ctx context.Context, access string, spec domain.NewRepo) (domain.Repo, error)
 }
 
 // Sealer encrypts tokens at rest.

@@ -88,6 +88,10 @@ func (f *fakeGitHub) Profile(_ context.Context, access string) (domain.Profile, 
 
 func (f *fakeGitHub) Revoke(context.Context, string) error { return nil }
 
+func (f *fakeGitHub) CreateRepo(_ context.Context, _ string, spec domain.NewRepo) (domain.Repo, error) {
+	return domain.Repo{FullName: "ann/" + spec.Name, Private: spec.Private}, nil
+}
+
 func (f *fakeGitHub) Repos(context.Context, string) ([]domain.Repo, error) {
 	return []domain.Repo{{FullName: "ann/shop"}}, nil
 }
