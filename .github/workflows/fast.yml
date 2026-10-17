@@ -109,5 +109,6 @@ jobs:
           dockerfile: sandbox/Dockerfile
           smoke: scripts/smoke-test-sandbox.sh
           channel: dev
-          # The toolbox has no dev channel: fast only proves it builds; full publishes :latest.
-          push: "false"
+          # Pushes publish :dev and :sha-<short>; only full publishes :latest, which the local app uses.
+          push: ${{ github.event_name == 'push' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
