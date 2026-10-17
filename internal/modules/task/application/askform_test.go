@@ -61,3 +61,26 @@ func TestATeammatePromptCarriesItsPlaybook(t *testing.T) {
 		t.Fatalf("prompt = %q", prompt)
 	}
 }
+
+func TestOptionsMayCarryAPreviewPictureAndUpToEightOfThem(t *testing.T) {
+	t.Parallel()
+
+	options := ""
+	for i := range 10 {
+		options += `{"label":"Style ` + string(rune('A'+i)) + `","preview":"warm-editorial"},`
+	}
+
+	form := json.RawMessage(`{"questions":[{"question":"Look?","type":"single","options":[` + options +
+		`{"label":"Odd","preview":"../../etc"}]}]}`)
+
+	questions, ok := parseAsk(form)
+	if !ok || len(questions[0].Options) != 8 || questions[0].Options[0].Preview != "warm-editorial" {
+		t.Fatalf("up to eight options with their previews: %+v ok=%v", questions, ok)
+	}
+
+	odd, _ := parseAsk(json.RawMessage(`{"questions":[{"question":"Look?","type":"single","options":` +
+		`[{"label":"Odd","preview":"../../etc"},{"label":"Fine","preview":"minimal"}]}]}`))
+	if odd[0].Options[0].Preview != "" || odd[0].Options[1].Preview != "minimal" {
+		t.Fatalf("a preview that is not a plain name is dropped: %+v", odd[0].Options)
+	}
+}

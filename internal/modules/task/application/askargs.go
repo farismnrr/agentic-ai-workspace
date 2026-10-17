@@ -3,6 +3,7 @@ package application
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -17,8 +18,9 @@ const askSchema = `{"type":"object","properties":{"questions":{"type":"array","m
 	`"items":{"type":"object","properties":{"header":{"type":"string","description":"One or two words naming it"},` +
 	`"question":{"type":"string"},"type":{"type":"string","enum":["single","multi","text"],` +
 	`"description":"single = pick one, multi = pick several, text = typed answer"},` +
-	`"options":{"type":"array","maxItems":4,"items":{"type":"object","properties":{"label":{"type":"string"},` +
-	`"description":{"type":"string"}},"required":["label"]}}},"required":["question","type"]}}},"required":["questions"]}`
+	`"options":{"type":"array","maxItems":8,"items":{"type":"object","properties":{"label":{"type":"string"},` +
+	`"description":{"type":"string"},"preview":{"type":"string","description":"Name of a picture to show with it"}},` +
+	`"required":["label"]}}},"required":["question","type"]}}},"required":["questions"]}`
 
 // optionArg reads an option written as a plain string or as {label, description}.
 type optionArg struct{ domain.Option }
@@ -103,7 +105,7 @@ func cleanQuestion(item questionArg) (domain.Question, bool) {
 		}
 
 		question.Options = append(question.Options, domain.Option{
-			Label: clipTo(option.Label, maxText), Description: clip(option.Description),
+			Label: clipTo(option.Label, maxText), Description: clip(option.Description), Preview: previewName(option.Preview),
 		})
 	}
 
@@ -122,4 +124,16 @@ func optionLabels(question domain.Question) []string {
 	}
 
 	return labels
+}
+
+var previewPattern = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
+
+// previewName keeps a picture name that is a plain slug; anything else is dropped, so a model cannot make the
+// page look for an odd address.
+func previewName(name string) string {
+	if previewPattern.MatchString(name) {
+		return name
+	}
+
+	return ""
 }

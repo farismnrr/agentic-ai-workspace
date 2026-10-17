@@ -56,6 +56,8 @@ export type QuestionType = 'single' | 'multi' | 'text';
 export interface QuestionOption {
   label: string;
   description?: string;
+  /** The name of a picture shown with the option, such as a style family; the page looks it up. */
+  preview?: string;
 }
 
 export interface Question {

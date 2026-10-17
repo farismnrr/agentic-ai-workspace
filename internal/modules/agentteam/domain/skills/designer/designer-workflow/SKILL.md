@@ -19,8 +19,9 @@ source of truth: follow it and do not start a new look. Build with the stack tha
 Only when the project has no `DESIGN.md`:
 - The PRD may name a look (a style family) and an audience. Use them.
 - If it names none and the mood changes what you build, ask the person once with `ask_user`: one form, a `single`
-  "Look" question with three or four style families as options (label and a one-line feel, the best fit first
-  and marked (Recommended)). Otherwise take `default`.
+  "Look" question with six style families as options, each with `preview` set to its name (`warm-editorial`,
+  `minimal`, `corporate`, `friendly`, `brutalism`, `retro`, `glassmorphism`, `claymorphism`) so the form shows a
+  picture of it; the best fit first and marked (Recommended), a one-line feel each. Otherwise take `default`.
 - Read the family with `read_reference` (`style/<name>`): its `DESIGN.md` is the direction, its `tokens.css` the
   variables. Then call `use_skill` with `design-brief` to turn the brief and the family into a `DESIGN.md` in the
   project root: palette, accent, type, layout, mood, density and what to exclude. Say which defaults you took.

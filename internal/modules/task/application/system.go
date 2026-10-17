@@ -180,7 +180,8 @@ const (
 	cannotAsk = "You cannot talk to the person. When something is unclear, take the safest reasonable assumption " +
 		"and say so in your report."
 	canAsk = "You may ask the person with ask_user, a form of one to four questions in one call: each is single " +
-		"(pick one), multi (pick several) or text, with two to four options that have a label and a description, " +
+		"(pick one), multi (pick several) or text, with two to four options that have a label and a description " +
+		"(more, with a preview picture each, when you were given picture names), " +
 		"the one you recommend first and marked (Recommended); they can also type their own answer. Ask only " +
 		"what blocks the work and never repeat a question. For anything else take the safest reasonable " +
 		"assumption and say so in your report."
