@@ -32,3 +32,10 @@ export const isComplete = (questions: Question[], drafts: Draft[]): boolean =>
 
 export const toAnswers = (questions: Question[], drafts: Draft[]): string[][] =>
   questions.map((question, index) => repliesFor(question, drafts[index] ?? blankDraft));
+
+const recommended = /\s*\(Recommended\)\s*$/i;
+
+/** An option label without the "(Recommended)" the agent adds to the one it suggests, and whether it had it. */
+export function readLabel(label: string): { text: string; recommended: boolean } {
+  return { text: label.replace(recommended, ''), recommended: recommended.test(label) };
+}

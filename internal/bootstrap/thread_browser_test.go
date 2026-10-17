@@ -27,6 +27,29 @@ const threadPage = `<!doctype html><title>Warung</title><body style="margin:0;fo
 <p style="color:#bbb;padding:0 48px">Teks pucat yang sulit dibaca</p><img src="x.png">
 <div style="width:1500px;height:30px;background:#ccc"></div></body>`
 
+// lookQuestion is the form the Planner shows first: the look of the page, each option with a picture of it.
+func lookQuestion() string {
+	names := []string{
+		"warm-editorial", "minimal", "corporate", "friendly", "brutalism", "retro", "glassmorphism", "claymorphism",
+	}
+	options := make([]map[string]string, 0, len(names))
+
+	for i, name := range names {
+		label := "Gaya " + name
+		if i == 0 {
+			label += " (Recommended)"
+		}
+
+		options = append(options, map[string]string{
+			"label": label, "description": "Cocok untuk warung kopi", "preview": name,
+		})
+	}
+
+	return toolCall("q1", "ask_user", map[string]any{"questions": []map[string]any{{
+		"header": "Look", "question": "Pilih tampilan yang kamu suka", "type": "single", "options": options,
+	}}})
+}
+
 // saying turns a scripted tool call into one where the model also says something.
 func saying(text, call string) string {
 	var body map[string]any
@@ -70,6 +93,7 @@ func TestServeThreadForABrowser(t *testing.T) {
 	command := "echo " + base64.StdEncoding.EncodeToString([]byte(threadPage)) +
 		" | base64 -d > index.html && exec python3 -m http.server $PORT --bind 127.0.0.1"
 	a := rigOn(t, env,
+		lookQuestion(),
 		saying(threadMessage, toolCall("s1", "start_site", map[string]any{"command": command, "port": 8126})),
 		saying("Saya lihat tampilannya di layar komputer.", toolCall("p1", "screenshot", map[string]any{})),
 		saying("Sekarang di layar HP.", toolCall("p2", "screenshot", map[string]any{"device": "mobile"})),
@@ -82,7 +106,7 @@ func TestServeThreadForABrowser(t *testing.T) {
 	t.Cleanup(func() { _ = env.app.Shutdown() })
 
 	id := a.start(t, "Tunjukkan halamannya")
-	a.waitApproving(t, id, "review")
+	a.waitFor(t, id, "needs-input")
 
 	info, _ := json.Marshal(map[string]string{
 		"base": base, "path": "/app/projects/" + a.project + "/tasks/" + id,
@@ -90,6 +114,12 @@ func TestServeThreadForABrowser(t *testing.T) {
 	})
 	if err = os.WriteFile(filepath.Join(dir, "info.json"), info, 0o600); err != nil { //nolint:gosec // test-only folder
 		t.Fatal(err)
+	}
+
+	// The person answers the form in the browser; the steps the agent takes after it still ask for a yes.
+	for deadline := time.Now().Add(3 * time.Minute); a.status(t, id) != "review" && time.Now().Before(deadline); {
+		a.allowPending(t, id)
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	for deadline := time.Now().Add(5 * time.Minute); time.Now().Before(deadline); time.Sleep(500 * time.Millisecond) {

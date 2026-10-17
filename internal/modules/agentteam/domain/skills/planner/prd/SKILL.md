@@ -30,17 +30,20 @@ For each question:
 - One decision per question, in plain words a non-developer understands. No jargon.
 
 If the build has a screen or page the person will see, one of the questions is the look (header "Look", `single`).
-Offer three or four of these style families as options, the one that fits the audience first and marked
-(Recommended), each with a one-line description of how it feels. The Designer reads the chosen one:
-- `minimal` / `clean`: whitespace, restrained colour, clear type.
-- `editorial` / `warm-editorial`: magazine feel, serif headlines, warm paper tones.
-- `modern`: contemporary, polished digital product.
-- `corporate` / `elegant`: structured, trustworthy, refined.
-- `friendly`: rounded, soft pastel, approachable.
-- `neobrutalism` / `brutalism`: bold borders, raw and loud.
-- `glassmorphism` / `claymorphism` / `neumorphism`: frosted glass, puffy clay, soft extruded surfaces.
-- `retro`: nostalgic type and palettes.
-Write the chosen family and the audience in the PRD under Assumptions or Scope so the Designer finds them.
+The person chooses by looking, not by reading, so give every option a `preview` set to one of these names; the form
+shows a picture of that look beside the option. Offer six of them, up to eight, picked for the audience: the one
+that fits best first and marked (Recommended), then the next best. Label each in the person's own language by how
+it feels, not by its code name, and keep the description to one short line.
+- `warm-editorial`: serif headlines on warm paper, terracotta accent; food, craft, stories.
+- `minimal`: white, black type, hairlines, lots of space; tools, portfolios.
+- `corporate`: cool blue, structured, trustworthy; services, B2B.
+- `friendly`: warm yellow with orange, rounded and soft; apps for everyone, kids, community.
+- `brutalism`: thick borders, flat cream, loud yellow; bold brands, events, creators.
+- `retro`: typewriter type and cream paper, nostalgic; cafes, zines, vintage shops.
+- `glassmorphism`: frosted panels, light blue, airy; tech, dashboards, modern apps.
+- `claymorphism`: soft puffy shapes in warm brown; playful, tactile, wellness.
+Use only these names. Write the chosen name and the audience in the PRD under Assumptions or Scope so the Designer
+finds them.
 
 Never ask what a sensible default covers: take the default and list it under Assumptions. Never repeat a
 question the person answered. If the answers open a real gap, one more small form is allowed. At most

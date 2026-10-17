@@ -17,7 +17,7 @@ const (
 const (
 	maxPlanSteps = 12
 	maxText      = 600
-	maxOptions   = 4
+	maxOptions   = 8
 	maxChecks    = 8
 )
 
@@ -35,7 +35,8 @@ func agentTools() []domain.ToolDef {
 			Name: toolAskUser,
 			Description: "Ask the person a form of 1 to 4 questions and wait for the answers. Each question is single " +
 				"(pick one), multi (pick several) or text (typed), with 2 to 4 options that have a short label and a " +
-				"description; the person can always type their own answer too.",
+				"description; the person can always type their own answer too. An option may carry a preview, the name of a " +
+				"picture the form shows with it (up to 8 options then); use it only for names you were given.",
 			Schema: json.RawMessage(askSchema),
 		},
 		{

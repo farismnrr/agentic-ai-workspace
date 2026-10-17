@@ -21,6 +21,8 @@ func (t QuestionType) Valid() bool {
 type Option struct {
 	Label       string `json:"label"`
 	Description string `json:"description,omitempty"`
+	// Preview names a picture the form shows with the option, such as a style family; the page knows the names.
+	Preview string `json:"preview,omitempty"`
 }
 
 // Question is one decision put to the person. A form holds one to four of them. Besides the options the

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<!-- One sample landing page drawn only with the design tokens, so every style family shows how it really looks. -->
+<style>
+/*TOKENS*/
+* { box-sizing: border-box; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); line-height: var(--leading-body); width: 1280px; height: 800px; overflow: hidden; }
+nav { display: flex; align-items: center; justify-content: space-between; padding: 28px 64px; border-bottom: 1px solid var(--border); }
+.logo { font-family: var(--font-display); font-size: 26px; font-weight: 700; letter-spacing: var(--tracking-display); }
+.links { display: flex; gap: 32px; color: var(--fg-2); font-size: 16px; align-items: center; }
+.btn { display: inline-block; padding: 14px 26px; border-radius: var(--radius-md); font-weight: 600; font-size: 17px; background: var(--accent); color: var(--accent-on); box-shadow: var(--elev-ring); }
+.btn.alt { background: transparent; color: var(--fg); border: 1.5px solid var(--fg); box-shadow: none; }
+.hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; padding: 64px 64px 40px; align-items: center; }
+.tag { display: inline-block; font-size: 14px; color: var(--muted); border: 1px solid var(--border); padding: 5px 14px; border-radius: var(--radius-pill); background: var(--surface); }
+h1 { font-family: var(--font-display); font-size: 62px; line-height: var(--leading-tight); letter-spacing: var(--tracking-display); margin: 22px 0 18px; }
+.lead { color: var(--fg-2); font-size: 20px; max-width: 520px; }
+.row { display: flex; gap: 14px; margin-top: 30px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--elev-raised); }
+.mock .bar { height: 14px; border-radius: var(--radius-pill); background: var(--border); margin: 14px 0; }
+.mock .bar.a { width: 62%; background: var(--accent); }
+.mock .bar.b { width: 88%; } .mock .bar.c { width: 45%; }
+.mock .chip { display: inline-block; margin-top: 8px; padding: 8px 16px; border-radius: var(--radius-pill); background: var(--accent); color: var(--accent-on); font-size: 14px; font-weight: 600; }
+.mock h3 { font-family: var(--font-display); font-size: 22px; }
+.feat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 0 64px; }
+.feat .card { box-shadow: var(--elev-ring); padding: 20px 24px; }
+.feat h4 { font-family: var(--font-display); font-size: 20px; margin-bottom: 6px; }
+.feat p { color: var(--muted); font-size: 15px; }
+</style>
+</head>
+<body>
+<nav><span class="logo">Aurora</span><span class="links"><span>Produk</span><span>Harga</span><span>Cerita</span><span class="btn" style="padding:10px 20px;font-size:15px">Masuk</span></span></nav>
+<section class="hero">
+  <div><span class="tag">Baru · versi 2</span><h1>Kerjaan beres, tanpa ribet.</h1><p class="lead">Satu tempat sederhana untuk mengatur pesanan, jadwal, dan pelanggan harianmu.</p><div class="row"><span class="btn">Mulai gratis</span><span class="btn alt">Lihat contoh</span></div></div>
+  <div class="card mock"><h3>Pesanan hari ini</h3><div class="bar a"></div><div class="bar b"></div><div class="bar c"></div><span class="chip">12 selesai</span></div>
+</section>
+<section class="feat">
+  <div class="card"><h4>Cepat</h4><p>Catat dalam hitungan detik.</p></div>
+  <div class="card"><h4>Rapi</h4><p>Semua terkumpul di satu layar.</p></div>
+  <div class="card"><h4>Aman</h4><p>Datamu tetap milikmu.</p></div>
+</section>
+</body>
+</html>

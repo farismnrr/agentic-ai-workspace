@@ -79,7 +79,10 @@ The lead sizes your request first and tells you:
 
 For a medium or large task:
 
-1. The Planner asks only what blocks the scope, such as what kind of site it is, who it is for or what to leave out. It shows one short form: pick one option, tick several, or type your own answer, then send. At most three questions for medium, five for large.
+1. The Planner asks only what blocks the scope, such as who it is for or what to leave out.
+   - It shows one short form. Pick one option, tick several, or type your own answer, then send.
+   - For the look of a page, each choice comes with a picture. The one it suggests comes first.
+   - At most three questions for medium, five for large.
 2. It writes a short PRD: overview, goals, what is not included, acceptance criteria, requirements and a todo. It shows in the thread and under the Plan tab.
 3. The lead asks once whether to start building. Say what to change and the Planner revises it.
 4. If you will see a screen or page, the Designer sets the look and builds it, and writes it down in `DESIGN.md` for the Developer.

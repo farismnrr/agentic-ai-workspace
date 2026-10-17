@@ -45,6 +45,24 @@ check('signed out, /login still shows the form', (await stranger.locator('h1').i
 await stranger.close();
 await page.goto(info.base + info.path);
 
+// The first thing the thread shows is the look question: every option has a picture, the best fit is marked.
+const form = page.locator('section[aria-label="Question for you"]');
+await form.locator('img').first().waitFor({ timeout: 20000 });
+const pictures: number[] = await form.evaluate(async (el) => {
+  const images = [...el.querySelectorAll('img')] as HTMLImageElement[];
+  await Promise.all(images.map((i) => i.decode().catch(() => undefined)));
+  return images.map((i) => i.naturalWidth);
+});
+check('the look question shows eight pictures', pictures.length === 8 && pictures.every((w) => w === 800), pictures.join(', '));
+check('the best fit is marked Recommended, once', (await form.locator('.badge', { hasText: 'Recommended' }).count()) === 1);
+check('the send button waits for a choice', await form.getByRole('button', { name: 'Send answers' }).isDisabled());
+await form.screenshot({ path: `${shots}/look.png` });
+await form.locator('label', { hasText: 'Gaya corporate' }).click();
+await form.getByRole('button', { name: 'Send answers' }).click();
+await page.getByText('You answered: Gaya corporate').waitFor({ timeout: 10000 });
+check('choosing a picture answers the question', true);
+await page.locator('section[aria-label="Result"]').waitFor({ timeout: 120000 });
+
 const figures = page.locator('figure[aria-label="Screenshot of your app"]');
 await figures.first().waitFor({ timeout: 20000 });
 check('the thread shows two screenshot cards', (await figures.count()) === 2, `${await figures.count()} cards`);

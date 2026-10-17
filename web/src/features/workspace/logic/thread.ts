@@ -19,6 +19,10 @@ interface UpdatePayload {
   events: TaskEvent[];
 }
 
+/** True while a question or an approval in the thread still shows as waiting. */
+const isWaiting = (list: TaskEvent[]): boolean =>
+  list.some((event) => (event.kind === 'question' && event.answered === undefined) || (event.kind === 'approval' && event.resolved === undefined));
+
 /** Follows one task over a server-sent event stream: thread entries arrive as they happen. */
 export function createThread(taskId: string): Thread {
   const task = writable<Task | undefined>(undefined);
@@ -27,6 +31,15 @@ export function createThread(taskId: string): Thread {
   const missing = writable(false);
   let current: Task | undefined;
   let seen: TaskEvent[] = [];
+  let reloaded = '';
+
+  /** An answer to a question already on the screen never arrives as a new event, so read the thread again. */
+  const reconcile = (status: string): void => {
+    const key = `${status}:${String(seen.length)}`;
+    if (status === 'needs-input' || !isWaiting(seen) || reloaded === key) return;
+    reloaded = key;
+    void loadEvents(taskId, 0).then((all) => { events.set((seen = all)); });
+  };
 
   const apply = (nextTask: Task, fresh: TaskEvent[]): void => {
     current = nextTask;
@@ -39,6 +52,7 @@ export function createThread(taskId: string): Thread {
       events.set(seen);
       draft.set('');
     }
+    reconcile(nextTask.status);
   };
 
   const source = new EventSource(`/api/tasks/${encodeURIComponent(taskId)}/stream`);
