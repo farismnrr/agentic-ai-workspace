@@ -55,6 +55,13 @@ func (r *Runner) startDelegation(
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if scout, must := researchFirst(state.roster, role, events); must {
+		r.result(ctx, task, call.ID, "Before the "+role.Name+" starts, hand the "+scout+
+			" a job: it looks things up on the web and its notes go into the "+role.Name+"'s brief.", true)
+
+		return Delegation{}, false
+	}
+
 	if idleJobs(events) >= r.lim.idleJobs() {
 		r.result(ctx, task, call.ID, stuckText(r.lim.idleJobs()), true)
 

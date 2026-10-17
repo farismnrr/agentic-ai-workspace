@@ -63,3 +63,27 @@ func TestResearchNotesAreKeptApartFromThePRDAndReachLaterTeammates(t *testing.T)
 		t.Fatalf("a later teammate is shown the research: %q", brief)
 	}
 }
+
+func TestThePlannerWaitsUntilTheResearcherHasBeenAsked(t *testing.T) {
+	t.Parallel()
+
+	r := newTeamRig(nil, []application.AgentRole{webResearcher(), planner()},
+		delegate("d1", "planner", "Plan the site"),
+		delegate("d2", "researcher", "Look up coffee shops in Bandung"),
+		notes("r1", "## Discovery\n- Orang mencari jam buka"),
+		delegate("d3", "planner", "Plan the site"),
+		prdReport("r2", "# PRD"),
+		finish("Done"),
+	)
+	task := r.startTeam(t, "Make a coffee shop site")
+	r.run(task.ID)
+
+	refused := resultFor(r.model.requests[1], "d1")
+	if !refused.IsError || !strings.Contains(refused.Text, "Researcher") {
+		t.Fatalf("the Planner is refused until the Researcher has a job: %+v", refused)
+	}
+
+	if got := r.task(t, task.ID); got.PRD != "# PRD" || got.Research == "" {
+		t.Fatalf("after the research the Planner writes the PRD: prd=%q research=%q", got.PRD, got.Research)
+	}
+}

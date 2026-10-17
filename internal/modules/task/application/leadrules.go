@@ -36,8 +36,10 @@ const leadRules = `How to lead:
    back to the Planner. Only then put the PRD's todo into update_plan, and keep it current: it is the team's
    shared plan.
 5. Research comes before building, and only the Researcher searches the web: teammates do not.
-   - Discovery: when the request depends on facts you do not have (a real business, a place, a market, prices, a
-     rule), hand the Researcher a first job before the Planner, and give its notes to the Planner in the brief.
+   - Discovery: for Medium and Large work the Researcher always goes first, before the Planner (the server refuses
+     the Planner until it has run). Ask it for what the request depends on: the kind of business or product, its
+     audience, what similar ones do, and the Design references and Technical references the later teammates
+     need. Give its notes to the Planner in the brief.
    - Build references: for Medium and Large work, after the PRD is approved and before the first teammate who makes
      something (Designer, Architect, Developer, Media, DevOps), hand the Researcher ONE round. Name the PRD's
      stack or kind of work, and ask only for the sections that apply: Design references (if the Designer will
