@@ -30,10 +30,10 @@ func (stubPictures) Name() string { return "stub" }
 func (stubPictures) Search(context.Context, string, int) ([]webdomain.Image, error) {
 	return []webdomain.Image{
 		{
-			Title: "Coffee Shop Sign", Creator: "pixeljones", License: "CC BY-SA 2.0",
+			Title: "Coffee Shop Sign", Creator: "pixeljones", License: "CC0",
 			URL: signURL, Page: "https://example.com/sign", Width: 1024, Height: 758,
 		},
-		{Title: "Not for sale", License: "CC BY-NC 4.0", URL: "https://img.example/nc.jpg", Page: "https://example.com/nc"},
+		{Title: "Needs a credit", License: "CC BY 2.0", URL: "https://img.example/nc.jpg", Page: "https://example.com/nc"},
 	}, nil
 }
 
@@ -108,8 +108,8 @@ func TestOnlyPicturesFromTheLatestSearchOfferedWithTheirLicenceCanBeSaved(t *tes
 	}
 
 	found := tools.Execute(ctx, project, call("search_images", map[string]string{"query": "coffee shop"}))
-	if found.IsError || strings.Contains(found.Output, "nc.jpg") || !strings.Contains(found.Output, "CC BY-SA 2.0") {
-		t.Fatalf("only usable licences are offered: %+v", found)
+	if found.IsError || strings.Contains(found.Output, "nc.jpg") || !strings.Contains(found.Output, "CC0") {
+		t.Fatalf("only free pictures are offered: %+v", found)
 	}
 }
 
@@ -125,7 +125,7 @@ func TestASavedPictureKeepsItsTypeAndComesWithItsCredit(t *testing.T) {
 		t.Fatalf("saved in assets/ with the extension the file really has: %+v", saved)
 	}
 
-	if !strings.Contains(saved.Output, "\"Coffee Shop Sign\" by pixeljones, CC BY-SA 2.0") {
+	if !strings.Contains(saved.Output, "\"Coffee Shop Sign\" by pixeljones, CC0") {
 		t.Fatalf("the credit line comes back: %s", saved.Output)
 	}
 

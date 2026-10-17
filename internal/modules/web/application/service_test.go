@@ -53,14 +53,14 @@ func TestOnlyUsablePicturesAreOfferedAndOnlyTheyCanBeFetched(t *testing.T) {
 	now := time.Now()
 	svc := application.NewService(nil, []application.ImageSource{
 		source{name: "a", images: []domain.Image{
-			photo("https://a/1.jpg", "CC BY 4.0"), photo("https://a/2.jpg", "CC BY-NC 4.0"),
+			photo("https://a/1.jpg", "CC0"), photo("https://a/2.jpg", "CC BY 4.0"),
 		}},
-		source{name: "b", images: []domain.Image{photo("https://b/1.jpg", "CC0"), photo("https://a/1.jpg", "CC BY 4.0")}},
+		source{name: "b", images: []domain.Image{photo("https://b/1.jpg", "CC0"), photo("https://a/1.jpg", "CC0")}},
 	}, fetch, func() time.Time { return now })
 
 	images, err := svc.SearchImages(context.Background(), "p1", "coffee shop")
 	if err != nil || !slices.Equal(addresses(images), []string{"https://a/1.jpg", "https://b/1.jpg"}) {
-		t.Fatalf("NonCommercial and duplicates are dropped, sources take turns: %+v, %v", images, err)
+		t.Fatalf("pictures that need a credit and duplicates are dropped, sources take turns: %+v, %v", images, err)
 	}
 
 	for _, refused := range []struct{ project, url, why string }{

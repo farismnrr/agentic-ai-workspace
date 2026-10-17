@@ -23,6 +23,8 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     convert -size 120x80 gradient:white-blue -fill red -draw "circle 60,40 60,15" p.jpg
     vips thumbnail p.jpg "q.jpg[Q=80,strip]" 60 && cwebp -q 80 q.jpg -o q.webp > /dev/null 2>&1 && echo pictures-ok
     removebg p.jpg cut.png fast && removebg p.jpg cut2.png && echo removebg-ok
+    cp /opt/vector/node_modules/lucide-static/icons/coffee.svg i.svg && svgo --multipass i.svg -o i.min.svg > /dev/null && echo icons-ok
+    convert p.jpg -threshold 50% m.pbm && potrace -s m.pbm -o m.svg && grep -q "<svg" m.svg && echo vector-ok
     convert "msl:p.jpg" m.png 2>&1 | grep -q "security policy" && echo policy-ok
     node /usr/local/share/capture/capture.ts "{\"url\":\"http://127.0.0.1:8000/\",\"width\":800,\"height\":600,\"y\":0}" \
       | grep -q "\"ok\":true" && echo shot-ok
@@ -30,7 +32,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "removebg-ok" "policy-ok"; do
+for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "removebg-ok" "policy-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 

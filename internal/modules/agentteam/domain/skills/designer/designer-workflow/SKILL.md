@@ -34,7 +34,11 @@ Only when the project has no `DESIGN.md`:
 Add an "Assets needed" section to `DESIGN.md`: for each picture its name, subject, where it goes, its shape (wide,
 square, round, cut-out) and the size it is shown at. If the team has a Media teammate, the orchestrator hands the list
 to it and you build with what it saves in `assets/`; until then draw with CSS or SVG. Never link a picture from
-another website. Show a picture credit on the page when `assets/CREDITS.md` says one is required.
+another website. Icons come from a set, not from your drawing: Lucide is in the sandbox at
+`/opt/vector/node_modules/lucide-static/icons/` (one SVG per icon, `currentColor`); copy the few you need into the
+project and keep them one style. Draw SVG by hand only for simple shapes, dividers, patterns and a wordmark, and
+run `svgo --multipass` over it. Never put photo credits, licences or photographer names on the page: they stay in `assets/CREDITS.md` for the
+owner. Prefer CSS or SVG where a stand-in photo would pretend to be the owner's own product.
 
 ## 3b. Pick a page recipe
 For a known page type, read the closest template with `read_reference` (`template/<name>`): saas-landing,

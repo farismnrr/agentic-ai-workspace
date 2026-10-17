@@ -39,6 +39,14 @@ The result is always a PNG with a see-through background.
 - Favicon set from a logo: `convert logo.png -define icon:auto-resize=64,48,32,16 assets/favicon.ico`
 - Lighten or darken a photo behind text: `convert in.jpg -brightness-contrast -15x0 out.jpg`
 
+## Vector (SVG)
+- Shrink an SVG: `svgo --multipass in.svg -o assets/logo.svg`
+- Turn a black-and-white cut-out into an SVG shape: `convert assets/mug.png -background white -alpha remove -threshold 50% /tmp/m.pbm && potrace -s /tmp/m.pbm -o assets/mug.svg`
+- Ready-made icons (Lucide, ISC licence) are in `/opt/vector/node_modules/lucide-static/icons/` as one SVG per icon:
+  `ls /opt/vector/node_modules/lucide-static/icons | grep -i coffee`, then copy the file into `assets/icons/`.
+  Lucide's icons use `currentColor`, so CSS sets their colour. Add "Lucide, ISC licence" to `assets/CREDITS.md`.
+- Check how an SVG looks: `rsvg-convert -w 600 assets/logo.svg -o /tmp/preview.png`
+
 ## Clean up
 - Remove camera and location data: `exiftool -all= -overwrite_original assets/hero.jpg`
 - Never keep a picture you cannot name the licence of.

@@ -103,7 +103,7 @@ func usable(images []domain.Image) []domain.Image {
 	kept := make([]domain.Image, 0, len(images))
 
 	for _, image := range images {
-		if domain.UsableLicense(image.License) && strings.HasPrefix(image.URL, "http") {
+		if domain.FreeToUse(image.License) && strings.HasPrefix(image.URL, "http") {
 			kept = append(kept, image)
 		}
 	}

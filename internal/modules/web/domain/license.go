@@ -27,6 +27,16 @@ func UsableLicense(name string) bool {
 	return false
 }
 
+// FreeToUse reports whether a picture may be used with nothing to show for it: public domain or CC0. Pictures that
+// ask for the author to be named (CC BY and the like) are not offered at all, since the page must stay clean.
+func FreeToUse(name string) bool {
+	text := strings.ToLower(strings.TrimSpace(name))
+	free := strings.HasPrefix(text, "cc0") || strings.HasPrefix(text, "pdm") ||
+		strings.HasPrefix(text, "public domain") || strings.HasPrefix(text, "pd ")
+
+	return free && UsableLicense(name)
+}
+
 // hasWord reports whether the licence name contains the word as a separate part: "by-nc" has "nc", "bunch" does not.
 func hasWord(text, word string) bool {
 	for _, part := range strings.FieldsFunc(text, isSeparator) {
