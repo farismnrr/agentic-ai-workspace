@@ -2,9 +2,9 @@ package application
 
 import "context"
 
-// chooseTeam uses the requested choice, or the person's default for new tasks. A task has a team only
-// when the app has teams switched on at all.
-func (s *Service) chooseTeam(ctx context.Context, userID string, asked *bool) bool {
+// chooseTeam gives every new task a team, as long as the app has teams at all. Only code that starts a task on
+// someone's behalf can ask for none: the person has no switch.
+func (s *Service) chooseTeam(asked *bool) bool {
 	if s.deps.Team == nil || s.deps.Scopes == nil || s.deps.Delegations == nil {
 		return false
 	}
@@ -13,7 +13,7 @@ func (s *Service) chooseTeam(ctx context.Context, userID string, asked *bool) bo
 		return *asked
 	}
 
-	return s.deps.Team.UseByDefault(ctx, userID)
+	return true
 }
 
 // leadModel fills in the orchestrator's own model when a team task did not pick one, so the lead role's

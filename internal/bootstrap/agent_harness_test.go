@@ -82,7 +82,8 @@ func rigOn(t *testing.T, env testEnv, steps ...string) agentRig {
 func (a agentRig) start(t *testing.T, prompt string) string {
 	t.Helper()
 
-	body := `{"projectId":"` + a.project + `","prompt":"` + prompt + `"}`
+	// A person's tasks always have a team; these tests are about the single agent, so they ask for none.
+	body := `{"projectId":"` + a.project + `","prompt":"` + prompt + `","team":false}`
 
 	created := do(t, a.env.app, "POST", "/api/tasks", body, jsonCookie(a.cookie))
 	if created.Status != 201 {

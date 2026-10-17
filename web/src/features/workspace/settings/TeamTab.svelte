@@ -5,7 +5,6 @@
   import { teamCopy } from '../content/team-copy';
   import { loadAgentTeam, newRole, resetAgentTeam, saveAgentTeam, type AgentTeam } from '../logic/agent-team-api';
   import SaveBar from './parts/SaveBar.svelte';
-  import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
   import TeamRole from './TeamRole.svelte';
 
@@ -56,12 +55,6 @@
 </script>
 
 {#if team !== undefined}
-  <SettingsSection title="Agent team" description={teamCopy.intro}>
-    <SettingRow label={teamCopy.defaultLabel} description={teamCopy.defaultNote} for="team-default">
-      <input id="team-default" class="toggle toggle-primary toggle-sm" type="checkbox" bind:checked={team.useByDefault} />
-    </SettingRow>
-  </SettingsSection>
-
   <SettingsSection title="Roles" description={teamCopy.rolesIntro}>
     {#snippet action()}
       <div class="flex gap-2">

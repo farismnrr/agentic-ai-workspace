@@ -1,8 +1,6 @@
 <script lang="ts">
   import { navigate } from '../../../app/router';
   import ComposerBox from '../components/ComposerBox.svelte';
-  import ModelPicker from './ModelPicker.svelte';
-  import TeamToggle from './TeamToggle.svelte';
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
   import { describeTaskError } from '../logic/task-errors';
@@ -11,9 +9,6 @@
 
   let text = $state('');
   let project = $state('');
-  let model = $state('');
-  let effort = $state('');
-  let team = $state(false);
   let busy = $state(false);
   let error = $state('');
 
@@ -29,8 +24,8 @@
     busy = true;
     error = '';
     try {
-      const [providerId = '', name = ''] = model.split('::');
-      const task = await createTask({ projectId: chosen, prompt, effort, team, ...(model === '' ? {} : { providerId, model: name }) });
+      // The model and effort come from Settings: the lead's own, else the person's default.
+      const task = await createTask({ projectId: chosen, prompt });
       text = '';
       await refresh();
       navigate(`/app/projects/${task.projectId}/tasks/${task.id}`);
@@ -56,9 +51,7 @@
     {busy}
     {error}
     onsend={send}
-  >
-    {#snippet tools()}<ModelPicker bind:model bind:effort disabled={busy} /><TeamToggle bind:team disabled={busy} />{/snippet}
-  </ComposerBox>
+  />
   <ul class="mt-3 flex flex-wrap gap-2">
     {#each suggestions as suggestion (suggestion)}
       <li><button class="btn btn-sm rounded-full border-[var(--brand-border)] bg-base-100 font-normal" type="button" onclick={() => (text = suggestion)}>{suggestion}</button></li>

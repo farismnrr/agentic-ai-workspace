@@ -76,8 +76,6 @@ func (r Roster) member(key string) (AgentRole, bool) {
 type Team interface {
 	// Roster returns the lead and the enabled teammates.
 	Roster(ctx context.Context, userID string) (Roster, error)
-	// UseByDefault says whether the person wants new tasks to start with the team.
-	UseByDefault(ctx context.Context, userID string) bool
 }
 
 // ScopedTranscripts keeps a teammate's conversation apart from the orchestrator's.
