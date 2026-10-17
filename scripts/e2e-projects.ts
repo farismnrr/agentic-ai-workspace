@@ -21,8 +21,11 @@ const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
 let created: unknown;
 
-await page.route('**/api/integrations/github', (route) =>
-  route.fulfill({ json: { configured: true, connected: true, login: 'ann', name: 'Ann', reposUrl: '' } }));
+let github: 'connected' | 'not connected' | 'broken' = 'not connected';
+await page.route('**/api/integrations/github', (route) => {
+  if (github === 'broken') return route.fulfill({ status: 500, json: { error: 'internal' } });
+  return route.fulfill({ json: { configured: true, connected: github === 'connected', login: 'ann', name: 'Ann', reposUrl: '' } });
+});
 await page.route('**/api/integrations/github/repos', (route) =>
   route.request().method() === 'POST'
     ? route.fulfill({ status: 201, json: { name: 'ann/new-shop', private: true } })
@@ -37,6 +40,18 @@ await page.getByLabel(/email/i).fill(info.email);
 await page.locator('#password').fill(info.password);
 await page.getByRole('button', { name: /sign in/i }).click();
 await page.waitForURL(/\/app/, { timeout: 15000 });
+for (const state of ['not connected', 'broken'] as const) {
+  github = state;
+  await page.goto(`${info.base}/app/projects`);
+  await page.getByRole('button', { name: /new project/i }).first().click();
+  const plain = page.locator('dialog[open]');
+  await plain.locator('#project-name').waitFor();
+  await page.waitForTimeout(500);
+  check(`GitHub ${state}: the dialog is the plain one`, (await plain.locator('.join').count()) === 0 && (await plain.getByRole('button', { name: 'Create project' }).count()) === 1);
+  await plain.getByRole('button', { name: 'Cancel' }).click();
+}
+
+github = 'connected';
 await page.goto(`${info.base}/app/projects`);
 await page.getByRole('button', { name: /new project/i }).first().click();
 
