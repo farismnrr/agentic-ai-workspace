@@ -99,6 +99,59 @@ check('the page does not scroll sideways', await page.evaluate(() => document.do
 await bubble.screenshot({ path: `${shots}/message.png` });
 await figures.first().screenshot({ path: `${shots}/shot-card.png` });
 
+// The Files tab: the project's own tree, a real editor, saving by hand, and the agent's changes arriving live.
+const projectId = String(info.path).split('/')[3] as string;
+const api = (method: string, path: string, body?: unknown): Promise<{ status: number; json: Record<string, unknown> }> =>
+  page.evaluate(async ([m, p, b]) => {
+    const init: RequestInit = { method: m as string, headers: { 'Content-Type': 'application/json' } };
+    if (b !== undefined) init.body = JSON.stringify(b);
+    const res = await fetch(p as string, init);
+    return { status: res.status, json: res.status === 204 ? {} : await res.json() };
+  }, [method, `/api/projects/${projectId}${path}`, body] as const);
+await page.goto(info.base + info.path);
+await page.getByRole('tab', { name: 'Files' }).click();
+const tree = page.getByRole('tree', { name: 'Project files' });
+await tree.waitFor({ timeout: 15000 });
+check('the Files tab shows the project tree, with the file the task changed', (await tree.getByRole('button', { name: /index\.html/ }).count()) === 1);
+await tree.getByRole('button', { name: /index\.html/ }).click();
+const editor = page.locator('.cm-content');
+await editor.waitFor({ timeout: 15000 });
+check('the file opens in an editor with its text', (await editor.innerText()).includes('Kopi enak setiap pagi'));
+await page.screenshot({ path: `${shots}/files.png` });
+
+await editor.click();
+await page.keyboard.press('Control+End');
+await page.keyboard.type('\n<!-- by hand -->');
+check('typing marks the file Unsaved', (await page.getByText('Unsaved', { exact: true }).count()) === 1);
+await page.keyboard.press('Control+s');
+await page.getByText('Saved', { exact: true }).waitFor({ timeout: 8000 });
+check('Ctrl+S saves it on disk', String((await api('GET', '/file?path=index.html')).json.content).includes('by hand'));
+
+const now = String((await api('GET', '/file?path=index.html')).json.hash);
+await api('PUT', '/file', { path: 'index.html', content: 'agent version', baseHash: now });
+await page.locator('.cm-content', { hasText: 'agent version' }).waitFor({ timeout: 8000 });
+check('a change by the agent shows in the open editor at once', true);
+await api('PUT', '/file', { path: 'fresh.txt', content: 'x', baseHash: '' });
+// The panel is narrow, so the tree and the file take turns: go back to the tree to see the new file.
+await page.getByRole('button', { name: 'Back to files' }).click();
+await tree.getByRole('button', { name: /fresh\.txt/ }).waitFor({ timeout: 8000 });
+check('a new file shows in the tree at once', true);
+await tree.getByRole('button', { name: /index\.html/ }).click();
+await page.locator('.cm-content', { hasText: 'agent version' }).waitFor({ timeout: 8000 });
+
+await editor.click();
+await page.keyboard.press('Control+End');
+await page.keyboard.type(' MY EDIT');
+const seen = String((await api('GET', '/file?path=index.html')).json.hash);
+await api('PUT', '/file', { path: 'index.html', content: 'agent again', baseHash: seen });
+await page.getByRole('alert').getByText('changed on disk').waitFor({ timeout: 8000 });
+check('an edit in progress is not overwritten: the person is asked', true);
+await page.screenshot({ path: `${shots}/conflict.png` });
+await page.getByRole('button', { name: 'Keep mine' }).click();
+await page.keyboard.press('Control+s');
+await page.getByText('Saved', { exact: true }).waitFor({ timeout: 8000 });
+check('Keep mine then Save puts their edit on disk', String((await api('GET', '/file?path=index.html')).json.content).includes('MY EDIT'));
+
 await browser.close();
 console.log(failures === 0 ? '\nALL PASSED' : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

@@ -31,5 +31,5 @@
   {:else if tab === 'team'}<TeamTab {events} waiting={task.status === 'needs-input'} />
   {:else if tab === 'proof'}<ProofTab proof={task.proof} />
   {:else if tab === 'changes'}<ChangesTab {changes} {onundo} />
-  {:else}<FilesTab {changes} />{/if}
+  {:else}<FilesTab projectId={task.projectId} {changes} />{/if}
 </div>

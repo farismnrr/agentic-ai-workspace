@@ -12,6 +12,8 @@ import (
 type Notifier interface {
 	Changed(userID, taskID string)
 	Delta(taskID, text string)
+	// FilesChanged says the files of a project may have changed, so anyone looking at them reads them again.
+	FilesChanged(projectID string)
 }
 
 // Observe wraps the stores so that every write wakes the people following the
