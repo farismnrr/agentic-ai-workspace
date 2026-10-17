@@ -1,5 +1,6 @@
 <script lang="ts">
   import LogoMark from '../../../../shared/ui/LogoMark.svelte';
+  import DocText from '../../components/DocText.svelte';
 
   interface Props {
     who: 'you' | 'ai';
@@ -14,7 +15,7 @@
 
 {#if who === 'you'}
   <div class="flex flex-col items-end gap-1">
-    <p class="max-w-[85%] rounded-2xl bg-base-300/60 px-4 py-2 text-[15px] leading-6">{text}</p>
+    <p class="max-w-[85%] rounded-2xl bg-base-300/60 px-4 py-2 text-[15px] leading-6 break-words whitespace-pre-wrap">{text}</p>
     <span class="text-xs text-[var(--brand-text-tertiary)]">{time}</span>
   </div>
 {:else}
@@ -22,7 +23,7 @@
     <LogoMark class="mt-0.5 size-6 shrink-0" />
     <div class="min-w-0">
       <p class="text-xs text-[var(--brand-text-secondary)]">Masih Awam{agent === undefined ? '' : ` · ${agent}`} · {time}</p>
-      <p class="mt-0.5 text-[15px] leading-6">{text}</p>
+      <DocText class="mt-0.5 text-[15px] leading-6" {text} />
     </div>
   </div>
 {/if}
