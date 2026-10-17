@@ -50,10 +50,10 @@ type response struct {
 	} `json:"results"`
 }
 
-// Search asks for pictures whose licence allows commercial use and changes.
+// Search asks for pictures that are CC0 or public domain, so nothing has to be credited.
 func (c *Client) Search(ctx context.Context, query string, limit int) ([]domain.Image, error) {
 	address := c.base + "/v1/images/?" + url.Values{
-		"q": {query}, "license_type": {"commercial,modification"}, "page_size": {"20"}, "mature": {"false"},
+		"q": {query}, "license": {"cc0,pdm"}, "page_size": {"20"}, "mature": {"false"},
 	}.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, address, http.NoBody)

@@ -51,8 +51,8 @@ func TestSearchReadsLicencesAndAsksForCommercialUse(t *testing.T) {
 		t.Fatalf("the original source is named: %+v", first)
 	}
 
-	if !strings.Contains(asked, "license_type=commercial%2Cmodification") || !strings.Contains(asked, "mature=false") {
-		t.Fatalf("only pictures that may be used and changed, no mature ones: %q", asked)
+	if !strings.Contains(asked, "license=cc0%2Cpdm") || !strings.Contains(asked, "mature=false") {
+		t.Fatalf("only pictures that are CC0 or public domain, no mature ones: %q", asked)
 	}
 }
 

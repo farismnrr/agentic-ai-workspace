@@ -72,3 +72,16 @@ func TestACreditNamesTheWorkItsAuthorAndTheLicence(t *testing.T) {
 		t.Fatalf("credit = %q", line)
 	}
 }
+
+func TestOnlyPublicDomainAndCC0AreFreeToUse(t *testing.T) {
+	t.Parallel()
+
+	for name, want := range map[string]bool{
+		"CC0": true, "Public domain": true, "pdm": true, "CC BY 2.0": false, "CC BY-SA 4.0": false, "by": false,
+		"CC0 NC": false, "": false,
+	} {
+		if got := domain.FreeToUse(name); got != want {
+			t.Errorf("%q free to use = %v, want %v", name, got, want)
+		}
+	}
+}

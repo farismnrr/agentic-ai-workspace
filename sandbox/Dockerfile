@@ -51,6 +51,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     && /opt/rembg/bin/python -c "from rembg import new_session; [new_session(m) for m in ('u2netp', 'isnet-general-use')]"
 RUN chmod -R a+rX /opt/rembg /opt/rembg-models
 
+# Vector tools from npm: svgo shrinks SVG, and lucide-static is a set of ready-made icons (ISC licence) so the
+# agent picks icons instead of drawing them. Installed now, so they work offline.
+FROM node AS vector
+ARG SVGO_VERSION=4.1.0
+ARG LUCIDE_VERSION=1.59.0
+RUN npm install --prefix /opt/vector --no-audit --no-fund "svgo@${SVGO_VERSION}" "lucide-static@${LUCIDE_VERSION}" \
+    && chmod -R a+rX /opt/vector
+
 FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
 ARG PYTHON_VERSION
 
@@ -58,7 +66,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash build-essential ca-certificates curl git socat unzip zip jq ripgrep procps \
         chromium-headless-shell fonts-liberation fonts-noto-color-emoji \
-        libvips-tools imagemagick librsvg2-bin webp libavif-bin optipng pngquant libimage-exiftool-perl \
+        libvips-tools imagemagick librsvg2-bin webp libavif-bin optipng pngquant libimage-exiftool-perl potrace \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /uvx /usr/local/bin/
@@ -82,13 +90,15 @@ COPY --from=rust /usr/local/rustup /opt/rustup
 COPY --from=java /opt/java/openjdk /opt/java/openjdk
 COPY --from=maven /usr/share/maven /opt/maven
 
+COPY --from=vector /opt/vector /opt/vector
 COPY --from=rembg /opt/rembg /opt/rembg
 COPY --from=rembg /opt/rembg-models /opt/rembg-models
 COPY sandbox/removebg.py /usr/local/bin/removebg
 COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
 COPY sandbox/capture/ /usr/local/share/capture/
-RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg
+RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg \
+    && ln -s /opt/vector/node_modules/.bin/svgo /usr/local/bin/svgo
 
 # Read-only toolchains stay put; downloads and build output go to /cache, which the server mounts per person.
 ENV RUSTUP_HOME=/opt/rustup \
@@ -102,7 +112,7 @@ ENV RUSTUP_HOME=/opt/rustup \
 LABEL org.opencontainers.image.title="agentic-ai-workspace-sandbox" \
       org.opencontainers.image.source="https://github.com/farismnrr/agentic-ai-workspace" \
       org.opencontainers.image.description="Isolated toolbox for the agent's commands" \
-      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"}]"
+      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"},{\"name\":\"Vector (svgo, potrace, Lucide icons in /opt/vector)\",\"version\":\"svgo 4\"}]"
 
 USER 65532:65532
 WORKDIR /workspace
