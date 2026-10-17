@@ -5,6 +5,7 @@ package fetch
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -33,9 +34,15 @@ func New(client *http.Client) *Fetcher { return &Fetcher{http: client} }
 
 // NewClient is a client that may only reach the public internet and follows a few redirects.
 func NewClient(policy egress.Policy) *http.Client {
+	// HTTP/1.1 only: Flickr's CDN answers every Go HTTP/2 request with 429 "CIDR range blocked" and the same
+	// request over HTTP/1.1 with the picture, and most pictures from Openverse live there.
+	transport := egress.Transport(policy)
+	transport.ForceAttemptHTTP2 = false
+	transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+
 	return &http.Client{
 		Timeout:   timeout,
-		Transport: egress.Transport(policy),
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) > domain.MaxRedirects {
 				return domain.ErrUnavailable
