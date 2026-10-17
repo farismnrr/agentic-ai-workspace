@@ -95,6 +95,9 @@ func TestServeThreadForABrowser(t *testing.T) {
 	a := rigOn(t, env,
 		lookQuestion(),
 		saying(threadMessage, toolCall("s1", "start_site", map[string]any{"command": command, "port": 8126})),
+		toolCall("n1", "write_file", map[string]any{"path": "notes.md", "content": "alpha\nbeta\ngamma\n"}),
+		toolCall("n2", "edit_file", map[string]any{"path": "notes.md", "old_text": "beta", "new_text": "BETA"}),
+		toolCall("n3", "edit_file", map[string]any{"path": "README.md", "old_text": "two", "new_text": "2"}),
 		saying("Saya lihat tampilannya di layar komputer.", toolCall("p1", "screenshot", map[string]any{})),
 		saying("Sekarang di layar HP.", toolCall("p2", "screenshot", map[string]any{"device": "mobile"})),
 		saying("Saya jalankan satu pemeriksaan.", toolCall("c1", "run_command", map[string]any{"command": "echo checked"})),
@@ -104,6 +107,8 @@ func TestServeThreadForABrowser(t *testing.T) {
 	go func() { _ = env.app.Listener(ln) }()
 
 	t.Cleanup(func() { _ = env.app.Shutdown() })
+
+	a.put(t, "README.md", "one\ntwo\nthree\n")
 
 	id := a.start(t, "Tunjukkan halamannya")
 	a.waitFor(t, id, "needs-input")

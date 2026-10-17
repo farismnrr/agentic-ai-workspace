@@ -32,6 +32,8 @@ type Deps struct {
 	Scopes      ScopedTranscripts
 	Delegations DelegationStore
 	Now         func() time.Time
+	// Diffs rebuilds the files a task changed; optional. Without it a task lists no file changes.
+	Diffs FileDiffs
 	// Shots keeps the screenshots tools produce; optional. Without it a screenshot is only described in words.
 	Shots Shots
 }

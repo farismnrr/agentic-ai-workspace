@@ -35,7 +35,7 @@ func newAgent(
 		Tools:    tools, Gate: gate, IDs: opaque.Generator{}, Now: time.Now, Activity: steps,
 		Computer: computer{engine: tools.engine, github: tools.github},
 		Team:     agentTeam{team: models.team}, Scopes: store, Delegations: store,
-		Shots: taskshots.New(filepath.Join(cfg.DataDir, "shots")),
+		Shots: taskshots.New(filepath.Join(cfg.DataDir, "shots")), Diffs: tools,
 	}, hub)
 
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())

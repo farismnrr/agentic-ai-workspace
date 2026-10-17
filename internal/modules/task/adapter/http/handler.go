@@ -32,6 +32,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Get("/api/tasks/:id", auth, h.get)
 		app.Get("/api/tasks/:id/events", auth, h.events)
 		app.Get("/api/tasks/:id/shots/:name", auth, h.shot)
+		app.Get("/api/tasks/:id/changes", auth, h.changes)
 		app.Get("/api/tasks/:id/stream", auth, h.taskStream)
 		app.Get("/api/stream", auth, h.workspaceStream)
 		app.Post("/api/tasks/:id/messages", auth, sameOrigin, h.message)

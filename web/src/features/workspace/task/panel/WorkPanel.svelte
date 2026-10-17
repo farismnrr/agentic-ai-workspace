@@ -30,6 +30,6 @@
   {#if tab === 'plan'}<PlanTab plan={task.plan} prd={task.prd} />
   {:else if tab === 'team'}<TeamTab {events} waiting={task.status === 'needs-input'} />
   {:else if tab === 'proof'}<ProofTab proof={task.proof} />
-  {:else if tab === 'changes'}<ChangesTab {changes} {onundo} />
+  {:else if tab === 'changes'}{#key task.id}<ChangesTab taskId={task.id} projectId={task.projectId} {changes} {onundo} />{/key}
   {:else}<FilesTab projectId={task.projectId} {changes} />{/if}
 </div>
