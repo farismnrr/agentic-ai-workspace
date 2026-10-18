@@ -13,4 +13,8 @@ export const importRepo = (id: string, repo: string): Promise<undefined> =>
 export const updateProject = (id: string, name: string, description: string): Promise<Project> =>
   request<Project>('PUT', `/api/projects/${encodeURIComponent(id)}`, { name, description });
 
+/** Deletes a project for good, with its files and tasks. There is no way back, so the page asks first. */
+export const deleteProject = (id: string): Promise<undefined> =>
+  request<undefined>('DELETE', `/api/projects/${encodeURIComponent(id)}/forever`);
+
 export const archiveProject = (id: string): Promise<undefined> => request<undefined>('DELETE', `/api/projects/${encodeURIComponent(id)}`);

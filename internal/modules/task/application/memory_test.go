@@ -115,6 +115,19 @@ func (m *memory) Finish(_ context.Context, id, summary string, proof *domain.Pro
 	return m.update(id, func(t *domain.Task) { t.Status, t.Summary, t.Proof = domain.StatusReview, summary, proof })
 }
 
+func (m *memory) DeleteProject(_ context.Context, userID, projectID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for id, task := range m.tasks {
+		if task.UserID == userID && task.ProjectID == projectID {
+			delete(m.tasks, id)
+		}
+	}
+
+	return nil
+}
+
 func (m *memory) DeleteAll(_ context.Context, userID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
