@@ -16,6 +16,8 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
 
 1. Add a model under Settings, AI models (see [Models](#models)).
 2. Create a project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.
+   - Pick how to start. "Empty project" is the default: the AI designs the look from your request, and you refine it by hand.
+   - Or pick a template (landing page, product website, dashboard, documentation, AI chat, portfolio, release notes, text editor, calendar). Its look is copied into the project right away. The login and data are still built for your app.
    - With GitHub connected, choose "From GitHub" to start from one of your repositories. Type to search; the list scrolls. It is copied into the new project with its history.
    - Or choose "New repository" to create a repository on your GitHub account, and a project from it. It starts with a README, and you pick public or private.
    - Without GitHub connected, these two choices stay visible but unavailable, with a link to connect GitHub. If the server has no GitHub App set up, they are hidden.
@@ -116,7 +118,7 @@ A web app the AI builds uses Nuxt, Nuxt UI (one consistent set of components) an
 - An app with a dashboard: key numbers, charts of your real data, recent activity and a clear first step when it is empty.
 - Each feature as a full flow, plus settings and a friendly "not found" page.
 
-A new app starts from an official Nuxt UI template that is closest to what you asked for, then the Designer changes it to fit. Only the look comes from the template; the login, data and server are built for your app.
+If you started the project from a template, the Designer adapts that one to fit. In an empty project it designs the look itself and copies no template. Only the look comes from a template; the login, data and server are built for your app.
 
 Pictures come from you first:
 

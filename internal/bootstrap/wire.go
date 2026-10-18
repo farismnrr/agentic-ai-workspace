@@ -84,7 +84,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	mounts := joinMounts(
 		[]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts,
 		[]httpserver.Mount{newExport(account, models, projects, tasks, folders, auth)},
-		models.mounts, []httpserver.Mount{githubMount}, spaceMounts)
+		models.mounts, []httpserver.Mount{githubMount, newTemplate(tools, projects, auth, sameOrigin)}, spaceMounts)
 
 	return mounts, func() { stop(); closeProxy() }, nil
 }

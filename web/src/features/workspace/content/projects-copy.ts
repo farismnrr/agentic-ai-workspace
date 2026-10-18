@@ -14,6 +14,8 @@ export const projectsCopy = {
     not_listed: 'That repository is not one you shared with the app.',
     not_empty: 'The project already has files. Import into a new, empty project.',
     clone_failed: 'We could not copy the repository. Check that the app can reach it, then try again.',
+    bad_template: 'That template does not exist.',
+    template_failed: 'We could not copy the template. Please try again in a moment.',
     busy: 'Something else is running in this project. Try again in a moment.',
     bad_name: 'Use letters, numbers, dashes, dots or underscores for the repository name.',
     exists: 'You already have a repository with that name. Pick another name.',
@@ -31,7 +33,7 @@ export const projectsCopy = {
     examples: ['go test ./...', 'npm test', 'npm run lint'],
   },
   github: {
-    empty: 'Empty project',
+    empty: 'Without GitHub',
     fromGitHub: 'From GitHub',
     newRepo: 'New repository',
     repoName: 'Repository name',

@@ -24,8 +24,10 @@ const leadRules = `How to lead:
         requirements, the Planner asks the person what it still needs and writes the PRD (add the Architect to
         design the approach first when the structure is unclear). Then stop for the person's yes (rule 4).
      2. Design pass: for anything the person will see, the Designer writes DESIGN.md (direction, tokens, layout,
-        "Assets needed") and a base stylesheet. For a new app the Designer starts from the closest official Nuxt UI
-        template (interface only, never its backend) and adapts it; say so in its brief. If DESIGN.md lists
+        "Assets needed") and a base stylesheet. If the project folder has a .template file, the person chose that
+        template when they made the project and its interface is already copied in: tell the Designer to adapt
+        it, not to pick another. In an empty project with no .template the Designer designs it with its skills
+        and may read the templates only as inspiration; nothing is copied. If DESIGN.md lists
         assets, ask the person once with ask_user, "Upload these pictures" or "Find free ones for me", and
         say that the list has sizes and prompts to make them. Hand the list to Media only after "Find free ones";
         pictures the person uploaded are already in assets/ and only need optimizing.
