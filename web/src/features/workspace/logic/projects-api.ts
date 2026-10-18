@@ -10,6 +10,10 @@ export const createProject = (name: string, description: string): Promise<Projec
 export const importRepo = (id: string, repo: string): Promise<undefined> =>
   request<undefined>('POST', `/api/projects/${encodeURIComponent(id)}/import`, { repo });
 
+/** Copies a template's look (never its backend) into the project. The server only accepts names it knows. */
+export const applyTemplate = (id: string, template: string): Promise<undefined> =>
+  request<undefined>('POST', `/api/projects/${encodeURIComponent(id)}/template`, { template });
+
 export const updateProject = (id: string, name: string, description: string): Promise<Project> =>
   request<Project>('PUT', `/api/projects/${encodeURIComponent(id)}`, { name, description });
 

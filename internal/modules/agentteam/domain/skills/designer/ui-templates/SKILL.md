@@ -1,17 +1,21 @@
 ---
 name: ui-templates
-description: Start a new app's interface from an official Nuxt UI template instead of designing from zero, and adapt it when the request differs.
+description: Adapt the Nuxt UI template a project was started from, or read the templates as inspiration when it has none.
 always: true
 ---
 
 # Start from a template, not from zero
 
-When the project is new or empty, do not design the interface from scratch. The toolbox holds the official Nuxt UI
+A person can start a project from a template. Then the project folder has a `.template` file with its name, and the
+template's `app/` and `public/` are already copied in: adapt that template (sections 2 and 3), do not pick or copy
+another, and read the rest of it in `/usr/local/share/templates/<name>/` if you need to. When there is no
+`.template` file the person started from empty: design with your skills and use the templates below only as
+inspiration to read, never copy them in. The toolbox holds the official Nuxt UI
 templates (MIT, Nuxt UI v4) in `/usr/local/share/templates/<name>/`, read-only. They are a **UI reference only**:
 take their pages, layouts, sections and components. Never take their backend, login, database or server code: those
 follow the team's own stack (`stack-defaults`, `nuxt-app`). You cannot open the internet; read the files.
 
-## 1. Pick the closest one
+## 1. The templates
 | Template | Use it for |
 |---|---|
 | `saas` | A product: landing, pricing, docs, blog, changelog, login and signup pages |
@@ -24,8 +28,7 @@ follow the team's own stack (`stack-defaults`, `nuxt-app`). You cannot open the 
 | `editor` | A rich text editor (TipTap) |
 | `calendar` | Day, week and month views with drag and drop |
 
-A web product usually combines two: `saas` or `landing` for the public side and `dashboard` for the app. Run
-`ls` on the template, read `app/pages`, `app/layouts`, `app/components` and `app/app.config.ts`, and read its
+Run `ls` on the template, read `app/pages`, `app/layouts`, `app/components` and `app/app.config.ts`, and read its
 `package.json` for the modules it needs.
 
 ## 2. Adapt it when the request is different

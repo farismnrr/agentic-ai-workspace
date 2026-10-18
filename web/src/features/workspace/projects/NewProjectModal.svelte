@@ -1,9 +1,10 @@
 <script lang="ts">
   import { describeProjectError } from '../logic/project-errors';
   import { projectsCopy } from '../content/projects-copy';
-  import { createRepo, loadGitHub } from '../logic/github-api';
-  import { archiveProject, createProject, importRepo } from '../logic/projects-api';
+  import { loadGitHub } from '../logic/github-api';
+  import { createNewProject } from '../logic/create-project';
   import RepoPicker from './RepoPicker.svelte';
+  import TemplatePicker from './TemplatePicker.svelte';
   import type { Project } from '../logic/task-types';
 
   interface Props {
@@ -20,6 +21,7 @@
   /** off: the server has no GitHub App; connect: it has one but the person has not connected; ready: connected. */
   let github = $state<'off' | 'connect' | 'ready'>('off');
   let source = $state<'empty' | 'github' | 'new'>('empty');
+  let template = $state('');
   let repo = $state('');
   let repoName = $state('');
   let isPrivate = $state(true);
@@ -40,30 +42,17 @@
 
   const slug = (text: string): string => text.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
 
-  async function create(): Promise<Project> {
-    // A new repository is made first: if GitHub refuses, no project is left behind.
-    const target = source === 'new' ? (await createRepo(repoName, isPrivate)).name : repo;
-    const project = await createProject(name, description);
-    if (source === 'empty') return project;
-    try {
-      await importRepo(project.id, target);
-    } catch (failure) {
-      await archiveProject(project.id).catch(() => undefined);
-      throw failure;
-    }
-    return project;
-  }
-
   async function submit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     busy = true;
     error = '';
     try {
-      const project = await create();
+      const project = await createNewProject({ name, description, source, template, repo, repoName, isPrivate });
       name = '';
       repo = '';
       repoName = '';
       source = 'empty';
+      template = '';
       description = '';
       show = false;
       oncreated(project);
@@ -78,10 +67,11 @@
 <dialog bind:this={dialog} class="modal" onclose={() => (show = false)} aria-labelledby="new-project-title">
   <form class="modal-box max-w-md" onsubmit={submit}>
     <h2 id="new-project-title" class="text-base font-semibold">New project</h2>
+    {#if source !== 'github'}<TemplatePicker bind:value={template} />{/if}
     {#if github !== 'off'}
       <div class="join mt-4" role="group" aria-label="Where it starts">
         <button type="button" class="btn btn-sm join-item {source === 'empty' ? 'btn-primary' : ''}" aria-pressed={source === 'empty'} onclick={() => { source = 'empty'; }}>{projectsCopy.github.empty}</button>
-        <button type="button" class="btn btn-sm join-item {source === 'github' ? 'btn-primary' : ''} {github === 'connect' ? '!border-[var(--brand-border-strong)] !bg-base-100 !text-[var(--brand-text-secondary)] cursor-not-allowed' : ''}" aria-pressed={source === 'github'} aria-disabled={github === 'connect'} aria-describedby={github === 'connect' ? 'github-hint' : undefined} onclick={() => { if (github === 'ready') source = 'github'; }}>{projectsCopy.github.fromGitHub}</button>
+        <button type="button" class="btn btn-sm join-item {source === 'github' ? 'btn-primary' : ''} {github === 'connect' ? '!border-[var(--brand-border-strong)] !bg-base-100 !text-[var(--brand-text-secondary)] cursor-not-allowed' : ''}" aria-pressed={source === 'github'} aria-disabled={github === 'connect'} aria-describedby={github === 'connect' ? 'github-hint' : undefined} onclick={() => { if (github === 'ready') { source = 'github'; template = ''; } }}>{projectsCopy.github.fromGitHub}</button>
         <button type="button" class="btn btn-sm join-item {source === 'new' ? 'btn-primary' : ''} {github === 'connect' ? '!border-[var(--brand-border-strong)] !bg-base-100 !text-[var(--brand-text-secondary)] cursor-not-allowed' : ''}" aria-pressed={source === 'new'} aria-disabled={github === 'connect'} aria-describedby={github === 'connect' ? 'github-hint' : undefined} onclick={() => { if (github === 'ready') { source = 'new'; if (repoName === '') repoName = slug(name); } }}>{projectsCopy.github.newRepo}</button>
       </div>
       {#if github === 'connect'}

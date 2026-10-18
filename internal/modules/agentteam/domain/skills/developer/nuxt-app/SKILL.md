@@ -34,8 +34,9 @@ never ask them about libraries.
 - A database other than SQLite, or a login by Google or GitHub, only when the person asked for it.
 
 ## 2. Start the project
-If `DESIGN.md` has a "Template" section, build the interface from that Nuxt UI template (read it in
-`/usr/local/share/templates/<name>/`): port its pages, layouts and components as the Designer adapted them, and wire the
+If the project has a `.template` file or `DESIGN.md` has a "Template" section, build the interface from that Nuxt UI
+template (its `app/` is already in the project; read the rest in `/usr/local/share/templates/<name>/`; add the
+modules its `package.json` lists, such as Nuxt Content or `@nuxt/image`): keep its pages, layouts and components as the Designer adapted them, and wire the
 team's own backend behind them. Never take the template's login, server or data code.
 Run `new-nuxt-app` in the project folder (with `run_command`). It copies the toolbox's Nuxt starter without overwriting a
 file that exists, writes `package.json`, installs the latest stable packages with Bun, makes `.env` with a fresh

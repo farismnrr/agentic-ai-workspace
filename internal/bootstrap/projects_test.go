@@ -61,3 +61,30 @@ func TestProjectsAreValidatedAndPrivate(t *testing.T) {
 		t.Fatalf("anonymous requests must be refused, got %d", got)
 	}
 }
+
+func TestStartingFromATemplateNeedsAKnownNameAndTheOwner(t *testing.T) {
+	t.Parallel()
+
+	a := rigOn(t, newEnv(t))
+	path := "/api/projects/" + a.project + "/template"
+
+	for _, bad := range []string{`{"template":""}`, `{"template":"../etc"}`, `{"template":"nope; rm -rf /"}`} {
+		if got := do(t, a.env.app, "POST", path, bad, jsonCookie(a.cookie)).Status; got != 400 {
+			t.Errorf("%s must be refused as an unknown template, got %d", bad, got)
+		}
+	}
+
+	other := cookieOf(t, do(t, a.env.app, "POST", "/api/auth/register",
+		`{"name":"Eve","email":"eve@example.com","password":"`+testPassword+`"}`, jsonHeaders()))
+	if got := do(t, a.env.app, "POST", path, `{"template":"landing"}`, jsonCookie(other)).Status; got != 404 {
+		t.Errorf("someone else's project is not found: %d", got)
+	}
+
+	if err := os.WriteFile(filepath.Join(a.env.dataDir, "projects", a.project, "app"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := do(t, a.env.app, "POST", path, `{"template":"landing"}`, jsonCookie(a.cookie)).Status; got != 409 {
+		t.Errorf("a project that already has an app/ is not started from a template: %d", got)
+	}
+}
