@@ -45,6 +45,7 @@ About Changes:
 About Files:
 
 - **The project page** has the same Files tab, so you can read the code without starting a task.
+- **Archive or delete a project** on its About tab. Archive hides it and keeps its files and tasks. Delete asks you to confirm, then removes the project with its files, tasks and history for good. It cannot be undone.
 - **Live:** when the AI or a command changes a file, the tree and the open file update at once.
 - **Your edits are safe.** If the AI changes a file you are editing, you choose: keep yours or see the new one.
 - **Delete a folder:** hover a folder and press the bin. It removes everything inside, and it cannot be undone.

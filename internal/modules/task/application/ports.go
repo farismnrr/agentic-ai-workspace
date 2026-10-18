@@ -111,6 +111,8 @@ type TaskStore interface {
 	SetContext(ctx context.Context, id string, used, window int64) error
 	// Running lists tasks left queued, planning or working, for recovery after a restart.
 	Running(ctx context.Context) ([]domain.Task, error)
+	// DeleteProject removes every task a person has in one project, with their threads.
+	DeleteProject(ctx context.Context, userID, projectID string) error
 	// DeleteAll removes every task a person has, with its thread.
 	DeleteAll(ctx context.Context, userID string) error
 }

@@ -30,6 +30,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		api.Get("/:id", h.get)
 		api.Put("/:id", sameOrigin, h.update)
 		api.Delete("/:id", sameOrigin, h.archive)
+		api.Delete("/:id/forever", sameOrigin, h.remove)
 		api.Get("/:id/checks", h.checks)
 		api.Put("/:id/checks", sameOrigin, h.saveChecks)
 	}
@@ -105,6 +106,15 @@ func (h *Handler) update(c fiber.Ctx) error {
 
 func (h *Handler) archive(c fiber.Ctx) error {
 	if err := h.service.Archive(c.Context(), httpserver.UserID(c), c.Params("id")); err != nil {
+		return fail(c, err)
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// remove deletes a project for good, with its files and tasks. The page asks the person first.
+func (h *Handler) remove(c fiber.Ctx) error {
+	if err := h.service.Delete(c.Context(), httpserver.UserID(c), c.Params("id")); err != nil {
 		return fail(c, err)
 	}
 

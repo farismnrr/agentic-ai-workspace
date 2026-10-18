@@ -22,6 +22,7 @@ export const projectsCopy = {
     invalid_checks: 'That check is not valid. Use a lowercase name such as test, and a command with at most 600 seconds.',
   } as Record<string, string>,
   fallbackError: 'Something went wrong. Please try again in a moment.',
+  deleteBody: 'This permanently deletes the project with all its files, tasks and history. You cannot get it back.',
   archiveBody: 'It disappears from your lists. Its files and tasks are kept.',
   checks: {
     intro: 'Checks are commands the AI can run to prove its work, such as your tests. A check is what lets the app say "Proven to work".',

@@ -3,7 +3,7 @@
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import { projectsCopy } from '../content/projects-copy';
   import { describeProjectError } from '../logic/project-errors';
-  import { archiveProject, updateProject } from '../logic/projects-api';
+  import { archiveProject, deleteProject, updateProject } from '../logic/projects-api';
   import type { Project } from '../logic/task-types';
   import { refresh } from '../logic/workspace-store';
 
@@ -18,6 +18,7 @@
   let message = $state('');
   let failed = $state(false);
   let archiving = $state(false);
+  let deleting = $state(false);
 
   $effect(() => {
     if (loadedFor !== project.id) {
@@ -51,6 +52,18 @@
       message = describeProjectError(error);
     }
   }
+
+  async function remove(): Promise<void> {
+    deleting = false;
+    try {
+      await deleteProject(project.id);
+      await refresh();
+      navigate('/app/projects');
+    } catch (error) {
+      failed = true;
+      message = describeProjectError(error);
+    }
+  }
 </script>
 
 <form class="card flex max-w-xl flex-col gap-4 border border-[var(--brand-border)] bg-base-100 p-5" onsubmit={save}>
@@ -66,6 +79,7 @@
   <div class="flex items-center gap-3">
     <button class="btn btn-primary btn-sm" type="submit">Save changes</button>
     <button class="btn btn-outline btn-error btn-sm" type="button" onclick={() => (archiving = true)}>Archive project</button>
+    <button class="btn btn-error btn-sm" type="button" onclick={() => (deleting = true)}>Delete project</button>
     {#if message !== ''}<p class="text-sm {failed ? 'text-error' : 'text-[var(--brand-text-secondary)]'}" role="status">{message}</p>{/if}
   </div>
 </form>
@@ -78,4 +92,13 @@
   cancelLabel="Keep it"
   oncancel={() => (archiving = false)}
   onconfirm={archive}
+/>
+<ConfirmModal
+  open={deleting}
+  title="Delete {project.name} for good?"
+  body={projectsCopy.deleteBody}
+  confirmLabel="Yes, delete it"
+  cancelLabel="Keep it"
+  oncancel={() => (deleting = false)}
+  onconfirm={remove}
 />

@@ -136,6 +136,11 @@ func (s *Store) Archive(ctx context.Context, userID, id string, at time.Time) er
 		at.Unix(), userID, id)
 }
 
+// Delete removes one project for good, archived or not. Its tasks must be gone first.
+func (s *Store) Delete(ctx context.Context, userID, id string) error {
+	return s.exec(ctx, `DELETE FROM projects WHERE user_id = ? AND id = ?`, userID, id)
+}
+
 // DeleteAll removes a person's projects and returns their ids so folders can follow.
 func (s *Store) DeleteAll(ctx context.Context, userID string) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, `DELETE FROM projects WHERE user_id = ? RETURNING id`, userID)

@@ -54,6 +54,16 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 	return nil
 }
 
+// DeleteProject removes a person's tasks in one project; their events, messages and usage go with them.
+func (s *Store) DeleteProject(ctx context.Context, userID, projectID string) error {
+	const remove = `DELETE FROM tasks WHERE user_id = ? AND project_id = ?`
+	if _, err := s.db.ExecContext(ctx, remove, userID, projectID); err != nil {
+		return fmt.Errorf("delete project tasks: %w", err)
+	}
+
+	return nil
+}
+
 // DeleteAll removes a person's tasks; their events, messages and usage go with them.
 func (s *Store) DeleteAll(ctx context.Context, userID string) error {
 	if _, err := s.db.ExecContext(ctx, `DELETE FROM tasks WHERE user_id = ?`, userID); err != nil {
