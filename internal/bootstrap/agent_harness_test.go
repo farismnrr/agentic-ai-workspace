@@ -2,83 +2,11 @@ package bootstrap
 
 import (
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 )
-
-// gateway is a fake OpenAI-compatible model that answers with a fixed script.
-type gateway struct {
-	// hold, when set, makes the model wait for it to close before answering.
-	hold     chan struct{}
-	server   *httptest.Server
-	steps    []string
-	requests []map[string]any
-	mu       sync.Mutex
-}
-
-func newGateway(t *testing.T, steps ...string) *gateway {
-	t.Helper()
-
-	g := &gateway{steps: steps}
-	g.server = httptest.NewServer(http.HandlerFunc(g.serve))
-	t.Cleanup(g.server.Close)
-
-	return g
-}
-
-func (g *gateway) serve(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Authorization") != "Bearer k" {
-		http.Error(w, `{"error":{"message":"bad key"}}`, http.StatusUnauthorized)
-
-		return
-	}
-
-	if r.URL.Path == "/models" {
-		_, _ = w.Write([]byte(`{"data":[{"id":"fake-model"}]}`))
-
-		return
-	}
-
-	var body map[string]any
-	_ = json.NewDecoder(r.Body).Decode(&body)
-
-	g.mu.Lock()
-	g.requests = append(g.requests, body)
-	index := len(g.requests) - 1
-	g.mu.Unlock()
-
-	if index >= len(g.steps) {
-		http.Error(w, `{"error":{"message":"script ran out"}}`, http.StatusInternalServerError)
-
-		return
-	}
-
-	if g.hold != nil {
-		<-g.hold
-	}
-
-	if streaming, _ := body["stream"].(bool); streaming {
-		streamStep(w, g.steps[index])
-
-		return
-	}
-
-	_, _ = w.Write([]byte(g.steps[index]))
-}
-
-func (g *gateway) sent(index int) []any {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	messages, _ := g.requests[index]["messages"].([]any)
-
-	return messages
-}
 
 func toolCall(id, name string, args any) string {
 	encoded, _ := json.Marshal(args)
@@ -154,7 +82,8 @@ func rigOn(t *testing.T, env testEnv, steps ...string) agentRig {
 func (a agentRig) start(t *testing.T, prompt string) string {
 	t.Helper()
 
-	body := `{"projectId":"` + a.project + `","prompt":"` + prompt + `"}`
+	// A person's tasks always have a team; these tests are about the single agent, so they ask for none.
+	body := `{"projectId":"` + a.project + `","prompt":"` + prompt + `","team":false}`
 
 	created := do(t, a.env.app, "POST", "/api/tasks", body, jsonCookie(a.cookie))
 	if created.Status != 201 {

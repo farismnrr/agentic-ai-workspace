@@ -34,15 +34,16 @@ func (h *Handler) events(c fiber.Ctx) error {
 
 func (h *Handler) answer(c fiber.Ctx) error {
 	var body struct {
-		Allow  *bool  `json:"allow"`
-		Choice string `json:"choice"`
+		Allow   *bool      `json:"allow"`
+		Choice  string     `json:"choice"`
+		Answers [][]string `json:"answers"`
 	}
 	if err := c.Bind().JSON(&body); err != nil {
 		return badBody(c)
 	}
 
 	err := h.service.Answer(c.Context(), httpserver.UserID(c), c.Params("id"), c.Params("event"),
-		application.Answer{Allow: body.Allow, Choice: body.Choice})
+		application.Answer{Allow: body.Allow, Choice: body.Choice, Answers: body.Answers})
 
 	return h.done(c, err)
 }
@@ -77,4 +78,35 @@ func (h *Handler) usage(c fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"since": start, "models": out})
+}
+
+// shot sends one screenshot of a task. It is only an image, so a page may show it with an <img> tag.
+func (h *Handler) shot(c fiber.Ctx) error {
+	data, err := h.service.Shot(c.Context(), httpserver.UserID(c), c.Params("id"), c.Params("name"))
+	if err != nil {
+		return fail(c, err)
+	}
+
+	c.Set(fiber.HeaderContentType, "image/png")
+	c.Set(fiber.HeaderCacheControl, "private, max-age=31536000, immutable")
+	c.Set("X-Content-Type-Options", "nosniff")
+
+	return c.Send(data)
+}
+
+type diffPayload struct {
+	Path      string `json:"path"`
+	OldPath   string `json:"oldPath,omitempty"`
+	Status    string `json:"status"`
+	Before    string `json:"before"`
+	After     string `json:"after"`
+	Binary    bool   `json:"binary"`
+	Truncated bool   `json:"truncated"`
+}
+
+// changes lists the files the task changed with their text before and after, for the page to compare.
+func (h *Handler) changes(c fiber.Ctx) error {
+	diffs, err := h.service.Changes(c.Context(), httpserver.UserID(c), c.Params("id"))
+
+	return sendList(c, diffs, err, func(diff application.FileDiff) diffPayload { return diffPayload(diff) })
 }

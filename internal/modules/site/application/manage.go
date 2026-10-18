@@ -17,6 +17,20 @@ func (s *Service) Stop(ctx context.Context, userID, projectID string) error {
 	return s.stop(ctx, site)
 }
 
+// Restart starts a site again the way it was last started, for the person who asks. The address stays the same.
+func (s *Service) Restart(ctx context.Context, userID, projectID string) (domain.Site, error) {
+	site, err := s.owned(ctx, userID, projectID)
+	if err != nil {
+		return domain.Site{}, err
+	}
+
+	if site.Command == "" {
+		return domain.Site{}, domain.ErrNeverStarted
+	}
+
+	return s.Start(ctx, projectID, site.Command, site.Port)
+}
+
 // StopProject stops a project's site when the project is archived or deleted.
 func (s *Service) StopProject(ctx context.Context, projectID string) {
 	if site, err := s.deps.Store.ByProject(ctx, projectID); err == nil {

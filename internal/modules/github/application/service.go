@@ -29,6 +29,7 @@ type Service struct {
 	now      func() time.Time
 	states   map[string]pending
 	perUser  map[string]*sync.Mutex
+	created  map[string]map[string]time.Time
 	mu       sync.Mutex
 	enabled  bool
 }
@@ -39,7 +40,7 @@ func NewService(
 ) *Service {
 	return &Service{
 		store: store, provider: provider, sealer: sealer, secrets: secrets, now: now, enabled: enabled,
-		states: map[string]pending{}, perUser: map[string]*sync.Mutex{},
+		states: map[string]pending{}, perUser: map[string]*sync.Mutex{}, created: map[string]map[string]time.Time{},
 	}
 }
 

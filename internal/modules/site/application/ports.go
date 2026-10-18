@@ -39,6 +39,8 @@ type Runtime interface {
 	Alive(ctx context.Context, containerID string) bool
 	// Socket is the Unix socket the app is reachable through.
 	Socket(projectID string) string
+	// Capture runs the browser against the app and returns what it printed.
+	Capture(ctx context.Context, req CaptureRequest) (output string, err error)
 }
 
 // Projects says who owns a project.
@@ -59,6 +61,9 @@ type IDs interface {
 
 // Limits bound how many sites run at once.
 type Limits struct {
+	// PerUser caps the apps one person runs at once; zero means no cap, since a project has one app and the
+	// person decides how many projects to run.
 	PerUser int
-	Total   int
+	// Total caps the apps the server runs at once, to keep the machine alive; zero means no cap.
+	Total int
 }

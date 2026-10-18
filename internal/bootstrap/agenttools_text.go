@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"fmt"
 
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 )
 
@@ -84,6 +85,14 @@ func describe(tool string, in toolArgs) taskapp.Described {
 
 	if describer, ok := siteDescribers[tool]; ok {
 		return describer(in, target)
+	}
+
+	if tool == toolScreenshot {
+		return describeShot(in)
+	}
+
+	if codingdomain.IsWebTool(tool) {
+		return describeWeb(tool, in)
 	}
 
 	return said("Used "+tool, "May I use "+tool+"?", tool)

@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
+	agentteamapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/agentteam/application"
 	mydatahttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/mydata/adapter/http"
 	mydataapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/mydata/application"
 	prefapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/preference/application"
@@ -29,7 +30,7 @@ func newExport(
 	folders *folder.Folders, auth fiber.Handler,
 ) httpserver.Mount {
 	exporter := mydataapp.NewExporter(
-		settingsExport{account: account, prefs: models.prefs, providers: models.providers},
+		settingsExport{account: account, prefs: models.prefs, providers: models.providers, team: models.team},
 		projectsExport{projects: projects, tasks: tasks, folders: folders},
 		usageExport{tasks: tasks},
 	)
@@ -58,6 +59,7 @@ type settingsExport struct {
 	account   *accountapp.Service
 	prefs     *prefapp.Service
 	providers *providerapp.Service
+	team      *agentteamapp.Service
 }
 
 func (s settingsExport) Write(ctx context.Context, userID string, out mydataapp.Archive) error {
@@ -76,9 +78,14 @@ func (s settingsExport) Write(ctx context.Context, userID string, out mydataapp.
 		return fmt.Errorf("providers: %w", err)
 	}
 
+	team, err := s.team.Get(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("agent team: %w", err)
+	}
+
 	return writeJSON(out, "account.json", map[string]any{
 		"name": user.Name, "email": user.Email, "createdAt": user.CreatedAt,
-		"preferences": prefs, "providers": providers,
+		"preferences": prefs, "providers": providers, "agentTeam": team,
 	})
 }
 

@@ -28,14 +28,15 @@ const (
 
 // Site errors.
 var (
-	ErrNotFound    = errors.New("site not found")
-	ErrBadPort     = errors.New("use a port between 1024 and 65535")
-	ErrBadCommand  = errors.New("give the command that starts the app")
-	ErrBadChoice   = errors.New("visibility must be private or public")
-	ErrTooMany     = errors.New("you already have the most sites running; stop one first")
-	ErrServerBusy  = errors.New("the server is running as many sites as it can; try again later")
-	ErrNotStarted  = errors.New("the app did not start answering in time")
-	ErrNoSandboxes = errors.New("sites need Docker, which the server cannot use yet")
+	ErrNotFound     = errors.New("site not found")
+	ErrBadPort      = errors.New("use a port between 1024 and 65535")
+	ErrBadCommand   = errors.New("give the command that starts the app")
+	ErrNeverStarted = errors.New("this app has not been started before; ask the AI to start it once")
+	ErrBadChoice    = errors.New("visibility must be private or public")
+	ErrTooMany      = errors.New("you already have the most apps running; stop one on the Sites page first")
+	ErrServerBusy   = errors.New("the server is running as many apps as it can; stop one on the Sites page or try later")
+	ErrNotStarted   = errors.New("the app did not start answering in time")
+	ErrNoSandboxes  = errors.New("sites need Docker, which the server cannot use yet")
 )
 
 // Port limits: unprivileged ports only.
@@ -44,13 +45,15 @@ const (
 	MaxPort = 65535
 )
 
-// Site is one web app of a project. Token is a random UUID that is part of its address and
-// changes on every start, so an old link stops working.
+// Site is one web app of a project. Token is a random UUID that is part of its address. It is made the first
+// time the project starts an app and kept after that, so the address does not change when the app is stopped and
+// started again. Command is how the app was last started.
 type Site struct {
 	StartedAt   time.Time
 	ProjectID   string
 	UserID      string
 	Slug        string
+	Command     string
 	Token       string
 	ContainerID string
 	Visibility  Visibility

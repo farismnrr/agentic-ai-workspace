@@ -7,7 +7,7 @@ import (
 )
 
 func (r *Runner) askUser(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
-	args, ok := parseAsk(call.Input)
+	questions, ok := parseAsk(call.Input)
 	if !ok {
 		r.result(ctx, task, call.ID, "ask_user needs a question.", true)
 
@@ -20,9 +20,16 @@ func (r *Runner) askUser(ctx context.Context, task domain.Task, call Call) (outc
 	}
 
 	if !found {
+		if r.askedEnough(ctx, task, len(questions)) {
+			r.result(ctx, task, call.ID, "You have asked enough questions. Take a sensible default for the rest, "+
+				"list it under assumptions, and finish.", true)
+
+			return outcome{}, false
+		}
+
 		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-			Kind: domain.EventQuestion, Text: args.Question, Options: args.Options, ToolUseID: call.ID,
-			Time: r.deps.Now(),
+			Kind: domain.EventQuestion, Text: questions[0].Text, Options: optionLabels(questions[0]),
+			Questions: questions, ToolUseID: call.ID, Time: r.deps.Now(),
 		})
 		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusNeedsInput, r.deps.Now())
 
@@ -36,6 +43,28 @@ func (r *Runner) askUser(ctx context.Context, task domain.Task, call Call) (outc
 	r.result(ctx, task, call.ID, "The person answered: "+event.Answered, false)
 
 	return outcome{}, false
+}
+
+// maxTeammateQuestions is how many questions one teammate may put to the person on a task: they are there to
+// settle what blocks the work, not to interview.
+const maxTeammateQuestions = 6
+
+// askedEnough reports whether a form of this many questions would take the teammate past its limit.
+func (r *Runner) askedEnough(ctx context.Context, task domain.Task, adding int) bool {
+	if r.role == nil {
+		return false
+	}
+
+	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	asked := 0
+
+	for _, event := range events {
+		if event.Kind == domain.EventQuestion && event.Agent == r.role.Name {
+			asked += max(len(event.Questions), 1)
+		}
+	}
+
+	return asked+adding > maxTeammateQuestions
 }
 
 func (r *Runner) updatePlan(ctx context.Context, task domain.Task, call Call) {

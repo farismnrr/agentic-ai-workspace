@@ -70,8 +70,8 @@
   });
 </script>
 
-<div bind:this={scroller} {onscroll} class="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6" role="log" aria-label="Conversation">
-  <ol bind:this={content} class="mx-auto flex max-w-3xl flex-col gap-5">
+<div bind:this={scroller} {onscroll} class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-6" role="log" aria-label="Conversation">
+  <ol bind:this={content} class="mx-auto flex max-w-3xl flex-col gap-5 wrap-anywhere">
     {#if hidden > 0}
       <li class="text-center text-sm text-[var(--brand-text-secondary)]"><button class="link link-hover" type="button" onclick={() => void showEarlier()}>Show {Math.min(hidden, pageSize)} earlier messages</button></li>
     {/if}
@@ -80,7 +80,7 @@
         {#if block.kind === 'actions'}
           <div class="ml-9"><ActionGroup items={block.items} onundo={actions.undo} /></div>
         {:else}
-          <EventItem event={block.event} {actions} proven={task.proof?.proven ?? false} {onretry} {onproof} />
+          <EventItem event={block.event} taskId={task.id} {actions} proven={task.proof?.proven ?? false} {onretry} {onproof} />
         {/if}
       </li>
     {/each}

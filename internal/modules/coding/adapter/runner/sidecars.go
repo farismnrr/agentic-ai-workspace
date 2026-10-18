@@ -16,6 +16,8 @@ const (
 	// DefaultCacheBytes is how large one workspace's package cache may grow before it is emptied.
 	DefaultCacheBytes = 5 << 30
 	proxyAddress      = "http://127.0.0.1:3128"
+	// loopback never goes through the registry-only proxy, so a command can reach a server it started itself.
+	loopback = "127.0.0.1,localhost,::1"
 )
 
 // Extras are the optional folders a command gets next to its workspace: a package
@@ -99,13 +101,14 @@ func environment(spec sandbox.Spec) []string {
 	if spec.Cache != "" {
 		c := sandbox.Cache
 		env = append(env, "GOMODCACHE="+c+"/go/mod", "GOCACHE="+c+"/go/build", "GOPATH="+c+"/go",
-			"CARGO_HOME="+c+"/cargo", "npm_config_cache="+c+"/npm", "UV_CACHE_DIR="+c+"/uv",
+			"CARGO_HOME="+c+"/cargo", "npm_config_cache="+c+"/npm", "BUN_INSTALL_CACHE_DIR="+c+"/bun", "UV_CACHE_DIR="+c+"/uv",
 			"PIP_CACHE_DIR="+c+"/pip", "MAVEN_OPTS=-Dmaven.repo.local="+c+"/m2")
 	}
 
 	if spec.Egress != "" {
 		env = append(env, "HTTPS_PROXY="+proxyAddress, "HTTP_PROXY="+proxyAddress,
 			"https_proxy="+proxyAddress, "http_proxy="+proxyAddress,
+			"NO_PROXY="+loopback, "no_proxy="+loopback,
 			"JAVA_TOOL_OPTIONS=-Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=3128")
 	}
 

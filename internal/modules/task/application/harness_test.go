@@ -104,6 +104,11 @@ type rig struct {
 }
 
 func newRig(model application.Model, steps ...step) *rig {
+	return newRigWith(model, nil, steps...)
+}
+
+// newRigWith is newRig, with a chance to change the runner's collaborators and limits first.
+func newRigWith(model application.Model, tweak func(*application.Deps, *application.Limits), steps ...step) *rig {
 	mem := newMemory()
 	script := &scriptModel{steps: steps}
 
@@ -124,6 +129,10 @@ func newRig(model application.Model, steps ...step) *rig {
 		Retries: 2, MaxResult: 24000,
 	}
 	disp := &fakeDispatcher{}
+
+	if tweak != nil {
+		tweak(&deps, &limits)
+	}
 
 	return &rig{
 		mem: mem, models: models, model: script, tools: tools, gate: gate, runner: application.NewRunner(deps, limits),

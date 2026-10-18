@@ -17,7 +17,7 @@ const (
 const (
 	maxPlanSteps = 12
 	maxText      = 600
-	maxOptions   = 4
+	maxOptions   = 8
 	maxChecks    = 8
 )
 
@@ -32,10 +32,12 @@ func agentTools() []domain.ToolDef {
 				`"required":["steps"]}`),
 		},
 		{
-			Name:        toolAskUser,
-			Description: "Ask the person a question and wait for the answer. Offer 2 to 4 short options when possible.",
-			Schema: json.RawMessage(`{"type":"object","properties":{"question":{"type":"string"},` +
-				`"options":{"type":"array","items":{"type":"string"}}},"required":["question"]}`),
+			Name: toolAskUser,
+			Description: "Ask the person a form of 1 to 4 questions and wait for the answers. Each question is single " +
+				"(pick one), multi (pick several) or text (typed), with 2 to 4 options that have a short label and a " +
+				"description; the person can always type their own answer too. An option may carry a preview, the name of a " +
+				"picture the form shows with it (up to 8 options then); use it only for names you were given.",
+			Schema: json.RawMessage(askSchema),
 		},
 		{
 			Name:        toolFinish,
@@ -77,29 +79,6 @@ func parsePlan(input json.RawMessage) ([]domain.PlanStep, bool) {
 	return steps, true
 }
 
-type askArgs struct {
-	Question string   `json:"question"`
-	Options  []string `json:"options"`
-}
-
-func parseAsk(input json.RawMessage) (askArgs, bool) {
-	var args askArgs
-	if err := json.Unmarshal(input, &args); err != nil || args.Question == "" {
-		return askArgs{}, false
-	}
-
-	args.Question = clip(args.Question)
-	if len(args.Options) > maxOptions {
-		args.Options = args.Options[:maxOptions]
-	}
-
-	for i := range args.Options {
-		args.Options[i] = clip(args.Options[i])
-	}
-
-	return args, true
-}
-
 type finishArgs struct {
 	Summary string   `json:"summary"`
 	Checks  []string `json:"checks"`
@@ -120,10 +99,14 @@ func parseFinish(input json.RawMessage) finishArgs {
 }
 
 func clip(text string) string {
+	return clipTo(text, maxText)
+}
+
+func clipTo(text string, limit int) string {
 	runes := []rune(text)
-	if len(runes) <= maxText {
+	if len(runes) <= limit {
 		return text
 	}
 
-	return string(runes[:maxText]) + "…"
+	return string(runes[:limit]) + "…"
 }

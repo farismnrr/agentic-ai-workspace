@@ -20,6 +20,8 @@ type Store interface {
 	FindByID(ctx context.Context, id string) (domain.Project, error)
 	Update(ctx context.Context, userID, id, name, description string) error
 	Archive(ctx context.Context, userID, id string, at time.Time) error
+	// Delete removes one project of the person for good; domain.ErrNotFound when it is not theirs.
+	Delete(ctx context.Context, userID, id string) error
 	// DeleteAll removes every project a person has, archived ones too, and returns their ids.
 	DeleteAll(ctx context.Context, userID string) ([]string, error)
 }
@@ -59,6 +61,8 @@ type Service struct {
 	now     func() time.Time
 	// onArchive runs after a project is archived, so what runs for it can be stopped.
 	onArchive func(ctx context.Context, id string)
+	// beforeDelete runs before a project is deleted, to stop and remove what depends on it; a failure stops the delete.
+	beforeDelete []func(ctx context.Context, userID, id string) error
 }
 
 // NewService wires the use cases.

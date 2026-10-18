@@ -103,8 +103,29 @@ func (m *memory) SavePlan(_ context.Context, id string, plan []domain.PlanStep, 
 	return m.update(id, func(t *domain.Task) { t.Plan = plan })
 }
 
+func (m *memory) SaveResearch(_ context.Context, id, research string, _ time.Time) error {
+	return m.update(id, func(t *domain.Task) { t.Research = research })
+}
+
+func (m *memory) SavePRD(_ context.Context, id, prd string, _ time.Time) error {
+	return m.update(id, func(t *domain.Task) { t.PRD = prd })
+}
+
 func (m *memory) Finish(_ context.Context, id, summary string, proof *domain.Proof, _ time.Time) error {
 	return m.update(id, func(t *domain.Task) { t.Status, t.Summary, t.Proof = domain.StatusReview, summary, proof })
+}
+
+func (m *memory) DeleteProject(_ context.Context, userID, projectID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for id, task := range m.tasks {
+		if task.UserID == userID && task.ProjectID == projectID {
+			delete(m.tasks, id)
+		}
+	}
+
+	return nil
 }
 
 func (m *memory) DeleteAll(_ context.Context, userID string) error {

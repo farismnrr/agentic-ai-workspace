@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	taskhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/http"
+	taskshots "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/shots"
 	tasksqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/sqlite"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
@@ -32,6 +34,8 @@ func newAgent(
 		Projects: agentProjects{projects: projects},
 		Tools:    tools, Gate: gate, IDs: opaque.Generator{}, Now: time.Now, Activity: steps,
 		Computer: computer{engine: tools.engine, github: tools.github},
+		Team:     agentTeam{team: models.team}, Scopes: store, Delegations: store,
+		Shots: taskshots.New(filepath.Join(cfg.DataDir, "shots")), Diffs: tools,
 	}, hub)
 
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())

@@ -10,8 +10,9 @@ import (
 const toolOffText = "This tool is turned off in Settings, Spaces & tools. " +
 	"Try another way, or ask the person to turn it on."
 
-// offered lists the project tools the person switched on, plus the agent's own loop tools.
-func (r *Runner) offered(ctx context.Context, userID string) ([]domain.ToolDef, error) {
+// offered lists the project tools the person switched on, plus the agent's own loop tools: the
+// orchestrator also gets delegate, a teammate only report.
+func (r *Runner) offered(ctx context.Context, userID string, state *runState) ([]domain.ToolDef, error) {
 	enabled, err := r.deps.Gate.Enabled(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("check tool switches: %w", err)
@@ -20,9 +21,16 @@ func (r *Runner) offered(ctx context.Context, userID string) ([]domain.ToolDef, 
 	defs := []domain.ToolDef{}
 
 	for _, def := range r.deps.Tools.Definitions() {
-		if enabled[def.Name] {
+		if enabled[def.Name] && (!r.leads || r.deps.Tools.Risk(def.Name) == domain.RiskNone) {
 			defs = append(defs, def)
 		}
+	}
+
+	switch {
+	case r.role != nil:
+		return append(append(defs, reportTool()), r.teammateTools()...), nil
+	case state.roster != nil:
+		return append(append(defs, agentTools()...), delegateTool(state.roster.Members)), nil
 	}
 
 	return append(defs, agentTools()...), nil
@@ -42,4 +50,22 @@ func (r *Runner) skipsApprovals(ctx context.Context, userID string) bool {
 	skip, err := r.deps.Gate.SkipApprovals(ctx, userID)
 
 	return err == nil && skip
+}
+
+// teammateTools are the loop tools a teammate has besides report: asking, and picking a playbook.
+func (r *Runner) teammateTools() []domain.ToolDef {
+	extra := []domain.ToolDef{}
+	if r.canAsk() {
+		extra = append(extra, askTool())
+	}
+
+	if r.hasSkillList() {
+		extra = append(extra, useSkillTool())
+	}
+
+	if r.hasLibrary() {
+		extra = append(extra, readReferenceTool())
+	}
+
+	return extra
 }

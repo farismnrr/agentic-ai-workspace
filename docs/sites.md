@@ -6,11 +6,14 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 
 - Ask the AI to build and run a web app. It asks first, then shows an Open link.
 - The address looks like `/run/my-shop/<uuid>/`, on the same domain and port as the app. You don't need any DNS setup.
-- Each project has one site. Starting it again gives it a new address, and old links stop working.
+- Each project has one site, and its address never changes, however often you stop and start it.
+- Press Start on the Sites page to run a stopped app again. You do not need the AI.
+- An app started before this button existed needs the AI to start it once.
 - A site is private by default: only you can open it, while signed in. Anyone else gets "This page is private" (403).
 - You can make a site public so anyone with the link can open it. Only you can do this, from the Sites page. The AI can't.
 - Sites run until you press Stop or the server restarts. There is no idle timeout.
-- Limits: `SITE_MAX_PER_USER` sites per person and `SITE_MAX_TOTAL` per server (defaults 2 and 6).
+- A project runs one app. Ten projects can run ten apps, so there is no limit per person by default.
+- `SITE_MAX_TOTAL` caps the apps one server runs at once (default 20); `SITE_MAX_PER_USER` can cap a person (default none).
 
 ## What a site can do
 
@@ -18,6 +21,15 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - It must listen on `127.0.0.1` at the port the AI chose. Use a normal server, not a hot-reload dev server. WebSockets aren't supported yet.
 - The path prefix is removed before requests reach the app. Use relative links (`./style.css`); `BASE_PATH` holds the prefix.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
+- Because of that, a login in your app cannot stay signed in inside the preview. The app itself is fine.
+- The AI tests accounts through the app's API instead, and tells you so.
+
+## Screenshots
+
+- The AI can take a screenshot of your running app, on a desktop or a phone screen, to check how it looks. It shows in the thread.
+- It uses a headless browser in the sandbox. That browser has no internet, so fonts and images from other websites don't load in the screenshot, but they do for you.
+- It reaches only your project's own app.
+- Screenshots are kept with the task and deleted with it.
 
 ## How sites are kept apart from your account
 
@@ -30,7 +42,7 @@ A site shares the domain with the main app. These protections are always on:
 3. The proxy never forwards your session cookie or `Authorization` header.
    - It also drops `Set-Cookie`, `Clear-Site-Data`, `Service-Worker-Allowed` and similar headers from the app's responses.
 4. The proxy talks only to the app's Unix socket. The container has no network, so the address can't point anywhere else.
-5. Unknown, stopped or replaced addresses return 404. A private site returns 403 to anyone without your login or a valid ticket.
+5. Unknown or stopped addresses return 404. A private site returns 403 to anyone without your login or a valid ticket.
 
 ### How private sites work
 

@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* The font comes from DESIGN.md. */
+@theme {
+  --font-sans: 'Public Sans', system-ui, sans-serif;
+}

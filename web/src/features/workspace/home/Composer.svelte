@@ -1,17 +1,16 @@
 <script lang="ts">
   import { navigate } from '../../../app/router';
   import ComposerBox from '../components/ComposerBox.svelte';
-  import ModelPicker from './ModelPicker.svelte';
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
   import { describeTaskError } from '../logic/task-errors';
+  import { uploadAssets, withAttachments } from '../logic/attachments';
   import { createTask } from '../logic/tasks-api';
   import { chosenProject, projects, refresh } from '../logic/workspace-store';
 
   let text = $state('');
   let project = $state('');
-  let model = $state('');
-  let effort = $state('');
+  let files = $state<File[]>([]);
   let busy = $state(false);
   let error = $state('');
 
@@ -27,9 +26,11 @@
     busy = true;
     error = '';
     try {
-      const [providerId = '', name = ''] = model.split('::');
-      const task = await createTask({ projectId: chosen, prompt, effort, ...(model === '' ? {} : { providerId, model: name }) });
+      // The model and effort come from Settings: the lead's own, else the person's default.
+      const saved = await uploadAssets(chosen, files);
+      const task = await createTask({ projectId: chosen, prompt: withAttachments(prompt, saved) });
       text = '';
+      files = [];
       await refresh();
       navigate(`/app/projects/${task.projectId}/tasks/${task.id}`);
     } catch (failure) {
@@ -50,13 +51,13 @@
     placeholder="Ask a question or tell me what you need…"
     bind:text
     bind:project
+    bind:files
+    attachable
     projects={$projects}
     {busy}
     {error}
     onsend={send}
-  >
-    {#snippet tools()}<ModelPicker bind:model bind:effort disabled={busy} />{/snippet}
-  </ComposerBox>
+  />
   <ul class="mt-3 flex flex-wrap gap-2">
     {#each suggestions as suggestion (suggestion)}
       <li><button class="btn btn-sm rounded-full border-[var(--brand-border)] bg-base-100 font-normal" type="button" onclick={() => (text = suggestion)}>{suggestion}</button></li>

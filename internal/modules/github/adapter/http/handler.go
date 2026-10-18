@@ -39,6 +39,8 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler, limits Limits) httpserve
 		app.Get("/api/integrations/github", auth, h.status)
 		app.Post("/api/integrations/github/start", auth, sameOrigin, limits.Start, h.start)
 		app.Get("/api/integrations/github/callback", auth, limits.Callback, h.callback)
+		app.Get("/api/integrations/github/repos", auth, h.repos)
+		app.Post("/api/integrations/github/repos", auth, sameOrigin, h.create)
 		app.Delete("/api/integrations/github", auth, sameOrigin, h.disconnect)
 	}
 }

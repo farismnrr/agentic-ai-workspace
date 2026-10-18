@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type SettingsTab = 'models' | 'persona' | 'spaces' | 'connected' | 'integrations' | 'activity' | 'usage' | 'notifications' | 'account';
+export type SettingsTab = 'models' | 'persona' | 'team' | 'spaces' | 'connected' | 'integrations' | 'activity' | 'usage' | 'notifications' | 'account';
 
 export type Route =
   | { name: 'landing' }
@@ -17,7 +17,7 @@ export type Route =
   | { name: 'task'; projectId: string; taskId: string }
   | { name: 'settings'; tab: SettingsTab };
 
-const settingsTabs: readonly string[] = ['models', 'persona', 'spaces', 'connected', 'integrations', 'activity', 'usage', 'notifications', 'account'];
+const settingsTabs: readonly string[] = ['models', 'persona', 'team', 'spaces', 'connected', 'integrations', 'activity', 'usage', 'notifications', 'account'];
 
 const isSettingsTab = (value: string | undefined): value is SettingsTab => value !== undefined && settingsTabs.includes(value);
 
@@ -70,10 +70,12 @@ export const route = writable<Route>(resolve(window.location.pathname));
 
 /**
  * Goes to a same-site path after sign-in. App routes stay inside the page; anything else, such as an
- * app under /run, is a real page load because the server (not the SPA) answers it.
+ * app under /run, is a real page load because the server (not the SPA) answers it. `replace` leaves no
+ * history entry behind, so Back does not return to the page that was left.
  */
-export function goTo(path: string): void {
-  if (matchRoute(pathOf(path)) !== undefined) navigate(path);
+export function goTo(path: string, replace = false): void {
+  if (matchRoute(pathOf(path)) !== undefined) navigate(path, replace);
+  else if (replace) window.location.replace(path);
   else window.location.assign(path);
 }
 

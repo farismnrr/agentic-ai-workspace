@@ -2,14 +2,16 @@
   import { onDestroy, untrack } from 'svelte';
   import type { Readable } from 'svelte/store';
   import ComposerBox from '../components/ComposerBox.svelte';
+  import { uploadAssets, withAttachments } from '../logic/attachments';
   import { findProject } from '../logic/derive';
+  import { describeTaskError } from '../logic/task-errors';
   import { createController } from '../logic/task-actions';
   import type { Task, TaskEvent } from '../logic/task-types';
   import { createThread } from '../logic/thread';
   import { projects } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import WorkPanel from './panel/WorkPanel.svelte';
-  import { panelTabs, type PanelTab } from './panel/tabs';
+  import { panelTabsFor, type PanelTab } from './panel/tabs';
   import ReviewBar from './ReviewBar.svelte';
   import TaskHeader from './TaskHeader.svelte';
   import TaskThread from './thread/TaskThread.svelte';
@@ -33,17 +35,28 @@
 
   const project = $derived(findProject($projects, projectId));
   const crumbs = $derived([{ label: 'Projects', href: '/app/projects' }, { label: project?.name ?? 'Project', href: `/app/projects/${projectId}` }]);
-  const views: { id: View; label: string }[] = [{ id: 'chat', label: 'Chat' }, ...panelTabs];
+  const views = $derived<{ id: View; label: string }[]>([{ id: 'chat', label: 'Chat' }, ...panelTabsFor($task?.team ?? false)]);
   const canWrite = $derived($task?.status === 'review' || $task?.status === 'done' || $task?.status === 'failed');
   let view = $state<View>('chat');
   let follow = $state('');
+  let files = $state<File[]>([]);
+  let uploadError = $state('');
   const panelTab = $derived<PanelTab>(view === 'chat' ? 'plan' : view);
 
   const controller = createController(id, thread);
   const error: Readable<string> = controller.error;
 
   async function sendFollowUp(text: string): Promise<void> {
-    if (await controller.follow(text)) follow = '';
+    uploadError = '';
+    try {
+      const saved = await uploadAssets(projectId, files);
+      if (await controller.follow(withAttachments(text, saved))) {
+        follow = '';
+        files = [];
+      }
+    } catch (failure) {
+      uploadError = describeTaskError(failure);
+    }
   }
 
   const focusFollowUp = (): void => document.getElementById('follow-up')?.focus();
@@ -81,7 +94,9 @@
               placeholder={canWrite ? 'Ask for a change or add details…' : 'You can write again once the AI has finished or stopped.'}
               bind:text={follow}
               disabled={!canWrite}
-              error={$error}
+              error={uploadError || $error}
+              bind:files
+              attachable
               onsend={(text: string) => void sendFollowUp(text)}
             />
           </div>

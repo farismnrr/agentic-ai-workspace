@@ -22,11 +22,11 @@ func TestWorkReachesReviewWithPlanAndVerifiedProof(t *testing.T) {
 	}}
 	r := newRig(nil,
 		call("c1", "update_plan", plan),
-		call("c2", "edit_file", map[string]string{"path": "a.html"}),
+		call("c2", "edit_file", map[string]string{"path": "a.txt"}),
 		call("c3", "run_task", map[string]string{"name": "test"}),
 		finish("Fixed the button", "Looked at the page"),
 	)
-	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.html"}, Undo: []byte("u")}
+	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"a.txt"}, Undo: []byte("u")}
 	r.tools.results["run_task"] = application.ToolResult{Output: "pass", Run: &domain.RunInfo{Name: "test"}}
 
 	task := r.start(t, "Fix the sign-in button")

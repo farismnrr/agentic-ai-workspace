@@ -49,8 +49,9 @@ The first start downloads two images, so it can take a few minutes. The `sandbox
 | --- | --- | --- |
 | `compose.latest.yaml` | `latest`, from `main` | Stable |
 | `compose.dev.yaml` | `dev`, from `dev` | Newest, less tested |
+| `compose.prod.yaml` | `sha-<commit>`, from the Full workflow | Masih Awam production (port 5004) |
 
-Run only one of them at a time, because they share a port and a data volume. You can pin an exact build with `sha-<commit>`.
+Run only one of `latest` and `dev` at a time, because they share a port and a data volume. `compose.prod.yaml` has its own port, volume, and project name. You can pin an exact build with `sha-<commit>`.
 
 ### B. Build the image
 
@@ -165,7 +166,7 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check. | 2048 / 1 |
 | `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it. Leave it empty when you run the binary directly. | set by compose |
 
-The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. `make sandbox-image` builds it locally.
+The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. It also has Bun, the runtime for apps the AI builds, and picture tools: libvips, ImageMagick, `cwebp`, `avifenc` and background removal (`removebg`, models included, works offline). `make sandbox-image` builds it locally.
 
 ### Capacity
 
@@ -173,7 +174,21 @@ The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash an
 | --- | --- | --- |
 | `MAX_SANDBOXES` | Checks running at once. Extra ones wait 30 seconds, then get "busy". | 4 |
 | `AGENT_WORKERS` | Tasks the AI runs at once (one per project). | 2 |
-| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person and per server. | 2 / 6 |
+| `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person and per server. 0 means no limit. | 0 / 20 |
+
+### Web lookup
+
+The Researcher and Media roles look things up on the web from the app itself, not from the sandbox.
+
+| Variable | What it does | Default |
+| --- | --- | --- |
+| `SEARXNG_URL` | Address of your own [SearXNG](https://docs.searxng.org/) server. Empty turns web search off. | empty |
+
+- Pictures come from Openverse and Wikimedia Commons. They need no key and no setting. Only pictures under a licence that allows edited commercial use are offered.
+- Run SearXNG yourself, outside this compose file. In its `settings.yml`, add `json` to `search.formats`.
+- Check it with `curl "$SEARXNG_URL/search?q=test&format=json"`. A `403` means JSON is not enabled.
+- Keep SearXNG private. Its limiter may block the app when many searches arrive; relax it for the app's address.
+- The app refuses internal addresses on every web request, so a page cannot point it at your network. Your own `SEARXNG_URL` is the one address it is asked to reach.
 
 ### Other
 
@@ -215,3 +230,20 @@ Access to the Docker socket is access to the whole machine. To limit the risk:
 
 - **What each workflow does:** see [system-design.md](./system-design.md#quality-and-release).
 - **Jenkins and hotfix deploys:** see [devops.md](./devops.md).
+
+## Masih Awam production
+
+The Full workflow deploys production by itself. After it publishes the image, the `deploy` job runs on the on-premise runner.
+
+| Part | Detail |
+| --- | --- |
+| File | `compose.prod.yaml`, project `masihawam` |
+| App | The exact `sha-<commit>` image, on port 5004 |
+| Tunnel | A `cloudflared` container that publishes the app |
+| Restart | `always` for both containers |
+| Data | The named volume `masihawam-data` |
+| Settings | `~/masihawam/.env` on the runner host, never committed |
+
+The settings file holds `PUBLIC_URL` and `TUNNEL_TOKEN`. In Cloudflare, route the public hostname to `http://localhost:5004`.
+
+The job checks `/api/health` after the deploy and fails the run if the app does not answer. The runner is a user service, `actions.runner.farismnrr-agentic-ai-workspace.arch-masihawam`, with the label `masihawam-prod`.

@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
+	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spacesqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/sqlite"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
@@ -54,7 +56,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	tools, err := newAgentTools(folders, cfg.DataDir, cfg.PublicURL, engine)
+	tools, err := newToolbox(folders, cfg, engine)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -75,7 +77,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	eraseOnDelete(account, sites.StopUser, tasks.DeleteAll, projects.DeleteAll)
+	cleanUpOnDelete(account, projects, sites, tasks)
 
 	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, registry, log, permissions, oauth, sess, sameOrigin)
 
@@ -92,6 +94,19 @@ func newActivityLog(store spaceapp.ActivityStore, tools *agentTools) *spaceapp.A
 	undoers := map[string]spaceapp.Undoer{"coding": undoer{tools: tools}}
 
 	return spaceapp.NewActivityLog(store, opaque.Generator{}, undoers, time.Now)
+}
+
+// cleanUpOnDelete wires what is removed with an account, and what goes before a project when it is deleted.
+func cleanUpOnDelete(
+	account *accountapp.Service, projects *projectapp.Service, sites *siteapp.Service, tasks *taskapp.Service,
+) {
+	eraseOnDelete(account, sites.StopUser, tasks.DeleteAll, projects.DeleteAll)
+
+	projects.BeforeDelete(func(ctx context.Context, userID, id string) error {
+		sites.StopProject(ctx, id)
+
+		return tasks.DeleteProject(ctx, userID, id)
+	})
 }
 
 // eraseOnDelete has the account remove each feature's data when a person deletes their account.

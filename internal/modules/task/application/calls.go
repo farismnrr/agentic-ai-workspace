@@ -8,9 +8,11 @@ import (
 
 // process works through the tool calls that still need a result, in order. It
 // stops at the first call that has to wait for the person, or that ends the task.
-func (r *Runner) process(ctx context.Context, task domain.Task, pending []Call) (outcome, bool) {
+func (r *Runner) process(
+	ctx context.Context, task domain.Task, state *runState, pending []Call,
+) (outcome, bool) {
 	for index, call := range pending {
-		result, done := r.handle(ctx, task, call)
+		result, done := r.handle(ctx, task, state, call)
 		if !done {
 			continue
 		}
@@ -25,7 +27,13 @@ func (r *Runner) process(ctx context.Context, task domain.Task, pending []Call) 
 	return outcome{}, false
 }
 
-func (r *Runner) handle(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
+func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
+	if why := r.refusal(call.Name); why != "" {
+		r.result(ctx, task, call.ID, why, true)
+
+		return outcome{}, false
+	}
+
 	switch call.Name {
 	case toolUpdatePlan:
 		r.updatePlan(ctx, task, call)
@@ -34,7 +42,23 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, call Call) (outco
 	case toolAskUser:
 		return r.askUser(ctx, task, call)
 	case toolFinish:
-		return r.finish(ctx, task, call), true
+		return r.tryFinish(ctx, task, state, call)
+	case toolDelegate:
+		return r.delegate(ctx, task, state, call)
+	case toolReport:
+		if r.lookNotTaken(ctx, task, state, call) {
+			return outcome{}, false
+		}
+
+		return r.reportBack(ctx, task, call)
+	case toolUseSkill:
+		r.useSkill(ctx, task, call)
+
+		return outcome{}, false
+	case toolReadReference:
+		r.readReference(ctx, task, call)
+
+		return outcome{}, false
 	}
 
 	return r.tool(ctx, task, call)
@@ -44,8 +68,20 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, call Call) (outco
 func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
 
+	if why := r.securityHold(ctx, task, call); why != "" {
+		r.result(ctx, task, call.ID, why, true)
+
+		return outcome{}, false
+	}
+
 	if blocked, out, done := r.checkTool(ctx, task, call, described); blocked {
 		return out, done
+	}
+
+	// A small task has no plan to move it out of "planning", so the first step that changes or runs
+	// something does.
+	if len(task.Plan) == 0 && r.deps.Tools.Risk(call.Name) != domain.RiskNone {
+		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
 	}
 
 	r.report(ctx, task, call, described, r.deps.Tools.Execute(ctx, task.ProjectID, call))
@@ -85,44 +121,6 @@ func (r *Runner) checkTool(
 	return false, outcome{}, false
 }
 
-// report puts what a tool did into the transcript and the thread.
-func (r *Runner) report(ctx context.Context, task domain.Task, call Call, described Described, result ToolResult) {
-	r.result(ctx, task, call.ID, result.Output, result.IsError)
-
-	event := domain.Event{
-		Text: described.Text, Technical: described.Technical, Files: result.Files, Undo: result.Undo, Run: result.Run,
-	}
-	if result.Note != "" {
-		event.Technical += " → " + result.Note
-	}
-
-	if result.IsError {
-		event.Text = "Tried to, but it did not work: " + lowerFirst(described.Text)
-		event.Technical = described.Technical + " → " + truncate(result.Output, maxModelError)
-	}
-
-	r.action(ctx, task, event)
-	r.logStep(ctx, task, call, event, result.IsError)
-
-	if result.Link != "" && !result.IsError {
-		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-			Kind: domain.EventSite, Text: "Your app is running", URL: result.Link, Time: r.deps.Now(),
-		})
-	}
-}
-
-// logStep tells the activity log about a step that changed or ran something; looking around is not logged.
-func (r *Runner) logStep(ctx context.Context, task domain.Task, call Call, event domain.Event, failed bool) {
-	if r.deps.Activity == nil || r.deps.Tools.Risk(call.Name) == domain.RiskNone {
-		return
-	}
-
-	r.deps.Activity.Step(ctx, Step{
-		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID, Tool: call.Name,
-		Summary: event.Text, Detail: event.Technical, Failed: failed,
-	})
-}
-
 // needsApproval is the approval policy: looking around (read tools) runs on its own,
 // anything that changes files or runs a command asks the person first, unless they skip approvals.
 func needsApproval(risk domain.Risk) bool {
@@ -150,17 +148,6 @@ func (r *Runner) approval(
 	}
 
 	return event.Resolved, event.Resolved == ""
-}
-
-func (r *Runner) result(ctx context.Context, task domain.Task, callID, text string, isError bool) {
-	_ = r.deps.Transcript.AppendBlock(ctx, task.ID, domain.RoleUser, domain.Block{
-		Kind: domain.BlockToolResult, ID: callID, Text: truncate(text, r.lim.MaxResult), IsError: isError,
-	})
-}
-
-func (r *Runner) action(ctx context.Context, task domain.Task, event domain.Event) {
-	event.Kind, event.Time = domain.EventAction, r.deps.Now()
-	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, event)
 }
 
 func lowerFirst(text string) string {

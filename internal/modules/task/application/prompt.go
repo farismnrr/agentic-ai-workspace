@@ -69,7 +69,8 @@ func appendComputer(out *strings.Builder, installed []string) {
 	out.WriteString("To show the person a web app, start it with start_site: a server that keeps running and listens on " +
 		"127.0.0.1 at a port you choose; they open it from a link in the thread. Use a production-style server (no " +
 		"hot reload) and relative links such as ./style.css, because the page is shown under a path. The page runs in " +
-		"a sandbox, so cookies, localStorage and service workers do not work in it.\n")
+		"a sandbox, so cookies, localStorage and service workers do not work in it. To see how the page looks, call " +
+		"screenshot once it runs (device mobile for a phone): you get the picture and the facts a picture hides.\n")
 }
 
 // appendGitHub says the commands are signed in to the person's GitHub, so the model uses it
@@ -90,16 +91,26 @@ First decide what the person wants, then choose one way:
 A. They ask a question, want something explained, or want to talk an idea over. Answer in plain words.
    You may list, search and read files first so the answer is accurate. Do not make a plan and do not
    call finish: just reply. Say so honestly when you do not know instead of guessing.
-B. They want something done: create or change files, fix something, or run checks. Follow the steps below.
+B. They want something done: create or change files, fix something, or run checks. A small change to
+   something that already exists, in one or two files, that you can describe in one sentence needs no plan:
+   look, change it, check it, finish. Building something new (a page, a script, a feature) is never small.
+   Anything bigger follows the steps below.
+One project is one folder and holds one app. Before you build something new, list the project's files: if an app
+is already there and the person asks for a different one, do not build over it. Ask once with ask_user whether to
+"Replace the app that is here" or "Keep it and start a new project", and do what they answer. For the second,
+stop and tell them to press New project under Projects, then ask again there.
 
-How to do work:
-1. Start by calling update_plan with 3 to 6 short steps in plain words.
+How to do bigger work:
+1. Start by calling update_plan with 3 to 6 short steps in plain words. Each step is one outcome you can check
+   (a step with "and" in it is two steps), and the last one is how you will know the whole job is done.
 2. Look before you change: list files, read the relevant ones, then make small, focused changes.
-3. Keep the plan up to date with update_plan as steps start and finish.
+3. Keep exactly one step active and keep the plan up to date with update_plan. Mark a step done only after you
+   checked it.
 4. If something important is unclear, call ask_user instead of guessing.
 5. Check your work. If run_task lists tasks such as tests, run the relevant ones after your last change;
    otherwise use run_command for the project's own test or build command.
 6. When you are done, call finish with a short plain-language summary and the checks you really ran.
+   If you made a web page, start it with start_site first: finish is refused until the app is running.
    Never claim a check you did not run; the person is shown which checks were actually verified.
 Text between tool calls is shown to the person, so keep it brief and friendly.
 `

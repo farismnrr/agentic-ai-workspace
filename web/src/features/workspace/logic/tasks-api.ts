@@ -11,6 +11,8 @@ export interface NewTask {
   model?: string;
   /** Leave out to use the default effort. */
   effort?: string;
+  /** Whether a lead hands the work to the AI team; leave out to follow the person's setting. */
+  team?: boolean;
 }
 
 export interface UsageRow {
@@ -35,8 +37,9 @@ export const sendMessage = (id: string, text: string): Promise<undefined> => req
 export const answerApproval = (id: string, eventId: string, allow: boolean): Promise<undefined> =>
   request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/answer`, { allow });
 
-export const answerQuestion = (id: string, eventId: string, choice: string): Promise<undefined> =>
-  request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/answer`, { choice });
+/** One list of replies per question of the form, in order. */
+export const answerQuestion = (id: string, eventId: string, answers: string[][]): Promise<undefined> =>
+  request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/answer`, { answers });
 
 export const undoStep = (id: string, eventId: string): Promise<undefined> =>
   request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/undo`);
@@ -49,3 +52,6 @@ export const retryTask = (id: string): Promise<undefined> => request<undefined>(
 
 export const loadUsage = (): Promise<{ since: string; models: UsageRow[] }> =>
   request<{ since: string; models: UsageRow[] }>('GET', '/api/usage');
+
+/** Where a screenshot of a task is served; the page sends the session cookie with the image request. */
+export const shotUrl = (id: string, image: string): string => `${base(id)}/shots/${encodeURIComponent(image)}`;

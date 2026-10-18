@@ -16,6 +16,12 @@ var (
 	ErrState = errors.New("github sign-in state is unknown or expired")
 	// ErrRejected means GitHub refused a code or token: it is wrong, expired or revoked.
 	ErrRejected = errors.New("github rejected the credentials")
+	// ErrBadRepoName means the name cannot be a repository name.
+	ErrBadRepoName = errors.New("that is not a valid repository name")
+	// ErrRepoExists means the person already has a repository with that name.
+	ErrRepoExists = errors.New("a repository with that name already exists")
+	// ErrCannotCreate means GitHub did not let the app create the repository for the person.
+	ErrCannotCreate = errors.New("github did not let the app create the repository")
 )
 
 // Profile is the GitHub account a person connected.
@@ -37,6 +43,21 @@ func (p Profile) DisplayName() string {
 // NoreplyEmail is the private address GitHub accepts for commits, so no real email is needed.
 func (p Profile) NoreplyEmail() string {
 	return fmt.Sprintf("%d+%s@users.noreply.github.com", p.ID, p.Login)
+}
+
+// Repo is a repository the person let the GitHub App reach.
+type Repo struct {
+	UpdatedAt   time.Time
+	FullName    string
+	Description string
+	Private     bool
+}
+
+// NewRepo is what the person asks GitHub to create.
+type NewRepo struct {
+	Name        string
+	Description string
+	Private     bool
 }
 
 // Tokens are the credentials GitHub issued. A zero expiry means the token never expires.

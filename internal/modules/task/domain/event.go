@@ -15,6 +15,14 @@ const (
 	EventError    EventKind = "error"
 	EventReceipt  EventKind = "receipt"
 	EventSite     EventKind = "site"
+	// EventHandoff marks work passing to a teammate, or coming back from one.
+	EventHandoff EventKind = "handoff"
+	// EventShot is a screenshot of the running app; Image names the saved PNG and Text says what it shows.
+	EventShot EventKind = "shot"
+	// EventResearch is research notes a teammate wrote; its text is the document.
+	EventResearch EventKind = "research"
+	// EventPRD is the product requirements document a teammate wrote; its text is the document.
+	EventPRD EventKind = "prd"
 )
 
 // Risk grades how careful the agent must be before a step.
@@ -55,12 +63,20 @@ type Event struct {
 	Resolved  string    `json:"resolved,omitempty"`
 	Answered  string    `json:"answered,omitempty"`
 	Hint      string    `json:"hint,omitempty"`
+	// Model is the AI model a teammate works with, shown on its handoffs (EventHandoff only).
+	Model string `json:"model,omitempty"`
+	// Agent names the teammate who did the step; empty for the orchestrator or a task without a team.
+	Agent string `json:"agent,omitempty"`
 	// URL is where a running site can be opened (EventSite only).
 	URL string `json:"url,omitempty"`
+	// Image names the saved screenshot (EventShot only).
+	Image string `json:"image,omitempty"`
 	// ToolUseID links an approval or question to the model's pending tool call.
 	ToolUseID string   `json:"-"`
 	Options   []string `json:"options,omitempty"`
-	Files     []string `json:"files,omitempty"`
+	// Questions is the form of a question event; Options only fills in for questions saved before forms.
+	Questions []Question `json:"questions,omitempty"`
+	Files     []string   `json:"files,omitempty"`
 	// Undo describes how to reverse the step; only the owning tools understand it.
 	Undo   []byte `json:"-"`
 	Undone bool   `json:"undone,omitempty"`

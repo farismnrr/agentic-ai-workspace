@@ -122,6 +122,33 @@ func (e *Editor) Delete(raw string) (Applied, error) {
 	return Applied{Detail: "deleted", Change: change}, nil
 }
 
+// DeleteFolder removes a folder and everything in it. It is for the person's own file browser: unlike a single
+// file, a folder is not backed up, so the page asks first and says it cannot be undone. The tools never call it.
+func (e *Editor) DeleteFolder(raw string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	rel, err := writablePath(raw)
+	if err != nil {
+		return err
+	}
+
+	entry, err := e.files.Stat(rel)
+	if err != nil {
+		return fmt.Errorf("stat %s: %w", rel, err)
+	}
+
+	if !entry.Dir {
+		return domain.ErrNotDir
+	}
+
+	if err = e.writer.RemoveAll(rel); err != nil {
+		return fmt.Errorf("delete folder %s: %w", rel, err)
+	}
+
+	return nil
+}
+
 // Move renames a file without ever overwriting.
 func (e *Editor) Move(rawFrom, rawTo string) (Applied, error) {
 	e.mu.Lock()

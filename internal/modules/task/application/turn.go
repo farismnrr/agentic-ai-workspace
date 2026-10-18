@@ -21,18 +21,22 @@ func (r *Runner) turn(
 		return failed("I cannot reach the AI model you chose.", "Check Settings, AI models."), true
 	}
 
-	offered, err := r.offered(ctx, task.UserID)
+	offered, err := r.offered(ctx, task.UserID, state)
 	if err != nil {
 		return failed("I cannot check which tools you switched on.", "Try Continue in a moment."), true
 	}
 
-	system := r.system(ctx, task)
+	system := r.system(ctx, task, state)
 	messages := r.compactIfNeeded(ctx, task, state, compaction{client: client, system: system, tools: offered}, transcript)
 
-	reply, err := r.ask(ctx, client, Request{
+	if !state.noImages {
+		messages = r.withImages(ctx, task, messages)
+	}
+
+	reply, err := r.askSeeing(ctx, client, Request{
 		Model: task.Model, System: system, Effort: task.Effort, Messages: orderBlocks(messages), OnText: r.streamTo(task.ID),
 		Tools: offered,
-	})
+	}, state)
 	if err != nil {
 		return r.modelFailure(ctx, err), true
 	}
@@ -71,6 +75,11 @@ func (r *Runner) record(ctx context.Context, task domain.Task, reply Reply) (out
 	}
 
 	say := strings.TrimSpace(strings.Join(texts, "\n\n"))
+	if !calls && r.role != nil {
+		// A teammate that stops asking for tools has said what it has to say: that is its report.
+		return outcome{stop: stopFinished, text: say}, true
+	}
+
 	if calls {
 		r.say(ctx, task.ID, say)
 
@@ -128,27 +137,6 @@ func (r *Runner) modelFailure(ctx context.Context, err error) outcome {
 	}
 
 	return failed(message, "Check your key and model under Settings, AI models, then press Continue.")
-}
-
-func (r *Runner) system(ctx context.Context, task domain.Task) string {
-	persona, _ := r.deps.Persona.Persona(ctx, task.UserID)
-
-	project, err := r.deps.Projects.Name(ctx, task.UserID, task.ProjectID)
-	if err != nil {
-		project = "your project"
-	}
-
-	var (
-		installed []string
-		github    string
-	)
-
-	if r.deps.Computer != nil {
-		installed = r.deps.Computer.Toolchains(ctx)
-		github = r.deps.Computer.GitHub(ctx, task.UserID)
-	}
-
-	return systemPrompt(project, persona, installed, github)
 }
 
 func truncate(text string, limit int) string {

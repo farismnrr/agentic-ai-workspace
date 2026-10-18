@@ -11,45 +11,61 @@ import (
 )
 
 type taskPayload struct {
-	CreatedAt  time.Time         `json:"createdAt"`
-	UpdatedAt  time.Time         `json:"updatedAt"`
-	Proof      *domain.Proof     `json:"proof,omitempty"`
-	ID         string            `json:"id"`
-	ProjectID  string            `json:"projectId"`
-	Title      string            `json:"title"`
-	Summary    string            `json:"summary"`
-	Status     domain.Status     `json:"status"`
-	ProviderID string            `json:"providerId"`
-	Model      string            `json:"model"`
-	Effort     string            `json:"effort"`
-	Source     string            `json:"source"`
-	Plan       []domain.PlanStep `json:"plan"`
+	CreatedAt  time.Time     `json:"createdAt"`
+	UpdatedAt  time.Time     `json:"updatedAt"`
+	Proof      *domain.Proof `json:"proof,omitempty"`
+	ProviderID string        `json:"providerId"`
+	ProjectID  string        `json:"projectId"`
+	Title      string        `json:"title"`
+	Summary    string        `json:"summary"`
+	// PRD is the requirements document the team's Planner wrote, in markdown; empty when there is none.
+	PRD string `json:"prd"`
+	// Research is what the team found out from the web and the project, in markdown; empty when none.
+	Research string            `json:"research"`
+	Status   domain.Status     `json:"status"`
+	ID       string            `json:"id"`
+	Model    string            `json:"model"`
+	Effort   string            `json:"effort"`
+	Source   string            `json:"source"`
+	Plan     []domain.PlanStep `json:"plan"`
 	// ContextUsed and ContextWindow are tokens; both are zero before the first model call.
 	ContextUsed   int64 `json:"contextUsed"`
 	ContextWindow int64 `json:"contextWindow"`
+	// Team is true when the agent leads a team of teammates on this task.
+	Team bool `json:"team"`
+	// PlanFirst is true when the team stops at the PRD and waits for the person.
+	PlanFirst bool `json:"planFirst"`
 }
 
 func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
-		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Proof: t.Proof,
+		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Team: t.Team,
+		PlanFirst: t.PlanFirst,
+		PRD:       t.PRD, Research: t.Research, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
 	}
 }
 
-func (h *Handler) list(c fiber.Ctx) error {
-	tasks, err := h.service.List(c.Context(), httpserver.UserID(c), c.Query("project"))
+// sendList answers with a list converted to its payload shape, or with the failure that stopped it.
+func sendList[T, P any](c fiber.Ctx, items []T, err error, convert func(T) P) error {
 	if err != nil {
 		return fail(c, err)
 	}
 
-	out := make([]taskPayload, 0, len(tasks))
-	for _, task := range tasks {
-		out = append(out, toPayload(task))
+	out := make([]P, 0, len(items))
+	for _, item := range items {
+		out = append(out, convert(item))
 	}
 
 	return c.JSON(out)
+}
+
+func (h *Handler) list(c fiber.Ctx) error {
+	tasks, err := h.service.List(c.Context(), httpserver.UserID(c), c.Query("project"))
+
+	return sendList(c, tasks, err, toPayload)
 }
 
 func (h *Handler) get(c fiber.Ctx) error {
@@ -63,6 +79,7 @@ func (h *Handler) get(c fiber.Ctx) error {
 
 func (h *Handler) create(c fiber.Ctx) error {
 	var body struct {
+		Team       *bool  `json:"team"`
 		ProjectID  string `json:"projectId"`
 		Prompt     string `json:"prompt"`
 		ProviderID string `json:"providerId"`
@@ -75,7 +92,7 @@ func (h *Handler) create(c fiber.Ctx) error {
 
 	task, err := h.service.Create(c.Context(), httpserver.UserID(c), application.CreateInput{
 		ProjectID: body.ProjectID, Prompt: body.Prompt, ProviderID: body.ProviderID, Model: body.Model,
-		Effort: domain.Effort(body.Effort),
+		Effort: domain.Effort(body.Effort), Team: body.Team,
 	})
 	if err != nil {
 		return fail(c, err)

@@ -30,7 +30,7 @@ type Service struct{ deps Deps }
 func NewService(deps Deps) *Service { return &Service{deps: deps} }
 
 // Start runs the project's app and returns its site. A project has one site; starting it
-// again replaces the running app and gives it a new address.
+// again replaces the running app and keeps its address.
 func (s *Service) Start(ctx context.Context, projectID, command string, port int) (domain.Site, error) {
 	command, err := checkStart(command, port)
 	if err != nil {
@@ -42,22 +42,25 @@ func (s *Service) Start(ctx context.Context, projectID, command string, port int
 		return domain.Site{}, fmt.Errorf("start site: %w", err)
 	}
 
+	// Room is checked first: a refused start must not stop the app the project already runs.
+	if err = s.checkRoom(ctx, userID, projectID); err != nil {
+		return domain.Site{}, err
+	}
+
 	previous, err := s.stopExisting(ctx, projectID)
 	if err != nil {
 		return domain.Site{}, err
 	}
 
-	if err = s.checkRoom(ctx, userID, projectID); err != nil {
-		return domain.Site{}, err
-	}
-
-	token, err := s.deps.IDs.UUID()
-	if err != nil {
-		return domain.Site{}, fmt.Errorf("make site address: %w", err)
+	token := previous.Token
+	if token == "" {
+		if token, err = s.deps.IDs.UUID(); err != nil {
+			return domain.Site{}, fmt.Errorf("make site address: %w", err)
+		}
 	}
 
 	site := domain.Site{
-		ProjectID: projectID, UserID: userID, Slug: domain.Slugify(name), Token: token,
+		ProjectID: projectID, UserID: userID, Slug: domain.Slugify(name), Token: token, Command: command,
 		Visibility: domain.Private, Status: domain.Running, Port: port, StartedAt: s.deps.Now(),
 	}
 	if previous.Visibility != "" {
@@ -118,7 +121,8 @@ func (s *Service) stopExisting(ctx context.Context, projectID string) (domain.Si
 	return old, nil
 }
 
-// checkRoom refuses a start when the person or the server already runs enough sites.
+// checkRoom refuses a start when the person or the server already runs enough sites. A project has one app, so
+// its own is never counted; a limit of zero means no limit.
 func (s *Service) checkRoom(ctx context.Context, userID, projectID string) error {
 	running, err := s.deps.Store.Running(ctx)
 	if err != nil {
@@ -140,9 +144,9 @@ func (s *Service) checkRoom(ctx context.Context, userID, projectID string) error
 	}
 
 	switch {
-	case mine >= s.deps.Limits.PerUser:
+	case s.deps.Limits.PerUser > 0 && mine >= s.deps.Limits.PerUser:
 		return domain.ErrTooMany
-	case total >= s.deps.Limits.Total:
+	case s.deps.Limits.Total > 0 && total >= s.deps.Limits.Total:
 		return domain.ErrServerBusy
 	}
 

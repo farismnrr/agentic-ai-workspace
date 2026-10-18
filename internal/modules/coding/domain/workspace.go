@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"path"
 	"strings"
@@ -15,6 +17,7 @@ const (
 	MaxQueryLength     = 200
 	MaxMatchLineLength = 300
 	MaxWriteBytes      = 1 << 20
+	MaxAssetBytes      = 10 << 20
 	MaxFindResults     = 200
 	MaxOutputBytes     = 64 << 10
 )
@@ -33,6 +36,7 @@ var (
 	ErrNoMatch    = errors.New("old_text was not found in the file")
 	ErrBadRange   = errors.New("line range must be 1-based and start at or before its end")
 	ErrBadPattern = errors.New("pattern is not a valid glob")
+	ErrStale      = errors.New("the file changed since it was opened")
 )
 
 // Entry is one file or directory in a listing.
@@ -82,4 +86,12 @@ func Denied(rel string) bool {
 	}
 
 	return false
+}
+
+// ContentHash names the text of a file, so a person's edit can be refused when the file moved on after they opened it.
+// It is the hash of the text as the app shows it (invalid UTF-8 replaced).
+func ContentHash(text string) string {
+	sum := sha256.Sum256([]byte(strings.ToValidUTF8(text, "\uFFFD")))
+
+	return hex.EncodeToString(sum[:])
 }

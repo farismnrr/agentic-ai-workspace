@@ -17,7 +17,7 @@ import (
 const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
-	`created_at, updated_at, source, context_used, context_window, effort`
+	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, plan_first`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -43,11 +43,22 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 
 	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO tasks (id, project_id, user_id, title, summary, status, mode, provider_id, model, plan,
-		   created_at, updated_at, source, effort) VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		   created_at, updated_at, source, effort, team, plan_first)
+		 VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		t.ID, t.ProjectID, t.UserID, t.Title, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
-		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort))
+		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team, t.PlanFirst)
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteProject removes a person's tasks in one project; their events, messages and usage go with them.
+func (s *Store) DeleteProject(ctx context.Context, userID, projectID string) error {
+	const remove = `DELETE FROM tasks WHERE user_id = ? AND project_id = ?`
+	if _, err := s.db.ExecContext(ctx, remove, userID, projectID); err != nil {
+		return fmt.Errorf("delete project tasks: %w", err)
 	}
 
 	return nil
@@ -118,6 +129,16 @@ func (s *Store) SavePlan(ctx context.Context, id string, plan []domain.PlanStep,
 	return s.exec(ctx, `UPDATE tasks SET plan = ?, updated_at = ? WHERE id = ?`, string(encoded), at.Unix(), id)
 }
 
+// SavePRD records the product requirements document the team builds from.
+func (s *Store) SavePRD(ctx context.Context, id, prd string, at time.Time) error {
+	return s.exec(ctx, `UPDATE tasks SET prd = ?, updated_at = ? WHERE id = ?`, prd, at.Unix(), id)
+}
+
+// SaveResearch records the research notes the team builds from.
+func (s *Store) SaveResearch(ctx context.Context, id, research string, at time.Time) error {
+	return s.exec(ctx, `UPDATE tasks SET research = ?, updated_at = ? WHERE id = ?`, research, at.Unix(), id)
+}
+
 // Finish hands a task to review with its summary and proof.
 func (s *Store) Finish(ctx context.Context, id, summary string, proof *domain.Proof, at time.Time) error {
 	encoded, err := json.Marshal(proof)
@@ -140,57 +161,4 @@ func (s *Store) exec(ctx context.Context, query string, args ...any) error {
 	}
 
 	return nil
-}
-
-func collectTasks(rows *sql.Rows) ([]domain.Task, error) {
-	defer func() { _ = rows.Close() }()
-
-	tasks := []domain.Task{}
-
-	for rows.Next() {
-		task, err := scanTask(rows)
-		if err != nil {
-			return nil, err
-		}
-
-		tasks = append(tasks, task)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("read tasks: %w", err)
-	}
-
-	return tasks, nil
-}
-
-func scanTask(row scanner) (domain.Task, error) {
-	var (
-		t                domain.Task
-		status, plan     string
-		effort           string
-		proof            sql.NullString
-		created, updated int64
-	)
-
-	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
-		&plan, &proof, &created, &updated, &t.Source, &t.ContextUsed, &t.ContextWindow, &effort)
-	if err != nil {
-		return domain.Task{}, fmt.Errorf("scan task: %w", err)
-	}
-
-	t.Status, t.Effort = domain.Status(status), domain.Effort(effort)
-	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0), time.Unix(updated, 0)
-
-	if err := json.Unmarshal([]byte(plan), &t.Plan); err != nil {
-		return domain.Task{}, fmt.Errorf("decode plan: %w", err)
-	}
-
-	if proof.Valid && proof.String != "null" {
-		t.Proof = &domain.Proof{}
-		if err := json.Unmarshal([]byte(proof.String), t.Proof); err != nil {
-			return domain.Task{}, fmt.Errorf("decode proof: %w", err)
-		}
-	}
-
-	return t, nil
 }
