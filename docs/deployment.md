@@ -49,8 +49,9 @@ The first start downloads two images, so it can take a few minutes. The `sandbox
 | --- | --- | --- |
 | `compose.latest.yaml` | `latest`, from `main` | Stable |
 | `compose.dev.yaml` | `dev`, from `dev` | Newest, less tested |
+| `compose.prod.yaml` | `sha-<commit>`, from the Full workflow | Masih Awam production (port 5004) |
 
-Run only one of them at a time, because they share a port and a data volume. You can pin an exact build with `sha-<commit>`.
+Run only one of `latest` and `dev` at a time, because they share a port and a data volume. `compose.prod.yaml` has its own port, volume, and project name. You can pin an exact build with `sha-<commit>`.
 
 ### B. Build the image
 
@@ -229,3 +230,20 @@ Access to the Docker socket is access to the whole machine. To limit the risk:
 
 - **What each workflow does:** see [system-design.md](./system-design.md#quality-and-release).
 - **Jenkins and hotfix deploys:** see [devops.md](./devops.md).
+
+## Masih Awam production
+
+The Full workflow deploys production by itself. After it publishes the image, the `deploy` job runs on the on-premise runner.
+
+| Part | Detail |
+| --- | --- |
+| File | `compose.prod.yaml`, project `masihawam` |
+| App | The exact `sha-<commit>` image, on port 5004 |
+| Tunnel | A `cloudflared` container that publishes the app |
+| Restart | `always` for both containers |
+| Data | The named volume `masihawam-data` |
+| Settings | `~/masihawam/.env` on the runner host, never committed |
+
+The settings file holds `PUBLIC_URL` and `TUNNEL_TOKEN`. In Cloudflare, route the public hostname to `http://localhost:5004`.
+
+The job checks `/api/health` after the deploy and fails the run if the app does not answer. The runner is a user service, `actions.runner.farismnrr-agentic-ai-workspace.arch-masihawam`, with the label `masihawam-prod`.

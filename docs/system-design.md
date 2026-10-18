@@ -140,7 +140,7 @@ Work happens on `dev`. Two GitHub Actions workflows run the same checks:
 | Workflow | When | What it does |
 | --- | --- | --- |
 | **Fast** | Every push to `dev` | Verifies, builds the binary and image, smoke-tests both, publishes the `dev` image |
-| **Full** | Started by hand from `dev` | Repeats everything from a clean checkout, merges `dev` into `main`, publishes `latest` |
+| **Full** | Started by hand from `dev` | Repeats everything from a clean checkout, merges `dev` into `main`, publishes `latest`, then deploys it to production |
 
 For the Jenkins pipeline and hotfix deploys, see [devops.md](./devops.md).
 

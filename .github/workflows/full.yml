@@ -1,7 +1,8 @@
 name: Full
 
-# Manual production release. Re-verifies everything from a clean checkout, then
-# merges dev into main and publishes the image to GHCR as latest.
+# Manual production release. Re-verifies everything from a clean checkout, merges dev
+# into main, publishes the image to GHCR as latest, then deploys it to production
+# (compose.prod.yaml, port 5004) on the on-premise runner.
 on:
   workflow_dispatch:
 
@@ -35,6 +36,8 @@ jobs:
     needs: [verify]
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      sha: ${{ steps.merge.outputs.sha }}
     permissions:
       contents: write
       pull-requests: write
@@ -76,3 +79,36 @@ jobs:
           channel: latest
           push: "true"
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    needs: [publish]
+    runs-on: [self-hosted, Linux, X64, masihawam-prod]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.publish.outputs.sha }}
+          persist-credentials: false
+
+      - name: Deploy the published image
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_file="$HOME/masihawam/.env"
+          test -f "$env_file" || { echo "Missing $env_file on the runner."; exit 1; }
+          export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
+          export APP_TAG="sha-$(printf '%s' '${{ needs.publish.outputs.sha }}' | cut -c1-7)"
+          docker compose -f compose.prod.yaml --env-file "$env_file" pull
+          docker compose -f compose.prod.yaml --env-file "$env_file" up -d --remove-orphans
+
+      - name: Verify production
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 20 --retry-delay 3 --retry-connrefused \
+            http://127.0.0.1:5004/api/health | grep -q '"status":"ok"'
+
+      - name: Show the app log when the deploy fails
+        if: failure()
+        shell: bash
+        run: docker logs --tail 80 masihawam-app-1 || true
