@@ -16,13 +16,14 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
 
 1. Add a model under Settings, AI models (see [Models](#models)).
 2. Create a project with Projects, New project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.
-   - Step 1: pick a starting point. Each template shows a screenshot: landing page, product website, dashboard, documentation, AI chat, portfolio, release notes, text editor, calendar. Its look is copied into the project; the login and data are still built for your app.
-   - Or pick "Empty project": the AI designs the look from your request, and you refine it by hand.
-   - Step 2: choose "New project" (files stay in this workspace) or "New repository" (also creates a repository on your GitHub account, with a README; you pick public or private).
-   - Step 3: give it a name. Then it opens.
-   - With GitHub connected, "From a GitHub repository" starts from one of your repositories instead, with its history. It has no template. Type to search; the list scrolls.
-   - Without GitHub connected, GitHub choices stay visible but unavailable, with a link to connect GitHub. If the server has no GitHub App set up, they are hidden.
-   - If GitHub does not let the app create a repository, you are told. Create it on GitHub, share it with the app, then pick it under "From a GitHub repository".
+   - Step 1: choose "From a template" or "From a GitHub repository". Without a GitHub App on the server there is only the first, so this step is skipped.
+   - "From a template" opens a gallery. Each template shows a screenshot: landing page, product website, dashboard, documentation, AI chat, portfolio, release notes, text editor, calendar. Its look is copied into the project; the login and data are still built for your app.
+   - The gallery also has "Without a template": an empty project where the AI designs the look from your request, and you refine it by hand.
+   - After a template (or none), choose "New project" (files stay in this workspace) or "New repository" (also creates a repository on your GitHub account, with a README; you pick public or private).
+   - Then give it a name, and it opens.
+   - "From a GitHub repository" starts from one of your repositories, with its history, and has no template. Type to search; the list scrolls.
+   - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.
+   - If GitHub does not let the app create a repository, you are told. Create it on GitHub, share it with the app, then use "From a GitHub repository".
 3. Describe what you need on Home. The model and effort come from Settings: each teammate has its own, and the default covers the rest.
 4. Watch the plan and the steps. The AI asks before it edits, deletes or moves files, runs commands, or starts a web app.
 5. Review the result, then accept it or ask for changes.

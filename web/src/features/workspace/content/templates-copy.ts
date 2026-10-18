@@ -7,8 +7,8 @@ export interface StartingPoint {
 
 export const emptyStart: StartingPoint = {
   id: '',
-  title: 'Empty project',
-  body: 'The AI designs the look from your request. You can change it by hand afterwards.',
+  title: 'Without a template',
+  body: 'An empty project. The AI designs the look from your request, and you refine it by hand.',
 };
 
 export const templateStarts: StartingPoint[] = [
@@ -26,13 +26,20 @@ export const templateStarts: StartingPoint[] = [
 export const githubStart: StartingPoint = {
   id: 'github',
   title: 'From a GitHub repository',
-  body: 'Bring a repository you already have. No template.',
+  body: 'Bring a repository you already have, with its history. No template.',
+};
+
+export const templateSource: StartingPoint = {
+  id: 'template',
+  title: 'From a template',
+  body: 'Start with a ready-made look, or with nothing at all. The AI still builds the logic and login.',
 };
 
 export const newProjectCopy = {
   title: 'New project',
-  startHeading: 'Pick a starting point',
-  startLead: 'Choose how it should look first. A template brings only the look; the AI still builds the logic and login for your project.',
+  sourceHeading: 'How do you want to start?',
+  startHeading: 'Pick a template',
+  startLead: 'A template brings only the look. Or choose to start without one.',
   whereHeading: 'Where should it live?',
   project: { title: 'New project', body: 'The files stay in this workspace.' },
   repo: { title: 'New repository', body: 'Also creates a repository on your GitHub account, with a README.' },
