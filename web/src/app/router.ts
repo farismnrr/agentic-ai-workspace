@@ -12,6 +12,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'inbox'; taskId?: string }
   | { name: 'projects' }
+  | { name: 'new-project' }
   | { name: 'sites' }
   | { name: 'project'; projectId: string }
   | { name: 'task'; projectId: string; taskId: string }
@@ -31,6 +32,7 @@ const staticRoutes: Record<string, Route> = {
   '/app': { name: 'home' },
   '/app/inbox': { name: 'inbox' },
   '/app/projects': { name: 'projects' },
+  '/app/projects/new': { name: 'new-project' },
   '/app/sites': { name: 'sites' },
   '/app/settings': { name: 'settings', tab: 'models' },
 };

@@ -7,6 +7,7 @@
   import HomePage from '../features/workspace/home/HomePage.svelte';
   import InboxPage from '../features/workspace/inbox/InboxPage.svelte';
   import ProjectDetailPage from '../features/workspace/projects/ProjectDetailPage.svelte';
+  import NewProjectPage from '../features/workspace/projects/NewProjectPage.svelte';
   import ProjectsPage from '../features/workspace/projects/ProjectsPage.svelte';
   import SitesPage from '../features/workspace/sites/SitesPage.svelte';
   import SettingsPage from '../features/workspace/settings/SettingsPage.svelte';
@@ -49,6 +50,8 @@
   <InboxPage />
 {:else if $route.name === 'projects'}
   <ProjectsPage />
+{:else if $route.name === 'new-project'}
+  <NewProjectPage />
 {:else if $route.name === 'sites'}
   <SitesPage />
 {:else if $route.name === 'project'}
