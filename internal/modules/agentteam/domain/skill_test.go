@@ -48,7 +48,8 @@ func TestTheDesignerHasItsPlaybooksWithTheirCraft(t *testing.T) {
 		byName[skill.Name] = skill
 	}
 
-	if len(byName) != 4 || !byName["designer-workflow"].Always || byName["design-brief"].Always {
+	always := byName["designer-workflow"].Always && byName["nuxt-ui"].Always
+	if len(byName) != 5 || !always || byName["design-brief"].Always {
 		t.Fatalf("designer skills = %v", byName)
 	}
 

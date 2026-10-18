@@ -7,7 +7,8 @@ always: true
 # Default stack for a new app
 
 Design new apps on this stack unless the person asks for another or the project already has one:
-Nuxt 4 (Vue 3, TypeScript) as the single server and UI, SQLite through Node's built-in `node:sqlite`, `nuxt-security`
+Nuxt 4 (Vue 3, TypeScript) as the single server and UI, Nuxt UI for every component (no hand-made buttons, inputs,
+cards, tables or navigation), SQLite through Node's built-in `node:sqlite`, `nuxt-security`
 for headers and limits, Better Auth for accounts with the app's own register and login forms, `zod` for input checks.
 Everything is the latest stable release; check `npm view <package> version` and the `engines` of each package against
 the sandbox's Node 24 before you choose a library.
