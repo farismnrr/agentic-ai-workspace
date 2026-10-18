@@ -11,9 +11,13 @@ project already has a stack (then keep it). The person may not be technical: mak
 never ask them about libraries.
 
 ## 1. The stack
-- Nuxt 4 with Vue 3 and TypeScript, one server and one process. SQLite for data. `nuxt-security` for headers, rate
-  limits and request limits. Better Auth for login when the app has accounts. `zod` to check what comes in.
-  `@nuxt/eslint` with `eslint-plugin-security` as the linter. Styling follows `DESIGN.md`; `@nuxt/ui` is fine.
+- Nuxt 4 with Vue 3 and TypeScript, one server and one process. SQLite for data. **Nuxt UI (`@nuxt/ui`) for every
+  component**, so the whole app is consistent: buttons, forms, cards, tables, navigation, modals, the landing sections
+  and the dashboard shell all come from it, themed with the colours and fonts of `DESIGN.md`. `nuxt-security` for
+  headers, rate limits and request limits. Better Auth for login when the app has accounts. `zod` to check what comes
+  in. `@nuxt/eslint` with `eslint-plugin-security` as the linter. `chart.js` with `vue-chartjs` for charts.
+- This is the stack unless the brief says the person asked for another in their own words. If the brief names Express,
+  Flask or anything else without saying the person asked, use Nuxt anyway and say so in your report.
 - Always the latest stable. Never copy a version from memory or an old tutorial: run `npm view <package> version`
   and read its `engines` against `node -v` (the sandbox has Node 24). Install without pinning to an old number, keep
   `package-lock.json`, and read the current docs (nuxt.com, better-auth.com) for any API you are unsure of. If you
@@ -22,17 +26,24 @@ never ask them about libraries.
 
 ## 2. Start the project
 In the project folder: `npm create nuxt@latest -- . --template minimal --no-install --gitInit false --packageManager npm --no-modules --force`,
-then `npm install nuxt-security better-auth zod` and `npm install -D @nuxt/eslint eslint eslint-plugin-security`.
+then `npm install @nuxt/ui tailwindcss @iconify-json/lucide nuxt-security better-auth zod chart.js vue-chartjs` and
+`npm install -D @nuxt/eslint eslint eslint-plugin-security`. `@iconify-json/lucide` bundles the icons with the app; without
+it Nuxt UI fetches every icon from the internet when a page opens, and the icons fail in a closed environment.
 Add the modules to `nuxt.config.ts`:
 ```ts
 export default defineNuxtConfig({
   compatibilityDate: 'latest',
-  modules: ['nuxt-security', '@nuxt/eslint'],
+  modules: ['@nuxt/ui', 'nuxt-security', '@nuxt/eslint'],
+  css: ['~/assets/css/main.css'],
   runtimeConfig: { authSecret: '' }, // filled by NUXT_AUTH_SECRET
   security: { rateLimiter: { tokensPerInterval: 150, interval: 300000 } },
   routeRules: { '/api/auth/**': { security: { rateLimiter: { tokensPerInterval: 10, interval: 60000 } } } },
 })
 ```
+Create `app/assets/css/main.css` with `@import "tailwindcss";` and `@import "@nuxt/ui";`, and wrap the app: `app/app.vue`
+is `<UApp><NuxtLayout><NuxtPage /></NuxtLayout></UApp>`. Colours go in `app/app.config.ts`
+(`export default defineAppConfig({ ui: { colors: { primary: 'green', neutral: 'stone' } } })`) and fonts in `main.css`
+(`@theme { --font-sans: 'Public Sans', system-ui, sans-serif; }`). Icons are written `i-lucide-<name>`.
 Make `eslint.config.mjs`:
 `import withNuxt from './.nuxt/eslint.config.mjs'`, `import security from 'eslint-plugin-security'`,
 `export default withNuxt(security.configs.recommended)`, and add the script `"lint": "eslint ."`.

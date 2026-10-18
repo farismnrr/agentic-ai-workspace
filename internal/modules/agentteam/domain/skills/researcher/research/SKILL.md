@@ -57,7 +57,9 @@ The orchestrator says which kind of round this is. Write only the sections it as
   date, what it requires, and anything deprecated or changed recently.
 - The official way to do what the job needs: the pages to follow and, if short, a minimal example from them.
 - Security guidance for this kind of work, and known advisories for the libraries involved.
-- Two or three alternatives with one line of trade-off each, and your recommendation with the reason.
+- Alternatives only when the stack is not already decided. A new web app uses the default stack (Nuxt 4, Nuxt UI,
+  SQLite): do not suggest Express, Flask or any other framework unless the person asked for it. Also read the
+  current Nuxt UI pages on ui.nuxt.com for the components the work needs.
 - Pitfalls people hit, and how to avoid each.
 
 ### Quality checks (for QA and the Reviewer)

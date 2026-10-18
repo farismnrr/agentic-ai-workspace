@@ -18,6 +18,8 @@ of evidence that names files, selectors or lines. A dimension is independent: do
    register and login, an app shell, a dashboard with key numbers, charts and recent activity, empty states, settings
    and a 404 page. A missing piece, or a page that looks like a tutorial (a heading and a table), goes first in the
    Fix list.
+0b. **One component system.** In a Nuxt app every control comes from Nuxt UI and the pages share one shell. A hand-made
+   button, input or card beside a Nuxt UI one, or pages with different layouts, is a finding.
 1. **Direction.** One clear direction held through every decision (type, colour, spacing, copy voice), or three
    styles in a trench coat? Does it follow the project's `DESIGN.md` and tokens, with no raw colours?
 2. **Hierarchy.** One obvious entry point, a readable order, a type scale used with intent, one accent used
