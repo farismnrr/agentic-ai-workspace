@@ -1,0 +1,57 @@
+# Production for Masih Awam: the app on port 5004 and the Cloudflare tunnel that publishes it.
+# The Full workflow deploys this file to the on-premise runner after it publishes the image.
+# Checks run as short-lived containers started through the Docker socket, so the socket is mounted.
+# Anyone who can reach the socket controls the host: run Docker rootless where you can,
+# and keep this server's sign-ups to people you trust.
+#
+#   docker compose -f compose.prod.yaml --env-file ~/masihawam/.env up -d
+#
+# Settings and the tunnel token live in ~/masihawam/.env on the host. Nothing secret is committed.
+# In Cloudflare, route the public hostname to http://localhost:5004.
+name: masihawam
+
+services:
+  # Fetches the toolbox image with the app. It never runs as a service.
+  sandbox:
+    image: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
+    entrypoint: ["true"]
+    network_mode: none
+    restart: "no"
+  app:
+    depends_on:
+      sandbox:
+        condition: service_completed_successfully
+    image: ghcr.io/farismnrr/agentic-ai-workspace:${APP_TAG:-latest}
+    # The host's network, so "localhost" in Settings means this computer.
+    network_mode: host
+    environment:
+      PORT: "5004"
+      PUBLIC_URL: ${PUBLIC_URL:?set PUBLIC_URL in ~/masihawam/.env}
+      CONNECTOR_URL: ${CONNECTOR_URL:-${PUBLIC_URL}}
+      CLIENT_IP_HEADER: CF-Connecting-IP
+      # Workspaces are handed to the check containers as sub-paths of this volume.
+      SANDBOX_DATA_VOLUME: masihawam-data
+      SANDBOX_IMAGE: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
+      MAX_SANDBOXES: ${MAX_SANDBOXES:-2}
+    volumes:
+      - masihawam-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "${DOCKER_GID:?set DOCKER_GID=$(stat -c %g /var/run/docker.sock)}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    network_mode: host
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in ~/masihawam/.env}
+    restart: always
+
+volumes:
+  masihawam-data:
+    # A fixed name: the app refers to this volume when it starts check containers.
+    name: masihawam-data
