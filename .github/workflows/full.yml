@@ -97,7 +97,8 @@ jobs:
           env_file="$HOME/masihawam/.env"
           test -f "$env_file" || { echo "Missing $env_file on the runner."; exit 1; }
           export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
-          export APP_TAG="sha-$(printf '%s' '${{ needs.publish.outputs.sha }}' | cut -c1-7)"
+          # The publish step tags the image with the commit this run was started on.
+          export APP_TAG="sha-$(printf '%s' '${{ github.sha }}' | cut -c1-7)"
           docker compose -f compose.prod.yaml --env-file "$env_file" pull
           docker compose -f compose.prod.yaml --env-file "$env_file" up -d --remove-orphans
 
