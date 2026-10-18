@@ -160,12 +160,12 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | Variable | What it does | Default |
 | --- | --- | --- |
 | `SANDBOX_IMAGE` | Image the AI's commands run in. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
-| `SANDBOX_EGRESS_HOSTS` | Hosts commands can reach over HTTPS. Everything else is blocked. | PyPI, npm, Go proxy |
+| `SANDBOX_EGRESS_HOSTS` | Hosts commands can reach over HTTPS. Everything else is blocked. | PyPI, npm, Go proxy, crates.io, Maven Central |
 | `SANDBOX_RUNTIME` | Hardened runtime, such as `runsc` (gVisor). | none |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check. | 2048 / 1 |
 | `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it. Leave it empty when you run the binary directly. | set by compose |
 
-The default image has Python, Node.js, Go, Git, `gh`, Bash and a C compiler. It also has Bun, the runtime for apps the AI builds, and picture tools: libvips, ImageMagick, `cwebp`, `avifenc` and background removal (`removebg`, models included, works offline). `make sandbox-image` builds it locally.
+The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. It also has Bun, the runtime for apps the AI builds, and picture tools: libvips, ImageMagick, `cwebp`, `avifenc` and background removal (`removebg`, models included, works offline). `make sandbox-image` builds it locally.
 
 ### Capacity
 

@@ -64,7 +64,7 @@ func appendComputer(out *strings.Builder, installed []string) {
 	out.WriteString("\nYou can run commands with run_command (bash) on a private, isolated computer. ")
 	fmt.Fprintf(out, "Installed there: %s. ", strings.Join(installed, ", "))
 	out.WriteString("It cannot see the person's own computer; the project folder is its only shared place. ")
-	out.WriteString("The internet is limited to package registries (PyPI, npm, Go), so installing " +
+	out.WriteString("The internet is limited to package registries (PyPI, npm, Go, crates.io, Maven), so installing " +
 		"project dependencies works but other websites do not. Every command asks the person first.\n")
 	out.WriteString("To show the person a web app, start it with start_site: a server that keeps running and listens on " +
 		"127.0.0.1 at a port you choose; they open it from a link in the thread. Use a production-style server (no " +

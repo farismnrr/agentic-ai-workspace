@@ -62,12 +62,12 @@ func runCommand(t *testing.T, eng *runner.Engine, dir, line string) string {
 	return result.Output
 }
 
-func TestToolboxHasThreeLanguages(t *testing.T) {
+func TestToolboxHasEveryLanguage(t *testing.T) {
 	eng := toolboxEngine(t)
-	versions := "python3 -V; node -v; go version; bash --version|head -1"
+	versions := "python3 -V; node -v; go version; rustc -V; java -version 2>&1 | grep -m1 openjdk; bash --version|head -1"
 	out := runCommand(t, eng, t.TempDir(), versions)
 
-	for _, want := range []string{"Python 3.13", "v24.", "go1.", "GNU bash"} {
+	for _, want := range []string{"Python 3.13", "v24.", "go1.", "rustc 1.", "openjdk", "GNU bash"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}
