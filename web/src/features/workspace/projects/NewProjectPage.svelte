@@ -11,12 +11,13 @@
   import AppShell from '../shell/AppShell.svelte';
   import StartDetails from './StartDetails.svelte';
   import StartGallery from './StartGallery.svelte';
+  import StartSource from './StartSource.svelte';
   import StartWhere from './StartWhere.svelte';
 
-  type Step = 'start' | 'where' | 'details';
+  type Step = 'source' | 'template' | 'where' | 'details';
 
-  let step = $state<Step>('start');
-  let github = $state<'off' | 'connect' | 'ready'>('off');
+  let step = $state<Step>('source');
+  let github = $state<'loading' | 'off' | 'connect' | 'ready'>('loading');
   /** '' is an empty project; otherwise the name of the template to start from. */
   let template = $state('');
   let source = $state<'empty' | 'github' | 'new'>('empty');
@@ -32,16 +33,21 @@
     void loadGitHub().then((status) => { github = status.connected ? 'ready' : status.configured ? 'connect' : 'off'; }, () => { github = 'off'; });
   });
 
+  // Without a GitHub App on the server there is only one way to start, so the first question is skipped.
+  $effect(() => {
+    if (github === 'off' && step === 'source') step = 'template';
+  });
+
   const chosen = $derived(source === 'github' ? githubStart : (templateStarts.find((start) => start.id === template) ?? emptyStart));
 
-  function start(id: string): void {
+  function pickSource(chosenSource: 'template' | 'github'): void {
     error = '';
-    if (id === githubStart.id) {
-      source = 'github';
-      template = '';
-      step = 'details';
-      return;
-    }
+    template = '';
+    source = chosenSource === 'github' ? 'github' : 'empty';
+    step = chosenSource === 'github' ? 'details' : 'template';
+  }
+
+  function start(id: string): void {
     template = id;
     source = 'empty';
     step = 'where';
@@ -73,7 +79,7 @@
   <h1 class="text-xl font-semibold tracking-tight">{newProjectCopy.title}</h1>
   <p class="mt-1 text-[var(--brand-text-secondary)]">{projectsCopy.intro}</p>
 
-  {#if step !== 'start'}
+  {#if step === 'where' || step === 'details'}
     <div class="mt-6 flex max-w-xl items-center gap-3 rounded-lg border border-[var(--brand-border)] bg-base-100 p-2">
       {#if template !== '' && templatePreview(template) !== undefined}
         <img class="h-10 w-16 rounded object-cover object-top" src={templatePreview(template)} alt="" width="64" height="40" />
@@ -81,17 +87,22 @@
         <Icon name={source === 'github' ? 'folder' : 'plus'} class="mx-4 size-5 text-primary" />
       {/if}
       <p class="min-w-0 flex-1 text-sm"><span class="text-[var(--brand-text-secondary)]">{newProjectCopy.chosen}</span> <span class="font-medium">{chosen.title}</span></p>
-      <button class="btn btn-ghost btn-sm" type="button" onclick={() => { step = 'start'; }}>{newProjectCopy.change}</button>
+      <button class="btn btn-ghost btn-sm" type="button" onclick={() => { step = source === 'github' ? 'source' : 'template'; }}>{newProjectCopy.change}</button>
     </div>
   {/if}
 
   <div class="mt-8">
-    {#if step === 'start'}
-      <StartGallery {github} onpick={start} />
+    {#if step === 'source'}
+      {#if github === 'ready' || github === 'connect'}<StartSource {github} onpick={pickSource} />{/if}
+    {:else if step === 'template'}
+      <StartGallery onpick={start} />
+      {#if github === 'ready' || github === 'connect'}
+        <button class="btn btn-ghost btn-sm mt-6" type="button" onclick={() => { step = 'source'; }}><Icon name="arrow-left" class="size-4" /> {newProjectCopy.back}</button>
+      {/if}
     {:else if step === 'where'}
-      <StartWhere {github} onpick={where} />
+      <StartWhere github={github === 'loading' ? 'off' : github} onpick={where} />
     {:else}
-      <StartDetails {source} bind:name bind:description bind:repo bind:repoName bind:isPrivate {busy} {error} onsubmit={() => void submit()} oncancel={() => { step = 'start'; }} />
+      <StartDetails {source} bind:name bind:description bind:repo bind:repoName bind:isPrivate {busy} {error} onsubmit={() => void submit()} oncancel={() => { navigate('/app/projects'); }} />
     {/if}
   </div>
 </AppShell>
