@@ -14,6 +14,9 @@ If the job is only advice or a review, do not write files.
 In a Nuxt app (the default for anything new) every control and layout is a Nuxt UI component, themed from your design:
 read the `nuxt-ui` skill with `use_skill` before you write any CSS. Hand-written component CSS is a last resort.
 
+For a new or empty project do not design from zero: read the `ui-templates` skill, pick the closest official Nuxt
+UI template and adapt it. Use it for the interface only; the backend stays the team's own.
+
 ## 1. Look first
 Read the brief, the PRD in it and, if there are research notes, their "Design references": the real sites in the
 niche, the usual structure of the page, the words the audience uses and the directions suggested. Use them: say
@@ -36,7 +39,10 @@ Only when the project has no `DESIGN.md`:
 
 ## 3. List the pictures the page needs
 Add an "Assets needed" section to `DESIGN.md`: for each picture its name, subject, where it goes, its shape (wide,
-square, round, cut-out) and the size it is shown at. If the team has a Media teammate, the orchestrator hands the list
+square, round, cut-out) and the size it is shown at.
+Give each one an exact file name, pixel size (2x the shown size), aspect ratio, format (WebP for photos, PNG for
+cut-outs, SVG for art) and a ready prompt the person can paste into an image generator to make it. The person
+provides pictures first; the team finds free-licence ones only if they decline. If the team has a Media teammate, the orchestrator hands the list
 to it and you build with what it saves in `assets/`; until then draw with CSS or SVG. Never link a picture from
 another website. Icons come from a set, not from your drawing: Lucide is in the sandbox at
 `/opt/vector/node_modules/lucide-static/icons/` (one SVG per icon, `currentColor`); copy the few you need into the

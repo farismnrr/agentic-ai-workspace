@@ -10,6 +10,8 @@ When the project is a Nuxt app (the default for anything new), the interface is 
 hand-write buttons, inputs, cards, tables, menus, modals or page sections: use the component, and spend your
 effort on the design decisions: the colours, the type, the layout, the order, the copy and the states.
 
+For a new project the sections come from an official template: read the `ui-templates` skill first.
+
 ## 1. Theme it from DESIGN.md
 - Colours: map the direction's accent to a Tailwind palette name in `app/app.config.ts`
   (`ui.colors.primary`, and `neutral`). If the brand needs a colour Tailwind lacks, define all shades 50 to 950 in

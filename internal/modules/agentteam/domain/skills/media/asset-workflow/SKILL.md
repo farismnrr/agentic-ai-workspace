@@ -15,6 +15,7 @@ subject, where it goes, the shape (wide hero, square card, round avatar) and the
 If nothing says, ask the orchestrator in your report rather than guessing a whole gallery.
 
 ## 2. Find it
+First list `assets/`: a picture the person uploaded needs no search, only the step below. Search only for the rest.
 - Call `search_images` with two or three different phrasings: what it shows, the setting, the mood. Search in
   English: the libraries hold almost nothing under Indonesian words.
 - Choose what fits the subject, the shape and the size (the larger side of at least the size it will be shown at).

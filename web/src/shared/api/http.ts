@@ -21,10 +21,12 @@ function errorCode(data: unknown): string {
   return 'unknown';
 }
 
-/** Sends a same-origin JSON request (cookies included) and returns the parsed body. */
+/** Sends a same-origin request, JSON or a form with files (cookies included) and returns the parsed body. */
 export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: 'same-origin' };
-  if (body !== undefined) {
+  if (body instanceof FormData) {
+    init.body = body; // the browser adds the multipart Content-Type with its boundary
+  } else if (body !== undefined) {
     init.headers = { 'Content-Type': 'application/json' };
     init.body = JSON.stringify(body);
   }

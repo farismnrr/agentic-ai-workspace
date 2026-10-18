@@ -27,6 +27,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Get("/api/projects/:id/files", auth, h.list)
 		app.Get("/api/projects/:id/files/stream", auth, h.stream)
 		app.Get("/api/projects/:id/file", auth, h.read)
+		app.Post("/api/projects/:id/assets", auth, sameOrigin, h.upload)
 		app.Put("/api/projects/:id/file", auth, sameOrigin, h.save)
 		app.Delete("/api/projects/:id/file", auth, sameOrigin, h.remove)
 	}

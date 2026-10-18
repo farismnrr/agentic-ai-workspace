@@ -2,7 +2,7 @@
 
 Files below are copied unchanged from their sources, each with its licence. Do not edit them: copy the new
 upstream file over to update. Everything else here (`INDEX.txt`, `craft.txt`, `LIBRARY`, the `designer-workflow`
-and `design-review` skills, the `prd` skill) is written for this app.
+`ui-templates` and `design-review` skills, the `prd` skill) is written for this app.
 
 | Content | Source | Licence |
 | --- | --- | --- |
@@ -15,3 +15,4 @@ and `design-review` skills, the `prd` skill) is written for this app.
 
 Copied on 2026-10-16. The `design-review` skill is written for this app; its five dimensions follow the idea of the
 `critique` template of Open Design, without copying its text.
+| Nuxt UI templates baked into the sandbox image (`/usr/local/share/templates/<name>`, not in this folder) | https://github.com/nuxt-ui-templates (Nuxt) | MIT, `LICENSE` kept inside each template |

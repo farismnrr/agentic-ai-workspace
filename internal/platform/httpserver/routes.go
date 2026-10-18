@@ -2,7 +2,8 @@ package httpserver
 
 import "github.com/gofiber/fiber/v3"
 
-const bodyLimit = 1 << 20
+// bodyLimit leaves room for a 10 MiB picture upload (coding's MaxAssetBytes) plus its multipart framing.
+const bodyLimit = 11 << 20
 
 type healthPayload struct {
 	Status  string `json:"status"`

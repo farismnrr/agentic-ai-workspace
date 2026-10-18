@@ -2,7 +2,9 @@
   import { onDestroy, untrack } from 'svelte';
   import type { Readable } from 'svelte/store';
   import ComposerBox from '../components/ComposerBox.svelte';
+  import { uploadAssets, withAttachments } from '../logic/attachments';
   import { findProject } from '../logic/derive';
+  import { describeTaskError } from '../logic/task-errors';
   import { createController } from '../logic/task-actions';
   import type { Task, TaskEvent } from '../logic/task-types';
   import { createThread } from '../logic/thread';
@@ -37,13 +39,24 @@
   const canWrite = $derived($task?.status === 'review' || $task?.status === 'done' || $task?.status === 'failed');
   let view = $state<View>('chat');
   let follow = $state('');
+  let files = $state<File[]>([]);
+  let uploadError = $state('');
   const panelTab = $derived<PanelTab>(view === 'chat' ? 'plan' : view);
 
   const controller = createController(id, thread);
   const error: Readable<string> = controller.error;
 
   async function sendFollowUp(text: string): Promise<void> {
-    if (await controller.follow(text)) follow = '';
+    uploadError = '';
+    try {
+      const saved = await uploadAssets(projectId, files);
+      if (await controller.follow(withAttachments(text, saved))) {
+        follow = '';
+        files = [];
+      }
+    } catch (failure) {
+      uploadError = describeTaskError(failure);
+    }
   }
 
   const focusFollowUp = (): void => document.getElementById('follow-up')?.focus();
@@ -81,7 +94,9 @@
               placeholder={canWrite ? 'Ask for a change or add details…' : 'You can write again once the AI has finished or stopped.'}
               bind:text={follow}
               disabled={!canWrite}
-              error={$error}
+              error={uploadError || $error}
+              bind:files
+              attachable
               onsend={(text: string) => void sendFollowUp(text)}
             />
           </div>
