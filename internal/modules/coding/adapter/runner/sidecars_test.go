@@ -18,7 +18,7 @@ func TestEnvironmentPointsCachesAndProxyOnlyWhenMounted(t *testing.T) {
 
 	full := environment(sandbox.Spec{Cache: "/x", Egress: "/y"})
 	wanted := []string{
-		"GOMODCACHE=/cache/go/mod", "npm_config_cache=/cache/npm", "HTTPS_PROXY=http://127.0.0.1:3128",
+		"GOMODCACHE=/cache/go/mod", "CARGO_HOME=/cache/cargo", "HTTPS_PROXY=http://127.0.0.1:3128",
 		"NO_PROXY=127.0.0.1,localhost,::1",
 	}
 

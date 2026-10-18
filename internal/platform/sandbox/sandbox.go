@@ -26,7 +26,7 @@ const SiteDir = "/run/site"
 const Entry = "/usr/local/bin/sandbox-entry"
 
 // Path is the only PATH a sandboxed command gets: the image's toolchains, then the system.
-const Path = "/usr/local/go/bin:" +
+const Path = "/usr/local/go/bin:/opt/cargo/bin:/opt/java/openjdk/bin:/opt/maven/bin:" +
 	"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 // Spec describes one sandboxed command.

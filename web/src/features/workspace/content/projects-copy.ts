@@ -26,7 +26,7 @@ export const projectsCopy = {
   archiveBody: 'It disappears from your lists. Its files and tasks are kept.',
   checks: {
     intro: 'Checks are commands the AI can run to prove its work, such as your tests. A check is what lets the app say "Proven to work".',
-    warning: "Checks run in a locked sandbox with its own copy of Node.js, Go, Python and Git. They only see this project's folder and can reach package registries such as npm and PyPI, nothing else.",
+    warning: "Checks run in a locked sandbox with its own copy of Node.js, Go, Rust, Python and Git. They only see this project's folder and can reach package registries such as npm and PyPI, nothing else.",
     empty: { title: 'No checks yet', body: 'Add a command so finished work can be verified.' },
     examples: ['go test ./...', 'npm test', 'npm run lint'],
   },

@@ -95,14 +95,14 @@ func (e *Engine) Forget(dir string) {
 func environment(spec sandbox.Spec) []string {
 	env := []string{
 		"LANG=C.UTF-8", "CI=1", "PATH=" + sandbox.Path, "HOME=/tmp", "TMPDIR=/tmp",
-		"GOFLAGS=-modcacherw -buildvcs=false",
+		"RUSTUP_HOME=/opt/rustup", "JAVA_HOME=/opt/java/openjdk", "GOFLAGS=-modcacherw -buildvcs=false",
 	}
 
 	if spec.Cache != "" {
 		c := sandbox.Cache
 		env = append(env, "GOMODCACHE="+c+"/go/mod", "GOCACHE="+c+"/go/build", "GOPATH="+c+"/go",
-			"npm_config_cache="+c+"/npm", "BUN_INSTALL_CACHE_DIR="+c+"/bun", "UV_CACHE_DIR="+c+"/uv",
-			"PIP_CACHE_DIR="+c+"/pip")
+			"CARGO_HOME="+c+"/cargo", "npm_config_cache="+c+"/npm", "BUN_INSTALL_CACHE_DIR="+c+"/bun", "UV_CACHE_DIR="+c+"/uv",
+			"PIP_CACHE_DIR="+c+"/pip", "MAVEN_OPTS=-Dmaven.repo.local="+c+"/m2")
 	}
 
 	if spec.Egress != "" {

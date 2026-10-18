@@ -9,10 +9,12 @@ trap 'rm -rf "$work"' EXIT
 
 out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
   --tmpfs /tmp:rw,exec,nosuid,nodev,size=512m --user "$(id -u):$(id -g)" -v "$work:/workspace" \
-  -e HOME=/tmp -e GOCACHE=/tmp/go --entrypoint "" "$image" sh -ec '
-    python3 -V; node -v; go version; bash --version | head -n1
+  -e HOME=/tmp -e GOCACHE=/tmp/go -e CARGO_HOME=/tmp/cargo --entrypoint "" "$image" sh -ec '
+    python3 -V; node -v; go version; rustc -V; java -version 2>&1 | head -n1; mvn -v | head -n1; bash --version | head -n1
     cd /tmp
     printf "package main\nfunc main(){println(\"go-ok\")}\n" > m.go && go run m.go
+    echo "fn main(){println!(\"rust-ok\");}" > r.rs && rustc r.rs -o r && ./r
+    printf "class H{public static void main(String[] a){System.out.println(\"java-ok\");}}" > H.java && java H.java
     python3 -c "print(\"python-ok\")"
     node -e "console.log(\"node-ok\")"
     mkdir s && echo "<title>t</title><h1>hi</h1>" > s/index.html
@@ -37,7 +39,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "go-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok"; do
+for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 
