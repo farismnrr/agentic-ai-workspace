@@ -4,11 +4,13 @@
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
   import { describeTaskError } from '../logic/task-errors';
+  import { uploadAssets, withAttachments } from '../logic/attachments';
   import { createTask } from '../logic/tasks-api';
   import { chosenProject, projects, refresh } from '../logic/workspace-store';
 
   let text = $state('');
   let project = $state('');
+  let files = $state<File[]>([]);
   let busy = $state(false);
   let error = $state('');
 
@@ -25,8 +27,10 @@
     error = '';
     try {
       // The model and effort come from Settings: the lead's own, else the person's default.
-      const task = await createTask({ projectId: chosen, prompt });
+      const saved = await uploadAssets(chosen, files);
+      const task = await createTask({ projectId: chosen, prompt: withAttachments(prompt, saved) });
       text = '';
+      files = [];
       await refresh();
       navigate(`/app/projects/${task.projectId}/tasks/${task.id}`);
     } catch (failure) {
@@ -47,6 +51,8 @@
     placeholder="Ask a question or tell me what you need…"
     bind:text
     bind:project
+    bind:files
+    attachable
     projects={$projects}
     {busy}
     {error}

@@ -115,6 +115,15 @@ A web app the AI builds uses Nuxt, Nuxt UI (one consistent set of components) an
 - An app with a dashboard: key numbers, charts of your real data, recent activity and a clear first step when it is empty.
 - Each feature as a full flow, plus settings and a friendly "not found" page.
 
+A new app starts from an official Nuxt UI template that is closest to what you asked for, then the Designer changes it to fit. Only the look comes from the template; the login, data and server are built for your app.
+
+Pictures come from you first:
+
+- The Designer lists each picture with its size, format and a prompt you can paste into an image generator.
+- The team asks once: upload them, or find free ones for you.
+- Attach pictures with the paperclip in the message box. They are saved in the project's `assets/` folder.
+- If you ask for free ones, only pictures you may use are chosen, and the credits stay in a file, never on the page.
+
 Before a task is finished, a Reviewer looks at every screen on the running app, and the Designer looks at its own
 screens first. The team builds one piece at a time, then styles every page.
 

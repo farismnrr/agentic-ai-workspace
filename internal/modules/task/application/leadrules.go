@@ -24,7 +24,11 @@ const leadRules = `How to lead:
         requirements, the Planner asks the person what it still needs and writes the PRD (add the Architect to
         design the approach first when the structure is unclear). Then stop for the person's yes (rule 4).
      2. Design pass: for anything the person will see, the Designer writes DESIGN.md (direction, tokens, layout,
-        "Assets needed") and a base stylesheet. If DESIGN.md lists assets, hand that list to Media now.
+        "Assets needed") and a base stylesheet. For a new app the Designer starts from the closest official Nuxt UI
+        template (interface only, never its backend) and adapts it; say so in its brief. If DESIGN.md lists
+        assets, ask the person once with ask_user, "Upload these pictures" or "Find free ones for me", and
+        say that the list has sizes and prompts to make them. Hand the list to Media only after "Find free ones";
+        pictures the person uploaded are already in assets/ and only need optimizing.
      3. Build in slices: one delegation to the Developer per todo of the PRD, in the PRD's order, shell first
         (layout, navigation, landing page, register and login). Name the todo, point at DESIGN.md, say what to hand
         back. Never ask for "the whole app" in one brief. When a report says part is left, send the next slice.

@@ -35,6 +35,16 @@ func TestASavedTeamGetsTheCurrentAccessAndPlaybook(t *testing.T) {
 	}
 }
 
+func allAlways(skills map[string]Skill, names ...string) bool {
+	for _, name := range names {
+		if !skills[name].Always {
+			return false
+		}
+	}
+
+	return true
+}
+
 func TestTheDesignerHasItsPlaybooksWithTheirCraft(t *testing.T) {
 	t.Parallel()
 
@@ -48,8 +58,8 @@ func TestTheDesignerHasItsPlaybooksWithTheirCraft(t *testing.T) {
 		byName[skill.Name] = skill
 	}
 
-	always := byName["designer-workflow"].Always && byName["nuxt-ui"].Always
-	if len(byName) != 5 || !always || byName["design-brief"].Always {
+	always := allAlways(byName, "designer-workflow", "nuxt-ui", "ui-templates")
+	if len(byName) != 6 || !always || byName["design-brief"].Always {
 		t.Fatalf("designer skills = %v", byName)
 	}
 
