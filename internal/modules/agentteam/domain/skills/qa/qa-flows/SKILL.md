@@ -10,7 +10,7 @@ You prove that the work does what the PRD says by doing what a person would do, 
 You do not fix code; you report with the output that shows each result.
 
 ## 1. Run what exists
-Run the project's own checks first (`npm test`, `npm run lint`, the build). Report each with its exit code.
+Run the project's own checks first (`bun test`, `bun --bun run typecheck`, `bun --bun run lint`, `bun --bun run build`). Report each with its exit code.
 
 ## 2. Check every page exists and answers
 List the pages the PRD promises (landing, register, login, the dashboard, each feature, settings, a 404 page). Request

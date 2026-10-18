@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# The toolbox the agent's commands run in: Python, Node.js, Go, Rust, Java and Bash.
+# The toolbox the agent's commands run in: Python, Node.js, Bun, Go, Rust, Java and Bash.
 # Every layer is read-only and shared by all containers started from this image, so each
 # toolchain is stored once on disk however many people run commands at the same time.
 # Build from the repository root: docker build -f sandbox/Dockerfile .
@@ -59,6 +59,22 @@ ARG LUCIDE_VERSION=1.59.0
 RUN npm install --prefix /opt/vector --no-audit --no-fund "svgo@${SVGO_VERSION}" "lucide-static@${LUCIDE_VERSION}" \
     && chmod -R a+rX /opt/vector
 
+# Bun, the runtime and package manager apps the AI builds run on, from the official release, pinned to a version and
+# checked against its published checksum.
+FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587 AS bun
+ARG TARGETARCH
+ARG BUN_VERSION=1.4.3
+ARG BUN_SHA256_AMD64=3e730528d89775f03f87f05c06787c4df4099d0a37f3f252e7b829cb23816e18
+ARG BUN_SHA256_ARM64=efa9813da5ed72423bf847f916e8d2c47c0d776add972354026a75e10da9aa21
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in amd64) sum="${BUN_SHA256_AMD64}"; file=bun-linux-x64 ;; arm64) sum="${BUN_SHA256_ARM64}"; file=bun-linux-aarch64 ;; *) echo "unsupported architecture ${TARGETARCH}" >&2; exit 1 ;; esac \
+    && curl -fsSL -o /tmp/bun.zip "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${file}.zip" \
+    && echo "${sum}  /tmp/bun.zip" | sha256sum -c - \
+    && unzip -q /tmp/bun.zip -d /tmp \
+    && install -m 0755 "/tmp/${file}/bun" /usr/local/bin/bun
+
 FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
 ARG PYTHON_VERSION
 
@@ -71,6 +87,7 @@ RUN apt-get update \
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY --from=gh /usr/local/bin/gh /usr/local/bin/gh
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=python /opt/python /opt/python
 RUN ln -s "$(ls -d /opt/python/cpython-*/bin/python3 | head -n1)" /usr/local/bin/python3 \
     && ln -s python3 /usr/local/bin/python \
@@ -98,8 +115,11 @@ COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
 COPY sandbox/capture/ /usr/local/share/capture/
 COPY sandbox/nuxt-serve.ts /usr/local/share/serve/nuxt-serve.ts
-RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg \
-    && ln -s /opt/vector/node_modules/.bin/svgo /usr/local/bin/svgo
+COPY sandbox/starter/nuxt/ /usr/local/share/starter/nuxt/
+COPY sandbox/new-nuxt-app.sh /usr/local/bin/new-nuxt-app
+RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg /usr/local/bin/new-nuxt-app \
+    && ln -s /opt/vector/node_modules/.bin/svgo /usr/local/bin/svgo \
+    && ln -s bun /usr/local/bin/bunx
 
 # Read-only toolchains stay put; downloads and build output go to /cache, which the server mounts per person.
 ENV RUSTUP_HOME=/opt/rustup \
@@ -113,7 +133,7 @@ ENV RUSTUP_HOME=/opt/rustup \
 LABEL org.opencontainers.image.title="agentic-ai-workspace-sandbox" \
       org.opencontainers.image.source="https://github.com/farismnrr/agentic-ai-workspace" \
       org.opencontainers.image.description="Isolated toolbox for the agent's commands" \
-      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"},{\"name\":\"Vector (svgo, potrace, Lucide icons in /opt/vector)\",\"version\":\"svgo 4\"}]"
+      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Bun\",\"version\":\"1.4\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"},{\"name\":\"Vector (svgo, potrace, Lucide icons in /opt/vector)\",\"version\":\"svgo 4\"}]"
 
 USER 65532:65532
 WORKDIR /workspace

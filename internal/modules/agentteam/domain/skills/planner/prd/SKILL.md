@@ -51,9 +51,9 @@ question the person answered. If the answers open a real gap, one more small for
 three questions for a medium job and five for a large one, counted over the whole task.
 
 ## 2a. The stack is decided, not asked
-A new web app is built with Nuxt 4, Nuxt UI (the component library, so every screen is consistent) and SQLite, on the
-latest stable versions. Never ask the person about the stack, and do not offer Express, Flask or any other framework
-as an option. Write "Stack: Nuxt 4, Nuxt UI, SQLite (the default)" under Assumptions. Another stack goes into the PRD
+A new web app is built with Nuxt 4, Nuxt UI (the component library, so every screen is consistent) and SQLite, in
+TypeScript on Bun, on the latest stable versions. Never ask the person about the stack, and do not offer Express, Flask or any other framework
+as an option. Write "Stack: Nuxt 4, Nuxt UI, SQLite, TypeScript, Bun (the default)" under Assumptions. Another stack goes into the PRD
 only when the person's own words ask for it ("pakai Laravel", "use Django"); then write "Stack: <it>, requested by
 the person" and keep the rest of the PRD the same.
 

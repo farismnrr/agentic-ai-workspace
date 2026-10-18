@@ -108,7 +108,7 @@ A team task always plans first. The team plans, then stops and waits for your ye
 - After your yes the team only executes: build, security check, tests and a check of the final code.
 - A small change never needs a plan. The lead sizes the request first and hands a small one straight to the Developer.
 
-A web app the AI builds uses Nuxt, Nuxt UI (one consistent set of components) and SQLite, unless you ask for another stack. It is not a single page. Unless you say otherwise it has:
+A web app the AI builds uses Nuxt, Nuxt UI (one consistent set of components) and SQLite, written in TypeScript and run on Bun, unless you ask for another stack. It is not a single page. Unless you say otherwise it has:
 
 - A public landing page, with what it is, the benefits, how it works, pricing or a call to action, and a short FAQ.
 - Register and login with its own forms, and pages behind the login.

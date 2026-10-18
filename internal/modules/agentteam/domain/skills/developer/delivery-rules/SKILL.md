@@ -33,5 +33,5 @@ Tests and scripts use their own temporary database (a file under `/tmp` or an in
 reset or overwrite the project's real database or `.env`. A test that wipes real data is a bug even when it passes.
 
 ## 6. Keep the files readable
-Write normal, formatted code: no minified one-liners, lines under about 120 characters, files one person can read in
-one go. The Architect and the next teammate must be able to read it.
+Write normal, formatted TypeScript: no minified one-liners, lines under about 120 characters, files one person can
+read in one go, and no JavaScript files at all. The Architect and the next teammate must be able to read it.
