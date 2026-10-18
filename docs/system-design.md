@@ -87,7 +87,7 @@ Tasks, commands and web apps run in one throwaway Docker container per run.
 | System | Read-only root, no extra privileges, memory, CPU and process limits |
 | Capacity | `MAX_SANDBOXES` runs at once. A run stops if its folder passes 2 GiB |
 
-- **Toolchains** (Python, Node.js, Go, Rust, Java and more) live in the image, so nothing downloads per person.
+- **Toolchains** (Python, Node.js, Go and more) live in the image, so nothing downloads per person.
 - **Browser:** a headless Chromium in the image takes screenshots of a running site. It runs in its own container with no network.
 - **Docker down?** Checks fail with a plain reason and nothing else breaks.
 - **Not covered:** hard disk quotas, and the host kernel and Docker daemon that every container shares.
