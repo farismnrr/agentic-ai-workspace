@@ -25,6 +25,8 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     removebg p.jpg cut.png fast && removebg p.jpg cut2.png && echo removebg-ok
     cp /opt/vector/node_modules/lucide-static/icons/coffee.svg i.svg && svgo --multipass i.svg -o i.min.svg > /dev/null && echo icons-ok
     convert p.jpg -threshold 50% m.pbm && potrace -s m.pbm -o m.svg && grep -q "<svg" m.svg && echo vector-ok
+    command -v new-nuxt-app > /dev/null && test -f /usr/local/share/starter/nuxt/nuxt.config.ts && echo starter-ok
+    bun --version | grep -q "^1\." && bun -e "import {Database} from \"bun:sqlite\"; const d=new Database(\":memory:\"); d.exec(\"create table t(a)\"); console.log(\"bun-ok\")"
     printf "require(\"http\").createServer((q,s)=>s.end(q.url)).listen(process.env.PORT,\"127.0.0.1\")" > echo.cjs
     PORT=8100 BASE_PATH=/run/a/b node /usr/local/share/serve/nuxt-serve.ts node echo.cjs > /dev/null 2>&1 &
     sleep 2
@@ -36,7 +38,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "removebg-ok" "policy-ok"; do
+for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "bun-ok" "starter-ok" "removebg-ok" "policy-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 

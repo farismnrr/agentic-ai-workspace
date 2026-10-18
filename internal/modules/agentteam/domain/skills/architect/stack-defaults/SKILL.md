@@ -8,10 +8,11 @@ always: true
 
 Design new apps on this stack unless the person asks for another or the project already has one:
 Nuxt 4 (Vue 3, TypeScript) as the single server and UI, Nuxt UI for every component (no hand-made buttons, inputs,
-cards, tables or navigation), SQLite through Node's built-in `node:sqlite`, `nuxt-security`
+cards, tables or navigation), SQLite through Bun's built-in `bun:sqlite`, TypeScript everywhere (no JavaScript files), Bun as the runtime and package
+manager, `nuxt-security`
 for headers and limits, Better Auth for accounts with the app's own register and login forms, `zod` for input checks.
-Everything is the latest stable release; check `npm view <package> version` and the `engines` of each package against
-the sandbox's Node 24 before you choose a library.
+Everything is the latest stable release; check `bun pm view <package> version` and what each package requires before
+you choose a library, and prefer ones that run on Bun.
 
 Layout: pages and components in `app/`, HTTP routes in `server/api/`, helpers in `server/utils/`, SQL files in
 `server/db/migrations/`, one `data/app.sqlite` file. One process, no separate backend, no ORM unless the data model

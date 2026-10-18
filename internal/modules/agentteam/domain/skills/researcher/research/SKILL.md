@@ -51,14 +51,15 @@ The orchestrator says which kind of round this is. Write only the sections it as
 - The pictures the page needs, subject by subject (the Media teammate finds them; you download none).
 
 ### Technical references (for the Developer, Architect, DevOps)
-- For a new web app the default stack is Nuxt 4 with `nuxt-security`, Better Auth and Node's built-in SQLite: read
-  the current pages on nuxt.com, nuxt-security.vercel.app and better-auth.com, and the Node.js docs for `node:sqlite`.
+- For a new web app the default stack is Nuxt 4 and Nuxt UI with `nuxt-security`, Better Auth and SQLite, in TypeScript
+  on Bun: read the current pages on nuxt.com, ui.nuxt.com, nuxt-security.vercel.app and better-auth.com, and the Bun docs
+  (bun.com/docs) for `bun:sqlite`, `bun install` and `bun test`.
 - The stack the PRD names or implies, from its official documentation: the current stable version and its
   date, what it requires, and anything deprecated or changed recently.
 - The official way to do what the job needs: the pages to follow and, if short, a minimal example from them.
 - Security guidance for this kind of work, and known advisories for the libraries involved.
 - Alternatives only when the stack is not already decided. A new web app uses the default stack (Nuxt 4, Nuxt UI,
-  SQLite): do not suggest Express, Flask or any other framework unless the person asked for it. Also read the
+  SQLite, TypeScript, Bun): do not suggest Express, Flask, Node or any other stack unless the person asked for it. Also read the
   current Nuxt UI pages on ui.nuxt.com for the components the work needs.
 - Pitfalls people hit, and how to avoid each.
 

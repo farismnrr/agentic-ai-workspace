@@ -23,7 +23,7 @@ with its source; what they do not cover is listed as an open question, never gue
   and what can go wrong (empty, invalid, duplicate, no permission).
 - **What the dashboard must answer**: the three or four numbers and the charts the person will look at first, and
   where the data comes from.
-- **The stack** is decided (Nuxt 4, Nuxt UI, SQLite): do not discuss or propose another one unless the person asked.
+- **The stack** is decided (Nuxt 4, Nuxt UI, SQLite, TypeScript, Bun): do not discuss or propose another one unless the person asked.
 - **Rules and numbers** the research found (prices, limits, laws, how the real business works), with sources.
 - **Open questions** only the person can answer, each with the default you would take.
 - **Out of scope**, so nobody builds it by accident.

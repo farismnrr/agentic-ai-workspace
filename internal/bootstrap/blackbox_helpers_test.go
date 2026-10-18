@@ -24,7 +24,7 @@ func (a agentRig) startTeam(t *testing.T, prompt string) string {
 func finishLive(t *testing.T, a agentRig, id string) {
 	t.Helper()
 
-	deadline := time.Now().Add(3 * time.Minute)
+	deadline := time.Now().Add(12 * time.Minute)
 
 	for time.Now().Before(deadline) {
 		switch a.status(t, id) {

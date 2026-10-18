@@ -44,5 +44,5 @@ clock. A tiny app is still layered, but with few files. No folders named utils, 
 unrelated things; name a folder for what it holds.
 
 ## Tests and report
-Test the domain and the use cases with fakes for the ports, with no server and no database. Say in your report
+Test the domain and the use cases with fakes for the ports, with no server and no database (in a Bun project: `bun test`). Say in your report
 which layers you made and which ports they use, so the Architect can check them quickly.

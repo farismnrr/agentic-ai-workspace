@@ -101,7 +101,7 @@ func environment(spec sandbox.Spec) []string {
 	if spec.Cache != "" {
 		c := sandbox.Cache
 		env = append(env, "GOMODCACHE="+c+"/go/mod", "GOCACHE="+c+"/go/build", "GOPATH="+c+"/go",
-			"CARGO_HOME="+c+"/cargo", "npm_config_cache="+c+"/npm", "UV_CACHE_DIR="+c+"/uv",
+			"CARGO_HOME="+c+"/cargo", "npm_config_cache="+c+"/npm", "BUN_INSTALL_CACHE_DIR="+c+"/bun", "UV_CACHE_DIR="+c+"/uv",
 			"PIP_CACHE_DIR="+c+"/pip", "MAVEN_OPTS=-Dmaven.repo.local="+c+"/m2")
 	}
 
