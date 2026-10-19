@@ -35,11 +35,11 @@ func (d *Docker) Run(ctx context.Context, spec Spec, out io.Writer) (Result, err
 
 	defer d.remove(ctx, created.ID)
 
-	return d.execute(ctx, created.ID, out)
+	return d.execute(ctx, created.ID, spec.Stdin, out)
 }
 
-func (d *Docker) execute(ctx context.Context, id string, out io.Writer) (Result, error) {
-	output := client.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true}
+func (d *Docker) execute(ctx context.Context, id string, stdin io.Reader, out io.Writer) (Result, error) {
+	output := client.ContainerAttachOptions{Stream: true, Stdin: stdin != nil, Stdout: true, Stderr: true}
 
 	attached, err := d.api.ContainerAttach(ctx, id, output)
 	if err != nil {
@@ -54,6 +54,10 @@ func (d *Docker) execute(ctx context.Context, id string, out io.Writer) (Result,
 
 		_, _ = stdcopy.StdCopy(out, out, attached.Reader)
 	}()
+
+	if stdin != nil {
+		go feed(attached, stdin)
+	}
 
 	code, err := d.start(ctx, id, waiting)
 
@@ -70,6 +74,12 @@ func (d *Docker) execute(ctx context.Context, id string, out io.Writer) (Result,
 	}
 
 	return Result{ExitCode: code, OOMKilled: d.oomKilled(ctx, id)}, nil
+}
+
+// feed copies standard input into the container, then tells it nothing more is coming.
+func feed(attached client.ContainerAttachResult, stdin io.Reader) {
+	_, _ = io.Copy(attached.Conn, stdin)
+	_ = attached.CloseWrite()
 }
 
 // start runs the container and returns its exit code; the caller removes it, which also kills it.
@@ -110,6 +120,7 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 			Image: d.cfg.Image, Cmd: command(spec), Env: spec.Env, WorkingDir: Workspace,
 			User:   strconv.Itoa(d.cfg.UID) + ":" + strconv.Itoa(d.cfg.GID),
 			Labels: map[string]string{taskLabel: d.cfg.Owner}, NetworkDisabled: true,
+			AttachStdin: spec.Stdin != nil, OpenStdin: spec.Stdin != nil, StdinOnce: spec.Stdin != nil,
 			AttachStdout: true, AttachStderr: true,
 			// The image's own entrypoint must not wrap the command.
 			Entrypoint: []string{},

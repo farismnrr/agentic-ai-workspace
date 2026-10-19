@@ -4,7 +4,10 @@
 // and is held to memory, CPU and process limits by the Docker daemon.
 package sandbox
 
-import "errors"
+import (
+	"errors"
+	"io"
+)
 
 // ErrUnavailable means the Docker daemon could not be reached or used.
 var ErrUnavailable = errors.New("docker is not available")
@@ -21,6 +24,9 @@ const Egress = "/run/egress"
 // SiteDir is where the folder holding a site's socket appears. Inside, the start script
 // publishes the app's local port as a Unix socket that only the server can reach.
 const SiteDir = "/run/site"
+
+// Home is where a person's own folder for a vendor CLI (its login and sessions) appears.
+const Home = "/home/cli"
 
 // Entry is the image's start script. It makes the proxy socket reachable as a local port, then runs the command.
 const Entry = "/usr/local/bin/sandbox-entry"
@@ -39,8 +45,12 @@ type Spec struct {
 	Egress string
 	// Site is an optional writable folder for a site's socket, shown at /run/site.
 	Site string
-	Argv []string
-	Env  []string
+	// Home is an optional writable folder shown at /home/cli, where a vendor CLI keeps its login.
+	Home string
+	// Stdin, when set, is copied to the command's standard input and then closed.
+	Stdin io.Reader
+	Argv  []string
+	Env   []string
 }
 
 // Result is how a sandboxed command ended.

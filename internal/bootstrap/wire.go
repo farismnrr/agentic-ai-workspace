@@ -77,14 +77,14 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	cleanUpOnDelete(account, projects, sites, tasks)
-
+	cleanUpOnDelete(account, projects, sites, tasks, tools.plans)
 	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, registry, log, permissions, oauth, sess, sameOrigin)
 
 	mounts := joinMounts(
 		[]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts,
 		[]httpserver.Mount{newExport(account, models, projects, tasks, folders, auth)},
-		models.mounts, []httpserver.Mount{githubMount, newTemplate(tools, projects, auth, sameOrigin)}, spaceMounts)
+		models.mounts, []httpserver.Mount{githubMount, newTemplate(tools, projects, auth, sameOrigin)},
+		[]httpserver.Mount{tools.plans.mount(auth, sameOrigin)}, spaceMounts)
 
 	return mounts, func() { stop(); closeProxy() }, nil
 }
@@ -99,8 +99,9 @@ func newActivityLog(store spaceapp.ActivityStore, tools *agentTools) *spaceapp.A
 // cleanUpOnDelete wires what is removed with an account, and what goes before a project when it is deleted.
 func cleanUpOnDelete(
 	account *accountapp.Service, projects *projectapp.Service, sites *siteapp.Service, tasks *taskapp.Service,
+	plans *plans,
 ) {
-	eraseOnDelete(account, sites.StopUser, tasks.DeleteAll, projects.DeleteAll)
+	eraseOnDelete(account, sites.StopUser, tasks.DeleteAll, projects.DeleteAll, plans.erase)
 
 	projects.BeforeDelete(func(ctx context.Context, userID, id string) error {
 		sites.StopProject(ctx, id)

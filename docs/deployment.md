@@ -162,6 +162,7 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | --- | --- | --- |
 | `SANDBOX_IMAGE` | Image the AI's commands run in. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
 | `SANDBOX_EGRESS_HOSTS` | Hosts commands can reach over HTTPS. Everything else is blocked. | PyPI, npm, Go proxy, crates.io, Maven Central |
+| `CLAUDE_EGRESS_HOSTS` / `CHATGPT_EGRESS_HOSTS` | Hosts the Claude and ChatGPT programs can reach while people sign in and work on their plan. | the providers' own hosts |
 | `SANDBOX_RUNTIME` | Hardened runtime, such as `runsc` (gVisor). | none |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check. | 2048 / 1 |
 | `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it. Leave it empty when you run the binary directly. | set by compose |
@@ -220,6 +221,8 @@ What you should know about the token:
 ## Docker and security
 
 Commands have no network of their own. They reach only the hosts in `SANDBOX_EGRESS_HOSTS` (plus GitHub, if connected), through a proxy in the app. Downloads are cached per person in `DATA_DIR/caches`, up to 5 GB.
+
+The Claude and ChatGPT programs run in the same image, each person with a folder in `DATA_DIR/cli`. It holds their sign-in and is removed with their account.
 
 Access to the Docker socket is access to the whole machine. To limit the risk:
 

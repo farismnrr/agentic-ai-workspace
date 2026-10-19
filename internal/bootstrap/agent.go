@@ -36,6 +36,7 @@ func newAgent(
 		Computer: computer{engine: tools.engine, github: tools.github},
 		Team:     agentTeam{team: models.team}, Scopes: store, Delegations: store,
 		Shots: taskshots.New(filepath.Join(cfg.DataDir, "shots")), Diffs: tools,
+		CLI: tools.plans, Sessions: store,
 	}, hub)
 
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())

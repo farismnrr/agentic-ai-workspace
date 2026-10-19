@@ -33,6 +33,7 @@ type agentTools struct {
 	cache    map[string]codingmcp.Services
 	handlers map[string]toolHandler
 	github   *githubapp.Service
+	plans    *plans
 	git      func(projectID string) codingrunner.GitSource
 	public   string
 	mu       sync.Mutex

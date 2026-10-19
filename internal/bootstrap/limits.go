@@ -3,6 +3,8 @@ package bootstrap
 import (
 	"time"
 
+	"github.com/gofiber/fiber/v3"
+
 	accounthttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/adapter/http"
 	githubhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/adapter/http"
 	oauthhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/adapter/http"
@@ -20,6 +22,7 @@ const (
 	tokenPerMinute        = 120
 	clientRegisterPerHour = 20
 	githubPerMinute       = 20
+	signInPerMinute       = 10
 )
 
 func accountLimits() accounthttp.Limits {
@@ -43,4 +46,9 @@ func oauthLimits() oauthhttp.Limits {
 		Token:     httpserver.Limit(tokenPerMinute, time.Minute, nil, false),
 		Register:  httpserver.Limit(clientRegisterPerHour, time.Hour, nil, false),
 	}
+}
+
+// signInLimit guards the sign-in endpoints that each start a container.
+func signInLimit() fiber.Handler {
+	return httpserver.Limit(signInPerMinute, time.Minute, nil, false)
 }
