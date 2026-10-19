@@ -1,9 +1,8 @@
 export const subscriptionsCopy = {
   title: 'Your own AI plans',
-  intro: 'Sign in with a plan you already pay for. You sign in on the provider’s own page; this app never sees your password.',
+  intro: 'Sign in with a plan you already pay for, then pick it as your default model. You sign in on the provider’s own page; this app never sees your password.',
   signIn: 'Sign in',
   signOut: 'Sign out',
-  useForNew: 'Use for new tasks',
   loadFailed: 'We could not check this sign-in. Please try again in a moment.',
   errors: {
     badCode: 'That code does not look right. Copy it again from the provider’s page.',
@@ -17,6 +16,9 @@ export const subscriptionsCopy = {
     cancel: 'Stay signed in',
   },
 };
+
+/** What the default model list calls a signed-in plan. */
+export const planGroupLabel = 'Your own plan';
 
 export interface ProgramCopy {
   name: string;
