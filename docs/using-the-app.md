@@ -41,7 +41,7 @@ The task page has the conversation on one side and a panel on the other. On a ph
 | Plan | The steps the AI intends to take, and where it is |
 | Proof | What changed, how it was tested, and what was checked |
 | Changes | Each file the task changed, as a diff, with every step and its Undo |
-| Files | The whole project: open any file, edit it by hand and save |
+| Files | The whole project: open any file, edit it by hand and save. PDFs and pictures are shown in place, and any file can be downloaded |
 
 About Changes:
 
@@ -159,6 +159,7 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Designer | Sets the visual direction, writes `DESIGN.md` and builds the interface. It has built-in skills (design brief, frontend design, UI polish) and a library of craft rules, style families and page templates, and picks what fits the job |
 | Researcher | Reads the project and looks things up on the web. It writes notes with sources before the PRD, the design or the build. It cannot change files |
 | Media | Finds pictures you may use and edits them: resize, crop, convert, remove a background. Every picture it saves has its licence and credit written in `assets/CREDITS.md`, never on the page. It lists pictures that need no credit first |
+| Documents | Writes PowerPoint decks, Word documents and PDF files. It turns each page into a picture and looks at it before it reports. The file lands in `documents/`, and you download it from the Files tab |
 | Business Analyst | Turns your request, and what the Researcher found, into requirements before the PRD |
 | Architect | Designs the change, and checks the final code against the design, SOLID and Clean Architecture before the task is done. It cannot change files |
 | Developer | Writes the code. A new app is built with Nuxt, SQLite and the latest stable versions, with its own register and login forms when it needs accounts |

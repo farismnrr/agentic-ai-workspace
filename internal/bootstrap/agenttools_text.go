@@ -91,6 +91,10 @@ func describe(tool string, in toolArgs) taskapp.Described {
 		return describeShot(in)
 	}
 
+	if tool == toolViewImage {
+		return describeView(in)
+	}
+
 	if codingdomain.IsWebTool(tool) {
 		return describeWeb(tool, in)
 	}

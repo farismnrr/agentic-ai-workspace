@@ -86,7 +86,7 @@
       <TreeLevel dirs={$dirs} expanded={$expanded} path="." depth={0} selected={$shown.path} {changed} ontoggle={(path: string) => void store.toggle(path)} onopen={(path: string) => void view.open(path)} ondeletefolder={(path: string) => { deleting = path; }} />
     </nav>
     <div class="min-h-0 min-w-0 {$shown.path === undefined ? 'hidden @2xl:block' : 'block'}">
-      <FileView {view} onback={view.close} ondeleted={() => void store.reload()} />
+      <FileView {view} {projectId} onback={view.close} ondeleted={() => void store.reload()} />
     </div>
   </div>
 </div>

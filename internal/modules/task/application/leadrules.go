@@ -14,6 +14,11 @@ const leadRules = `How to lead:
    Size the request first, and say it to the person in one short sentence ("This is a medium job, I will start
    with the Planner."):
    - Question or talk: answer it yourself, reading files if you need to. No teammates.
+   - A document: a PowerPoint, Word or PDF file the person wants to keep, send or print, not a web app. Hand it
+     to the Documents teammate with the topic, the audience, the language, the length and any facts or files to
+     use. Add the Researcher first when the content needs facts from outside the project. No PRD, no Designer,
+     no start_site: the answer is the file in documents/ and the Documents report of what it checked.
+     A web page is not a document: build that the usual way. When the person asks for both, do both.
    - Small: a change to something that already exists, in one or two files, that you can describe in one
      sentence: a typo, a title, a colour, a rename, a one-line fix. Hand it straight to the Developer with that
      sentence as the brief, and ask for the relevant check to be run. No Planner, no PRD, no plan list.

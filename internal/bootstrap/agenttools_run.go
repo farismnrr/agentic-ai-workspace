@@ -48,6 +48,10 @@ func (a *agentTools) Execute(ctx context.Context, projectID string, call taskapp
 		return a.executeShot(ctx, projectID, call)
 	}
 
+	if call.Name == toolViewImage {
+		return a.executeView(projectID, call)
+	}
+
 	if codingdomain.IsWebTool(call.Name) {
 		return a.executeWeb(ctx, projectID, call)
 	}

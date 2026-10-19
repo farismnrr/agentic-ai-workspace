@@ -109,6 +109,14 @@ var ToolScreenshot = ToolInfo{
 		"page scaled down.",
 }
 
+// ToolViewImage shows the agent a PNG or JPEG of the project, such as a page of a document it rendered. Like the web
+// tools it follows read_file (see SwitchOf).
+var ToolViewImage = ToolInfo{
+	Name: "view_image", Title: "Look at a picture", Scope: ScopeRead, Group: GroupRead, ReadOnly: true,
+	Description: "Look at a PNG or JPEG picture in the project (up to 4 MB), such as a page of a document turned " +
+		"into a picture with pdftoppm. Use it to check a page before you report it done.",
+}
+
 // The web tools look things up outside the project. They have no switches of their own: searching, reading and
 // finding pictures follow read_file, and saving a picture follows write_file (see SwitchOf).
 var (
@@ -155,7 +163,8 @@ func SwitchOf(tool string) string {
 		return ToolRunCommand.Name
 	}
 
-	if tool == ToolWebSearch.Name || tool == ToolFetchPage.Name || tool == ToolSearchImages.Name {
+	if tool == ToolWebSearch.Name || tool == ToolFetchPage.Name || tool == ToolSearchImages.Name ||
+		tool == ToolViewImage.Name {
 		return ToolReadFile.Name
 	}
 

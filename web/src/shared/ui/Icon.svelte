@@ -22,6 +22,7 @@
     'arrow-left': 'M19 12H5m6-6-6 6 6 6',
     'chevron-right': 'M9 6l6 6-6 6',
     'chevron-down': 'M6 9l6 6 6-6',
+    download: 'M12 3v12m-5-5 5 5 5-5M4 20h16',
     trash: 'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6',
     lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
     info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8h.01',

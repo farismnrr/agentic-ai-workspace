@@ -25,12 +25,12 @@ func TestPresetsAreTheSDLCTeamWithOneLead(t *testing.T) {
 	lead, ok := team.Lead()
 
 	keys := keysOf(team)
-	if !ok || lead.Key != "orchestrator" || len(keys) != 12 || !slices.Contains(keys, "planner") {
-		t.Fatalf("expected the 12 SDLC roles led by the orchestrator: %v", keys)
+	if !ok || lead.Key != "orchestrator" || len(keys) != 13 || !slices.Contains(keys, "planner") {
+		t.Fatalf("expected the 13 roles led by the orchestrator: %v", keys)
 	}
 
-	if len(team.Members()) != 11 {
-		t.Fatalf("the lead hands work to the other ten: %d", len(team.Members()))
+	if len(team.Members()) != 12 {
+		t.Fatalf("the lead hands work to the other twelve: %d", len(team.Members()))
 	}
 
 	if _, err := team.Normalize(); err != nil {
@@ -44,8 +44,8 @@ func TestPresetAccessFollowsTheRole(t *testing.T) {
 	want := map[string][]string{
 		"planner": {"read", "ask"}, "researcher": {"read", "web"}, "media": {"read", "write", "exec", "images"},
 		"business-analyst": {"read", "ask"}, "architect": {"read"}, "reviewer": {"read"},
-		"designer": {"read", "write", "exec", "ask"},
-		"qa":       {"read", "exec"}, "security": {"read", "exec"},
+		"designer": {"read", "write", "exec", "ask"}, "documents": {"read", "write", "exec"},
+		"qa": {"read", "exec"}, "security": {"read", "exec"},
 		"developer": {"read", "write", "exec"}, "devops": {"read", "write", "exec"},
 	}
 
@@ -137,7 +137,7 @@ func TestOlderSavedTeamsGetNewBuiltInRoles(t *testing.T) {
 	t.Parallel()
 
 	old := domain.Team{Roles: []domain.Role{{Key: "orchestrator", Name: "Orchestrator", Lead: true, Enabled: true}}}
-	if keys := keysOf(old.WithBuiltIns()); !slices.Contains(keys, "planner") || len(keys) != 12 {
+	if keys := keysOf(old.WithBuiltIns()); !slices.Contains(keys, "planner") || len(keys) != 13 {
 		t.Fatalf("a team saved before the Planner existed gets it: %v", keys)
 	}
 }

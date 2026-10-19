@@ -100,7 +100,10 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 		}
 	}
 
-	return append(append(append(defs, siteDefinitions()...), screenshotDefinition()), a.webDefinitions()...)
+	defs = append(defs, siteDefinitions()...)
+	defs = append(defs, screenshotDefinition(), viewImageDefinition())
+
+	return append(defs, a.webDefinitions()...)
 }
 
 // Risk grades how careful the agent must be: edits are undoable (low), the rest ask by default.

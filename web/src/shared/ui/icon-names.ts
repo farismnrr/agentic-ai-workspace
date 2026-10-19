@@ -47,5 +47,6 @@ export type IconName =
   | 'activity'
   | 'bar-chart'
   | 'external-link'
+  | 'download'
   | 'user'
   | 'log-out';
