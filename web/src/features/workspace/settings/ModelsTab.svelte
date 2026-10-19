@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
+  import { planGroupLabel, programs } from '../content/subscriptions';
+  import type { Program } from '../logic/subscriptions-api';
   import { effortChoices, hasEffortChoice } from '../logic/effort';
   import { groupModels, modelValue } from '../logic/model-groups';
   import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
@@ -13,6 +15,7 @@
   import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
   import ContextWindows from './ContextWindows.svelte';
+  import PlanProviders from './PlanProviders.svelte';
   import ProviderRow from './ProviderRow.svelte';
 
   let providers: Provider[] = $state([]);
@@ -23,6 +26,7 @@
   let pending: Provider | undefined = $state();
   let notice = $state('');
   let failed = $state(false);
+  let plans: Program[] = $state([]);
 
   const chosen = $derived(prefs === undefined || prefs.defaultModel === '' ? '' : `${prefs.defaultProviderId}::${prefs.defaultModel}`);
 
@@ -88,12 +92,17 @@
   <p class="text-error" role="alert">{modelsCopy.failed}</p>
 {:else}
   <SettingsSection title="Default model" description={modelsCopy.defaultIntro}>
-    {#if options.length === 0}
+    {#if options.length === 0 && plans.length === 0}
       <EmptyState compact icon="key" title={modelsCopy.noModels.title} body={modelsCopy.noModels.body} />
     {:else}
       <SettingRow label="Model" for="default-model">
         <select id="default-model" class="select select-sm w-72" value={chosen} onchange={(event) => pick(event.currentTarget.value)}>
           <option value="">Choose when I start a task</option>
+          {#if plans.length > 0}
+            <optgroup label={planGroupLabel}>
+              {#each plans as program (program)}<option value="plan:{program}::default">{programs[program].name}</option>{/each}
+            </optgroup>
+          {/if}
           {#each groupModels(options) as group (group.label)}
             <optgroup label={group.label}>
               {#each group.models as option (modelValue(option))}<option value={modelValue(option)}>{option.model}</option>{/each}
@@ -128,6 +137,8 @@
       </ul>
     {/if}
   </SettingsSection>
+
+  <PlanProviders bind:connected={plans} onchange={refresh} />
 {/if}
 
 <AddProviderModal bind:show={adding} onadded={added} />
