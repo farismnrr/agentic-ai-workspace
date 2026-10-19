@@ -33,3 +33,11 @@ export function describeSignInError(failure: unknown, copy: { badCode: string; f
   if (failure.code === 'unavailable') return copy.unavailable;
   return copy.failed;
 }
+
+const programs: Program[] = ['claude', 'chatgpt'];
+
+/** The programs the person is signed in to. */
+export async function loadConnectedPlans(): Promise<Program[]> {
+  const states = await Promise.all(programs.map(loadSubscription));
+  return programs.filter((_, index) => states[index]?.connected === true);
+}

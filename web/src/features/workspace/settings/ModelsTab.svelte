@@ -3,8 +3,8 @@
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
-  import { planGroupLabel, programs } from '../content/subscriptions';
-  import type { Program } from '../logic/subscriptions-api';
+  import { planGroupLabel, programs, subscriptionsCopy } from '../content/subscriptions';
+  import { loadConnectedPlans, signOut, type Program } from '../logic/subscriptions-api';
   import { effortChoices, hasEffortChoice } from '../logic/effort';
   import { groupModels, modelValue } from '../logic/model-groups';
   import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
@@ -15,8 +15,9 @@
   import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
   import ContextWindows from './ContextWindows.svelte';
-  import PlanProviders from './PlanProviders.svelte';
+  import PlanRow from './PlanRow.svelte';
   import ProviderRow from './ProviderRow.svelte';
+  import SubscriptionDialog from './SubscriptionDialog.svelte';
 
   let providers: Provider[] = $state([]);
   let options: ModelOption[] = $state([]);
@@ -27,12 +28,14 @@
   let notice = $state('');
   let failed = $state(false);
   let plans: Program[] = $state([]);
+  let signingIn: Program | undefined = $state();
+  let leaving: Program | undefined = $state();
 
   const chosen = $derived(prefs === undefined || prefs.defaultModel === '' ? '' : `${prefs.defaultProviderId}::${prefs.defaultModel}`);
 
   async function refresh(): Promise<void> {
     try {
-      [providers, options, prefs] = await Promise.all([loadProviders(), loadModels(), loadPreferences()]);
+      [providers, options, prefs, plans] = await Promise.all([loadProviders(), loadModels(), loadPreferences(), loadConnectedPlans()]);
       failed = false;
     } catch {
       failed = true;
@@ -72,6 +75,27 @@
       notice = describeProviderError(error);
     }
     await refresh();
+  }
+
+  async function confirmLeave(): Promise<void> {
+    const target = leaving;
+    leaving = undefined;
+    if (target === undefined) return;
+    try {
+      await signOut(target);
+    } catch (error) {
+      notice = describeProviderError(error);
+    }
+    await refresh();
+  }
+
+  function startSignIn(program: Program): void {
+    signingIn = program;
+  }
+
+  function signedIn(): void {
+    signingIn = undefined;
+    void refresh();
   }
 
   const showNotice = (message: string): void => {
@@ -127,10 +151,13 @@
       <button class="btn btn-ghost btn-sm" type="button" aria-label="Add provider" onclick={() => (adding = true)}><Icon name="plus" class="size-4" /> Add</button>
     {/snippet}
     {#if notice !== ''}<p class="py-3 text-sm text-error" role="alert">{notice}</p>{/if}
-    {#if providers.length === 0}
+    {#if providers.length === 0 && plans.length === 0}
       <EmptyState compact icon="key" title={modelsCopy.none.title} body={modelsCopy.none.body} />
     {:else}
       <ul>
+        {#each plans as program (program)}
+          <PlanRow {program} onremove={() => (leaving = program)} />
+        {/each}
         {#each providers as provider (provider.id)}
           <ProviderRow {provider} onchange={refresh} onremove={() => (pending = provider)} onerror={showNotice} />
         {/each}
@@ -138,10 +165,21 @@
     {/if}
   </SettingsSection>
 
-  <PlanProviders bind:connected={plans} onchange={refresh} />
 {/if}
 
-<AddProviderModal bind:show={adding} onadded={added} />
+<AddProviderModal bind:show={adding} onadded={added} onplan={startSignIn} />
+{#if signingIn !== undefined}
+  <SubscriptionDialog program={signingIn} open onclose={() => (signingIn = undefined)} ondone={signedIn} />
+{/if}
+<ConfirmModal
+  open={leaving !== undefined}
+  title={subscriptionsCopy.signOutDialog.title(leaving === undefined ? '' : programs[leaving].name)}
+  body={subscriptionsCopy.signOutDialog.body}
+  confirmLabel={subscriptionsCopy.signOutDialog.confirm}
+  cancelLabel={subscriptionsCopy.signOutDialog.cancel}
+  oncancel={() => (leaving = undefined)}
+  onconfirm={confirmLeave}
+/>
 <ConfirmModal
   open={pending !== undefined}
   title="Remove {pending?.name ?? ''}?"
