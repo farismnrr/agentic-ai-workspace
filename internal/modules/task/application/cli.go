@@ -97,7 +97,7 @@ func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 		p.flush(ctx)
 		p.step(ctx, domain.Event{
 			Text: event.Text, Technical: event.Technical,
-			Run: &domain.RunInfo{Name: "command", ExitCode: event.ExitCode, TimedOut: event.TimedOut},
+			Run: &domain.RunInfo{Name: checkName(event.Technical), ExitCode: event.ExitCode, TimedOut: event.TimedOut},
 		})
 	}
 }
@@ -135,4 +135,22 @@ func (p *planSink) finish(ctx context.Context, result CLIResult) outcome {
 	}
 
 	return p.runner.answer(ctx, p.task, summary)
+}
+
+const maxCheckName = 60
+
+// checkName is how a program's command is listed among the checks that ran: its first line, kept short.
+func checkName(command string) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(command), "\n")
+	runes := []rune(line)
+
+	if len(runes) == 0 {
+		return "command"
+	}
+
+	if len(runes) > maxCheckName {
+		return string(runes[:maxCheckName]) + "…"
+	}
+
+	return line
 }
