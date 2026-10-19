@@ -14,28 +14,34 @@ from pathlib import Path
 KINDS = {".pdf": "PDF", ".docx": "Word", ".pptx": "PowerPoint", ".xlsx": "Excel"}
 DPI = "144"  # sharp when the page is shown about 50rem wide on a large screen
 
+# The values of the app's masihawam-light theme (web/src/app.css, docs/design-system.md). The sandbox cannot import
+# them, so they are copied here: change them together. Fonts: Inter and Newsreader are not in the sandbox, so the
+# stacks fall back to the platform sans-serif and a serif for headings.
 STYLE = """
-:root{--bg:#f3f4f6;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#1f4e79}
+:root{--base-100:#fffdf7;--base-200:#f6f3eb;--text:#151517;--text-2:#605e58;--border:rgb(17 17 19/.13);
+--primary:#657c1a;--on-primary:#fffdf7;--shadow:0 18px 48px rgb(48 43 31/.12)}
 *{box-sizing:border-box}
-body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
-header{position:sticky;top:0;z-index:1;background:var(--card);border-bottom:1px solid var(--line)}
+body{margin:0;font:16px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--base-200);color:var(--text)}
+h1,h2{font-family:Newsreader,Georgia,"Times New Roman",serif;font-weight:600}
+header{position:sticky;top:0;z-index:1;background:var(--base-100);border-bottom:1px solid var(--border)}
 .bar{max-width:64rem;margin:0 auto;padding:.75rem 1rem;display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center}
-h1{margin:0;font-size:1.125rem}
+h1{margin:0;font-size:1.375rem}
 nav{display:flex;flex-wrap:wrap;gap:.5rem}
-nav a{padding:.25rem .75rem;border:1px solid var(--line);border-radius:999px;color:var(--text);text-decoration:none;font-size:.875rem}
-nav a:hover,nav a:focus-visible{border-color:var(--accent);color:var(--accent)}
+nav a{padding:.25rem .75rem;border:1px solid var(--border);border-radius:999px;color:var(--text);text-decoration:none;font-size:.875rem}
+nav a:hover{border-color:var(--primary);color:var(--primary)}
 main{max-width:64rem;margin:0 auto;padding:1rem 1rem 3rem}
 section{margin:1.5rem 0 3rem;scroll-margin-top:4rem}
 .head{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;justify-content:space-between;margin-bottom:1rem}
-h2{margin:0;font-size:1.25rem;overflow-wrap:anywhere}
-.kind{color:var(--muted);font-size:.875rem}
-.btn{padding:.5rem 1rem;border-radius:.5rem;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:.9375rem}
-.btn:hover,.btn:focus-visible{filter:brightness(1.15)}
+h2{margin:0;font-size:1.5rem;overflow-wrap:anywhere}
+.kind{color:var(--text-2);font-size:.875rem}
+.btn{padding:.5rem 1.25rem;border-radius:999px;background:var(--primary);color:var(--on-primary);text-decoration:none;font-weight:600;font-size:.9375rem}
+.btn:hover{filter:brightness(1.12)}
 figure{margin:0 auto 1.5rem;width:100%;max-width:52rem}
 figure.wide{max-width:64rem}
-img{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:.375rem;box-shadow:0 1px 3px rgb(0 0 0/.12)}
-figcaption{margin-top:.375rem;text-align:center;color:var(--muted);font-size:.8125rem}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+img{display:block;width:100%;height:auto;background:var(--base-100);border:1px solid var(--border);border-radius:.75rem;box-shadow:var(--shadow)}
+figcaption{margin-top:.5rem;text-align:center;color:var(--text-2);font-size:.8125rem}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.btn,nav a{transition:filter .15s,color .15s,border-color .15s}}
 """
 
 

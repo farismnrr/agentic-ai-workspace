@@ -29,6 +29,7 @@ The brand trio is split-complementary, anchored on the olive primary: olive, the
 - **Status colors** keep conventional hues. They are not forced into the brand trio.
 - **Primary is a brand role, success is a status role.** Never show success with olive or the lime marker alone.
 - **Theme values** live in `web/src/app.css`. Feature components must not redefine them.
+- **Document viewer.** The page of a document site, made by `sandbox/docsite.py`, copies the theme values because a site cannot import them. Change both together.
 
 ## Surfaces and text
 
