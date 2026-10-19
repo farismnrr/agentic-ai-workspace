@@ -71,15 +71,21 @@ func (p *plans) Run(
 }
 
 // programArgv is the command for one turn. The prompt arrives on standard input. The container is the
-// sandbox, so the program is not asked to ask permission for every step.
+// sandbox, so the program is not asked to ask permission for every step. The model and effort are passed only
+// when they are ones the program is known to take, so a stray value never becomes an option of its own.
 func programArgv(req taskapp.CLIRequest) []string {
-	if req.Program == string(cliagentdomain.ChatGPT) {
+	runtime := cliagentdomain.Runtime(req.Program)
+	model, effort := cliagentdomain.Choice(runtime, req.Model, req.Effort)
+
+	if runtime == cliagentdomain.ChatGPT {
 		argv := []string{"codex", "exec"}
 		if req.Session != "" {
 			argv = append(argv, "resume")
 		}
 
 		argv = append(argv, "--json", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox")
+		argv = append(argv, choice("-m", model, "-c", `model_reasoning_effort="`+effort+`"`, effort)...)
+
 		if req.Session != "" {
 			argv = append(argv, req.Session)
 		}
@@ -91,9 +97,26 @@ func programArgv(req taskapp.CLIRequest) []string {
 		"claude", "-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
 		"--permission-mode", "bypassPermissions",
 	}
+	argv = append(argv, choice("--model", model, "--effort", effort, effort)...)
+
 	if req.Session != "" {
 		argv = append(argv, "--resume", req.Session)
 	}
 
 	return argv
+}
+
+// choice is the options for a model and an effort the person chose; each is left out when empty.
+func choice(modelFlag, model, effortFlag, effortOption, effort string) []string {
+	var options []string
+
+	if model != "" {
+		options = append(options, modelFlag, model)
+	}
+
+	if effort != "" {
+		options = append(options, effortFlag, effortOption)
+	}
+
+	return options
 }

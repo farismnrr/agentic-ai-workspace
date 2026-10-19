@@ -45,33 +45,38 @@ func (s *Service) chooseModel(ctx context.Context, userID string, in CreateInput
 	return providerID, model, nil
 }
 
-// planProgram says whether the task runs on the person's own plan with a vendor's coding program: they
-// asked for it, or it is their default. Without a runner for programs, nothing does.
-func (s *Service) planProgram(ctx context.Context, userID string, in CreateInput) (string, bool) {
+// planProgram says whether the task runs on the person's own plan with a vendor's coding program, and with
+// which of its models: they asked for it, or it is their default. Without a runner for programs, nothing does.
+func (s *Service) planProgram(ctx context.Context, userID string, in CreateInput) (program, model string, onPlan bool) {
 	if s.deps.CLI == nil {
-		return "", false
+		return "", "", false
 	}
 
-	if in.ProviderID != "" {
-		return domain.PlanRuntime(in.ProviderID)
+	providerID, model := in.ProviderID, in.Model
+
+	if providerID == "" {
+		var err error
+		if providerID, model, err = s.deps.Models.Default(ctx, userID); err != nil {
+			return "", "", false
+		}
 	}
 
-	providerID, _, err := s.deps.Models.Default(ctx, userID)
-	if err != nil {
-		return "", false
+	program, onPlan = domain.PlanRuntime(providerID)
+	if model == "" {
+		model = domain.PlanModel
 	}
 
-	return domain.PlanRuntime(providerID)
+	return program, model, onPlan
 }
 
 // route settles whether a team does the task, and which provider it starts on: the person's own plan when
 // that is what they asked for or prefer, the lead's model for a team, or the person's default model.
 func (s *Service) route(ctx context.Context, userID string, in CreateInput) (CreateInput, bool) {
-	program, onPlan := s.planProgram(ctx, userID, in)
+	program, model, onPlan := s.planProgram(ctx, userID, in)
 	team := s.chooseTeam(in.Team) && !onPlan
 
 	if onPlan {
-		in.ProviderID, in.Model = domain.PlanProvider(program), domain.PlanModel
+		in.ProviderID, in.Model = domain.PlanProvider(program), model
 	}
 
 	return s.leadModel(ctx, userID, in, team), team
