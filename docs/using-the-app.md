@@ -86,6 +86,20 @@ Two settings shape how a model works:
 
 The context window comes from what the provider reports, else 200K, or 1M for names ending in `[1m]`.
 
+## Your own AI plan
+
+Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay for, instead of adding an API key.
+
+1. Open **Settings → Integrations → Your own AI plans**.
+2. Press **Sign in** and **Open Claude** (or **Open ChatGPT**).
+3. Claude shows a code: paste it into the window. ChatGPT shows a code in the window: type it on the ChatGPT page.
+4. Turn on **Use for new tasks**. Each task then runs on your plan.
+
+- **Your sign-in stays private.** You sign in on the provider's own page. The app never sees your password or token.
+- **Each person signs in on their own.** Plans are never shared between people.
+- **Not signed in?** A task stops with a note telling you to sign in, and Continue works afterwards.
+- **Today** these tasks work in one project, one step at a time. There is no team, no Undo and no per-step approval yet.
+
 ## Agent team
 
 An agent team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.

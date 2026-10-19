@@ -38,6 +38,7 @@ func newToolbox(folders *folder.Folders, cfg config.Config, engine *codingrunner
 	}
 
 	tools.web = newWeb(cfg)
+	tools.plans = newPlans(cfg, engine, folders)
 
 	return tools, nil
 }

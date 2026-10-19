@@ -26,6 +26,13 @@ var defaultEgressHosts = []string{
 	"repo.maven.apache.org", "repo1.maven.org",
 }
 
+// Hosts the vendors' own CLIs may reach while a person signs in or works with their plan. Each list is
+// reachable only from the container of that vendor's CLI.
+var (
+	defaultClaudeHosts  = []string{"claude.com", "platform.claude.com", "console.anthropic.com", "api.anthropic.com"}
+	defaultChatGPTHosts = []string{"auth.openai.com", "chatgpt.com", "api.openai.com"}
+)
+
 // Config contains runtime process configuration.
 type Config struct {
 	GitHub            GitHub
@@ -42,6 +49,8 @@ type Config struct {
 	CORSOrigins     []string
 	AllowedOrigins  []string
 	SandboxEgress   []string
+	ClaudeEgress    []string
+	ChatGPTEgress   []string
 	AgentWorkers    int
 	MaxSandboxes    int
 	SiteMaxPerUser  int
@@ -97,6 +106,8 @@ func Load() Config {
 		SandboxRuntime:    strings.TrimSpace(os.Getenv("SANDBOX_RUNTIME")),
 		SandboxDataVolume: strings.TrimSpace(os.Getenv("SANDBOX_DATA_VOLUME")),
 		SandboxEgress:     list("SANDBOX_EGRESS_HOSTS", defaultEgressHosts),
+		ClaudeEgress:      list("CLAUDE_EGRESS_HOSTS", defaultClaudeHosts),
+		ChatGPTEgress:     list("CHATGPT_EGRESS_HOSTS", defaultChatGPTHosts),
 		SandboxMemoryMB:   atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
 		SandboxCPUs:       atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
 		CookieSecure:      strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),

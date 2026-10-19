@@ -105,6 +105,13 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 - **Checks.** A project's checks live in `.workspace/tasks.json`. The AI's tools can never read or write that file.
 - **GitHub.** Each person connects their own account. Commands get only their token. Web apps never do.
 
+## Your own AI plan
+
+- **How:** the provider's own program (Claude Code or Codex) runs in the sandbox image, once per turn, in the project's folder. The app reads what it prints and records the steps.
+- **Sign-in:** the program signs in on the provider's page. The app never reads or stores the token. It only keeps the program's folder per person and removes it with the account.
+- **Network:** the program reaches only its provider's hosts, through the same per-person proxy socket.
+- **Proof:** commands the program ran count like the app's own, so "Proven to work" still comes from the app.
+
 ## Models
 
 - **Providers:** Anthropic, OpenAI, Gemini, or an OpenAI-compatible gateway on the same computer, such as 9router.

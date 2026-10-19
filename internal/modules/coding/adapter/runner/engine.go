@@ -94,3 +94,54 @@ func (e *Engine) acquire(ctx context.Context) (func(), error) {
 		return nil, domain.ErrServerBusy
 	}
 }
+
+// Slot lends one place in the pool for work that is not a person's command, such as a vendor's
+// CLI: the shared Docker connection, the socket of a proxy that reaches only the given hosts, and
+// the function that gives the place back. The proxy is kept per id, so one person's access never
+// reaches another's. Without a proxy (or without the toolbox image) the socket folder is empty.
+func (e *Engine) Slot(
+	ctx context.Context, id string, hosts ...string,
+) (docker *sandbox.Docker, egress string, release func(), err error) {
+	release, err = e.acquire(ctx)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	docker, err = e.Docker(ctx)
+	if err != nil {
+		release()
+
+		return nil, "", nil, err
+	}
+
+	if e.extras.Proxy != nil && len(docker.Toolchains()) > 0 {
+		if dir, derr := e.extras.Proxy.Dir(ctx, id, hosts...); derr == nil {
+			egress = dir
+		}
+	}
+
+	return docker, egress, release, nil
+}
+
+// Lease lends one place in the pool, with a workspace folder, its package cache and a proxy that also reaches
+// the given hosts. It is for work the server starts itself in a project, such as a vendor's coding program.
+func (e *Engine) Lease(
+	ctx context.Context, dir string, hosts ...string,
+) (docker *sandbox.Docker, spec sandbox.Spec, release func(), err error) {
+	release, err = e.acquire(ctx)
+	if err != nil {
+		return nil, sandbox.Spec{}, nil, err
+	}
+
+	docker, err = e.Docker(ctx)
+	if err != nil {
+		release()
+
+		return nil, sandbox.Spec{}, nil, err
+	}
+
+	spec = sandbox.Spec{Workspace: dir}
+	e.prepare(ctx, dir, &spec, docker, hosts...)
+
+	return docker, spec, release, nil
+}

@@ -36,6 +36,9 @@ type Deps struct {
 	Diffs FileDiffs
 	// Shots keeps the screenshots tools produce; optional. Without it a screenshot is only described in words.
 	Shots Shots
+	// CLI runs tasks on a person's own plan with a vendor's coding program; optional. Sessions goes with it.
+	CLI      CLIRunner
+	Sessions CLISessions
 }
 
 // Runner is the agent loop: it talks to the model, runs tools, and records every
@@ -92,7 +95,13 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 	runCtx, cancel := context.WithTimeout(ctx, r.lim.wallTime(task.Team))
 	defer cancel()
 
-	result := r.loop(runCtx, task)
+	var result outcome
+	if _, onPlan := domain.PlanRuntime(task.ProviderID); onPlan {
+		result = r.runPlan(runCtx, task)
+	} else {
+		result = r.loop(runCtx, task)
+	}
+
 	r.settle(settle, task, result)
 }
 

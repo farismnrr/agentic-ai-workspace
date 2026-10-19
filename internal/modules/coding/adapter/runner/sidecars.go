@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egressproxy"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
@@ -106,11 +108,33 @@ func environment(spec sandbox.Spec) []string {
 	}
 
 	if spec.Egress != "" {
-		env = append(env, "HTTPS_PROXY="+proxyAddress, "HTTP_PROXY="+proxyAddress,
-			"https_proxy="+proxyAddress, "http_proxy="+proxyAddress,
-			"NO_PROXY="+loopback, "no_proxy="+loopback,
-			"JAVA_TOOL_OPTIONS=-Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=3128")
+		env = append(env, ProxyEnv()...)
 	}
 
 	return env
+}
+
+// Environment is what a command in spec gets, with the given KEY=value entries replacing the usual ones.
+func Environment(spec sandbox.Spec, replace ...string) []string {
+	env := environment(spec)
+	out := make([]string, 0, len(env)+len(replace))
+
+	for _, entry := range env {
+		key, _, _ := strings.Cut(entry, "=")
+		if !slices.ContainsFunc(replace, func(r string) bool { return strings.HasPrefix(r, key+"=") }) {
+			out = append(out, entry)
+		}
+	}
+
+	return append(out, replace...)
+}
+
+// ProxyEnv points a program at the local port the start script publishes the proxy socket on.
+func ProxyEnv() []string {
+	return []string{
+		"HTTPS_PROXY=" + proxyAddress, "HTTP_PROXY=" + proxyAddress,
+		"https_proxy=" + proxyAddress, "http_proxy=" + proxyAddress,
+		"NO_PROXY=" + loopback, "no_proxy=" + loopback,
+		"JAVA_TOOL_OPTIONS=-Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=3128",
+	}
 }

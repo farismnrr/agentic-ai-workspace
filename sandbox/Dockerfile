@@ -89,6 +89,15 @@ ARG LUCIDE_VERSION=1.59.0
 RUN npm install --prefix /opt/vector --no-audit --no-fund "svgo@${SVGO_VERSION}" "lucide-static@${LUCIDE_VERSION}" \
     && chmod -R a+rX /opt/vector
 
+# The vendors' own coding CLIs, unmodified, from npm and pinned. People sign in to them with their own plan, and the
+# server only starts them (never the agent's commands) in a container that can reach nothing but the vendor's hosts.
+FROM node AS cli
+ARG CLAUDE_CODE_VERSION=2.1.303
+ARG CODEX_VERSION=0.163.0
+RUN npm install --prefix /opt/cli --no-audit --no-fund "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
+      "@openai/codex@${CODEX_VERSION}" \
+    && chmod -R a+rX /opt/cli
+
 # Bun, the runtime and package manager apps the AI builds run on, from the official release, pinned to a version and
 # checked against its published checksum.
 FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587 AS bun
@@ -139,6 +148,7 @@ COPY --from=java /opt/java/openjdk /opt/java/openjdk
 COPY --from=maven /usr/share/maven /opt/maven
 
 COPY --from=vector /opt/vector /opt/vector
+COPY --from=cli /opt/cli /opt/cli
 COPY --from=rembg /opt/rembg /opt/rembg
 COPY --from=rembg /opt/rembg-models /opt/rembg-models
 COPY --from=docs /opt/docs /opt/docs
@@ -154,6 +164,8 @@ COPY --from=templates /opt/templates /usr/local/share/templates
 COPY sandbox/new-nuxt-app.sh /usr/local/bin/new-nuxt-app
 RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg /usr/local/bin/docconvert /usr/local/bin/new-nuxt-app \
     && ln -s /opt/vector/node_modules/.bin/svgo /usr/local/bin/svgo \
+    && ln -s /opt/cli/node_modules/.bin/claude /usr/local/bin/claude \
+    && ln -s /opt/cli/node_modules/.bin/codex /usr/local/bin/codex \
     && printf '#!/bin/sh\nexec /opt/docs/bin/python "$@"\n' > /usr/local/bin/docpython \
     && chmod 0755 /usr/local/bin/docpython \
     && printf '#!/bin/sh\nexec /opt/docs/bin/python /usr/local/share/docsite/docsite.py "$@"\n' > /usr/local/bin/docsite \
