@@ -65,7 +65,7 @@ func codexCommand(command string, exit *int, status string) application.CLIEvent
 	code := 0
 	if exit != nil {
 		code = *exit
-	} else if status == "failed" {
+	} else if status == "failed" || status == "declined" {
 		code = 1
 	}
 
