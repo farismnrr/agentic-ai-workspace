@@ -26,6 +26,9 @@ export interface OpenFile {
 const base = (projectId: string): string => `/api/projects/${encodeURIComponent(projectId)}`;
 const query = (path: string): string => `?path=${encodeURIComponent(path)}`;
 
+/** The address of a file as it is, to show in the page or to download. */
+export const rawUrl = (projectId: string, path: string, download = false): string => `${base(projectId)}/file/raw${query(path)}${download ? '&download=1' : ''}`;
+
 export const listFiles = (projectId: string, path: string): Promise<FileListing> => request<FileListing>('GET', `${base(projectId)}/files${query(path)}`);
 
 export const readFile = (projectId: string, path: string): Promise<OpenFile> => request<OpenFile>('GET', `${base(projectId)}/file${query(path)}`);

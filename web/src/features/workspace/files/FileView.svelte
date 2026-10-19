@@ -2,17 +2,19 @@
   import { untrack } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import CodeEditor from '../components/CodeEditor.svelte';
+  import BinaryFile from './BinaryFile.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
   import type { FileView } from '../logic/file-view';
 
   interface Props {
     view: FileView;
+    projectId: string;
     /** Back to the tree, on a screen too narrow to show both. */
     onback: () => void;
     ondeleted: () => void;
   }
 
-  const { view, onback, ondeleted }: Props = $props();
+  const { view, projectId, onback, ondeleted }: Props = $props();
   // A view never changes for the life of this component: the browser makes a new one per project.
   const shown = untrack(() => view.state);
   const dirty = $derived($shown.file !== undefined && $shown.draft !== $shown.file.content);
@@ -60,7 +62,7 @@
     {#if $shown.loading}
       <div class="grid flex-1 place-items-center"><span class="loading loading-spinner"></span></div>
     {:else if $shown.file?.binary === true}
-      <p class="m-4 text-sm text-[var(--brand-text-secondary)]">This file is not text, so it cannot be shown here.</p>
+      <BinaryFile {projectId} path={$shown.path} />
     {:else if $shown.file !== undefined}
       {#if $shown.file.truncated}<p class="mx-3 mt-2 text-xs text-[var(--brand-text-secondary)]">This file is large, so only the start is shown and it cannot be edited here.</p>{/if}
       <div class="min-h-0 flex-1">

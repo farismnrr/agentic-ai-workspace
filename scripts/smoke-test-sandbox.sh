@@ -34,13 +34,16 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     curl -s http://127.0.0.1:8100/x | grep -q "^/run/a/b/x$" && echo prefix-ok
     curl -s -H "X-Forwarded-Prefix: /run/a/b/~1.ab" http://127.0.0.1:8100/x | grep -q "^/run/a/b/~1.ab/x$" && echo ticket-prefix-ok
     convert "msl:p.jpg" m.png 2>&1 | grep -q "security policy" && echo policy-ok
+    docpython -c "from pptx import Presentation; from docx import Document; from reportlab.pdfgen import canvas; import pypdf, openpyxl; p=Presentation(); p.slides.add_slide(p.slide_layouts[0]); p.save(\"d.pptx\"); d=Document(); d.add_heading(\"Hi\"); d.save(\"d.docx\"); canvas.Canvas(\"d.pdf\").save()" \
+      && docconvert d.pptx pdf . > /dev/null 2>&1 && docconvert d.docx pdf . > /dev/null 2>&1 \
+      && pdftoppm -png -r 40 -f 1 -l 1 d.pdf page && ls page*.png > /dev/null && echo docs-ok
     node /usr/local/share/capture/capture.ts "{\"url\":\"http://127.0.0.1:8000/\",\"width\":800,\"height\":600,\"y\":0}" \
       | grep -q "\"ok\":true" && echo shot-ok
   ' 2>&1)"
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "ticket-prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok"; do
+for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "ticket-prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok" "docs-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 

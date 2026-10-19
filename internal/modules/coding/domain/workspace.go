@@ -18,6 +18,8 @@ const (
 	MaxMatchLineLength = 300
 	MaxWriteBytes      = 1 << 20
 	MaxAssetBytes      = 10 << 20
+	MaxDownloadBytes   = 50 << 20
+	MaxViewBytes       = 4 << 20
 	MaxFindResults     = 200
 	MaxOutputBytes     = 64 << 10
 )
