@@ -25,7 +25,7 @@ func (r *Runner) runPlan(ctx context.Context, task domain.Task) outcome {
 	}
 
 	if !signedIn {
-		return failed("You are not signed in to "+name+".", "Sign in under Settings, Integrations, then press Continue.")
+		return failed("You are not signed in to "+name+".", "Sign in under Settings, Models, then press Continue.")
 	}
 
 	if err = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now()); err != nil {

@@ -1,7 +1,8 @@
 export const subscriptionsCopy = {
-  title: 'Your own AI plans',
-  intro: 'Sign in with a plan you already pay for, then pick it as your default model. You sign in on the provider’s own page; this app never sees your password.',
-  signIn: 'Sign in',
+  planChoice: 'Your plan',
+  keyChoice: 'API key',
+  planIntro: 'Sign in with the plan you already pay for. You sign in on the provider’s own page; this app never sees your password.',
+  signIn: (name: string): string => `Sign in with ${name}`,
   signOut: 'Sign out',
   loadFailed: 'We could not check this sign-in. Please try again in a moment.',
   errors: {
@@ -22,7 +23,8 @@ export const planGroupLabel = 'Your own plan';
 
 export interface ProgramCopy {
   name: string;
-  description: string;
+  /** What the provider list calls the plan next to its name. */
+  badge: string;
   connected: string;
   /** Plain steps shown while signing in. */
   steps: { open: string; finish: string };
@@ -31,7 +33,7 @@ export interface ProgramCopy {
 export const programs: Record<'claude' | 'chatgpt', ProgramCopy> = {
   claude: {
     name: 'Claude',
-    description: 'Use your own Claude plan (Pro or Max) for the AI’s work.',
+    badge: 'Claude Pro or Max plan',
     connected: 'Signed in. The AI can use your Claude plan.',
     steps: {
       open: 'Open Claude and sign in. It shows you a code when you are done.',
@@ -40,7 +42,7 @@ export const programs: Record<'claude' | 'chatgpt', ProgramCopy> = {
   },
   chatgpt: {
     name: 'ChatGPT',
-    description: 'Use your own ChatGPT plan (Plus or Pro) for the AI’s work.',
+    badge: 'ChatGPT Plus or Pro plan',
     connected: 'Signed in. The AI can use your ChatGPT plan.',
     steps: {
       open: 'Open ChatGPT and sign in.',

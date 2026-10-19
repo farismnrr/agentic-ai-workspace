@@ -90,10 +90,10 @@ The context window comes from what the provider reports, else 200K, or 1M for na
 
 Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay for, instead of adding an API key.
 
-1. Open **Settings → Models → Your own AI plans**.
-2. Press **Sign in** and **Open Claude** (or **Open ChatGPT**).
+1. Open **Settings → Models**, press **Add**, and choose **Anthropic** (or **OpenAI**).
+2. Switch from **API key** to **Your plan**, press **Sign in with Claude** (or ChatGPT), then **Open Claude** (or **Open ChatGPT**).
 3. Claude shows a code: paste it into the window. ChatGPT shows a code in the window: type it on the ChatGPT page.
-4. Choose it under **Default model → Your own plan**. New tasks then run on your plan.
+4. The plan now shows under **Connected providers**. Choose it under **Default model → Your own plan**. New tasks then run on your plan.
 
 - **Your sign-in stays private.** You sign in on the provider's own page. The app never sees your password or token.
 - **Each person signs in on their own.** Plans are never shared between people.
