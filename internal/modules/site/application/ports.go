@@ -49,8 +49,8 @@ type Runtime interface {
 
 // Projects says who owns a project.
 type Projects interface {
-	// Owner returns the owner and name of a project that exists and is not archived.
-	Owner(ctx context.Context, projectID string) (userID, name string, err error)
+	// Owner returns the owner and project ID of a project that exists and is not archived.
+	Owner(ctx context.Context, projectID string) (userID, slug string, err error)
 }
 
 // Notifier tells the person's open pages that their sites changed.

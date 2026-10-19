@@ -76,8 +76,8 @@ func userWorkspace(t *testing.T, app *fiber.App, cookie, client string) string {
 		`SELECT id FROM projects WHERE user_id = ? AND source = ? AND archived_at IS NULL`, userID, client).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		id = newTestID(t)
-		_, err = store.db.ExecContext(ctx, `INSERT INTO projects (id, user_id, name, description, source, created_at)
-			VALUES (?, ?, ?, '', ?, ?)`, id, userID, client, client, time.Now().Unix())
+		_, err = store.db.ExecContext(ctx, `INSERT INTO projects (id, user_id, name, description, slug, source, created_at)
+			VALUES (?, ?, ?, '', ?, ?, ?)`, id, userID, client, "app-"+id, client, time.Now().Unix())
 	}
 
 	if err != nil {

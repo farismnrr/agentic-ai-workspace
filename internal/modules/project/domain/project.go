@@ -20,7 +20,8 @@ var (
 	ErrNotFound           = errors.New("project not found")
 	ErrInvalidChecks      = errors.New("those checks are not valid")
 	ErrSourceTaken        = errors.New("a project for that app already exists")
-	ErrNameTaken          = errors.New("another project already has that name")
+	ErrInvalidSlug        = errors.New("a project ID has 6 to 30 lower-case letters, digits or dashes")
+	ErrSlugTaken          = errors.New("another project already has that ID")
 )
 
 // Project is a piece of work with its own folder of files.
@@ -31,6 +32,8 @@ type Project struct {
 	UserID      string
 	Name        string
 	Description string
+	// Slug is the project's ID as the person sees it: chosen once, unique, and the address of its site.
+	Slug string
 	// Source names the connected app that owns the project, such as ChatGPT; it is empty for
 	// projects the person made themselves.
 	Source string

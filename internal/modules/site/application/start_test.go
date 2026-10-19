@@ -8,7 +8,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
-func TestStartMakesAPrivateSiteAtTheProjectName(t *testing.T) {
+func TestStartMakesAPrivateSiteAtTheProjectID(t *testing.T) {
 	svc, _, store, notify := newService(application.Limits{PerUser: 2, Total: 6})
 
 	site, err := svc.Start(ctx, "p1", "python3 -m http.server 8000", 8000)
@@ -52,7 +52,7 @@ func TestStartingAgainReplacesTheAppAndKeepsTheAddressAndVisibility(t *testing.T
 	}
 }
 
-func TestTwoProjectsWithTheSameNameGetDifferentAddresses(t *testing.T) {
+func TestEachProjectHasItsOwnAddressFromItsID(t *testing.T) {
 	svc, _, _, _ := newService(application.Limits{PerUser: 5, Total: 6})
 
 	first, err := svc.Start(ctx, "p1", "serve", 3000)
@@ -60,18 +60,13 @@ func TestTwoProjectsWithTheSameNameGetDifferentAddresses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	second, err := svc.Start(ctx, "r1", "serve", 3001)
+	second, err := svc.Start(ctx, "p2", "serve", 3001)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if first.Slug != "toko-kopi" || second.Slug != "toko-kopi-2" {
+	if first.Slug != "toko-kopi" || second.Slug != "blog" {
 		t.Fatalf("addresses %q and %q", first.Slug, second.Slug)
-	}
-
-	again, err := svc.Start(ctx, "p1", "serve", 3000)
-	if err != nil || again.Slug != "toko-kopi" {
-		t.Fatalf("a project keeps its own address: %+v %v", again, err)
 	}
 }
 

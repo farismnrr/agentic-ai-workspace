@@ -21,7 +21,7 @@ func (s *Service) ForApp(ctx context.Context, userID, app string) (domain.Projec
 		return project, wrapFind(err)
 	}
 
-	project, err = s.create(ctx, userID, source, "Made for "+source, source)
+	project, err = s.create(ctx, userID, source, "Made for "+source, "", source)
 	if errors.Is(err, domain.ErrSourceTaken) {
 		return s.ForApp(ctx, userID, app)
 	}

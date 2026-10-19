@@ -22,6 +22,7 @@
   let template = $state('');
   let source = $state<'empty' | 'github' | 'new'>('empty');
   let name = $state('');
+  let slug = $state('');
   let description = $state('');
   let repo = $state('');
   let repoName = $state('');
@@ -62,7 +63,7 @@
     busy = true;
     error = '';
     try {
-      const project = await createNewProject({ name, description, source, template, repo, repoName, isPrivate });
+      const project = await createNewProject({ name, slug, description, source, template, repo, repoName, isPrivate });
       await refresh();
       navigate(`/app/projects/${project.id}`);
     } catch (failure) {
@@ -102,7 +103,7 @@
     {:else if step === 'where'}
       <StartWhere github={github === 'loading' ? 'off' : github} onpick={where} />
     {:else}
-      <StartDetails {source} bind:name bind:description bind:repo bind:repoName bind:isPrivate {busy} {error} onsubmit={() => void submit()} oncancel={() => { navigate('/app/projects'); }} />
+      <StartDetails {source} bind:name bind:slug bind:description bind:repo bind:repoName bind:isPrivate {busy} {error} onsubmit={() => void submit()} oncancel={() => { navigate('/app/projects'); }} />
     {/if}
   </div>
 </AppShell>

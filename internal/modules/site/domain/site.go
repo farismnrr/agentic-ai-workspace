@@ -1,5 +1,5 @@
 // Package domain holds the rules of sites: web apps the AI starts in the sandbox and
-// the person opens at /run/<name>/.
+// the person opens at /run/<project-id>/.
 package domain
 
 import (
@@ -29,7 +29,6 @@ const (
 // Site errors.
 var (
 	ErrNotFound     = errors.New("site not found")
-	ErrNameTaken    = errors.New("no free address name for this project; rename the project and try again")
 	ErrBadPort      = errors.New("use a port between 1024 and 65535")
 	ErrBadCommand   = errors.New("give the command that starts the app")
 	ErrNeverStarted = errors.New("this app has not been started before; ask the AI to start it once")
@@ -46,11 +45,10 @@ const (
 	MaxPort = 65535
 )
 
-// Site is one web app of a project. Slug is its address, unique across the server: it comes from the project's
-// name the first time the project starts an app and is kept after that, so the address does not change when the
-// app is stopped and started again, or the project is renamed. Token is a random UUID that never appears in the
-// address: it keys the tickets and still opens addresses made before names were unique. Command is how the app
-// was last started.
+// Site is one web app of a project. Slug is its address and is the project's ID, which is unique across the
+// server and never changes, so the address stays the same whenever the app is stopped and started again or the
+// project is renamed. Token is a random UUID that never appears in the address: it keys the tickets and still
+// opens addresses made before names were unique. Command is how the app was last started.
 type Site struct {
 	StartedAt   time.Time
 	ProjectID   string

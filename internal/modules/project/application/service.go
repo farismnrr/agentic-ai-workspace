@@ -16,8 +16,8 @@ type Store interface {
 	Find(ctx context.Context, userID, id string) (domain.Project, error)
 	// FindBySource loads the active project a connected app works in.
 	FindBySource(ctx context.Context, userID, source string) (domain.Project, error)
-	// ActiveNames lists the id and name of every active project the people made themselves.
-	ActiveNames(ctx context.Context) ([]domain.Named, error)
+	// SlugTaken says whether a project ID is in use by any project, archived ones too.
+	SlugTaken(ctx context.Context, slug string) (bool, error)
 	// FindByID loads one active project whoever owns it.
 	FindByID(ctx context.Context, id string) (domain.Project, error)
 	Update(ctx context.Context, userID, id, name, description string) error
@@ -72,22 +72,20 @@ func NewService(store Store, folders Folders, checks Checks, ids IDs, now func()
 	return &Service{store: store, folders: folders, checks: checks, ids: ids, now: now}
 }
 
-// Create makes a project and its folder.
-func (s *Service) Create(ctx context.Context, userID, name, description string) (domain.Project, error) {
-	return s.create(ctx, userID, name, description, "")
+// Create makes a project and its folder. slug is the project ID the person chose; empty makes one from the name.
+func (s *Service) Create(ctx context.Context, userID, name, description, slug string) (domain.Project, error) {
+	return s.create(ctx, userID, name, description, slug, "")
 }
 
-func (s *Service) create(ctx context.Context, userID, name, description, source string) (domain.Project, error) {
+func (s *Service) create(ctx context.Context, userID, name, description, slug, source string) (domain.Project, error) {
 	name, description, err := domain.Normalize(name, description)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("create project: %w", err)
 	}
 
-	// A connected app's project is named after the app, one per person, so it never competes for a name.
-	if source == "" {
-		if err = s.requireFree(ctx, name, ""); err != nil {
-			return domain.Project{}, err
-		}
+	slug, err = s.chooseSlug(ctx, slug, name)
+	if err != nil {
+		return domain.Project{}, err
 	}
 
 	id, err := s.ids.ID()
@@ -100,7 +98,7 @@ func (s *Service) create(ctx context.Context, userID, name, description, source 
 	}
 
 	project := domain.Project{
-		ID: id, UserID: userID, Name: name, Description: description, Source: source, CreatedAt: s.now(),
+		ID: id, UserID: userID, Name: name, Description: description, Slug: slug, Source: source, CreatedAt: s.now(),
 	}
 	if err := s.store.Create(ctx, project); err != nil {
 		_ = s.folders.Remove(id)
@@ -131,15 +129,11 @@ func (s *Service) Get(ctx context.Context, userID, id string) (domain.Project, e
 	return project, nil
 }
 
-// Update renames a project or changes its description.
+// Update renames a project or changes its description. The project ID never changes.
 func (s *Service) Update(ctx context.Context, userID, id, name, description string) (domain.Project, error) {
 	name, description, err := domain.Normalize(name, description)
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("update project: %w", err)
-	}
-
-	if err = s.requireFree(ctx, name, id); err != nil {
-		return domain.Project{}, err
 	}
 
 	if err := s.store.Update(ctx, userID, id, name, description); err != nil {
@@ -165,12 +159,12 @@ func (s *Service) Archive(ctx context.Context, userID, id string) error {
 // OnArchive registers what runs after a project is archived.
 func (s *Service) OnArchive(f func(ctx context.Context, id string)) { s.onArchive = f }
 
-// Owner returns who owns an active project and its name.
-func (s *Service) Owner(ctx context.Context, id string) (userID, name string, err error) {
+// Owner returns who owns an active project and its project ID (the address of its site).
+func (s *Service) Owner(ctx context.Context, id string) (userID, slug string, err error) {
 	project, err := s.store.FindByID(ctx, id)
 	if err != nil {
 		return "", "", fmt.Errorf("find project: %w", err)
 	}
 
-	return project.UserID, project.Name, nil
+	return project.UserID, project.Slug, nil
 }

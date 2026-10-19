@@ -6,14 +6,14 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 
 - Ask the AI to build and run a web app. It asks first, then shows an Open link.
 - The address looks like `/run/my-shop/`, on the same domain and port as the app. You don't need any DNS setup.
-- The name comes from the project and is unique. If another project has it, yours gets `my-shop-2`.
-- Each project has one site, and its address never changes, however often you stop and start it or rename the project.
+- `my-shop` is the project's ID, chosen when you create the project. No two projects share an ID.
+- Each project has one site. Its address never changes: the ID is permanent, so stopping, starting or renaming the project does not move it.
 - Old addresses with a UUID (`/run/my-shop/<uuid>/`) still lead to the same app.
 - Press Start on the Sites page to run a stopped app again. You do not need the AI.
 - An app started before this button existed needs the AI to start it once.
 - A site is private by default: only you can open it, while signed in. Anyone else gets "This page is private" (403).
 - You can make a site public so anyone with the link can open it. Only you can do this, from the Sites page. The AI can't.
-- The address is the project's name, so a public site is easy to guess. Make it public only when you mean it.
+- The address is the project's ID, so a public site is easy to guess. Make it public only when you mean it.
 - Sites run until you press Stop or the server restarts. There is no idle timeout.
 - A project runs one app. Ten projects can run ten apps, so there is no limit per person by default.
 - `SITE_MAX_TOTAL` caps the apps one server runs at once (default 20); `SITE_MAX_PER_USER` can cap a person (default none).
@@ -53,7 +53,7 @@ A site shares the domain with the main app. These protections are always on:
 A sandboxed page can't send your login, so the server uses a ticket instead:
 
 1. You open a private site. The server checks your login.
-2. It redirects you to `/run/<name>/~<ticket>/`. Relative links keep the ticket.
+2. It redirects you to `/run/<project-id>/~<ticket>/`. Relative links keep the ticket.
 3. The ticket lasts 4 hours.
    - It works only for that site address and that browser.
    - It also checks the IP when `CLIENT_IP_HEADER` is set.
