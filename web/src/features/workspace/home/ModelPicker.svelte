@@ -1,10 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { planGroupLabel, programs } from '../content/subscriptions';
   import { effortChoices, hasEffortChoice } from '../logic/effort';
   import { groupModels, modelValue } from '../logic/model-groups';
   import { loadPreferences, type Preferences } from '../logic/preferences-api';
-  import { loadConnectedPlans, type Program } from '../logic/subscriptions-api';
   import { loadModels, loadProviders, type ModelOption, type Provider } from '../logic/providers-api';
 
   interface Props {
@@ -18,7 +16,6 @@
   let options: ModelOption[] = $state([]);
   let providers: Provider[] = $state([]);
   let prefs: Preferences | undefined = $state();
-  let plans: Program[] = $state([]);
 
   // The model the task will run on: the one picked, else the person's default, else the first one offered.
   const target = $derived.by(() => {
@@ -40,22 +37,17 @@
 
   onMount(async () => {
     try {
-      [options, providers, prefs, plans] = await Promise.all([loadModels(), loadProviders(), loadPreferences(), loadConnectedPlans()]);
+      [options, providers, prefs] = await Promise.all([loadModels(), loadProviders(), loadPreferences()]);
     } catch {
       options = [];
     }
   });
 </script>
 
-{#if options.length > 0 || plans.length > 0}
+{#if options.length > 0}
   <label class="sr-only" for="composer-model">Model</label>
   <select id="composer-model" class="select select-ghost select-sm w-auto max-w-44 rounded-full {model === '' ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}" bind:value={model} {disabled}>
     <option value="">Default model</option>
-    {#if plans.length > 0}
-      <optgroup label={planGroupLabel}>
-        {#each plans as program (program)}<option value="plan:{program}::default">{programs[program].name}</option>{/each}
-      </optgroup>
-    {/if}
     {#each groupModels(options) as group (group.label)}
       <optgroup label={group.label}>
         {#each group.models as option (modelValue(option))}<option value={modelValue(option)}>{option.model}</option>{/each}
