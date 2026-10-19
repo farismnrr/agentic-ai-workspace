@@ -20,7 +20,7 @@ const (
 )
 
 // forward sends the request to the app through its socket and writes the answer back,
-// filtered. The app sees the path without the /run/<name>/<token> prefix.
+// filtered. The app sees the path without the /run/<name> prefix.
 func (h *Handler) forward(c fiber.Ctx, site domain.Site, rest, prefix string) error {
 	target := url.URL{Scheme: "http", Host: "site", Path: rest, RawQuery: string(c.Request().URI().QueryString())}
 
@@ -97,7 +97,7 @@ func setSecure(c fiber.Ctx) {
 	}
 }
 
-// ticketPrefix marks the address segment that carries a ticket: /run/<name>/<token>/~<ticket>/.
+// ticketPrefix marks the address segment that carries a ticket: /run/<name>/~<ticket>/.
 const ticketPrefix = "~"
 
 // splitTicket separates the ticket segment from the rest of the path.

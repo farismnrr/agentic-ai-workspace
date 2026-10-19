@@ -17,7 +17,7 @@ func TestAppSeesNeitherTheLoginNorThePrefix(t *testing.T) {
 	headers["Authorization"] = "Bearer abc"
 	headers["X-Forwarded-For"] = "6.6.6.6"
 
-	status, _, body := (call{path: "/run/sensio/tok/echo?x=1", headers: headers}).do(t, app)
+	status, _, body := (call{path: "/run/sensio/echo?x=1", headers: headers}).do(t, app)
 	if status != 200 || !strings.Contains(body, `"path":"/echo"`) || !strings.Contains(body, `"query":"x=1"`) {
 		t.Fatalf("status %d body %s", status, body)
 	}
@@ -29,14 +29,14 @@ func TestAppSeesNeitherTheLoginNorThePrefix(t *testing.T) {
 		}
 	}
 
-	if got.Get("X-Forwarded-Prefix") != "/run/sensio/tok" || got.Get("X-Forwarded-For") == "6.6.6.6" {
+	if got.Get("X-Forwarded-Prefix") != "/run/sensio" || got.Get("X-Forwarded-For") == "6.6.6.6" {
 		t.Errorf("proxy headers wrong: %v", got)
 	}
 }
 
 func TestEverythingFromTheAppIsSandboxedAndCannotSetCookies(t *testing.T) {
 	app, _ := newApp(t, domain.Public, domain.Running)
-	status, header, _ := (call{path: "/run/sensio/tok/evil", headers: as("document", "")}).do(t, app)
+	status, header, _ := (call{path: "/run/sensio/evil", headers: as("document", "")}).do(t, app)
 
 	if status != 200 {
 		t.Fatalf("status %d", status)
@@ -62,14 +62,14 @@ func TestEverythingFromTheAppIsSandboxedAndCannotSetCookies(t *testing.T) {
 func TestRedirectsStayUnderTheSitePathAndNamesAreCanonical(t *testing.T) {
 	app, _ := newApp(t, domain.Public, domain.Running)
 
-	status, header, _ := (call{path: "/run/sensio/tok/redirect", headers: as("document", "")}).do(t, app)
-	if status != http.StatusFound || header.Get("Location") != "/run/sensio/tok/login" {
+	status, header, _ := (call{path: "/run/sensio/redirect", headers: as("document", "")}).do(t, app)
+	if status != http.StatusFound || header.Get("Location") != "/run/sensio/login" {
 		t.Errorf("app redirect: %d %q", status, header.Get("Location"))
 	}
 
 	for path, want := range map[string]string{
-		"/run/other-name/tok/echo?a=b": "/run/sensio/tok/echo?a=b",
-		"/run/sensio/tok":              "/run/sensio/tok/",
+		"/run/other-name/tok/echo?a=b": "/run/sensio/echo?a=b",
+		"/run/sensio":                  "/run/sensio/",
 	} {
 		status, header, _ = (call{path: path, headers: as("document", "")}).do(t, app)
 		if status != http.StatusFound || header.Get("Location") != want {
@@ -82,12 +82,12 @@ func TestServiceWorkersAndPreflightsAreHandledByTheProxy(t *testing.T) {
 	app, seen := newApp(t, domain.Public, domain.Running)
 
 	worker := map[string]string{"Service-Worker": "script"}
-	if got, _, _ := (call{path: "/run/sensio/tok/echo", headers: worker}).do(t, app); got != 403 {
+	if got, _, _ := (call{path: "/run/sensio/echo", headers: worker}).do(t, app); got != 403 {
 		t.Errorf("service worker script fetch: %d", got)
 	}
 
 	ask := map[string]string{"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"}
-	status, header, _ := (call{method: http.MethodOptions, path: "/run/sensio/tok/echo", headers: ask}).do(t, app)
+	status, header, _ := (call{method: http.MethodOptions, path: "/run/sensio/echo", headers: ask}).do(t, app)
 
 	if status != 204 || header.Get("Access-Control-Allow-Origin") != "*" ||
 		header.Get("Access-Control-Allow-Headers") != "content-type" {
@@ -102,14 +102,14 @@ func TestServiceWorkersAndPreflightsAreHandledByTheProxy(t *testing.T) {
 func TestAnAppThatIsDownIsABadGateway(t *testing.T) {
 	running := domain.Site{Slug: "sensio", Token: "tok", Visibility: domain.Public, Status: domain.Running}
 	service := fakeService{
-		sites:  map[string]domain.Site{"tok": running},
+		sites:  map[string]domain.Site{"sensio": running},
 		socket: filepath.Join(t.TempDir(), "missing.sock"),
 	}
 	down := fiber.New()
 	pass := func(c fiber.Ctx) error { return c.Next() }
 	NewHandler(service, cookieAuth{}, false).Mount(pass, pass)(down)
 
-	if got, _, _ := (call{path: "/run/sensio/tok/echo", headers: as("document", "")}).do(t, down); got != 502 {
+	if got, _, _ := (call{path: "/run/sensio/echo", headers: as("document", "")}).do(t, down); got != 502 {
 		t.Fatalf("status %d", got)
 	}
 }

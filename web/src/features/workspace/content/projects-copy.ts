@@ -7,6 +7,7 @@ export const projectsCopy = {
   noTasks: { title: 'No tasks in this project yet', body: 'Start a task from Home, or with New task, and it shows up in this list.' },
   errors: {
     invalid_name: 'Give the project a short name.',
+    name_taken: 'Another project already has that name. Pick another one.',
     invalid_description: 'The description is too long.',
     not_found: 'We could not find that project.',
     bad_repo: 'That is not a repository name.',

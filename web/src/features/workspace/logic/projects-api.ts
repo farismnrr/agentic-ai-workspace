@@ -3,6 +3,15 @@ import type { Project } from './task-types';
 
 export const loadProjects = (): Promise<Project[]> => request<Project[]>('GET', '/api/projects');
 
+/** Whether a name is free for a project, and the nearest free name when it is not. */
+export interface NameCheck {
+  available: boolean;
+  suggestion: string;
+}
+
+export const checkProjectName = (name: string): Promise<NameCheck> =>
+  request<NameCheck>('GET', `/api/projects/name?name=${encodeURIComponent(name)}`);
+
 export const createProject = (name: string, description: string): Promise<Project> =>
   request<Project>('POST', '/api/projects', { name, description });
 

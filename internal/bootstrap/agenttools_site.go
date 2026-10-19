@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
@@ -74,9 +75,21 @@ func (a *agentTools) executeSite(ctx context.Context, projectID string, call tas
 
 	return taskapp.ToolResult{
 		Output: "The app is running and the person can open it from the link shown in the thread (" + link + "). " +
-			"Say so in plain words; do not paste the address.",
+			"Say so in plain words; do not paste the address." + pathReport(a.sites.Audit(ctx, site)),
 		Link: link,
 	}
+}
+
+// pathReport tells the agent which links of the page would not work under the app's address, so it fixes them
+// before saying the app is done. Nothing is added when every link is right.
+func pathReport(problems []string) string {
+	if len(problems) == 0 {
+		return ""
+	}
+
+	return "\n\nBUT these links would not work when the person opens the app (it lives under an address prefix " +
+		"that is removed from requests, so links must be relative):\n- " + strings.Join(problems, "\n- ") +
+		"\nFix them, then call start_site again. Do not tell the person the app is ready until this list is empty."
 }
 
 // siteFailure words why a site did not start. A start that never answered carries the app's

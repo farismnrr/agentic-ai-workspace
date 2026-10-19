@@ -1,6 +1,7 @@
 <script lang="ts">
   import { projectsCopy } from '../content/projects-copy';
   import { newProjectCopy } from '../content/templates-copy';
+  import NameField from './NameField.svelte';
   import RepoPicker from './RepoPicker.svelte';
 
   interface Props {
@@ -28,14 +29,14 @@
     if (name.trim() === '') name = chosen.split('/')[1] ?? chosen;
   }
 
-  const incomplete = $derived(name.trim() === '' || (source === 'github' && repo === '') || (source === 'new' && repoName.trim() === ''));
+  let nameBlocked = $state(false);
+  const incomplete = $derived(name.trim() === '' || nameBlocked || (source === 'github' && repo === '') || (source === 'new' && repoName.trim() === ''));
 </script>
 
 <form class="max-w-xl" onsubmit={(event) => { event.preventDefault(); onsubmit(); }}>
   <h2 class="text-lg font-semibold">{newProjectCopy.detailsHeading}</h2>
   {#if source === 'github'}<RepoPicker value={repo} onpick={pick} />{/if}
-  <label class="mt-4 block font-medium" for="project-name">Name</label>
-  <input id="project-name" class="input mt-1 w-full" maxlength="80" placeholder="Bakery website" required bind:value={name} />
+  <NameField bind:name onblock={(blocked: boolean) => { nameBlocked = blocked; }} />
   <label class="mt-4 block font-medium" for="project-description">What is it? <span class="font-normal text-[var(--brand-text-tertiary)]">(optional)</span></label>
   <textarea id="project-description" class="textarea mt-1 w-full" rows="3" maxlength="500" bind:value={description}></textarea>
   {#if source === 'new'}

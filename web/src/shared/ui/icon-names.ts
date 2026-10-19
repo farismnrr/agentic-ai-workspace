@@ -30,6 +30,7 @@ export type IconName =
   | 'inbox'
   | 'bell'
   | 'shield'
+  | 'dice'
   | 'clock'
   | 'x-circle'
   | 'help-circle'

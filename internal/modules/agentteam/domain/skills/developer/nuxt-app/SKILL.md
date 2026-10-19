@@ -109,6 +109,17 @@ A product is not one page. Use two layouts and these routes unless the PRD says 
 - A route middleware in `app/middleware/` sends a visitor without a session to `/login` for every `/app` page; the API
   still checks the session on the server as well.
 
+Links and files under the address prefix. The app lives at `/run/<name>/` and Nuxt's `app.baseURL` carries that
+prefix (set by `nuxt-serve`), so a hand-written address starting with `/` leaves the app:
+- Pages: `<NuxtLink to="/login">`, `navigateTo('/app')` and `useRoute` all add the base themselves. Never write
+  `<a href="/login">` for an app page.
+- Calls to the server, as the starter does: `$fetch(`${useRuntimeConfig().app.baseURL}api/...`)` or
+  `useFetch('api/me', { baseURL: useRuntimeConfig().app.baseURL })`; never `fetch('/api/...')`.
+- Pictures and other files from `public/`: `useRuntimeConfig().app.baseURL + 'logo.svg'`, or `import` them from
+  `app/assets/` so the build adds the base. CSS `url()` points only at files under `app/assets/` (Vite rewrites those).
+- Never hard-code `/run/...` and never turn `app.baseURL` into a relative path (`./`); Nuxt does not support that on a
+  server. `start_site` loads your pages and reports any link that would not work: fix all of them before you report.
+
 ## 5. Safe by default
 Check every body and query with `zod` (`readValidatedBody`, `getValidatedQuery`). Vue escapes text; never use
 `v-html` on anything a visitor wrote. Secrets stay on the server (`runtimeConfig`, not `runtimeConfig.public`). Allow only

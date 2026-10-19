@@ -27,15 +27,20 @@ func (s *Service) List(ctx context.Context, userID string) ([]domain.Site, error
 	return sites, nil
 }
 
-// Resolve finds the running site an address token belongs to. Unknown, stopped and
-// replaced tokens all answer ErrNotFound, so nothing reveals which exist.
-func (s *Service) Resolve(ctx context.Context, token string) (domain.Site, error) {
-	site, err := s.deps.Store.ByToken(ctx, token)
-	if err != nil {
-		return domain.Site{}, domain.ErrNotFound
-	}
+// Resolve finds the running site an address name belongs to. Unknown and stopped names
+// both answer ErrNotFound, so nothing reveals which exist.
+func (s *Service) Resolve(ctx context.Context, slug string) (domain.Site, error) {
+	return s.running(s.deps.Store.BySlug(ctx, slug))
+}
 
-	if site.Status != domain.Running {
+// ResolveOld finds the running site an address from before names were unique points to: the
+// token in its second segment decides, whatever the name says.
+func (s *Service) ResolveOld(ctx context.Context, token string) (domain.Site, error) {
+	return s.running(s.deps.Store.ByToken(ctx, token))
+}
+
+func (s *Service) running(site domain.Site, err error) (domain.Site, error) {
+	if err != nil || site.Status != domain.Running {
 		return domain.Site{}, domain.ErrNotFound
 	}
 

@@ -13,7 +13,9 @@ type Store interface {
 	Save(ctx context.Context, site domain.Site) error
 	// ByProject returns domain.ErrNotFound when the project never started a site.
 	ByProject(ctx context.Context, projectID string) (domain.Site, error)
-	// ByToken returns domain.ErrNotFound for an unknown token.
+	// BySlug returns domain.ErrNotFound for an unknown address name.
+	BySlug(ctx context.Context, slug string) (domain.Site, error)
+	// ByToken returns domain.ErrNotFound for an unknown token (old addresses carried it).
 	ByToken(ctx context.Context, token string) (domain.Site, error)
 	ListByUser(ctx context.Context, userID string) ([]domain.Site, error)
 	// Running lists every site marked running.
@@ -39,6 +41,8 @@ type Runtime interface {
 	Alive(ctx context.Context, containerID string) bool
 	// Socket is the Unix socket the app is reachable through.
 	Socket(projectID string) string
+	// Get requests a path from the running app, as the proxy would, with the address prefix removed.
+	Get(ctx context.Context, projectID, prefix, path string) (Page, error)
 	// Capture runs the browser against the app and returns what it printed.
 	Capture(ctx context.Context, req CaptureRequest) (output string, err error)
 }

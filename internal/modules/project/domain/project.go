@@ -20,6 +20,7 @@ var (
 	ErrNotFound           = errors.New("project not found")
 	ErrInvalidChecks      = errors.New("those checks are not valid")
 	ErrSourceTaken        = errors.New("a project for that app already exists")
+	ErrNameTaken          = errors.New("another project already has that name")
 )
 
 // Project is a piece of work with its own folder of files.

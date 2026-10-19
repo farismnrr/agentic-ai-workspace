@@ -5,12 +5,15 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 ## Using sites
 
 - Ask the AI to build and run a web app. It asks first, then shows an Open link.
-- The address looks like `/run/my-shop/<uuid>/`, on the same domain and port as the app. You don't need any DNS setup.
-- Each project has one site, and its address never changes, however often you stop and start it.
+- The address looks like `/run/my-shop/`, on the same domain and port as the app. You don't need any DNS setup.
+- The name comes from the project and is unique. If another project has it, yours gets `my-shop-2`.
+- Each project has one site, and its address never changes, however often you stop and start it or rename the project.
+- Old addresses with a UUID (`/run/my-shop/<uuid>/`) still lead to the same app.
 - Press Start on the Sites page to run a stopped app again. You do not need the AI.
 - An app started before this button existed needs the AI to start it once.
 - A site is private by default: only you can open it, while signed in. Anyone else gets "This page is private" (403).
 - You can make a site public so anyone with the link can open it. Only you can do this, from the Sites page. The AI can't.
+- The address is the project's name, so a public site is easy to guess. Make it public only when you mean it.
 - Sites run until you press Stop or the server restarts. There is no idle timeout.
 - A project runs one app. Ten projects can run ten apps, so there is no limit per person by default.
 - `SITE_MAX_TOTAL` caps the apps one server runs at once (default 20); `SITE_MAX_PER_USER` can cap a person (default none).
@@ -19,7 +22,8 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 
 - It runs in the same sandbox as checks. It can reach package registries, but not your computer or other projects.
 - It must listen on `127.0.0.1` at the port the AI chose. Use a normal server, not a hot-reload dev server. WebSockets aren't supported yet.
-- The path prefix is removed before requests reach the app. Use relative links (`./style.css`); `BASE_PATH` holds the prefix.
+- The path prefix is removed before requests reach the app. Use relative links (`./style.css`), never `/style.css`.
+- When the AI starts an app, the server loads its pages and tells the AI about links that would not work.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
 - Because of that, a login in your app cannot stay signed in inside the preview. The app itself is fine.
 - The AI tests accounts through the app's API instead, and tells you so.
@@ -49,7 +53,7 @@ A site shares the domain with the main app. These protections are always on:
 A sandboxed page can't send your login, so the server uses a ticket instead:
 
 1. You open a private site. The server checks your login.
-2. It redirects you to `/run/<name>/<uuid>/~<ticket>/`. Relative links keep the ticket.
+2. It redirects you to `/run/<name>/~<ticket>/`. Relative links keep the ticket.
 3. The ticket lasts 4 hours.
    - It works only for that site address and that browser.
    - It also checks the IP when `CLIENT_IP_HEADER` is set.

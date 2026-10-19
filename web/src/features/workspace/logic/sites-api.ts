@@ -4,7 +4,7 @@ export type Visibility = 'private' | 'public';
 
 export interface Site {
   projectId: string;
-  /** Path the app is opened at, such as /run/my-shop/<uuid>/. */
+  /** Path the app is opened at, such as /run/my-shop/. */
   url: string;
   visibility: Visibility;
   status: 'running' | 'stopped';

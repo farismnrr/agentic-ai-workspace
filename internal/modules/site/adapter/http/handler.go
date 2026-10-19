@@ -19,7 +19,8 @@ type Service interface {
 	Stop(ctx context.Context, userID, projectID string) error
 	Restart(ctx context.Context, userID, projectID string) (domain.Site, error)
 	SetVisibility(ctx context.Context, userID, projectID, value string) error
-	Resolve(ctx context.Context, token string) (domain.Site, error)
+	Resolve(ctx context.Context, slug string) (domain.Site, error)
+	ResolveOld(ctx context.Context, token string) (domain.Site, error)
 	Socket(projectID string) string
 	Ticket(token, holder string) string
 	ValidTicket(token, holder, ticket string) bool
@@ -50,6 +51,6 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		api.Post("/:project/start", sameOrigin, h.start)
 		api.Patch("/:project", sameOrigin, h.visibility)
 
-		app.All("/run/:name/:token/*", httpserver.Limit(publicRate, time.Minute, nil, false), h.serve)
+		app.All("/run/:name/*", httpserver.Limit(publicRate, time.Minute, nil, false), h.serve)
 	}
 }

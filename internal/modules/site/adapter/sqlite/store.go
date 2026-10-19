@@ -22,6 +22,7 @@ const (
 	selectSites = "SELECT " + columns + " FROM sites"
 
 	byProject = selectSites + " WHERE project_id = ?"
+	bySlug    = selectSites + " WHERE slug = ?"
 	byToken   = selectSites + " WHERE token = ?"
 	byUser    = selectSites + " WHERE user_id = ? ORDER BY started_at DESC"
 	running   = selectSites + " WHERE status = 'running' ORDER BY started_at DESC"
@@ -46,6 +47,11 @@ func (s *Store) Save(ctx context.Context, site domain.Site) error {
 // ByProject returns a project's site.
 func (s *Store) ByProject(ctx context.Context, projectID string) (domain.Site, error) {
 	return s.one(ctx, byProject, projectID)
+}
+
+// BySlug returns the site an address name belongs to.
+func (s *Store) BySlug(ctx context.Context, slug string) (domain.Site, error) {
+	return s.one(ctx, bySlug, slug)
 }
 
 // ByToken returns the site an address token belongs to.
