@@ -22,8 +22,8 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
    - After a template (or none), choose "New project" (files stay in this workspace) or "New repository" (also creates a repository on your GitHub account, with a README; you pick public or private).
    - The name is a label. Type anything; it can be changed later and other projects may share it.
    - The dice button suggests a two-word name when you do not want to think of one.
-   - The Project ID fills in from the name, like in Google Cloud. Use Edit to choose your own: 6 to 30 lowercase letters, digits or dashes.
-   - The ID is permanent and unique, because it is the address of your app (`/run/<id>/`). If it is taken, you see it at once, with a nearby ID to use in one click.
+   - The Project ID fills in from the name. Use Edit to choose your own: 6 to 30 lowercase letters, digits or dashes.
+   - The ID is the address of your app (`/run/<id>/`), so it is unique and cannot be changed later. If it is taken, you see it right away, with a nearby ID to use in one click.
    - Then give it a name, and it opens.
    - "From a GitHub repository" starts from one of your repositories, with its history, and has no template. Type to search; the list scrolls.
    - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.
