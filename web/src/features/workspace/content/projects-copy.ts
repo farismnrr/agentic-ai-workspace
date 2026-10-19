@@ -4,10 +4,12 @@ export const projectsCopy = {
     title: 'Create your first project',
     body: "A project is one website or thing you're working on, and your AI team works inside its own folder. Use New project to start.",
   },
+  idFixed: 'The project ID is permanent and is the address of its app, /run/<id>/. Renaming the project does not change it.',
   noTasks: { title: 'No tasks in this project yet', body: 'Start a task from Home, or with New task, and it shows up in this list.' },
   errors: {
     invalid_name: 'Give the project a short name.',
-    name_taken: 'Another project already has that name. Pick another one.',
+    invalid_id: 'A project ID has 6 to 30 lowercase letters, digits or dashes, and starts with a letter.',
+    id_taken: 'Another project already has that ID. Pick another one.',
     invalid_description: 'The description is too long.',
     not_found: 'We could not find that project.',
     bad_repo: 'That is not a repository name.',

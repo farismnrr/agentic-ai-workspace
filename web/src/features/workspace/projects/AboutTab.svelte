@@ -72,6 +72,11 @@
     <input id="about-name" class="input input-sm mt-1 w-full" maxlength="80" required bind:value={name} />
   </div>
   <div>
+    <span class="font-medium">Project ID</span>
+    <p class="mt-1"><code class="rounded bg-base-200 px-2 py-1 font-mono text-sm">{project.slug}</code></p>
+    <p class="mt-1 text-sm text-[var(--brand-text-tertiary)]">{projectsCopy.idFixed}</p>
+  </div>
+  <div>
     <label class="font-medium" for="about-description">What is it?</label>
     <textarea id="about-description" class="textarea mt-1 w-full" rows="3" maxlength="500" bind:value={description}></textarea>
   </div>

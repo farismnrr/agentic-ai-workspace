@@ -3,17 +3,19 @@ import type { Project } from './task-types';
 
 export const loadProjects = (): Promise<Project[]> => request<Project[]>('GET', '/api/projects');
 
-/** Whether a name is free for a project, and the nearest free name when it is not. */
-export interface NameCheck {
+/** Whether a project ID is valid and free, and the nearest free one to offer when it is not. */
+export interface IdCheck {
+  valid: boolean;
   available: boolean;
   suggestion: string;
 }
 
-export const checkProjectName = (name: string): Promise<NameCheck> =>
-  request<NameCheck>('GET', `/api/projects/name?name=${encodeURIComponent(name)}`);
+/** With an id, checks that id; with only a name, answers with the ID the name would make. */
+export const checkProjectId = (id: string, name: string): Promise<IdCheck> =>
+  request<IdCheck>('GET', `/api/projects/id?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`);
 
-export const createProject = (name: string, description: string): Promise<Project> =>
-  request<Project>('POST', '/api/projects', { name, description });
+export const createProject = (name: string, description: string, slug: string): Promise<Project> =>
+  request<Project>('POST', '/api/projects', { name, description, slug });
 
 /** Clones a repository into an empty project. The server only accepts one the person let the app reach. */
 export const importRepo = (id: string, repo: string): Promise<undefined> =>

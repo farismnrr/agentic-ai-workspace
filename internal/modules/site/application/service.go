@@ -9,10 +9,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
-const (
-	maxCommandLength = 4000
-	maxSlugTries     = 100
-)
+const maxCommandLength = 4000
 
 // Deps are the collaborators of Service.
 type Deps struct {
@@ -40,7 +37,7 @@ func (s *Service) Start(ctx context.Context, projectID, command string, port int
 		return domain.Site{}, err
 	}
 
-	userID, name, err := s.deps.Projects.Owner(ctx, projectID)
+	userID, slug, err := s.deps.Projects.Owner(ctx, projectID)
 	if err != nil {
 		return domain.Site{}, fmt.Errorf("start site: %w", err)
 	}
@@ -55,9 +52,12 @@ func (s *Service) Start(ctx context.Context, projectID, command string, port int
 		return domain.Site{}, err
 	}
 
-	token, slug, err := s.address(ctx, previous, projectID, name)
-	if err != nil {
-		return domain.Site{}, err
+	// The address is the project's ID, which never changes; the token is made once and kept.
+	token := previous.Token
+	if token == "" {
+		if token, err = s.deps.IDs.UUID(); err != nil {
+			return domain.Site{}, fmt.Errorf("make site address: %w", err)
+		}
 	}
 
 	site := domain.Site{

@@ -140,8 +140,7 @@ func (s *seq) UUID() (string, error) { s.n++; return "uuid-" + strconv.Itoa(s.n)
 func newService(limits application.Limits) (*application.Service, *fakeRuntime, *memStore, *counter) {
 	store, runtime, notify := &memStore{sites: map[string]domain.Site{}}, &fakeRuntime{}, &counter{}
 	projects := fakeProjects{
-		"p1": {"ann", "Toko Kopi"}, "p2": {"ann", "Blog"}, "p3": {"ann", "Third"},
-		"q1": {"bob", "Bob's"}, "r1": {"bob", "Toko Kopi"},
+		"p1": {"ann", "toko-kopi"}, "p2": {"ann", "blog"}, "p3": {"ann", "third"}, "q1": {"bob", "bobs-shop"},
 	}
 
 	return application.NewService(application.Deps{

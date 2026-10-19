@@ -5,13 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/domain"
 )
 
-const columns = `id, user_id, name, description, source, created_at, archived_at`
+const columns = `id, user_id, name, description, slug, source, created_at, archived_at`
 
 // Store persists projects in SQLite.
 type Store struct {
@@ -30,10 +29,14 @@ type scanner interface {
 // Create inserts a project.
 func (s *Store) Create(ctx context.Context, p domain.Project) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO projects (id, user_id, name, description, source, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		p.ID, p.UserID, p.Name, p.Description, p.Source, p.CreatedAt.Unix())
+		`INSERT INTO projects (id, user_id, name, description, slug, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		p.ID, p.UserID, p.Name, p.Description, p.Slug, p.Source, p.CreatedAt.Unix())
 	if isSourceTaken(err) {
 		return domain.ErrSourceTaken
+	}
+
+	if isSlugTaken(err) {
+		return domain.ErrSlugTaken
 	}
 
 	if err != nil {
@@ -118,11 +121,6 @@ func (s *Store) FindBySource(ctx context.Context, userID, source string) (domain
 	return project, err
 }
 
-// isSourceTaken spots the unique index that allows one live project per connected app.
-func isSourceTaken(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "projects.user_id, projects.source")
-}
-
 // Update changes the editable fields.
 func (s *Store) Update(ctx context.Context, userID, id, name, description string) error {
 	return s.exec(ctx,
@@ -184,7 +182,7 @@ func scan(row scanner) (domain.Project, error) {
 		archived sql.NullInt64
 	)
 
-	if err := row.Scan(&p.ID, &p.UserID, &p.Name, &p.Description, &p.Source, &created, &archived); err != nil {
+	if err := row.Scan(&p.ID, &p.UserID, &p.Name, &p.Description, &p.Slug, &p.Source, &created, &archived); err != nil {
 		return domain.Project{}, fmt.Errorf("scan project: %w", err)
 	}
 

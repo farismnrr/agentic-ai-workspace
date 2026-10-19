@@ -6,24 +6,6 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
-func TestSlugify(t *testing.T) {
-	cases := map[string]string{
-		"Sensio":           "sensio",
-		"  My Cool App!! ": "my-cool-app",
-		"Toko Kué 2024":    "toko-ku-2024",
-		"日本語":              "site",
-		"":                 "site",
-		"a/b\\c..d":        "a-b-c-d",
-		"x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x": "x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x",
-	}
-
-	for in, want := range cases {
-		if got := domain.Slugify(in); got != want {
-			t.Errorf("Slugify(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
 func TestDecide(t *testing.T) {
 	site := func(v domain.Visibility, s domain.Status) domain.Site {
 		return domain.Site{UserID: "owner", Visibility: v, Status: s}
