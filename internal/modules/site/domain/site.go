@@ -1,5 +1,5 @@
 // Package domain holds the rules of sites: web apps the AI starts in the sandbox and
-// the person opens at /run/<name>/<token>/.
+// the person opens at /run/<name>/.
 package domain
 
 import (
@@ -29,6 +29,7 @@ const (
 // Site errors.
 var (
 	ErrNotFound     = errors.New("site not found")
+	ErrNameTaken    = errors.New("no free address name for this project; rename the project and try again")
 	ErrBadPort      = errors.New("use a port between 1024 and 65535")
 	ErrBadCommand   = errors.New("give the command that starts the app")
 	ErrNeverStarted = errors.New("this app has not been started before; ask the AI to start it once")
@@ -45,9 +46,11 @@ const (
 	MaxPort = 65535
 )
 
-// Site is one web app of a project. Token is a random UUID that is part of its address. It is made the first
-// time the project starts an app and kept after that, so the address does not change when the app is stopped and
-// started again. Command is how the app was last started.
+// Site is one web app of a project. Slug is its address, unique across the server: it comes from the project's
+// name the first time the project starts an app and is kept after that, so the address does not change when the
+// app is stopped and started again, or the project is renamed. Token is a random UUID that never appears in the
+// address: it keys the tickets and still opens addresses made before names were unique. Command is how the app
+// was last started.
 type Site struct {
 	StartedAt   time.Time
 	ProjectID   string
@@ -82,7 +85,7 @@ func ParseVisibility(value string) (Visibility, error) {
 
 // BasePath is the address prefix the app is served under, without a trailing slash.
 func (s Site) BasePath() string {
-	return "/run/" + s.Slug + "/" + s.Token
+	return "/run/" + s.Slug
 }
 
 // Access describes one request to a site.

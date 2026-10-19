@@ -27,6 +27,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		api := app.Group("/api/projects", auth)
 		api.Get("/", h.list)
 		api.Post("/", sameOrigin, h.create)
+		api.Get("/name", h.name)
 		api.Get("/:id", h.get)
 		api.Put("/:id", sameOrigin, h.update)
 		api.Delete("/:id", sameOrigin, h.archive)
@@ -74,6 +75,17 @@ func (h *Handler) get(c fiber.Ctx) error {
 	}
 
 	return c.JSON(toPayload(project))
+}
+
+// name answers whether a name is free, with the nearest free one when it is not, so the page can say so while
+// the person types.
+func (h *Handler) name(c fiber.Ctx) error {
+	free, suggestion, err := h.service.Available(c.Context(), c.Query("name"), c.Query("except"))
+	if err != nil {
+		return fail(c, err)
+	}
+
+	return c.JSON(fiber.Map{"available": free, "suggestion": suggestion})
 }
 
 func (h *Handler) create(c fiber.Ctx) error {
@@ -129,6 +141,8 @@ func fail(c fiber.Ctx, err error) error {
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_description"))
 	case errors.Is(err, domain.ErrInvalidChecks):
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_checks"))
+	case errors.Is(err, domain.ErrNameTaken):
+		return c.Status(fiber.StatusConflict).JSON(httpserver.Failure("name_taken"))
 	case errors.Is(err, domain.ErrNotFound):
 		return c.Status(fiber.StatusNotFound).JSON(httpserver.Failure("not_found"))
 	}

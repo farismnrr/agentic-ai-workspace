@@ -41,9 +41,19 @@ func (fakeService) ValidTicket(token, holder, ticket string) bool {
 	return token == "tok" && ticket == goodTicket(holder)
 }
 
-func (f fakeService) Resolve(_ context.Context, token string) (domain.Site, error) {
-	if site, ok := f.sites[token]; ok && site.Status == domain.Running {
+func (f fakeService) Resolve(_ context.Context, slug string) (domain.Site, error) {
+	if site, ok := f.sites[slug]; ok && site.Status == domain.Running {
 		return site, nil
+	}
+
+	return domain.Site{}, domain.ErrNotFound
+}
+
+func (f fakeService) ResolveOld(_ context.Context, token string) (domain.Site, error) {
+	for _, site := range f.sites {
+		if site.Token == token && site.Status == domain.Running {
+			return site, nil
+		}
 	}
 
 	return domain.Site{}, domain.ErrNotFound
@@ -117,7 +127,7 @@ func newApp(t *testing.T, visibility domain.Visibility, status domain.Status) (*
 	passthrough := func(c fiber.Ctx) error { return c.Next() }
 
 	app := fiber.New()
-	NewHandler(fakeService{sites: map[string]domain.Site{"tok": site}, socket: socket}, cookieAuth{}, false).
+	NewHandler(fakeService{sites: map[string]domain.Site{"sensio": site}, socket: socket}, cookieAuth{}, false).
 		Mount(passthrough, passthrough)(app)
 	app.Get("/*", func(c fiber.Ctx) error { return c.SendString("SPA") })
 

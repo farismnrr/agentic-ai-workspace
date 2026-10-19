@@ -8,7 +8,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
-func TestStartMakesAPrivateSiteWithAReadableUnguessablePath(t *testing.T) {
+func TestStartMakesAPrivateSiteAtTheProjectName(t *testing.T) {
 	svc, _, store, notify := newService(application.Limits{PerUser: 2, Total: 6})
 
 	site, err := svc.Start(ctx, "p1", "python3 -m http.server 8000", 8000)
@@ -17,7 +17,7 @@ func TestStartMakesAPrivateSiteWithAReadableUnguessablePath(t *testing.T) {
 	}
 
 	if site.Visibility != domain.Private || site.Status != domain.Running || site.UserID != "ann" ||
-		site.BasePath() != "/run/toko-kopi/uuid-1" || notify.n != 1 || store.sites["p1"].Token != "uuid-1" {
+		site.BasePath() != "/run/toko-kopi" || notify.n != 1 || store.sites["p1"].Token != "uuid-1" {
 		t.Fatalf("unexpected site %+v", site)
 	}
 }
@@ -43,8 +43,35 @@ func TestStartingAgainReplacesTheAppAndKeepsTheAddressAndVisibility(t *testing.T
 		t.Fatalf("got %+v, stopped %v", again, runtime.stopped)
 	}
 
-	if _, err = svc.Resolve(ctx, "uuid-1"); err != nil {
+	if _, err = svc.Resolve(ctx, "toko-kopi"); err != nil {
 		t.Fatalf("the address must keep working: %v", err)
+	}
+
+	if _, err = svc.ResolveOld(ctx, "uuid-1"); err != nil {
+		t.Fatalf("the old address with the token must still lead here: %v", err)
+	}
+}
+
+func TestTwoProjectsWithTheSameNameGetDifferentAddresses(t *testing.T) {
+	svc, _, _, _ := newService(application.Limits{PerUser: 5, Total: 6})
+
+	first, err := svc.Start(ctx, "p1", "serve", 3000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	second, err := svc.Start(ctx, "r1", "serve", 3001)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if first.Slug != "toko-kopi" || second.Slug != "toko-kopi-2" {
+		t.Fatalf("addresses %q and %q", first.Slug, second.Slug)
+	}
+
+	again, err := svc.Start(ctx, "p1", "serve", 3000)
+	if err != nil || again.Slug != "toko-kopi" {
+		t.Fatalf("a project keeps its own address: %+v %v", again, err)
 	}
 }
 

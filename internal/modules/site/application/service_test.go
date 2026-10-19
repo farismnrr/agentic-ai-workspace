@@ -21,6 +21,16 @@ func (m *memStore) ByProject(_ context.Context, id string) (domain.Site, error) 
 	return domain.Site{}, domain.ErrNotFound
 }
 
+func (m *memStore) BySlug(_ context.Context, slug string) (domain.Site, error) {
+	for _, s := range m.sites {
+		if s.Slug == slug {
+			return s, nil
+		}
+	}
+
+	return domain.Site{}, domain.ErrNotFound
+}
+
 func (m *memStore) ByToken(_ context.Context, token string) (domain.Site, error) {
 	for _, s := range m.sites {
 		if s.Token == token {
@@ -78,8 +88,18 @@ type fakeRuntime struct {
 	failure error
 	// output is what the capture command prints.
 	output  string
+	pages   map[string]application.Page
 	stopped []string
 	started int
+}
+
+func (r *fakeRuntime) Get(_ context.Context, _, _, path string) (application.Page, error) {
+	page, ok := r.pages[path]
+	if !ok {
+		return application.Page{Status: 404, Type: "text/plain"}, nil
+	}
+
+	return page, nil
 }
 
 func (r *fakeRuntime) Capture(context.Context, application.CaptureRequest) (string, error) {
@@ -120,7 +140,8 @@ func (s *seq) UUID() (string, error) { s.n++; return "uuid-" + strconv.Itoa(s.n)
 func newService(limits application.Limits) (*application.Service, *fakeRuntime, *memStore, *counter) {
 	store, runtime, notify := &memStore{sites: map[string]domain.Site{}}, &fakeRuntime{}, &counter{}
 	projects := fakeProjects{
-		"p1": {"ann", "Toko Kopi"}, "p2": {"ann", "Blog"}, "p3": {"ann", "Third"}, "q1": {"bob", "Bob's"},
+		"p1": {"ann", "Toko Kopi"}, "p2": {"ann", "Blog"}, "p3": {"ann", "Third"},
+		"q1": {"bob", "Bob's"}, "r1": {"bob", "Toko Kopi"},
 	}
 
 	return application.NewService(application.Deps{

@@ -7,8 +7,7 @@ const (
 	defaultSlug = "site"
 )
 
-// Slugify turns a project name into the readable part of a site address. The result is only
-// cosmetic: the token alone decides which site is opened.
+// Slugify turns a project name into the readable base of a site address. The service makes it unique.
 func Slugify(name string) string {
 	var out strings.Builder
 

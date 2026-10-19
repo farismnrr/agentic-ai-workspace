@@ -20,6 +20,8 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
    - "From a template" opens a gallery. Each template shows a screenshot: landing page, product website, dashboard, documentation, AI chat, portfolio, release notes, text editor, calendar. Its look is copied into the project; the login and data are still built for your app.
    - The gallery also has "Without a template": an empty project where the AI designs the look from your request, and you refine it by hand.
    - After a template (or none), choose "New project" (files stay in this workspace) or "New repository" (also creates a repository on your GitHub account, with a README; you pick public or private).
+   - Type any name you like. It must be unique, because it is also the address of your app. If it is taken, you see it at once, with a nearby name to use in one click.
+   - The dice button suggests a free two-word name when you do not want to think of one.
    - Then give it a name, and it opens.
    - "From a GitHub repository" starts from one of your repositories, with its history, and has no template. Type to search; the list scrolls.
    - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.

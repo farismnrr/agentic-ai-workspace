@@ -10,7 +10,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
-const siteRoot = "/run/sensio/tok/"
+const siteRoot = "/run/sensio/"
 
 // ticketRoot is the address with the ticket the fake issues to a browser that sends no User-Agent.
 var ticketRoot = ticketFor("")
@@ -47,7 +47,7 @@ func TestPrivatePagesNeedTheOwnerAndAskOthersToSignIn(t *testing.T) {
 	for name, c := range cases {
 		status, header, body := (call{path: ticketRoot + "echo", headers: c.headers}).do(t, app)
 		sandboxed := strings.HasPrefix(header.Get("Content-Security-Policy"), "sandbox")
-		toSignIn := strings.HasPrefix(header.Get("Location"), "/forbidden?next=%2Frun%2Fsensio%2Ftok%2F")
+		toSignIn := strings.HasPrefix(header.Get("Location"), "/forbidden?next=%2Frun%2Fsensio%2F")
 		if status != c.want || !toSignIn || !sandboxed {
 			t.Errorf("%s: status %d, location %q, body %q", name, status, header.Get("Location"), body)
 		}
@@ -144,8 +144,8 @@ func TestUnknownAndStoppedSitesAreNotFoundAndNeverFallIntoTheApp(t *testing.T) {
 		app  *fiber.App
 		path string
 	}{
-		"stopped":       {stopped, "/run/sensio/tok/echo"},
-		"unknown token": {running, "/run/sensio/nope/echo"},
+		"stopped":      {stopped, "/run/sensio/echo"},
+		"unknown name": {running, "/run/nope/echo"},
 	}
 
 	for name, c := range paths {

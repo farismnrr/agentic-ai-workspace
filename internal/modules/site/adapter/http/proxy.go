@@ -10,14 +10,12 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 )
 
-// serve answers one request under /run/<name>/<token>/. Every answer, errors included,
+// serve answers one request under /run/<name>/. Every answer, errors included,
 // carries the sandbox headers, and nothing is forwarded until the request is allowed.
 func (h *Handler) serve(c fiber.Ctx) error {
-	token := c.Params("token")
-
-	site, err := h.service.Resolve(c.Context(), token)
+	site, err := h.service.Resolve(c.Context(), c.Params("name"))
 	if err != nil {
-		return missing(c)
+		return h.old(c)
 	}
 
 	ticket, rest := "", c.Params("*")
@@ -26,7 +24,7 @@ func (h *Handler) serve(c fiber.Ctx) error {
 	}
 
 	userID := h.userID(c)
-	valid := ticket != "" && h.service.ValidTicket(token, h.holder(c), ticket)
+	valid := ticket != "" && h.service.ValidTicket(site.Token, h.holder(c), ticket)
 
 	switch site.Decide(domain.Access{UserID: userID, Page: isPage(c), Ticket: valid}) {
 	case domain.AskSignIn:
@@ -39,6 +37,21 @@ func (h *Handler) serve(c fiber.Ctx) error {
 	}
 
 	return h.deliver(c, site, ticket, rest, valid, userID == site.UserID)
+}
+
+// old sends an address made before names were unique, /run/<name>/<uuid>/..., to the site's
+// current one. Anything else under /run that matches no site is missing.
+func (h *Handler) old(c fiber.Ctx) error {
+	token, rest, _ := strings.Cut(c.Params("*"), "/")
+
+	site, err := h.service.ResolveOld(c.Context(), token)
+	if err != nil {
+		return missing(c)
+	}
+
+	target := url.URL{Path: site.BasePath() + "/" + rest, RawQuery: string(c.Request().URI().QueryString())}
+
+	return c.Redirect().Status(fiber.StatusFound).To(target.String())
 }
 
 // deliver answers an allowed request: it redirects to the canonical address, which for a
@@ -82,14 +95,14 @@ func segmentPath(segment string) string {
 	return "/" + segment
 }
 
-// needsRedirect reports whether the address is not the canonical one: the readable name is
-// only decoration, the folder must end in a slash for relative links to work, and a private
-// page opened by its owner without a (valid) ticket must be reopened with one.
+// needsRedirect reports whether the address is not the canonical one: the folder must end in
+// a slash for relative links to work, and a private page opened by its owner without a
+// (valid) ticket must be reopened with one.
 func (h *Handler) needsRedirect(c fiber.Ctx, site domain.Site, segment, ticket string, valid bool) bool {
 	path := string(c.Request().URI().PathOriginal())
-	bare := strings.HasSuffix(path, "/"+site.Token) || (valid && strings.HasSuffix(path, "/"+ticketPrefix+ticket))
+	bare := strings.HasSuffix(path, "/"+site.Slug) || (valid && strings.HasSuffix(path, "/"+ticketPrefix+ticket))
 
-	return c.Params("name") != site.Slug || bare || (segment != "" && !valid)
+	return bare || (segment != "" && !valid)
 }
 
 // holder identifies who a ticket is for: their browser, and their address when it can be trusted.

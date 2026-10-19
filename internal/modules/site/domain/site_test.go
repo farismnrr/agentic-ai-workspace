@@ -80,7 +80,7 @@ func TestPortAndVisibilityValidation(t *testing.T) {
 
 func TestBasePath(t *testing.T) {
 	site := domain.Site{Slug: "sensio", Token: "abc"}
-	if site.BasePath() != "/run/sensio/abc" {
+	if site.BasePath() != "/run/sensio" {
 		t.Fatal(site.BasePath())
 	}
 }

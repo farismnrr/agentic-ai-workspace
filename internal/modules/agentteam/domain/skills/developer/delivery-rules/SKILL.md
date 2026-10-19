@@ -23,10 +23,22 @@ that say what to do first. Lists have a search or filter when they can grow, for
 destructive actions ask first and every save shows feedback. Do not ship a page that is only a heading and a table.
 
 ## 4. The address prefix (any stack)
-The app is opened under an address like `/run/<name>/<uuid>/`, and the proxy removes that prefix from the request. So
-links, forms, stylesheets, scripts and redirects must be relative (`./css/style.css`, `./admin`), or follow
-`BASE_PATH` (the prefix, in the environment), never start with `/`. Check by loading a page two folders deep. Nuxt
-under `nuxt-serve` already handles this.
+The app is opened under an address like `/run/<name>/` (a private app: `/run/<name>/~<ticket>/`), and the proxy
+removes that prefix from every request. A link that starts with `/` therefore leaves the app and asks the platform,
+which answers with its own page: the stylesheet does not apply, or the page is "not found". So:
+- Use relative links everywhere: HTML (`href`, `src`, `action`), CSS `url()`, `fetch('./api/items')`, redirects.
+  From a page at the root write `./style.css`; from `/admin/users/` write `../../style.css`, one `../` per folder.
+  A page in a folder must end its address with `/`, or its relative links resolve one folder too high.
+- Never write `/style.css`, `/api/x`, `href="/login"`, `window.location = '/'`, and never hard-code `/run/...`.
+- The ticket is part of the prefix of a private app, so only relative links (and `BASE_PATH` for the server side)
+  keep it; a link built from `BASE_PATH` by hand loses it for scripts and styles. Prefer relative.
+- Vite and similar bundlers: set `base: './'` in `vite.config.ts` (relative assets), use hash or memory routing
+  (`createWebHashHistory`), and `fetch('./api/...')`. Plain HTML or a server that renders pages: relative paths, and
+  `redirect('./login')` or a `Location` header with a relative value.
+- Express, Hono, Flask and the like: build every link and `Location` header relative; read nothing from the host.
+- Nuxt under `nuxt-serve` handles pages by itself, but its own rules apply (see `nuxt-app`).
+- `start_site` loads the home page and the pages it links to, and lists every link that would fail. Fix the list and
+  start again; do not report the app as ready while it is not empty.
 
 ## 5. Never touch the real data in a test
 Tests and scripts use their own temporary database (a file under `/tmp` or an in-memory one), and never delete,

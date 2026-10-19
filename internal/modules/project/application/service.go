@@ -16,6 +16,8 @@ type Store interface {
 	Find(ctx context.Context, userID, id string) (domain.Project, error)
 	// FindBySource loads the active project a connected app works in.
 	FindBySource(ctx context.Context, userID, source string) (domain.Project, error)
+	// ActiveNames lists the id and name of every active project the people made themselves.
+	ActiveNames(ctx context.Context) ([]domain.Named, error)
 	// FindByID loads one active project whoever owns it.
 	FindByID(ctx context.Context, id string) (domain.Project, error)
 	Update(ctx context.Context, userID, id, name, description string) error
@@ -81,6 +83,13 @@ func (s *Service) create(ctx context.Context, userID, name, description, source 
 		return domain.Project{}, fmt.Errorf("create project: %w", err)
 	}
 
+	// A connected app's project is named after the app, one per person, so it never competes for a name.
+	if source == "" {
+		if err = s.requireFree(ctx, name, ""); err != nil {
+			return domain.Project{}, err
+		}
+	}
+
 	id, err := s.ids.ID()
 	if err != nil {
 		return domain.Project{}, fmt.Errorf("new project id: %w", err)
@@ -129,6 +138,10 @@ func (s *Service) Update(ctx context.Context, userID, id, name, description stri
 		return domain.Project{}, fmt.Errorf("update project: %w", err)
 	}
 
+	if err = s.requireFree(ctx, name, id); err != nil {
+		return domain.Project{}, err
+	}
+
 	if err := s.store.Update(ctx, userID, id, name, description); err != nil {
 		return domain.Project{}, fmt.Errorf("update project: %w", err)
 	}
@@ -160,31 +173,4 @@ func (s *Service) Owner(ctx context.Context, id string) (userID, name string, er
 	}
 
 	return project.UserID, project.Name, nil
-}
-
-// Checks returns the commands the AI may run in one of the person's projects.
-func (s *Service) Checks(ctx context.Context, userID, id string) ([]Check, error) {
-	if _, err := s.Get(ctx, userID, id); err != nil {
-		return nil, err
-	}
-
-	checks, err := s.checks.List(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("list checks: %w", err)
-	}
-
-	return checks, nil
-}
-
-// SaveChecks replaces the commands the AI may run in a project.
-func (s *Service) SaveChecks(ctx context.Context, userID, id string, checks []Check) error {
-	if _, err := s.Get(ctx, userID, id); err != nil {
-		return err
-	}
-
-	if err := s.checks.Save(ctx, id, checks); err != nil {
-		return fmt.Errorf("save checks: %w", err)
-	}
-
-	return nil
 }

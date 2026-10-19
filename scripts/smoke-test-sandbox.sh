@@ -28,10 +28,11 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     command -v new-nuxt-app > /dev/null && test -f /usr/local/share/starter/nuxt/nuxt.config.ts && echo starter-ok
     test -f /usr/local/share/templates/saas/app/pages/index.vue && test -f /usr/local/share/templates/dashboard/LICENSE && echo templates-ok
     bun --version | grep -q "^1\." && bun -e "import {Database} from \"bun:sqlite\"; const d=new Database(\":memory:\"); d.exec(\"create table t(a)\"); console.log(\"bun-ok\")"
-    printf "require(\"http\").createServer((q,s)=>s.end(q.url)).listen(process.env.PORT,\"127.0.0.1\")" > echo.cjs
+    printf "require(\"http\").createServer((q,s)=>{s.setHeader(\"content-type\",\"text/html\");s.end(q.url)}).listen(process.env.PORT,\"127.0.0.1\")" > echo.cjs
     PORT=8100 BASE_PATH=/run/a/b node /usr/local/share/serve/nuxt-serve.ts node echo.cjs > /dev/null 2>&1 &
     sleep 2
     curl -s http://127.0.0.1:8100/x | grep -q "^/run/a/b/x$" && echo prefix-ok
+    curl -s -H "X-Forwarded-Prefix: /run/a/b/~1.ab" http://127.0.0.1:8100/x | grep -q "^/run/a/b/~1.ab/x$" && echo ticket-prefix-ok
     convert "msl:p.jpg" m.png 2>&1 | grep -q "security policy" && echo policy-ok
     node /usr/local/share/capture/capture.ts "{\"url\":\"http://127.0.0.1:8000/\",\"width\":800,\"height\":600,\"y\":0}" \
       | grep -q "\"ok\":true" && echo shot-ok
@@ -39,7 +40,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok"; do
+for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "ticket-prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 
