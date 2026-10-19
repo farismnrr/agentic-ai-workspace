@@ -143,6 +143,7 @@ COPY --from=rembg /opt/rembg /opt/rembg
 COPY --from=rembg /opt/rembg-models /opt/rembg-models
 COPY --from=docs /opt/docs /opt/docs
 COPY sandbox/docconvert.sh /usr/local/bin/docconvert
+COPY sandbox/docsite.py /usr/local/share/docsite/docsite.py
 COPY sandbox/removebg.py /usr/local/bin/removebg
 COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
@@ -155,6 +156,8 @@ RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg /usr/local/b
     && ln -s /opt/vector/node_modules/.bin/svgo /usr/local/bin/svgo \
     && printf '#!/bin/sh\nexec /opt/docs/bin/python "$@"\n' > /usr/local/bin/docpython \
     && chmod 0755 /usr/local/bin/docpython \
+    && printf '#!/bin/sh\nexec /opt/docs/bin/python /usr/local/share/docsite/docsite.py "$@"\n' > /usr/local/bin/docsite \
+    && chmod 0755 /usr/local/bin/docsite \
     && ln -s bun /usr/local/bin/bunx
 
 # Read-only toolchains stay put; downloads and build output go to /cache, which the server mounts per person.
@@ -169,7 +172,7 @@ ENV RUSTUP_HOME=/opt/rustup \
 LABEL org.opencontainers.image.title="agentic-ai-workspace-sandbox" \
       org.opencontainers.image.source="https://github.com/farismnrr/agentic-ai-workspace" \
       org.opencontainers.image.description="Isolated toolbox for the agent's commands" \
-      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Bun\",\"version\":\"1.4\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"},{\"name\":\"Documents (docpython with python-pptx, python-docx, reportlab, pypdf, openpyxl; docconvert via LibreOffice; poppler)\",\"version\":\"pptx 1, docx 1, reportlab 5\"},{\"name\":\"Vector (svgo, potrace, Lucide icons in /opt/vector)\",\"version\":\"svgo 4\"}]"
+      io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Bun\",\"version\":\"1.4\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"},{\"name\":\"Documents (docpython with python-pptx, python-docx, reportlab, pypdf, openpyxl; docconvert via LibreOffice; docsite makes a website of them; poppler)\",\"version\":\"pptx 1, docx 1, reportlab 5\"},{\"name\":\"Vector (svgo, potrace, Lucide icons in /opt/vector)\",\"version\":\"svgo 4\"}]"
 
 USER 65532:65532
 WORKDIR /workspace

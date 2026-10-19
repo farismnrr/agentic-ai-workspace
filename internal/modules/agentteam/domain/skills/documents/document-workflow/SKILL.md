@@ -33,26 +33,36 @@ goes on it (text, table, picture, chart). Keep it short. Build from that outline
 Everything runs with `run_command`, offline.
 - `docpython script.py` runs Python with python-pptx, python-docx, reportlab, pypdf, openpyxl and Pillow.
 - `docconvert file.docx pdf` converts with LibreOffice (to `pdf`, `docx`, `pptx`); the output lands beside the input.
+- `docsite documents` turns the files of a folder into a website with a picture of every page (see step 5).
 - `pdftoppm`, `pdftotext`, `pdfinfo` and `qpdf` (poppler) read and render PDFs.
 Keep the build script in `documents/src/` (for example `documents/src/deck.py`) so the file can be rebuilt after a
 fix. Write the result to `documents/`, with a file name that says what it is (`proposal-kopi-nusantara.docx`).
 Pictures come from `assets/`; if a needed picture is missing, say so in your report rather than leaving a hole.
 
 ## 5. Look at every page
-Never report a file you have not seen.
-1. Make a PDF: `docconvert documents/deck.pptx pdf` (a PDF you built is already one).
-2. Render pages: `pdftoppm -png -r 60 documents/deck.pdf documents/preview/page`
-3. Open the pictures with `view_image` (PNG only, one by one) and check: text cut off or overflowing, text
-   too small to read, overlapping items, empty pages, a table running off the page, a picture stretched, wrong
-   language, a placeholder left in, inconsistent fonts or colours.
-4. Fix the script, rebuild, render again. At most three rounds; then report what is still wrong.
-5. Delete `documents/preview/` when done, and keep the PDF only if the person asked for one or the job is a PDF.
-`pdfinfo documents/deck.pdf` gives the page count. LibreOffice may differ a little from Word or PowerPoint, so keep
-layouts simple and leave room: do not fill a slide to its edge.
+Never report a file you have not seen. `docsite` makes the pictures for you and builds the page the person will open.
+1. Run `docsite documents` (the folder of your files). For every Word, PowerPoint, Excel and PDF file in it, it makes
+   a PDF with LibreOffice, a picture of each page in `documents/preview/<name>-<ext>/page-N.png`, and
+   `documents/index.html`. `pdfinfo` gives a PDF's page count.
+2. Open the pictures with `view_image` (PNG only, one by one) and check: text cut off or overflowing, text too small
+   to read, overlapping items, empty pages, a table running off the page, a picture stretched, wrong language, a
+   placeholder left in, inconsistent fonts or colours.
+3. Fix the script, rebuild the file, run `docsite documents` again. At most three rounds; then report what is still
+   wrong.
+LibreOffice may differ a little from Word or PowerPoint, so keep layouts simple and leave room: do not fill a slide to
+its edge.
 
-## 6. Report
+## 6. Open it as a site
+The person opens the result from Sites, not from screenshots. After the last `docsite documents`, call `start_site`
+with the command `python3 -m http.server 8000 --bind 127.0.0.1 --directory documents` and port 8000. The page shows
+every file with a Download button and all its pages; the links are relative, so it works under the site address.
+Run `docsite documents` and `start_site` again after every change to a file. Do not edit `index.html` or `preview/`
+by hand: they are rebuilt each time.
+
+## 7. Report
 Give: the file path(s), the number of slides or pages, the outline in one line each, what you checked (pages looked at,
-page count), the placeholders and assumptions. Nothing about scripts or libraries unless the person asked.
+page count), the placeholders and assumptions, and that it is open under Sites. Nothing about scripts or libraries
+unless the person asked.
 
 ## Quality rules for all formats
 - One clear message per slide or section; short sentences; no filler.

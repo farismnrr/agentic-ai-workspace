@@ -78,7 +78,7 @@ rendered PDF shows it empty: say so in the report, or write a short manual conte
 `s = doc.add_section(); s.orientation = WD_ORIENT.LANDSCAPE; s.page_width, s.page_height = s.page_height, s.page_width`.
 
 ## Save and check
-`doc.save("documents/laporan.docx")`, then follow the look-at-every-page steps of `document-workflow`.
+`doc.save("documents/laporan.docx")`, then follow steps 5 and 6 of `document-workflow` (look at every page, open it as a site).
 
 ## Editing an existing document
 `Document("path.docx")`; change `run.text` inside the paragraphs you need so the formatting stays; save to a new

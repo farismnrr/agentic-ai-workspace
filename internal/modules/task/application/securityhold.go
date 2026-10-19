@@ -60,8 +60,16 @@ func changedSinceReview(events []domain.Event, reviewer string, touches func([]s
 	return lastChange > lastReview && rounds < maxRounds
 }
 
+// inDocuments reports whether a file belongs to the Documents role's output folder. Its scripts and the viewer
+// page it generates are not an app, so they do not call for the security check or the design review.
+func inDocuments(name string) bool { return strings.HasPrefix(path.Clean(name), "documents/") }
+
 func hasCode(files []string) bool {
 	for _, name := range files {
+		if inDocuments(name) {
+			continue
+		}
+
 		base := path.Base(strings.ToLower(name))
 		isConfig := base == "package.json" || strings.HasPrefix(base, "nuxt.config.")
 		if isConfig || slices.Contains(codeExtensions, path.Ext(base)) {

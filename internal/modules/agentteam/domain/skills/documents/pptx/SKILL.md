@@ -69,8 +69,7 @@ Use bar/column for comparing, line for time, pie only for 2-4 parts of a whole. 
 `slide.notes_slide.notes_text_frame.text = "Yang dikatakan di slide ini ..."` when the person will present.
 
 ## Save and check
-`prs.save("documents/deck.pptx")`, then follow the look-at-every-page steps of `document-workflow` (convert with
-`docconvert`, render with `pdftoppm`, open the pictures with `view_image`).
+`prs.save("documents/deck.pptx")`, then follow steps 5 and 6 of `document-workflow` (`docsite`, look at the pictures, open it as a site).
 
 ## Editing an existing deck
 Open it with `Presentation("path.pptx")`, change text by walking `shape.text_frame.paragraphs[*].runs[*]` and set

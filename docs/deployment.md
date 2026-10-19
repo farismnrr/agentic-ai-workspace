@@ -168,7 +168,7 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 
 The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. It also has Bun, the runtime for apps the AI builds, and picture tools: libvips, ImageMagick, `cwebp`, `avifenc` and background removal (`removebg`, models included, works offline).
 
-For documents it has python-pptx, python-docx, reportlab, pypdf and openpyxl (run with `docpython`). It also has LibreOffice (`docconvert file.docx pdf`) and poppler (`pdftoppm`, `pdftotext`). All work offline. `make sandbox-image` builds it locally.
+For documents it has python-pptx, python-docx, reportlab, pypdf and openpyxl (run with `docpython`). It also has LibreOffice (`docconvert file.docx pdf`), poppler (`pdftoppm`, `pdftotext`) and `docsite`, which turns a folder of documents into a website. All work offline. `make sandbox-image` builds it locally.
 
 ### Capacity
 

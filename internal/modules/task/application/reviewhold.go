@@ -20,7 +20,7 @@ var screenExtensions = []string{
 // hasScreen reports whether the files include something the person sees: a page, a component or a style.
 func hasScreen(files []string) bool {
 	for _, name := range files {
-		if slices.Contains(screenExtensions, path.Ext(strings.ToLower(name))) {
+		if !inDocuments(name) && slices.Contains(screenExtensions, path.Ext(strings.ToLower(name))) {
 			return true
 		}
 	}
