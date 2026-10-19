@@ -12,17 +12,30 @@ import sys
 from pathlib import Path
 
 KINDS = {".pdf": "PDF", ".docx": "Word", ".pptx": "PowerPoint", ".xlsx": "Excel"}
-DPI = "80"
+DPI = "144"  # sharp when the page is shown about 50rem wide on a large screen
 
 STYLE = """
-body{margin:0;font:16px/1.5 system-ui,sans-serif;background:#f4f4f1;color:#1d1d1b}
-header,main{max-width:60rem;margin:0 auto;padding:1rem}
-nav a{margin-right:1rem}
-section{margin:2rem 0}
-h1{font-size:1.5rem}h2{font-size:1.25rem;margin-bottom:.25rem}
-.kind{font-size:.85rem;color:#555}
-.btn{display:inline-block;margin:.5rem 0 1rem;padding:.5rem 1rem;border-radius:.5rem;background:#1d1d1b;color:#fff;text-decoration:none}
-img{display:block;width:100%;height:auto;margin:0 0 1rem;background:#fff;border:1px solid #ccc;border-radius:.25rem}
+:root{--bg:#f3f4f6;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#1f4e79}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+header{position:sticky;top:0;z-index:1;background:var(--card);border-bottom:1px solid var(--line)}
+.bar{max-width:64rem;margin:0 auto;padding:.75rem 1rem;display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center}
+h1{margin:0;font-size:1.125rem}
+nav{display:flex;flex-wrap:wrap;gap:.5rem}
+nav a{padding:.25rem .75rem;border:1px solid var(--line);border-radius:999px;color:var(--text);text-decoration:none;font-size:.875rem}
+nav a:hover,nav a:focus-visible{border-color:var(--accent);color:var(--accent)}
+main{max-width:64rem;margin:0 auto;padding:1rem 1rem 3rem}
+section{margin:1.5rem 0 3rem;scroll-margin-top:4rem}
+.head{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;justify-content:space-between;margin-bottom:1rem}
+h2{margin:0;font-size:1.25rem;overflow-wrap:anywhere}
+.kind{color:var(--muted);font-size:.875rem}
+.btn{padding:.5rem 1rem;border-radius:.5rem;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:.9375rem}
+.btn:hover,.btn:focus-visible{filter:brightness(1.15)}
+figure{margin:0 auto 1.5rem;width:100%;max-width:52rem}
+figure.wide{max-width:64rem}
+img{display:block;width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:.375rem;box-shadow:0 1px 3px rgb(0 0 0/.12)}
+figcaption{margin-top:.375rem;text-align:center;color:var(--muted);font-size:.8125rem}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 """
 
 
@@ -41,18 +54,27 @@ def render(pdf: Path, pages: Path) -> list[str]:
     return sorted(p.name for p in pages.glob("page-*.png"))
 
 
+def is_landscape(png: Path) -> bool:
+    """A PNG's size sits in its header: width then height, 4 bytes each, after the 8-byte signature and chunk head."""
+    head = png.read_bytes()[16:24]
+    return int.from_bytes(head[:4], "big") > int.from_bytes(head[4:], "big")
+
+
 def section(root: Path, source: Path) -> str:
     name = html.escape(source.name)
     stem = source.stem + "-" + source.suffix.lower().lstrip(".")  # report.docx and report.pdf stay apart
     pdf = to_pdf(source, root / "preview" / "pdf" / stem)
     names = render(pdf, root / "preview" / stem)
+    wide = " wide" if is_landscape(root / "preview" / stem / names[0]) else ""
     images = "\n".join(
-        f'<img loading="lazy" src="preview/{html.escape(stem)}/{n}" alt="{name}, page {i}">' for i, n in enumerate(names, 1)
+        f'<figure class="{wide.strip()}"><img loading="lazy" src="preview/{html.escape(stem)}/{n}" alt="{name}, page {i}">'
+        f"<figcaption>Page {i} of {len(names)}</figcaption></figure>"
+        for i, n in enumerate(names, 1)
     )
     return (
-        f'<section id="{html.escape(stem)}"><h2>{name}</h2>'
-        f'<div class="kind">{KINDS[source.suffix.lower()]}, {len(names)} pages</div>'
-        f'<a class="btn" href="{name}" download>Download</a>\n{images}</section>'
+        f'<section id="{html.escape(stem)}"><div class="head"><div><h2>{name}</h2>'
+        f'<div class="kind">{KINDS[source.suffix.lower()]}, {len(names)} pages</div></div>'
+        f'<a class="btn" href="{name}" download>Download</a></div>\n{images}</section>'
     )
 
 
@@ -65,7 +87,7 @@ def main() -> None:
     links = "".join(f'<a href="#{html.escape(f.stem + "-" + f.suffix.lower().lstrip("."))}">{html.escape(f.name)}</a>' for f in files)
     page = (
         f'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        f"<title>Documents</title><style>{STYLE}</style><header><h1>Documents</h1><nav>{links}</nav></header>"
+        f"<title>Documents</title><style>{STYLE}</style><header><div class=\"bar\"><h1>Documents</h1><nav>{links}</nav></div></header>"
         f"<main>{body}</main></html>"
     )
     (root / "index.html").write_text(page, encoding="utf-8")
