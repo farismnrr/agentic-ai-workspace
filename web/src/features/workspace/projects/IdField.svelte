@@ -45,7 +45,7 @@
     <input id="project-id" class="input mt-1 w-full font-mono" class:input-error={status === 'taken' || status === 'invalid'} maxlength="30" aria-describedby="project-id-hint" aria-invalid={status === 'taken' || status === 'invalid'} value={slug} oninput={(event) => { slug = event.currentTarget.value.toLowerCase(); }} />
   {:else}
     <p class="mt-1 flex items-center gap-2">
-      <code class="rounded bg-base-200 px-2 py-1 font-mono text-sm" id="project-id">{slug}</code>
+      <code class="rounded bg-base-200 px-2 py-1 font-mono text-sm" id="project-id">{slug === '' ? '-' : slug}</code>
       <button class="link link-primary text-sm" type="button" disabled={slug === ''} onclick={() => { editing = true; }}><Icon name="pencil" class="mr-1 inline size-4 align-text-bottom" />{newProjectCopy.idEdit}</button>
     </p>
   {/if}
