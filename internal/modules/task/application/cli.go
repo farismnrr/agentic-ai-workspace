@@ -41,6 +41,7 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 
 	result, err := r.deps.CLI.Run(ctx, CLIRequest{
 		UserID: task.UserID, ProjectID: task.ProjectID, Program: program, Session: session,
+		Model: task.Model, Effort: string(task.Effort),
 		Prompt: r.lastRequest(ctx, task.ID),
 	}, func(event CLIEvent) { sink.emit(ctx, event) })
 

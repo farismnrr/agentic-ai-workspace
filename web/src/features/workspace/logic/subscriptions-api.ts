@@ -9,8 +9,17 @@ export interface SignInPrompt {
   code?: string;
 }
 
+/** A choice the program takes for its model, with the effort levels that go with it. */
+export interface PlanModel {
+  id: string;
+  name: string;
+  efforts: string[];
+}
+
 export interface SubscriptionState {
   connected: boolean;
+  /** What the person can choose for this program's model. */
+  models: PlanModel[];
   /** Set while a sign-in waits for the person to finish. */
   prompt?: SignInPrompt;
 }
@@ -36,8 +45,17 @@ export function describeSignInError(failure: unknown, copy: { badCode: string; f
 
 const programs: Program[] = ['claude', 'chatgpt'];
 
+/** A program the person is signed in to, with the choices it takes. */
+export interface ConnectedPlan {
+  program: Program;
+  models: PlanModel[];
+}
+
 /** The programs the person is signed in to. */
-export async function loadConnectedPlans(): Promise<Program[]> {
+export async function loadConnectedPlans(): Promise<ConnectedPlan[]> {
   const states = await Promise.all(programs.map(loadSubscription));
-  return programs.filter((_, index) => states[index]?.connected === true);
+  return programs.flatMap((program, index) => {
+    const state = states[index];
+    return state?.connected === true ? [{ program, models: state.models }] : [];
+  });
 }

@@ -4,9 +4,9 @@
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
   import { planGroupLabel, programs, subscriptionsCopy } from '../content/subscriptions';
-  import { loadConnectedPlans, signOut, type Program } from '../logic/subscriptions-api';
+  import { loadConnectedPlans, signOut, type ConnectedPlan, type Program } from '../logic/subscriptions-api';
   import { effortChoices, hasEffortChoice } from '../logic/effort';
-  import { groupModels, modelValue } from '../logic/model-groups';
+  import { groupModels, modelValue, planLevels, planModelLabel, planValue } from '../logic/model-groups';
   import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, removeProvider, type ModelOption, type Provider } from '../logic/providers-api';
   import { describeProviderError } from '../logic/provider-errors';
@@ -27,7 +27,7 @@
   let pending: Provider | undefined = $state();
   let notice = $state('');
   let failed = $state(false);
-  let plans: Program[] = $state([]);
+  let plans: ConnectedPlan[] = $state([]);
   let signingIn: Program | undefined = $state();
   let leaving: Program | undefined = $state();
 
@@ -54,7 +54,10 @@
     }
   }
 
-  const defaultLevels = $derived(providers.find((provider) => provider.id === prefs?.defaultProviderId)?.efforts[prefs?.defaultModel ?? '']);
+  const defaultLevels = $derived(
+    planLevels(plans, prefs?.defaultProviderId ?? '', prefs?.defaultModel ?? '') ??
+      providers.find((provider) => provider.id === prefs?.defaultProviderId)?.efforts[prefs?.defaultModel ?? ''],
+  );
 
   async function pickEffort(value: string): Promise<void> {
     if (prefs === undefined) return;
@@ -124,7 +127,9 @@
           <option value="">Choose when I start a task</option>
           {#if plans.length > 0}
             <optgroup label={planGroupLabel}>
-              {#each plans as program (program)}<option value="plan:{program}::default">{programs[program].name}</option>{/each}
+              {#each plans as plan (plan.program)}
+                {#each plan.models as model (model.id)}<option value={planValue(plan.program, model)}>{planModelLabel(plan.program, model)}</option>{/each}
+              {/each}
             </optgroup>
           {/if}
           {#each groupModels(options) as group (group.label)}
@@ -155,8 +160,8 @@
       <EmptyState compact icon="key" title={modelsCopy.none.title} body={modelsCopy.none.body} />
     {:else}
       <ul>
-        {#each plans as program (program)}
-          <PlanRow {program} onremove={() => (leaving = program)} />
+        {#each plans as plan (plan.program)}
+          <PlanRow program={plan.program} onremove={() => (leaving = plan.program)} />
         {/each}
         {#each providers as provider (provider.id)}
           <ProviderRow {provider} onchange={refresh} onremove={() => (pending = provider)} onerror={showNotice} />

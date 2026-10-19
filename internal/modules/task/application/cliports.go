@@ -37,6 +37,8 @@ type CLIRequest struct {
 	// Program is which one: "claude" or "chatgpt".
 	Program string
 	Prompt  string
+	// Model and Effort are what the person chose; the program decides what they mean for it.
+	Model, Effort string
 	// Session continues the conversation the program kept for this task; empty starts a new one.
 	Session string
 }
