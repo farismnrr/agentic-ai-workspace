@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"th-1"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"i1","type":"command_execution","command":"bash -lc 'go test ./...'","exit_code":1,"status":"failed"}}
+{"type":"item.completed","item":{"id":"i2","type":"command_execution","command":"ls","status":"declined"}}
+{"type":"item.completed","item":{"id":"i3","type":"file_change","changes":[{"path":"/workspace/main.go","kind":"update"}],"status":"completed"}}
+{"type":"item.completed","item":{"id":"i4","type":"agent_message","text":"All set."}}
+{"type":"turn.completed","usage":{"input_tokens":1}}
