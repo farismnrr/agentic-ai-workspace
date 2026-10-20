@@ -18,6 +18,8 @@ type scriptedProgram struct {
 	answers  []string
 	calls    []scriptedCall
 	failed   []bool
+	used     int64
+	window   int64
 }
 
 type scriptedCall struct {
@@ -40,7 +42,7 @@ func (p *scriptedProgram) Run(
 
 	emit(application.CLIEvent{Kind: application.CLIText, Text: p.say})
 
-	return application.CLIResult{Session: "s1"}, nil
+	return application.CLIResult{Session: "s1", Used: p.used, Window: p.window}, nil
 }
 
 type sessionBook map[string]string

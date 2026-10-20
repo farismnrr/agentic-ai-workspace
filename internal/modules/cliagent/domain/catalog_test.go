@@ -56,3 +56,12 @@ func TestChoice(t *testing.T) {
 		}
 	}
 }
+
+func TestParseCodexCatalogKeepsEachModelsWindow(t *testing.T) {
+	t.Parallel()
+
+	models, err := domain.ParseCodexCatalog(codexModels)
+	if err != nil || models[0].ContextWindow != 272_000 || models[1].ContextWindow != 0 {
+		t.Fatalf("windows = %+v, %v", models, err)
+	}
+}

@@ -29,6 +29,8 @@ type Stream struct {
 	summary string
 	reason  string
 	buf     bytes.Buffer
+	used    int64
+	window  int64
 }
 
 // New reads the output of one program: "claude" or "chatgpt".
@@ -68,7 +70,7 @@ func (s *Stream) Write(p []byte) (int, error) {
 
 // Result is how the turn ended, once the program has exited.
 func (s *Stream) Result() application.CLIResult {
-	return application.CLIResult{Session: s.session, Summary: s.summary, Reason: s.reason}
+	return application.CLIResult{Session: s.session, Summary: s.summary, Reason: s.reason, Used: s.used, Window: s.window}
 }
 
 // relative shows a file the way the project sees it.

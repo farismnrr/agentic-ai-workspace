@@ -32,6 +32,12 @@ func (s *Service) SetContextWindow(ctx context.Context, userID, id, model string
 
 // ContextWindow is how much the given model can hold at once, in tokens.
 func (s *Service) ContextWindow(ctx context.Context, userID, id, model string) int64 {
+	if domain.IsPlanID(id) {
+		if plan, err := s.plan(ctx, userID, id); err == nil {
+			return domain.ContextWindow(model, nil, plan.Catalog)
+		}
+	}
+
 	provider, _, err := s.store.Find(ctx, userID, id)
 	if err != nil {
 		return domain.ContextWindow(model, nil, nil)

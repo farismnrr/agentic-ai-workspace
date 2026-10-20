@@ -69,7 +69,7 @@ func planProvider(rt cliagentdomain.Runtime, enabled bool, models []cliagentdoma
 	for _, model := range models {
 		plan.Models = append(plan.Models, model.ID)
 		plan.Catalog[model.ID] = providerdomain.ModelInfo{
-			Name: model.Name,
+			Name: model.Name, ContextWindow: model.ContextWindow,
 			Thinking: providerdomain.Thinking{
 				Reported: true, Reasoning: len(model.Efforts) > 0, CanDisable: true, Levels: model.Efforts,
 			},
