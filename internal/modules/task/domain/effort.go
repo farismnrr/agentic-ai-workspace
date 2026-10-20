@@ -15,12 +15,14 @@ const (
 	EffortHigh    Effort = "high"
 	EffortXHigh   Effort = "xhigh"
 	EffortMax     Effort = "max"
+	EffortUltra   Effort = "ultra"
 )
 
 // Valid reports whether e is empty or a known level.
 func (e Effort) Valid() bool {
 	switch e {
-	case EffortDefault, EffortNone, EffortMinimal, EffortLow, EffortMedium, EffortHigh, EffortXHigh, EffortMax:
+	case EffortDefault, EffortNone, EffortMinimal, EffortLow, EffortMedium, EffortHigh, EffortXHigh, EffortMax,
+		EffortUltra:
 		return true
 	}
 

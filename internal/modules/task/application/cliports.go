@@ -41,6 +41,10 @@ type CLIRequest struct {
 	Model, Effort string
 	// Session continues the conversation the program kept for this task; empty starts a new one.
 	Session string
+	// Tools, when Limited, are the project tools a teammate's role may use; the program is held to them.
+	Tools []string
+	// Limited says Tools is a limit, even an empty one.
+	Limited bool
 }
 
 // CLIResult is how a turn ended.

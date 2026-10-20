@@ -36,28 +36,9 @@ func (h *Handler) Mount(auth, sameOrigin, limit fiber.Handler) httpserver.Mount 
 	}
 }
 
-type modelPayload struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Efforts []string `json:"efforts"`
-}
-
 type statePayload struct {
 	Prompt    *domain.Prompt `json:"prompt,omitempty"`
-	Models    []modelPayload `json:"models"`
 	Connected bool           `json:"connected"`
-}
-
-// models are what the person can choose for the program, so the screens never name a model themselves.
-func models(rt domain.Runtime) []modelPayload {
-	all := domain.Models(rt)
-	payload := make([]modelPayload, 0, len(all))
-
-	for _, model := range all {
-		payload = append(payload, modelPayload{ID: model.ID, Name: model.Name, Efforts: model.Efforts})
-	}
-
-	return payload
 }
 
 func (h *Handler) status(c fiber.Ctx) error {
@@ -71,7 +52,7 @@ func (h *Handler) status(c fiber.Ctx) error {
 		return fail(c, err)
 	}
 
-	return c.JSON(statePayload{Connected: state.Connected, Prompt: state.Prompt, Models: models(rt)})
+	return c.JSON(statePayload{Connected: state.Connected, Prompt: state.Prompt})
 }
 
 func (h *Handler) start(c fiber.Ctx) error {

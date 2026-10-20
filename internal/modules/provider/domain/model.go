@@ -70,7 +70,7 @@ func kindLevels(kind Kind) []string {
 		return levelsAnthropic
 	case KindGemini:
 		return levelsGemini
-	case KindOpenAI, KindCompatible:
+	case KindOpenAI, KindCompatible, KindPlan:
 		return levelsOpenAI
 	}
 

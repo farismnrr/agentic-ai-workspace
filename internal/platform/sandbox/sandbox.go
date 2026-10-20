@@ -51,6 +51,8 @@ type Spec struct {
 	Stdin io.Reader
 	Argv  []string
 	Env   []string
+	// WorkspaceReadOnly shows the workspace so it can be read and not changed.
+	WorkspaceReadOnly bool
 }
 
 // Result is how a sandboxed command ended.

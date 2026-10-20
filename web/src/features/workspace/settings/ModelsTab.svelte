@@ -3,10 +3,10 @@
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { modelsCopy } from '../content/models';
-  import { planGroupLabel, programs, subscriptionsCopy } from '../content/subscriptions';
-  import { loadConnectedPlans, signOut, type ConnectedPlan, type Program } from '../logic/subscriptions-api';
+  import { programs, subscriptionsCopy } from '../content/subscriptions';
+  import type { Program } from '../logic/subscriptions-api';
   import { effortChoices, hasEffortChoice } from '../logic/effort';
-  import { groupModels, modelValue, planLevels, planModelLabel, planValue } from '../logic/model-groups';
+  import { groupModels, modelValue } from '../logic/model-groups';
   import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, removeProvider, type ModelOption, type Provider } from '../logic/providers-api';
   import { describeProviderError } from '../logic/provider-errors';
@@ -15,7 +15,6 @@
   import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
   import ContextWindows from './ContextWindows.svelte';
-  import PlanRow from './PlanRow.svelte';
   import ProviderRow from './ProviderRow.svelte';
   import SubscriptionDialog from './SubscriptionDialog.svelte';
 
@@ -27,15 +26,14 @@
   let pending: Provider | undefined = $state();
   let notice = $state('');
   let failed = $state(false);
-  let plans: ConnectedPlan[] = $state([]);
   let signingIn: Program | undefined = $state();
-  let leaving: Program | undefined = $state();
 
+  const pendingPlan = $derived<Program | undefined>(pending?.kind === 'plan' ? (pending.id.slice('plan:'.length) as Program) : undefined);
   const chosen = $derived(prefs === undefined || prefs.defaultModel === '' ? '' : `${prefs.defaultProviderId}::${prefs.defaultModel}`);
 
   async function refresh(): Promise<void> {
     try {
-      [providers, options, prefs, plans] = await Promise.all([loadProviders(), loadModels(), loadPreferences(), loadConnectedPlans()]);
+      [providers, options, prefs] = await Promise.all([loadProviders(), loadModels(), loadPreferences()]);
       failed = false;
     } catch {
       failed = true;
@@ -54,10 +52,7 @@
     }
   }
 
-  const defaultLevels = $derived(
-    planLevels(plans, prefs?.defaultProviderId ?? '', prefs?.defaultModel ?? '') ??
-      providers.find((provider) => provider.id === prefs?.defaultProviderId)?.efforts[prefs?.defaultModel ?? ''],
-  );
+  const defaultLevels = $derived(providers.find((provider) => provider.id === prefs?.defaultProviderId)?.efforts[prefs?.defaultModel ?? '']);
 
   async function pickEffort(value: string): Promise<void> {
     if (prefs === undefined) return;
@@ -74,18 +69,6 @@
     if (target === undefined) return;
     try {
       await removeProvider(target.id);
-    } catch (error) {
-      notice = describeProviderError(error);
-    }
-    await refresh();
-  }
-
-  async function confirmLeave(): Promise<void> {
-    const target = leaving;
-    leaving = undefined;
-    if (target === undefined) return;
-    try {
-      await signOut(target);
     } catch (error) {
       notice = describeProviderError(error);
     }
@@ -119,19 +102,12 @@
   <p class="text-error" role="alert">{modelsCopy.failed}</p>
 {:else}
   <SettingsSection title="Default model" description={modelsCopy.defaultIntro}>
-    {#if options.length === 0 && plans.length === 0}
+    {#if options.length === 0}
       <EmptyState compact icon="key" title={modelsCopy.noModels.title} body={modelsCopy.noModels.body} />
     {:else}
       <SettingRow label="Model" for="default-model">
         <select id="default-model" class="select select-sm w-72" value={chosen} onchange={(event) => pick(event.currentTarget.value)}>
           <option value="">Choose when I start a task</option>
-          {#if plans.length > 0}
-            <optgroup label={planGroupLabel}>
-              {#each plans as plan (plan.program)}
-                {#each plan.models as model (model.id)}<option value={planValue(plan.program, model)}>{planModelLabel(plan.program, model)}</option>{/each}
-              {/each}
-            </optgroup>
-          {/if}
           {#each groupModels(options) as group (group.label)}
             <optgroup label={group.label}>
               {#each group.models as option (modelValue(option))}<option value={modelValue(option)}>{option.model}</option>{/each}
@@ -156,13 +132,10 @@
       <button class="btn btn-ghost btn-sm" type="button" aria-label="Add provider" onclick={() => (adding = true)}><Icon name="plus" class="size-4" /> Add</button>
     {/snippet}
     {#if notice !== ''}<p class="py-3 text-sm text-error" role="alert">{notice}</p>{/if}
-    {#if providers.length === 0 && plans.length === 0}
+    {#if providers.length === 0}
       <EmptyState compact icon="key" title={modelsCopy.none.title} body={modelsCopy.none.body} />
     {:else}
       <ul>
-        {#each plans as plan (plan.program)}
-          <PlanRow program={plan.program} onremove={() => (leaving = plan.program)} />
-        {/each}
         {#each providers as provider (provider.id)}
           <ProviderRow {provider} onchange={refresh} onremove={() => (pending = provider)} onerror={showNotice} />
         {/each}
@@ -177,20 +150,11 @@
   <SubscriptionDialog program={signingIn} open onclose={() => (signingIn = undefined)} ondone={signedIn} />
 {/if}
 <ConfirmModal
-  open={leaving !== undefined}
-  title={subscriptionsCopy.signOutDialog.title(leaving === undefined ? '' : programs[leaving].name)}
-  body={subscriptionsCopy.signOutDialog.body}
-  confirmLabel={subscriptionsCopy.signOutDialog.confirm}
-  cancelLabel={subscriptionsCopy.signOutDialog.cancel}
-  oncancel={() => (leaving = undefined)}
-  onconfirm={confirmLeave}
-/>
-<ConfirmModal
   open={pending !== undefined}
-  title="Remove {pending?.name ?? ''}?"
-  body="Its key is deleted. Tasks that use its models will need another provider."
-  confirmLabel="Remove provider"
-  cancelLabel="Keep it"
+  title={pendingPlan === undefined ? `Remove ${pending?.name ?? ''}?` : subscriptionsCopy.signOutDialog.title(programs[pendingPlan].name)}
+  body={pendingPlan === undefined ? 'Its key is deleted. Tasks that use its models will need another provider.' : subscriptionsCopy.signOutDialog.body}
+  confirmLabel={pendingPlan === undefined ? 'Remove provider' : subscriptionsCopy.signOutDialog.confirm}
+  cancelLabel={pendingPlan === undefined ? 'Keep it' : subscriptionsCopy.signOutDialog.cancel}
   oncancel={() => (pending = undefined)}
   onconfirm={confirmRemove}
 />

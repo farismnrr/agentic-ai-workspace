@@ -51,7 +51,9 @@ func (p *plans) Run(
 
 	defer release()
 
-	spec.Home, spec.Stdin, spec.Argv = home, strings.NewReader(req.Prompt), programArgv(req)
+	models := p.service.Models(ctx, req.UserID, cliagentdomain.Runtime(req.Program))
+	spec.WorkspaceReadOnly = req.Limited && !mayChange(req.Tools)
+	spec.Home, spec.Stdin, spec.Argv = home, strings.NewReader(req.Prompt), programArgv(req, models)
 	spec.Env = codingrunner.Environment(spec, "HOME="+sandbox.Home, "CODEX_HOME="+sandbox.Home+"/.codex",
 		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "DISABLE_AUTOUPDATER=1")
 
@@ -73,9 +75,9 @@ func (p *plans) Run(
 // programArgv is the command for one turn. The prompt arrives on standard input. The container is the
 // sandbox, so the program is not asked to ask permission for every step. The model and effort are passed only
 // when they are ones the program is known to take, so a stray value never becomes an option of its own.
-func programArgv(req taskapp.CLIRequest) []string {
+func programArgv(req taskapp.CLIRequest, models []cliagentdomain.Model) []string {
 	runtime := cliagentdomain.Runtime(req.Program)
-	model, effort := cliagentdomain.Choice(runtime, req.Model, req.Effort)
+	model, effort := cliagentdomain.Choice(models, req.Model, req.Effort)
 
 	if runtime == cliagentdomain.ChatGPT {
 		argv := []string{"codex", "exec"}
@@ -98,6 +100,10 @@ func programArgv(req taskapp.CLIRequest) []string {
 		"--permission-mode", "bypassPermissions",
 	}
 	argv = append(argv, choice("--model", model, "--effort", effort, effort)...)
+
+	if req.Limited {
+		argv = append(argv, "--tools", strings.Join(claudeTools(req.Tools), ","))
+	}
 
 	if req.Session != "" {
 		argv = append(argv, "--resume", req.Session)

@@ -13,7 +13,7 @@ import (
 
 const (
 	checkWait = 30 * time.Second
-	statusTTL = 5 * time.Second
+	statusTTL = 30 * time.Second
 )
 
 var codeShape = regexp.MustCompile(`^[A-Za-z0-9._~#%+/=:-]{8,512}$`)
@@ -36,6 +36,7 @@ type Service struct {
 	now     func() time.Time
 	active  map[key]*signIn
 	checked map[key]checked
+	catalog catalog
 	mu      sync.Mutex
 }
 

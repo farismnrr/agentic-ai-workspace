@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
+	cliagentsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/adapter/sqlite"
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
@@ -51,15 +52,12 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	folders, err := openFolders(cfg.DataDir)
+	folders, tools, err := openToolbox(cfg, engine)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	tools, err := newToolbox(folders, cfg, engine)
-	if err != nil {
-		return nil, nil, err
-	}
+	models.providers.WithPlans(planCatalog{plans: tools.plans, switches: cliagentsqlite.NewSwitches(db)})
 
 	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
 

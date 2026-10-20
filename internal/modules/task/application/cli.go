@@ -80,13 +80,18 @@ func (r *Runner) lastRequest(ctx context.Context, taskID string) string {
 type planSink struct {
 	runner  *Runner
 	pending string
+	last    string
 	task    domain.Task
+	// quiet keeps the program's typing out of the task's own reply: a teammate's words are shown as steps.
+	quiet bool
 }
 
 func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 	switch event.Kind {
 	case CLIDelta:
-		p.runner.deps.Notify.Delta(p.task.ID, event.Text)
+		if !p.quiet {
+			p.runner.deps.Notify.Delta(p.task.ID, event.Text)
+		}
 	case CLIText:
 		p.flush(ctx)
 		p.pending = strings.TrimSpace(event.Text)
@@ -104,6 +109,10 @@ func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 }
 
 func (p *planSink) flush(ctx context.Context) {
+	if p.pending != "" {
+		p.last = p.pending
+	}
+
 	p.runner.say(ctx, p.task.ID, p.pending)
 	p.pending = ""
 }
