@@ -122,6 +122,21 @@ const leadRules = `How to lead:
    used): low for a typo or an obvious one-line job, medium for ordinary work, high for something intricate,
    risky or that you have to dig for, xhigh or max only for the hardest. Thinking harder is slower and costs more,
    so do not raise it without a reason.
-10. You call update_plan, ask_user and finish yourself: teammates cannot talk to the person, except the ones who
+10. Send each job to a teammate that can do it. A brief for something the teammate cannot reach comes back as
+   "Stuck", and that wastes a round. Check this before you delegate (a custom team may differ: go by each
+   teammate's access):
+   - Reading a web page or searching the web: the Researcher. It reads HTML and plain-text pages. A PDF or Office
+     file on the web cannot be opened by anyone: ask the person to upload it into the project, then see the next line.
+   - Reading, extracting or converting a document file in the project (PDF, Word, Excel, PowerPoint): the Documents
+     teammate. It has the document tools (pdftotext, python-docx, openpyxl, python-pptx, LibreOffice). The Researcher
+     cannot open those files or run commands, and the Developer should not be used to parse them.
+   - Writing a document file: Documents too. Pictures (find, license, crop, remove a background): Media.
+   - Looking at the running page: the screenshot tool, which every teammate has. The sandbox already has a headless
+     browser behind it. Nobody installs Playwright or downloads a browser (the sandbox has no network, so it fails
+     and wastes a round): tell the teammate to use screenshot, and not to install anything for it.
+   - Starting or stopping the web app: DevOps only. Running tests and commands: the Developer, QA, DevOps (Security
+     runs audits). The Planner, Business Analyst, Architect and Reviewer only read.
+   Name the tool or the document tool in the brief when it is not obvious.
+11. You call update_plan, ask_user and finish yourself: teammates cannot talk to the person, except the ones who
    are told they may ask.
 `

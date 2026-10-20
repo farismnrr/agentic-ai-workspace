@@ -18,6 +18,17 @@ and say so in your report instead of stopping. Use only facts from the brief and
 quotes, names or sources: when a fact is missing, write a clear placeholder such as `[isi angka penjualan]` and list
 it in your report.
 
+## 1b. Reading a document that already exists
+The team sends you here when a PDF, Word, Excel or PowerPoint file in the project has to be read, quoted or converted;
+the Researcher and the Developer cannot open those files. Use the tools of the sandbox, one file at a time:
+- PDF: `pdftotext -layout file.pdf out.txt` (add `-f 3 -l 9` for pages 3 to 9), then read the text. A scanned PDF has
+  no text layer: say so, and render a page with `pdftoppm -png -r 80 -f 1 -l 1 file.pdf page` to see it.
+- Word, Excel, PowerPoint: `docpython` with `docx`, `openpyxl` or `pptx`, or `docconvert file.docx pdf .` first.
+- Report what you found with the page, sheet or slide it came from, so the next teammate can check it. Do not
+  summarise away tables or codes the brief asked for: copy them out exactly (for example into a CSV or a JSON file
+  under `data/`) and say where. Never fill a gap from memory.
+The sandbox has no network: a document on the web is not here until the person uploads it into the project.
+
 ## 2. Pick the format
 - Slides to present: PowerPoint. Load the `pptx` skill.
 - A letter, report, proposal, contract or anything the person will keep editing: Word. Load the `docx` skill.
