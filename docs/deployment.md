@@ -161,11 +161,13 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | Variable | What it does | Default |
 | --- | --- | --- |
 | `SANDBOX_IMAGE` | Image the AI's commands run in. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
-| `SANDBOX_EGRESS_HOSTS` | Hosts commands can reach over HTTPS. Everything else is blocked. | PyPI, npm, Go proxy, crates.io, Maven Central |
+| `SANDBOX_EGRESS_HOSTS` | HTTPS host allowlist for commands; other hosts are blocked. | PyPI, npm, Go proxy and its storage host, crates.io, Maven Central |
 | `CLAUDE_EGRESS_HOSTS` / `CHATGPT_EGRESS_HOSTS` | Hosts the Claude and ChatGPT programs can reach while people sign in and work on their plan. | the providers' own hosts |
 | `SANDBOX_RUNTIME` | Hardened runtime, such as `runsc` (gVisor). | none |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check. | 2048 / 1 |
 | `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it. Leave it empty when you run the binary directly. | set by compose |
+
+Go module ZIP downloads may redirect from `proxy.golang.org` to `storage.googleapis.com`. Keep both hosts in a custom `SANDBOX_EGRESS_HOSTS` list. This allows HTTPS to that storage hostname, not just Go module paths. The checksum database remains enabled.
 
 The default image has Python, Node.js, Go, Rust, Java, Maven, Git, `gh`, Bash and a C compiler. It also has Bun, the runtime for apps the AI builds, and picture tools: libvips, ImageMagick, `cwebp`, `avifenc` and background removal (`removebg`, models included, works offline).
 

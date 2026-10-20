@@ -6,6 +6,19 @@ import (
 	"testing"
 )
 
+func TestDefaultGoModuleEgressIncludesRedirectStorage(t *testing.T) {
+	t.Setenv("SANDBOX_EGRESS_HOSTS", "")
+	hosts := Load().SandboxEgress
+	for _, host := range []string{"proxy.golang.org", "sum.golang.org", "storage.googleapis.com"} {
+		if !slices.Contains(hosts, host) {
+			t.Errorf("Go module download host %q missing from default egress", host)
+		}
+	}
+	if slices.Contains(hosts, "github.com") {
+		t.Error("GitHub must remain restricted to connected workspaces")
+	}
+}
+
 func TestOriginsDefaultToLocalhostAndLoopback(t *testing.T) {
 	t.Setenv("PORT", "8081")
 	t.Setenv("ALLOWED_ORIGINS", "")

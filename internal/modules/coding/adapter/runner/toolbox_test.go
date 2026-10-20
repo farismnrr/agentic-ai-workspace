@@ -32,6 +32,7 @@ func toolboxEngine(t *testing.T) *runner.Engine {
 
 	hub := egressproxy.NewHub(short, egressproxy.New([]string{
 		"pypi.org", "files.pythonhosted.org", "registry.npmjs.org", "proxy.golang.org", "sum.golang.org",
+		"storage.googleapis.com",
 	}))
 	t.Cleanup(hub.Close)
 
@@ -111,6 +112,21 @@ func TestEachWorkspaceHasItsOwnCache(t *testing.T) {
 
 	if out := runCommand(t, eng, a, "cat /cache/marker"); !strings.Contains(out, "mine") {
 		t.Fatalf("a cache must survive between commands: %q", out)
+	}
+}
+
+// TestGoModuleRedirectAndCache verifies that a Go module ZIP is downloaded
+// through the allowed storage redirect and reused without network access.
+func TestGoModuleRedirectAndCache(t *testing.T) {
+	eng := toolboxEngine(t)
+	dir := t.TempDir()
+	first := runCommand(t, eng, dir, "GOPROXY=https://proxy.golang.org go mod download modernc.org/sqlite@v1.59.0 && echo download-ok")
+	if !strings.Contains(first, "download-ok") {
+		t.Fatalf("Go module download through proxy failed: %s", first)
+	}
+	second := runCommand(t, eng, dir, "GOPROXY=off go mod download modernc.org/sqlite@v1.59.0 && echo cache-ok")
+	if !strings.Contains(second, "cache-ok") {
+		t.Fatalf("Go module cache not reused offline: %s", second)
 	}
 }
 

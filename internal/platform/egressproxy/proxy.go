@@ -22,7 +22,7 @@ const (
 	httpsPort    = "443"
 	dialTimeout  = 10 * time.Second
 	headerWait   = 10 * time.Second
-	blockedText  = "Only package registries can be reached from here."
+	blockedText  = "Egress policy blocked this HTTPS host or port. Check SANDBOX_EGRESS_HOSTS."
 	connectReply = "HTTP/1.1 200 Connection Established\r\n\r\n"
 )
 

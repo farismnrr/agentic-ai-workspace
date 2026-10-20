@@ -22,6 +22,7 @@ const (
 // defaultEgressHosts are the package registries sandboxed commands may reach.
 var defaultEgressHosts = []string{
 	"pypi.org", "files.pythonhosted.org", "registry.npmjs.org", "proxy.golang.org", "sum.golang.org",
+	"storage.googleapis.com", // Go module proxy redirects ZIP downloads here.
 	"crates.io", "index.crates.io", "static.crates.io", "static.rust-lang.org",
 	"repo.maven.apache.org", "repo1.maven.org",
 }
