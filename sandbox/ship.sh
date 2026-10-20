@@ -46,13 +46,45 @@ else
   echo "commit: $(git rev-parse --short HEAD) on dev"
 fi
 
+# Report the exact repository and commit used by this invocation. Missing upstream is
+# not missing origin; imported repositories commonly have only origin/main.
+head="$(git rev-parse HEAD 2>/dev/null || true)"
+printf 'repository: %s\n' "$(git rev-parse --show-toplevel)"
+printf 'head: %s\n' "$head"
+printf 'branch: %s\n' "$(git symbolic-ref --short HEAD)"
+
 if ! git remote get-url origin > /dev/null 2>&1; then
-  echo "pushed: no (this project has no remote on GitHub yet)"
+  if [ -n "$(git remote)" ]; then
+    echo "pushed: no (origin is missing; existing remotes: $(git remote | tr '\n' ' '))"
+  else
+    echo "pushed: no (this repository has no Git remotes; attach its GitHub repository before pushing)"
+  fi
   exit 0
 fi
 
-if output="$(git push -u origin dev 2>&1)"; then
-  echo "pushed: yes (origin dev)"
+# A successful push is verified against the remote's actual branch tip, not
+# merely against the exit code or a locally configured tracking branch.
+if output="$(git push --porcelain -u origin HEAD:refs/heads/dev 2>&1)"; then
+  remote_head="$(git ls-remote --heads origin refs/heads/dev 2>/dev/null | awk 'NR == 1 {print $1}')"
+  if [ -n "$head" ] && [ "$remote_head" = "$head" ]; then
+    # A shallow import often fetches main only. Track dev explicitly so future
+    # pull/status commands work after the first push.
+    refspec='+refs/heads/dev:refs/remotes/origin/dev'
+    if ! git config --get-all remote.origin.fetch | grep -qxF "$refspec"; then
+      git config --add remote.origin.fetch "$refspec"
+    fi
+    if git fetch -q origin refs/heads/dev:refs/remotes/origin/dev; then
+      git branch --set-upstream-to=origin/dev dev > /dev/null 2>&1 || \
+        echo 'warning: push verified, but upstream tracking could not be configured'
+    else
+      echo 'warning: push verified, but origin/dev tracking could not be fetched'
+    fi
+    echo "pushed: yes (origin/dev at $head)"
+  else
+    echo "pushed: no (push returned success but remote dev could not be verified against local HEAD)"
+    echo "local head: $head"
+    echo "remote head: ${remote_head:-unavailable}"
+  fi
 else
   reason="$(printf '%s\n' "$output" | grep -m1 -E 'rejected|fatal|error|denied' || printf '%s\n' "$output" | tail -n 1)"
   echo "pushed: no ($reason)"
