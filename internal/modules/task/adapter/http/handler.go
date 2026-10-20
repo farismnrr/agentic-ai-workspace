@@ -30,6 +30,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Post("/api/tasks", auth, sameOrigin, h.create)
 		app.Delete("/api/tasks", auth, sameOrigin, h.deleteAll)
 		app.Get("/api/tasks/:id", auth, h.get)
+		app.Get("/api/tasks/:id/documents", auth, h.documents)
 		app.Get("/api/tasks/:id/events", auth, h.events)
 		app.Get("/api/tasks/:id/shots/:name", auth, h.shot)
 		app.Get("/api/tasks/:id/changes", auth, h.changes)

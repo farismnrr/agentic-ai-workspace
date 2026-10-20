@@ -37,6 +37,9 @@
   }: Props = $props();
 
   const needsProject = $derived(projects !== undefined && project === '');
+  const documentThreshold = 12_000;
+  const length = $derived(Array.from(text).length);
+
   const canSend = $derived(text.trim() !== '' && !needsProject && !busy && !disabled);
 
   function attach(event: Event): void {
@@ -46,7 +49,7 @@
   }
 
   function send(): void {
-    if (canSend) onsend(text.trim(), project);
+    if (canSend) onsend(text, project);
   }
 
   function onsubmit(event: SubmitEvent): void {
@@ -97,5 +100,6 @@
     </div>
   </div>
   {#if needsProject && text.trim() !== ''}<p class="mt-2 text-sm text-[var(--brand-text-secondary)]">Select a project so I know where to work.</p>{/if}
+  {#if length > documentThreshold}<p class="mt-2 text-sm text-base-content/70" role="status"><Icon name="paperclip" class="mr-1 inline size-4" />Long text · {length.toLocaleString()} characters. It will be saved as a project document when you send.</p>{/if}
   {#if error !== ''}<p class="mt-2 text-sm text-error" role="alert">{error}</p>{/if}
 </form>

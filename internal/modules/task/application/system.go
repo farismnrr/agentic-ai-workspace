@@ -30,10 +30,10 @@ func (r *Runner) system(ctx context.Context, task domain.Task, state *runState) 
 	}
 
 	if r.role != nil {
-		return childPrompt(*r.role, project, persona, installed, github)
+		return childPrompt(*r.role, project, persona, installed, github) + r.notesPrompt()
 	}
 
-	prompt := systemPrompt(project, persona, installed, github)
+	prompt := systemPrompt(project, persona, installed, github) + r.notesPrompt()
 	if state.roster != nil {
 		prompt += teamPrompt(*state.roster) + r.planPrompt(ctx, task)
 	}

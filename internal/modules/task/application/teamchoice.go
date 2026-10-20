@@ -24,14 +24,35 @@ func (s *Service) leadModel(ctx context.Context, userID string, in CreateInput, 
 	}
 
 	roster, err := s.deps.Team.Roster(ctx, userID)
-	if err != nil || roster.Lead.ProviderID == "" || roster.Lead.Model == "" {
+	if err != nil {
 		return in
 	}
 
-	in.ProviderID, in.Model = roster.Lead.ProviderID, roster.Lead.Model
+	lead := s.leadTier(ctx, userID, roster.Lead)
+	in.ProviderID, in.Model = lead.ProviderID, lead.Model
 	if in.Effort == "" {
-		in.Effort = roster.Lead.Effort
+		in.Effort = lead.Effort
 	}
 
 	return in
+}
+
+func (s *Service) leadTier(ctx context.Context, userID string, lead AgentRole) AgentRole {
+	if lead.ProviderID != "" && lead.Model != "" {
+		return lead
+	}
+	lead.ProviderID, lead.Model = "", ""
+	if lead.Tier != TierThinking && lead.Tier != TierFast {
+		return lead
+	}
+	provider, model, effort, ok := s.deps.Models.Tier(ctx, userID, lead.Tier)
+	if ok {
+		lead.ProviderID, lead.Model, lead.Effort = provider, model, effort
+	}
+	return lead
+}
+
+// followsSettings distinguishes an ordinary composer request from an explicit API selection.
+func (in CreateInput) followsSettings() bool {
+	return in.ProviderID == "" && in.Model == "" && in.Effort == ""
 }

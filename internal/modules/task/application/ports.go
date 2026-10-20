@@ -116,6 +116,7 @@ type TaskStore interface {
 	// Find loads a task; an empty userID skips the ownership check (server use only).
 	Find(ctx context.Context, userID, id string) (domain.Task, error)
 	List(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error)
+	SetModel(ctx context.Context, id, providerID, model string, effort domain.Effort) error
 	SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error
 	SavePlan(ctx context.Context, id string, plan []domain.PlanStep, at time.Time) error
 	// SavePRD records the product requirements document the team builds from.

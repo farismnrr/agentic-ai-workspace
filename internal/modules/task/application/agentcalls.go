@@ -75,9 +75,16 @@ func (r *Runner) updatePlan(ctx context.Context, task domain.Task, call Call) {
 		return
 	}
 
-	_ = r.deps.Tasks.SavePlan(ctx, task.ID, steps, r.deps.Now())
+	if err := r.deps.Tasks.SavePlan(ctx, task.ID, steps, r.deps.Now()); err != nil {
+		r.result(ctx, task, call.ID, "The plan could not be saved. Try update_plan again.", true)
+		return
+	}
 	_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
 	r.recordPlan(ctx, task, steps)
+	if err := r.saveNotes(ctx, task); err != nil {
+		r.result(ctx, task, call.ID, "The plan is in the task, but its project file could not be saved. Try again.", true)
+		return
+	}
 	r.result(ctx, task, call.ID, "Plan saved.", false)
 }
 

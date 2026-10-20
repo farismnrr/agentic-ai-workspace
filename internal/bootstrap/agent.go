@@ -11,6 +11,7 @@ import (
 
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	taskhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/http"
+	tasknotes "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/notefiles"
 	taskshots "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/shots"
 	tasksqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/sqlite"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -27,7 +28,7 @@ func newAgent(
 ) (*taskapp.Service, httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStore(db, opaque.Generator{})
 	deps := taskapp.Observe(taskapp.Deps{
-		Tasks: store, Events: store, Transcript: store, Usage: store,
+		Notes: tasknotes.New(tools.folders.Dir), Tasks: store, Events: store, Transcript: store, Usage: store,
 		Models:   models.agentModels(),
 		Windows:  models.providers,
 		Efforts:  models.providers,

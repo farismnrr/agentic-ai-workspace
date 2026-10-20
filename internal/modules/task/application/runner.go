@@ -11,6 +11,7 @@ import (
 
 // Deps are the runner's collaborators.
 type Deps struct {
+	Notes      NoteFiles
 	Tasks      TaskStore
 	Events     EventStore
 	Transcript TranscriptStore
@@ -95,6 +96,14 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 	defer cancel()
 
 	var result outcome
+	task, err = r.refreshModel(runCtx, task)
+	if err == nil {
+		_, err = NewService(r.deps, nil).projectDocuments(runCtx, task)
+	}
+	if err != nil {
+		r.settle(settle, task, failed("I could not prepare the current model or project documents.", err.Error()))
+		return
+	}
 	if _, onPlan := domain.PlanRuntime(task.ProviderID); onPlan {
 		result = r.runPlan(runCtx, task)
 	} else {
@@ -102,6 +111,9 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 	}
 
 	r.settle(settle, task, result)
+	if err := r.saveNotes(settle, task); err != nil {
+		r.settle(settle, task, failed("Project documents could not be saved.", "Press Continue to retry the export."))
+	}
 }
 
 func (r *Runner) loop(ctx context.Context, task domain.Task) outcome {

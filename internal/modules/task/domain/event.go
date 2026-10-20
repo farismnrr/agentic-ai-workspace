@@ -84,6 +84,7 @@ type Event struct {
 	Options   []string `json:"options,omitempty"`
 	// Questions is the form of a question event; Options only fills in for questions saved before forms.
 	Questions []Question `json:"questions,omitempty"`
+	Documents []string   `json:"documents,omitempty"`
 	Files     []string   `json:"files,omitempty"`
 	// Undo describes how to reverse the step; only the owning tools understand it.
 	Undo   []byte `json:"-"`

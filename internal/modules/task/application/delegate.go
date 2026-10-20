@@ -136,7 +136,11 @@ func (r *Runner) runDelegation(
 
 		return result, true
 	case stopFinished:
-		r.endDelegation(ctx, task, call, d, DelegationDone, r.deliver(ctx, task, d, role, result)+r.facts(ctx, task, d))
+		report, err := r.deliver(ctx, task, d, role, result)
+		if err != nil {
+			return failed("The teammate's document could not be saved.", "Press Continue to retry saving it."), true
+		}
+		r.endDelegation(ctx, task, call, d, DelegationDone, report+r.facts(ctx, task, d))
 	case stopFailed:
 		r.endDelegation(ctx, task, call, d, DelegationFailed, d.RoleName+" could not finish: "+result.text+stuckAdvice)
 	}
@@ -184,16 +188,4 @@ func reportText(text string) string {
 	}
 
 	return text
-}
-
-// doJob has the teammate work on the job: with the app's own loop, or with the person's own plan when that is
-// the model they were given.
-func (r *Runner) doJob(
-	ctx context.Context, worker *Runner, teammate domain.Task, sub *runState, role AgentRole, d Delegation,
-) outcome {
-	if onPlan(d.ProviderID) {
-		return r.workOnPlan(ctx, worker, teammate, role, d)
-	}
-
-	return worker.drive(ctx, teammate, sub, stepsText("The "+d.RoleName, r.lim.delegateSteps()))
 }

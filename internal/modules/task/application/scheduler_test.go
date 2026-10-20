@@ -80,3 +80,29 @@ func TestCancelStopsARunningTaskAndDropsAQueuedOne(t *testing.T) {
 		t.Errorf("unknown tasks are ignored, got %v", got)
 	}
 }
+
+func TestAContinuationQueuedWhileThePreviousRunSettlesIsNotLost(t *testing.T) {
+	t.Parallel()
+	started, finish, continued := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	var runs atomic.Int32
+	scheduler := application.NewScheduler(func(_ context.Context, _ string) {
+		if runs.Add(1) == 1 {
+			close(started)
+			<-finish
+			return
+		}
+		close(continued)
+	})
+	scheduler.Start(context.Background(), 2)
+	defer scheduler.Stop()
+	scheduler.Enqueue("task", "project")
+	<-started
+	scheduler.Enqueue("task", "project")
+	scheduler.Enqueue("task", "project")
+	close(finish)
+	select {
+	case <-continued:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the continuation was lost while the first run settled")
+	}
+}

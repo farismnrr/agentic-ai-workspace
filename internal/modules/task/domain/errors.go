@@ -5,7 +5,7 @@ import "errors"
 // Errors of the task use cases.
 var (
 	ErrNotFound    = errors.New("task not found")
-	ErrBadRequest  = errors.New("write what you need in a few words")
+	ErrBadRequest  = errors.New("write what you need")
 	ErrNoProject   = errors.New("project not found")
 	ErrBadEffort   = errors.New("that effort level is not available")
 	ErrNoModel     = errors.New("no model is available; add a provider under Settings, AI models")

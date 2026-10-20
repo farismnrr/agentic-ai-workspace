@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { rawUrl } from '../../logic/files-api';
   import { clock } from '../../logic/time';
   import type { TaskEvent } from '../../logic/task-types';
   import { questionsOf } from '../../logic/question-form';
@@ -18,17 +19,21 @@
   interface Props {
     event: TaskEvent;
     taskId: string;
+    projectId: string;
     actions: ThreadActions;
     proven: boolean;
     onretry?: (() => void) | undefined;
     onproof?: (() => void) | undefined;
   }
 
-  const { event, taskId, actions, proven, onretry, onproof }: Props = $props();
+  const { event, taskId, projectId, actions, proven, onretry, onproof }: Props = $props();
 </script>
 
 {#if event.kind === 'request'}
   <ChatBubble who="you" text={event.text} time={clock(event.time)} />
+  {#if event.documents?.[0] !== undefined}
+    <div class="mt-2 flex justify-end"><a class="badge badge-outline link" href={rawUrl(projectId, event.documents[0])}>Download full message</a></div>
+  {/if}
 {:else if event.kind === 'message'}
   <ChatBubble who="ai" text={event.text} time={clock(event.time)} agent={event.agent} />
 {:else if event.kind !== 'action'}

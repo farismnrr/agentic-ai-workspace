@@ -11,7 +11,11 @@ import (
 
 // say records something the person wrote, in the thread and for the model.
 func (s *Service) say(ctx context.Context, taskID, text string) error {
-	event := domain.Event{Kind: domain.EventRequest, Text: text, Time: s.deps.Now()}
+	text, files, err := s.inputDocument(ctx, taskID, text)
+	if err != nil {
+		return err
+	}
+	event := domain.Event{Documents: files, Kind: domain.EventRequest, Text: text, Time: s.deps.Now()}
 	if _, err := s.deps.Events.AppendEvent(ctx, taskID, event); err != nil {
 		return fmt.Errorf("record request: %w", err)
 	}
@@ -51,4 +55,11 @@ func titleOf(prompt string) string {
 	}
 
 	return string([]rune(line)[:maxTitle]) + messageCuts
+}
+
+func validatePrompt(text string) error {
+	if text == "" {
+		return domain.ErrBadRequest
+	}
+	return nil
 }

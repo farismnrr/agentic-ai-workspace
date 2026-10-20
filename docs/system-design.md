@@ -101,6 +101,8 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 - **Approvals.** Reading is automatic. Changing files or running commands waits for your yes, unless you turned on Skip approvals.
 - **Switches win.** A tool that is off is never offered to the model and never run.
 - **Pause and resume.** The conversation is stored, so a task can wait for you and continue later.
+- **Project documents.** Task plans, requirements and research are exported into `project-notes/`. New tasks get an index reference; documents are loaded through existing file tools.
+- **Long input.** Messages over 12,000 characters become an exact text document, a manifest and readable parts. The thread holds a preview and download link. Request-body limits still apply.
 - **Proof.** Built only from checks the app ran itself after the last change. Claims the AI makes alone are marked "claimed".
 - **Checks.** A project's checks live in `.workspace/tasks.json`. The AI's tools can never read or write that file.
 - **GitHub.** Each person connects their own account. Commands get only their token. Web apps never do.
@@ -117,7 +119,8 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 - **Providers:** Anthropic, OpenAI, Gemini, or an OpenAI-compatible gateway on the same computer, such as 9router.
 - **Keys:** stored encrypted. Hosted providers can reach only public addresses. Gateways only this computer.
 - **Gateways:** the model list is re-read on its own, at most every 30 seconds, so a provider added behind it appears without a click.
-- **Effort:** a task keeps the effort it started with. A gateway can say which levels each model takes.
+- **Model and effort:** app tasks resolve current orchestrator settings at each run. Assigned teammate jobs retain their selection on resume. Explicit model or effort choices from the API stay pinned.
+- **Provider changes:** a different vendor program starts a fresh session with task context. A gateway can say which effort levels each model takes.
 - **Context window:** the size you chose, else the size the provider reports, else a default. Near the limit the AI summarizes its notes and keeps going.
 - **Limits:** 40 model turns and 15 minutes per run. One task at a time per project. Interrupted tasks can be continued.
 

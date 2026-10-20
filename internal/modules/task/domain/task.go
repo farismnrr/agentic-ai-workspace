@@ -95,5 +95,7 @@ type Task struct {
 	Team bool
 	// PlanFirst is true for a task in plan mode: the team stops when the PRD is written and nobody builds until the
 	// person says yes.
-	PlanFirst bool
+	// FollowSettings resolves current model settings each run; explicit API model or effort choices stay pinned.
+	FollowSettings bool
+	PlanFirst      bool
 }

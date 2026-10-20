@@ -30,7 +30,7 @@ export interface RunInfo {
 }
 
 export type TaskEvent =
-  | (EventBase & { kind: 'request'; text: string })
+  | (EventBase & { kind: 'request'; text: string; documents?: string[] })
   | (EventBase & { kind: 'message'; text: string })
   | (EventBase & {
       kind: 'action';
