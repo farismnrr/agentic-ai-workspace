@@ -82,3 +82,12 @@ any stack and also keeps the font pinned and the page free of third-party reques
   `url(./fonts/...)` and `font-display: swap`.
 - Keep only the weights and the latin subset the page uses. Always end the stack with a system font.
 - If a template or an example links Google Fonts, replace that link with the above.
+
+## 8. Look at a page with `screenshot`, never by installing a browser
+The sandbox already has a headless Chromium (`chromium-headless-shell`) and has no network. `npx playwright install`,
+`puppeteer` downloads and `apt` for a browser all fail and cost a round. To see a page, call `screenshot` (the app has
+to be running: only DevOps starts it, so report "Needs the app started" and go on). Its report lists the failed
+requests, a page without styling, sideways scroll and console errors. A project that has Playwright tests runs them
+with `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` (already set) and `launchOptions: { executablePath:
+'/usr/bin/chromium-headless-shell', args: ['--no-sandbox'] }`; do not add `playwright` to a project that has no tests of
+its own for a screenshot.

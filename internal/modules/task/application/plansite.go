@@ -13,9 +13,10 @@ import (
 // siteToolNames are the tools a program on a plan lacks or cannot use, so the server serves them. Starting the web
 // app: it is started the same way and shows up under Sites, as for any other model. Looking things up on the web:
 // the program's own WebFetch runs in its container, which reaches package registries only and so refuses every
-// page, while these run on the server (SearXNG for the search, a public-only fetch for the page).
+// page, while these run on the server (SearXNG for the search, a public-only fetch for the page). The screenshot runs
+// there too, because a program has no browser; the picture cannot cross the bridge, so it gets the report of the page.
 var siteToolNames = []string{
-	toolStartSite, "stop_site", "web_search", "fetch_page", "search_images", "download_asset",
+	toolStartSite, "stop_site", "web_search", "fetch_page", "search_images", "download_asset", "screenshot",
 }
 
 // siteSession serves the site tools to a teammate's program. Each call goes through the same code as a call of the
