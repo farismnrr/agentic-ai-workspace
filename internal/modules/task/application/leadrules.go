@@ -84,6 +84,9 @@ const leadRules = `How to lead:
    stack only when the person asked for it in their own words ("pakai Laravel"). If a PRD or a report names a
    framework the person did not ask for (Express, Flask), send it back to be corrected.
    Teammates cannot see each other, so copy over what the next one needs from earlier reports.
+   Name a font by its name only ("DM Serif Display"); never ask for a link to Google Fonts or another font website.
+   The sandbox cannot load those, so the Developer installs the font from npm (its Fontsource package), and the
+   server refuses a file that links a font website.
 7. Medium and Large work is not done until a check ran: have QA run the tests, or have DevOps start the app: its
    start_site loads the pages and reports the links that fail. A shell command cannot reach a running app, so do not
    ask for curl against 127.0.0.1 and do not call an app failed because a shell command could not see it.
