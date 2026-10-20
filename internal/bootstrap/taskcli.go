@@ -53,9 +53,22 @@ func (p *plans) Run(
 
 	models := p.service.Models(ctx, req.UserID, cliagentdomain.Runtime(req.Program))
 	spec.WorkspaceReadOnly = req.Limited && !mayChange(req.Tools)
+
+	if req.Bridge != nil {
+		stop, bridgeDir, bridgeErr := p.serveBridge(ctx, req.Bridge)
+		if bridgeErr != nil {
+			return taskapp.CLIResult{}, bridgeErr
+		}
+
+		defer stop()
+
+		spec.Bridge = bridgeDir
+	}
+
 	spec.Home, spec.Stdin, spec.Argv = home, strings.NewReader(req.Prompt), programArgv(req, models)
 	spec.Env = codingrunner.Environment(spec, "HOME="+sandbox.Home, "CODEX_HOME="+sandbox.Home+"/.codex",
-		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "DISABLE_AUTOUPDATER=1")
+		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "DISABLE_AUTOUPDATER=1",
+		fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))
 
 	stream := clistream.New(req.Program, emit)
 
@@ -88,6 +101,10 @@ func programArgv(req taskapp.CLIRequest, models []cliagentdomain.Model) []string
 		argv = append(argv, "--json", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox")
 		argv = append(argv, choice("-m", model, "-c", `model_reasoning_effort="`+effort+`"`, effort)...)
 
+		if req.Bridge != nil {
+			argv = append(argv, bridgeArgs(runtime)...)
+		}
+
 		if req.Session != "" {
 			argv = append(argv, req.Session)
 		}
@@ -103,6 +120,10 @@ func programArgv(req taskapp.CLIRequest, models []cliagentdomain.Model) []string
 
 	if req.Limited {
 		argv = append(argv, "--tools", strings.Join(claudeTools(req.Tools), ","))
+	}
+
+	if req.Bridge != nil {
+		argv = append(argv, bridgeArgs(runtime)...)
 	}
 
 	if req.Session != "" {

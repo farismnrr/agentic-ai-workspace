@@ -25,6 +25,9 @@ const Egress = "/run/egress"
 // publishes the app's local port as a Unix socket that only the server can reach.
 const SiteDir = "/run/site"
 
+// BridgeDir is where the folder holding the socket of tools the server runs for a program appears.
+const BridgeDir = "/run/bridge"
+
 // Home is where a person's own folder for a vendor CLI (its login and sessions) appears.
 const Home = "/home/cli"
 
@@ -47,6 +50,8 @@ type Spec struct {
 	Site string
 	// Home is an optional writable folder shown at /home/cli, where a vendor CLI keeps its login.
 	Home string
+	// Bridge is an optional folder holding the socket of tools the server runs, shown at /run/bridge.
+	Bridge string
 	// Stdin, when set, is copied to the command's standard input and then closed.
 	Stdin io.Reader
 	Argv  []string

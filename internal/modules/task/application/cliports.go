@@ -1,6 +1,9 @@
 package application
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 // CLIEventKind is what a vendor's coding program reported.
 type CLIEventKind int
@@ -32,6 +35,8 @@ type CLIEvent struct {
 
 // CLIRequest is one turn handed to a vendor's coding program.
 type CLIRequest struct {
+	// Bridge, when set, gives the program tools the server runs for it, such as handing a job to a teammate.
+	Bridge    *CLIBridge
 	UserID    string
 	ProjectID string
 	// Program is which one: "claude" or "chatgpt".
@@ -45,6 +50,21 @@ type CLIRequest struct {
 	Tools []string
 	// Limited says Tools is a limit, even an empty one.
 	Limited bool
+}
+
+// CLITool is a tool the server runs for the program.
+type CLITool struct {
+	Name        string
+	Description string
+	// Schema is the JSON Schema of its arguments.
+	Schema json.RawMessage
+}
+
+// CLIBridge is the tools the server runs for a program, and how.
+type CLIBridge struct {
+	// Call runs a tool the program asked for; failed says the call did not work.
+	Call  func(ctx context.Context, name string, input json.RawMessage) (text string, failed bool)
+	Tools []CLITool
 }
 
 // CLIResult is how a turn ended.

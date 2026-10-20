@@ -42,7 +42,7 @@
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-sm font-medium">Model</span>
-      <ModelPicker plans={!role.lead} bind:model={() => modelPick(role), (value: string) => { applyPick(role, value); }} bind:effort={role.effort} />
+      <ModelPicker bind:model={() => modelPick(role), (value: string) => { applyPick(role, value); }} bind:effort={role.effort} />
     </div>
     {#if !role.lead && role.preset}
       <p class="text-sm text-[var(--brand-text-secondary)]">{accessSummary(role.access)} <span class="text-xs text-[var(--brand-text-tertiary)]">{teamCopy.builtInNote}</span></p>
