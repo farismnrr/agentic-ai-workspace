@@ -39,6 +39,18 @@ func (r *Runner) reachable(ctx context.Context, userID, providerID string) bool 
 	return err == nil
 }
 
+// fitEffort is the effort a teammate works at: the one the person or the role set, else the one the lead asked
+// for, fitted to the levels the teammate's model takes. Left empty, the model uses its own.
+func (r *Runner) fitEffort(
+	ctx context.Context, userID, providerID, model string, set domain.Effort, asked string,
+) domain.Effort {
+	if set != domain.EffortDefault || asked == "" || r.deps.Efforts == nil {
+		return set
+	}
+
+	return domain.Nearest(r.deps.Efforts.EffortLevels(ctx, userID, providerID, model), domain.Effort(asked))
+}
+
 func onPlan(providerID string) bool {
 	_, yes := domain.PlanRuntime(providerID)
 

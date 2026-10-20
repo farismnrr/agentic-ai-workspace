@@ -17,6 +17,7 @@ type Deps struct {
 	Usage      UsageStore
 	Models     Models
 	Windows    ContextWindows
+	Efforts    EffortLevels
 	Persona    PersonaSource
 	Projects   Projects
 	Tools      ToolSet

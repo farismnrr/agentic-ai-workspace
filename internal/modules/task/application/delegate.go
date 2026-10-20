@@ -74,6 +74,7 @@ func (r *Runner) startDelegation(
 	}
 
 	providerID, model, effort := r.pickModel(ctx, task, role)
+	effort = r.fitEffort(ctx, task.UserID, providerID, model, effort, args.Effort)
 	d := Delegation{
 		ID: call.ID, RoleKey: role.Key, RoleName: role.Name, ProviderID: providerID, Model: model, Effort: effort,
 		Brief: truncate(args.Brief, maxBrief), Status: DelegationWorking,

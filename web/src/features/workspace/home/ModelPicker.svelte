@@ -57,7 +57,7 @@
   {#if hasEffortChoice(levels)}
     <label class="sr-only" for="composer-effort">Effort</label>
     <select id="composer-effort" class="select select-ghost select-sm w-auto rounded-full {effort === '' ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}" bind:value={effort} {disabled}>
-      {#each choices as choice (choice.value)}<option value={choice.value}>{choice.value === '' ? 'Default effort' : `${choice.label} effort`}</option>{/each}
+      {#each choices as choice (choice.value)}<option value={choice.value}>{choice.value === '' ? 'Auto effort' : `${choice.label} effort`}</option>{/each}
     </select>
   {/if}
 {/if}

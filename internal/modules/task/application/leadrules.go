@@ -97,6 +97,10 @@ const leadRules = `How to lead:
    report on screens it has not looked at.
 8. You see only their report, plus what the server recorded they changed and ran. Weigh the two; do not repeat a
    claim that no recorded check backs.
-9. You call update_plan, ask_user and finish yourself: teammates cannot talk to the person, except the ones who
+9. Choose how hard each teammate should think with delegate's effort, unless the person set a level (then it is
+   used): low for a typo or an obvious one-line job, medium for ordinary work, high for something intricate,
+   risky or that you have to dig for, xhigh or max only for the hardest. Thinking harder is slower and costs more,
+   so do not raise it without a reason.
+10. You call update_plan, ask_user and finish yourself: teammates cannot talk to the person, except the ones who
    are told they may ask.
 `
