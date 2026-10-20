@@ -6,7 +6,9 @@ import (
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
-// claudeToolFor says which of Claude Code's own tools do what each of the app's project tools does.
+// claudeToolFor says which of Claude Code's own tools do what each of the app's project tools does. The web tools are
+// not here on purpose: Claude Code's WebFetch runs in a container that reaches package registries only, so it refuses
+// every page; the server serves web_search and fetch_page through the bridge instead.
 func claudeToolFor() map[string][]string {
 	return map[string][]string{
 		codingdomain.ToolListFiles.Name:  {"LS", "Glob"},
@@ -17,8 +19,6 @@ func claudeToolFor() map[string][]string {
 		codingdomain.ToolWriteFile.Name:  {"Write"},
 		codingdomain.ToolRunCommand.Name: {"Bash"},
 		codingdomain.ToolRunTask.Name:    {"Bash"},
-		codingdomain.ToolWebSearch.Name:  {"WebSearch"},
-		codingdomain.ToolFetchPage.Name:  {"WebFetch"},
 	}
 }
 
