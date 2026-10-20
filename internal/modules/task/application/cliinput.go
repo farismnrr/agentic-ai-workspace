@@ -16,6 +16,9 @@ func (r *Runner) lastInput(ctx context.Context, taskID, leadName string) string 
 	for i := len(events) - 1; i >= 0; i-- {
 		switch event := events[i]; {
 		case event.Kind == domain.EventRequest:
+			if len(event.Documents) > 0 && event.Technical != "" {
+				return event.Technical
+			}
 			return event.Text
 		case event.Kind == domain.EventQuestion && event.Answered != "":
 			return answeredText(event, leadName)
