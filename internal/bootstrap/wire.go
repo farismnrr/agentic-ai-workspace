@@ -57,7 +57,10 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	models.providers.WithPlans(planCatalog{plans: tools.plans, switches: cliagentsqlite.NewSwitches(db)})
+	tools.plans.windows = cliagentsqlite.NewWindows(db)
+	models.providers.WithPlans(planCatalog{
+		plans: tools.plans, switches: cliagentsqlite.NewSwitches(db), windows: tools.plans.windows,
+	})
 
 	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
 

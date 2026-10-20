@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	cliagentdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/domain"
@@ -65,10 +66,12 @@ func (p *plans) Run(
 		spec.Bridge = bridgeDir
 	}
 
-	spec.Home, spec.Stdin, spec.Argv = home, strings.NewReader(req.Prompt), programArgv(req, models)
-	spec.Env = codingrunner.Environment(spec, "HOME="+sandbox.Home, "CODEX_HOME="+sandbox.Home+"/.codex",
+	window := p.chosenWindow(ctx, req)
+	spec.Home, spec.Stdin, spec.Argv = home, strings.NewReader(req.Prompt), programArgv(req, models, window)
+	spec.Env = codingrunner.Environment(spec, append(windowEnv(req.Program, window), "HOME="+sandbox.Home,
+		"CODEX_HOME="+sandbox.Home+"/.codex",
 		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "DISABLE_AUTOUPDATER=1",
-		fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))
+		fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))...)
 
 	stream := clistream.New(req.Program, emit)
 
@@ -88,28 +91,12 @@ func (p *plans) Run(
 // programArgv is the command for one turn. The prompt arrives on standard input. The container is the
 // sandbox, so the program is not asked to ask permission for every step. The model and effort are passed only
 // when they are ones the program is known to take, so a stray value never becomes an option of its own.
-func programArgv(req taskapp.CLIRequest, models []cliagentdomain.Model) []string {
+func programArgv(req taskapp.CLIRequest, models []cliagentdomain.Model, window int64) []string {
 	runtime := cliagentdomain.Runtime(req.Program)
 	model, effort := cliagentdomain.Choice(models, req.Model, req.Effort)
 
 	if runtime == cliagentdomain.ChatGPT {
-		argv := []string{"codex", "exec"}
-		if req.Session != "" {
-			argv = append(argv, "resume")
-		}
-
-		argv = append(argv, "--json", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox")
-		argv = append(argv, choice("-m", model, "-c", `model_reasoning_effort="`+effort+`"`, effort)...)
-
-		if req.Bridge != nil {
-			argv = append(argv, bridgeArgs(runtime)...)
-		}
-
-		if req.Session != "" {
-			argv = append(argv, req.Session)
-		}
-
-		return append(argv, "-")
+		return codexArgv(req, model, effort, window)
 	}
 
 	argv := []string{
@@ -146,4 +133,56 @@ func choice(modelFlag, model, effortFlag, effortOption, effort string) []string 
 	}
 
 	return options
+}
+
+// chosenWindow is the context window the person set for the model of this turn; zero leaves it to the program.
+func (p *plans) chosenWindow(ctx context.Context, req taskapp.CLIRequest) int64 {
+	if p.windows == nil {
+		return 0
+	}
+
+	model := req.Model
+	if model == "" {
+		model = cliagentdomain.DefaultModel
+	}
+
+	sizes, err := p.windows.All(ctx, req.UserID, req.Program)
+	if err != nil {
+		return 0
+	}
+
+	return sizes[model]
+}
+
+// windowEnv tells Claude Code the window to shorten its notes by; ChatGPT's program takes it as an option.
+func windowEnv(program string, window int64) []string {
+	if program != string(cliagentdomain.Claude) || window <= 0 {
+		return nil
+	}
+
+	return []string{"CLAUDE_CODE_AUTO_COMPACT_WINDOW=" + strconv.FormatInt(window, 10)}
+}
+
+func codexArgv(req taskapp.CLIRequest, model, effort string, window int64) []string {
+	argv := []string{"codex", "exec"}
+	if req.Session != "" {
+		argv = append(argv, "resume")
+	}
+
+	argv = append(argv, "--json", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox")
+	argv = append(argv, choice("-m", model, "-c", `model_reasoning_effort="`+effort+`"`, effort)...)
+
+	if window > 0 {
+		argv = append(argv, "-c", "model_context_window="+strconv.FormatInt(window, 10))
+	}
+
+	if req.Bridge != nil {
+		argv = append(argv, bridgeArgs(cliagentdomain.ChatGPT)...)
+	}
+
+	if req.Session != "" {
+		argv = append(argv, req.Session)
+	}
+
+	return append(argv, "-")
 }

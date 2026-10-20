@@ -12,6 +12,7 @@ import (
 type fakePlans struct {
 	switched map[string]bool
 	signedIn []string
+	windows  map[string]int64
 	plans    []domain.Provider
 }
 
@@ -23,6 +24,12 @@ func (f *fakePlans) SetEnabled(_ context.Context, _, id string, enabled bool) er
 	return nil
 }
 
+func (f *fakePlans) SetWindow(_ context.Context, _, id, model string, tokens int64) error {
+	f.windows[id+"/"+model] = tokens
+
+	return nil
+}
+
 func (f *fakePlans) SignOut(_ context.Context, _, id string) error {
 	f.signedIn = append(f.signedIn, id)
 
@@ -30,7 +37,7 @@ func (f *fakePlans) SignOut(_ context.Context, _, id string) error {
 }
 
 func newPlanRig(enabled bool) (*application.Service, *fakePlans) {
-	plans := &fakePlans{switched: map[string]bool{}, plans: []domain.Provider{{
+	plans := &fakePlans{switched: map[string]bool{}, windows: map[string]int64{}, plans: []domain.Provider{{
 		ID: "plan:chatgpt", Name: "ChatGPT", Kind: domain.KindPlan, Verified: true, Enabled: enabled,
 		Models: []string{"gpt-x"},
 	}}}
@@ -83,5 +90,34 @@ func TestPlanSwitchAndSignOutGoToThePlans(t *testing.T) {
 
 	if _, err := service.Credential(t.Context(), "u", "plan:chatgpt"); err == nil {
 		t.Fatal("a plan has no key to hand out")
+	}
+}
+
+func TestAPlansWindowCanBeSetForAModelItListsOnly(t *testing.T) {
+	t.Parallel()
+
+	service, plans := newPlanRig(true)
+
+	if err := service.SetContextWindow(t.Context(), "u", "plan:chatgpt", "gpt-x", 120_000); err != nil {
+		t.Fatal(err)
+	}
+
+	if plans.windows["plan:chatgpt/gpt-x"] != 120_000 {
+		t.Fatalf("windows = %v", plans.windows)
+	}
+
+	if err := service.SetContextWindow(t.Context(), "u", "plan:chatgpt", "other", 120_000); err == nil {
+		t.Fatal("a model the plan does not list must be refused")
+	}
+}
+
+func TestAPlansChosenWindowIsTheOneAnswered(t *testing.T) {
+	t.Parallel()
+
+	service, plans := newPlanRig(true)
+	plans.plans[0].ContextWindows = map[string]int64{"gpt-x": 90_000}
+
+	if got := service.ContextWindow(t.Context(), "u", "plan:chatgpt", "gpt-x"); got != 90_000 {
+		t.Fatalf("window = %d, want the chosen 90000", got)
 	}
 }

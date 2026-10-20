@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	cliagenthttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/adapter/http"
+	cliagentsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/adapter/sqlite"
 	cliagentapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/application"
 	cliagentdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/domain"
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
@@ -32,6 +33,7 @@ type plans struct {
 	engine  *codingrunner.Engine
 	folders *folder.Folders
 	hosts   map[string][]string
+	windows *cliagentsqlite.Windows
 	box     cliSandbox
 }
 

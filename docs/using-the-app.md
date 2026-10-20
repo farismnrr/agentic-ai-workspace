@@ -86,7 +86,7 @@ Two settings shape how a model works:
 
 The context window comes from what the provider reports, else 200K, or 1M for names ending in `[1m]`.
 If a model still says a request is too long, the AI summarizes once and tries again.
-With Claude or ChatGPT on your own plan, the program itself keeps its notes short; the meter shows what it reports.
+With Claude or ChatGPT on your own plan, the program keeps its notes short itself, by the size you set for the model here; the meter shows what it reports.
 
 ## Your own AI plan
 
