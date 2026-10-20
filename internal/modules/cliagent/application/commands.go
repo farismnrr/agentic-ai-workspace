@@ -4,17 +4,18 @@ import "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/doma
 
 // program is how the server asks one vendor's CLI to do the three things it needs.
 type program struct {
-	login, status, logout, models []string
-	env                           []string
+	login, status, logout, models, bundled []string
+	env                                    []string
 }
 
 func programOf(rt domain.Runtime) program {
 	if rt == domain.ChatGPT {
 		return program{
-			login:  []string{"codex", "login", "--device-auth"},
-			status: []string{"codex", "login", "status"},
-			logout: []string{"codex", "logout"},
-			models: []string{"codex", "debug", "models"},
+			login:   []string{"codex", "login", "--device-auth"},
+			status:  []string{"codex", "login", "status"},
+			logout:  []string{"codex", "logout"},
+			models:  []string{"codex", "debug", "models"},
+			bundled: []string{"codex", "debug", "models", "--bundled"},
 		}
 	}
 

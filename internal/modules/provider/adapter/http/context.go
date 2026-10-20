@@ -17,7 +17,7 @@ func (h *Handler) setContext(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_body"))
 	}
 
-	err := h.service.SetContextWindow(c.Context(), httpserver.UserID(c), c.Params("id"), body.Model, body.ContextWindow)
+	err := h.service.SetContextWindow(c.Context(), httpserver.UserID(c), providerID(c), body.Model, body.ContextWindow)
 	if err != nil {
 		return fail(c, err)
 	}
