@@ -95,6 +95,12 @@ link (`/style.css`) looks right in the picture and can still fail for the person
 pictures with relative paths (`./style.css`, `url(./fonts/x.woff2)`), link the built stylesheet and not a Tailwind or
 Sass source, and read `window.__SITE_BASE__` where a router needs a base. A page without its stylesheet is not designed.
 
+## 4a. A browser extension
+The popup is a small page: 320 to 400 pixels wide, no taller than 600, one clear action first. Design the popup and the
+options page like any screen (every state: empty, loading, error), keep the toolbar icon simple enough to read at 16
+pixels, and give the Developer the icon colours in `DESIGN.md`. Do not ask for more permissions in the design than the
+feature needs.
+
 ## 4b. Your lane
 You design and write the interface: DESIGN.md, the stylesheet, components, copy. You do not run a server, start or
 restart the app, install packages, build the whole app, or run migrations and seeds: that belongs to the Developer

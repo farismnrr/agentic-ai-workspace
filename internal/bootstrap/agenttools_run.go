@@ -44,6 +44,10 @@ func (a *agentTools) Execute(ctx context.Context, projectID string, call taskapp
 		return a.executeSite(ctx, projectID, call)
 	}
 
+	if call.Name == toolDeployExtension {
+		return a.executeExtension(ctx, projectID, call)
+	}
+
 	if call.Name == toolScreenshot {
 		return a.executeShot(ctx, projectID, call)
 	}

@@ -10,6 +10,7 @@
   import NewProjectPage from '../features/workspace/projects/NewProjectPage.svelte';
   import ProjectsPage from '../features/workspace/projects/ProjectsPage.svelte';
   import SitesPage from '../features/workspace/sites/SitesPage.svelte';
+  import ExtensionsPage from '../features/workspace/extensions/ExtensionsPage.svelte';
   import SettingsPage from '../features/workspace/settings/SettingsPage.svelte';
   import TaskPage from '../features/workspace/task/TaskPage.svelte';
   import ConsentPage from '../features/auth/ConsentPage.svelte';
@@ -54,6 +55,8 @@
   <NewProjectPage />
 {:else if $route.name === 'sites'}
   <SitesPage />
+{:else if $route.name === 'extensions'}
+  <ExtensionsPage projectId={$route.projectId} />
 {:else if $route.name === 'project'}
   <ProjectDetailPage projectId={$route.projectId} />
 {:else if $route.name === 'task'}

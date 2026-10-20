@@ -103,6 +103,16 @@ var (
 	}
 )
 
+// ToolDeployExtension packages a browser extension the project built, so the person can install it from Extensions.
+// Like the site tools it has no switch of its own: it follows run_command, because commands built the extension.
+var ToolDeployExtension = ToolInfo{
+	Name: "deploy_extension", Title: "Package the browser extension", Scope: ScopeExec, Group: GroupExec,
+	Description: "Package a browser extension (Chrome and Edge, manifest version 3) that the project has built, so the " +
+		"person can install it from Extensions in the sidebar. Give the folder that holds manifest.json after the " +
+		"build, such as .output/chrome-mv3 or dist. The result lists what must be fixed first (a file the manifest " +
+		"points at that is missing, a version that is not numbers, remote code). Deploying again replaces the package.",
+}
+
 // ToolScreenshot shows the agent the running web app, as the person's browser would. Like the site tools it has no
 // switch of its own: it follows run_command, because the app it looks at was started by one.
 var ToolScreenshot = ToolInfo{
@@ -164,7 +174,8 @@ func Tools() []ToolInfo {
 // SwitchOf names the switch that governs a tool. Most tools have their own; starting and stopping the web
 // app follow run_command.
 func SwitchOf(tool string) string {
-	if tool == ToolStartSite.Name || tool == ToolStopSite.Name || tool == ToolScreenshot.Name {
+	if tool == ToolStartSite.Name || tool == ToolStopSite.Name || tool == ToolScreenshot.Name ||
+		tool == ToolDeployExtension.Name {
 		return ToolRunCommand.Name
 	}
 

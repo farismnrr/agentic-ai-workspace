@@ -82,6 +82,13 @@ func newAgentAndSites(
 
 	tools.sites = sites
 
+	extensions, extensionMount, err := newExtensions(db, cfg, folders, projects, hub, auth, sameOrigin)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	tools.extensions = extensions
+
 	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, steps, hub, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -89,5 +96,5 @@ func newAgentAndSites(
 
 	filesMount := newFiles(projects, tools, hub, auth, sameOrigin)
 
-	return tasks, sites, []httpserver.Mount{siteMount, agentMount, filesMount}, stop, nil
+	return tasks, sites, []httpserver.Mount{siteMount, extensionMount, agentMount, filesMount}, stop, nil
 }

@@ -6,6 +6,7 @@
   import type { ThreadActions } from '../../logic/task-actions';
   import ApprovalCard from './ApprovalCard.svelte';
   import ChatBubble from './ChatBubble.svelte';
+  import ExtensionCard from './ExtensionCard.svelte';
   import HandoffCard from './HandoffCard.svelte';
   import PlanCard from './PlanCard.svelte';
   import PrdCard from './PrdCard.svelte';
@@ -46,6 +47,8 @@
       <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} effort={event.effort} />
     {:else if event.kind === 'shot'}
       <ShotCard text={event.text} src={shotUrl(taskId, event.image)} agent={event.agent} />
+    {:else if event.kind === 'extension'}
+      <ExtensionCard text={event.text} url={event.url} />
     {:else if event.kind === 'site'}
       <SiteCard text={event.text} url={event.url} />
     {:else}

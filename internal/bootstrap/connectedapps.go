@@ -105,7 +105,7 @@ func (g toolGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 	for _, site := range []string{
 		codingdomain.ToolStartSite.Name, codingdomain.ToolStopSite.Name, codingdomain.ToolScreenshot.Name,
 		codingdomain.ToolWebSearch.Name, codingdomain.ToolFetchPage.Name, codingdomain.ToolSearchImages.Name,
-		codingdomain.ToolDownloadAsset.Name, codingdomain.ToolViewImage.Name,
+		codingdomain.ToolDownloadAsset.Name, codingdomain.ToolViewImage.Name, codingdomain.ToolDeployExtension.Name,
 	} {
 		states[site] = states[codingdomain.SwitchOf(site)]
 	}

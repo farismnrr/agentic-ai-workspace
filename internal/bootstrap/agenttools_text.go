@@ -87,6 +87,10 @@ func describe(tool string, in toolArgs) taskapp.Described {
 		return describer(in, target)
 	}
 
+	if tool == toolDeployExtension {
+		return describeExtension(in)
+	}
+
 	if tool == toolScreenshot {
 		return describeShot(in)
 	}

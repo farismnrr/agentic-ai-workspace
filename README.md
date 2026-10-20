@@ -22,6 +22,7 @@ To install by hand, see [deployment.md](./docs/deployment.md).
 | --- | --- |
 | [using-the-app.md](./docs/using-the-app.md) | Add a model, create projects, run tasks |
 | [sites.md](./docs/sites.md) | Open the web apps the AI builds |
+| [extensions.md](./docs/extensions.md) | Build and install browser extensions |
 | [connector.md](./docs/connector.md) | Connect ChatGPT and other AI apps |
 | [deployment.md](./docs/deployment.md) | Install, update, back up and configure the app |
 | [devops.md](./docs/devops.md) | Build the image, hot-swap the binary, run the Jenkins pipeline |

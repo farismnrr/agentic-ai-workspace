@@ -21,6 +21,8 @@ const (
 	EventShot EventKind = "shot"
 	// EventResearch is research notes a teammate wrote; its text is the document.
 	EventResearch EventKind = "research"
+	// EventExtension marks a browser extension packaged for the person; URL is where they install it.
+	EventExtension EventKind = "extension"
 	// EventPlan marks the plan (the team's todo list) being set or changed; Text says how far it is and Technical
 	// lists the steps.
 	EventPlan EventKind = "plan"

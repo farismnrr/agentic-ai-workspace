@@ -70,7 +70,7 @@ func toolsFor(role teamdomain.Role) []string {
 	names = append(names, toolScreenshot, toolViewImage)
 
 	if role.RunsApps {
-		names = append(names, toolStartSite, toolStopSite)
+		names = append(names, toolStartSite, toolStopSite, toolDeployExtension)
 	}
 
 	// What the web returns is a stranger's text, so the orchestrator, which holds the person's trust, never reads it raw.

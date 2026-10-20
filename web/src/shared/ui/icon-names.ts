@@ -20,6 +20,7 @@ export type IconName =
   | 'alert-triangle'
   | 'terminal'
   | 'globe'
+  | 'puzzle'
   | 'pencil'
   | 'box'
   | 'file-text'

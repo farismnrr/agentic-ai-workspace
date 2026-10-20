@@ -13,6 +13,7 @@ import (
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	extensionapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/extension/application"
 	githubapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
@@ -25,18 +26,20 @@ import (
 // agentTools lets the agent use the coding tools inside a project's own folder.
 // Each project gets its own confined view of its files.
 type agentTools struct {
-	folders  *folder.Folders
-	engine   *codingrunner.Engine
-	sites    *siteapp.Service
-	web      *webapp.Service
-	backups  *codingbackup.Store
-	cache    map[string]codingmcp.Services
-	handlers map[string]toolHandler
-	github   *githubapp.Service
-	plans    *plans
-	git      func(projectID string) codingrunner.GitSource
-	public   string
-	mu       sync.Mutex
+	folders *folder.Folders
+	engine  *codingrunner.Engine
+	sites   *siteapp.Service
+	// extensions packages the browser extensions the AI builds.
+	extensions *extensionapp.Service
+	web        *webapp.Service
+	backups    *codingbackup.Store
+	cache      map[string]codingmcp.Services
+	handlers   map[string]toolHandler
+	github     *githubapp.Service
+	plans      *plans
+	git        func(projectID string) codingrunner.GitSource
+	public     string
+	mu         sync.Mutex
 }
 
 func newAgentTools(
@@ -102,6 +105,7 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 	}
 
 	defs = append(defs, siteDefinitions()...)
+	defs = append(defs, extensionDefinition())
 	defs = append(defs, screenshotDefinition(), viewImageDefinition())
 
 	return append(defs, a.webDefinitions()...)

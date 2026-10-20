@@ -44,28 +44,17 @@ func hasPage(files []string) bool {
 // result in the browser, so the app must be running before the report reaches them. It gives up after a few
 // refusals, so a page that cannot be served never blocks the end of a run.
 func (r *Runner) siteNotRunning(ctx context.Context, task domain.Task, state *runState, call Call) bool {
-	if state.siteAsked >= maxSiteRefusals {
-		return false
-	}
-
-	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if !pageBuiltButNotRunning(events) {
-		return false
-	}
-
-	state.siteAsked++
-	r.result(ctx, task, call.ID, "The work includes a web page, but no app is running for the person to open. "+
-		"Start it first with start_site (serve the project folder, for example python3 -m http.server on a port), "+
-		"check that it answers, and then finish. On a team, only the DevOps teammate can start it: give it that job.", true)
-
-	return true
+	return r.holdFinish(ctx, task, call, &state.siteAsked, maxSiteRefusals, pageBuiltButNotRunning,
+		"The work includes a web page, but no app is running for the person to open. Start it first with start_site "+
+			"(serve the project folder, for example python3 -m http.server on a port), check that it answers, and then "+
+			"finish. On a team, only the DevOps teammate can start it: give it that job.")
 }
 
 // tryFinish ends the run unless the plan is out of date or a page the person cannot open is waiting to be served.
 func (r *Runner) tryFinish(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
 	if r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
-		r.localAddressHeld(ctx, task, state, call) || r.securityNotAsked(ctx, task, state, call) ||
-		r.architectNotAsked(ctx, task, state, call) ||
+		r.localAddressHeld(ctx, task, state, call) || r.extensionHeld(ctx, task, state, call) ||
+		r.securityNotAsked(ctx, task, state, call) || r.architectNotAsked(ctx, task, state, call) ||
 		r.reviewerNotAsked(ctx, task, state, call) || r.commitMissing(ctx, task, state, call) {
 		return outcome{}, false
 	}

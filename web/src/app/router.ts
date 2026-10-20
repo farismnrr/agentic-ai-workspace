@@ -14,6 +14,7 @@ export type Route =
   | { name: 'projects' }
   | { name: 'new-project' }
   | { name: 'sites' }
+  | { name: 'extensions'; projectId?: string }
   | { name: 'project'; projectId: string }
   | { name: 'task'; projectId: string; taskId: string }
   | { name: 'settings'; tab: SettingsTab };
@@ -34,11 +35,13 @@ const staticRoutes: Record<string, Route> = {
   '/app/projects': { name: 'projects' },
   '/app/projects/new': { name: 'new-project' },
   '/app/sites': { name: 'sites' },
+  '/app/extensions': { name: 'extensions' },
   '/app/settings': { name: 'settings', tab: 'models' },
 };
 
 const appPatterns: [RegExp, (match: string[]) => Route | undefined][] = [
   [/^\/app\/inbox\/([^/]+)$/, ([, taskId]) => (taskId === undefined ? undefined : { name: 'inbox', taskId })],
+  [/^\/app\/extensions\/([^/]+)$/, ([, projectId]) => (projectId === undefined ? undefined : { name: 'extensions', projectId })],
   [/^\/app\/projects\/([^/]+)$/, ([, projectId]) => (projectId === undefined ? undefined : { name: 'project', projectId })],
   [
     /^\/app\/projects\/([^/]+)\/tasks\/([^/]+)$/,
