@@ -8,7 +8,10 @@ import (
 func TestDelegateBriefUsesMarkdownSections(t *testing.T) {
 	args := delegateArgs{Brief: "Fix the login page", Context: "Keep existing routes"}
 	got := args.briefText()
-	for _, want := range []string{"## Assignment\n\nFix the login page", "## Context from the orchestrator:\n\nKeep existing routes"} {
+	for _, want := range []string{
+		"## Assignment\n\nFix the login page",
+		"## Context from the orchestrator:\n\nKeep existing routes",
+	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in brief: %s", want, got)
 		}
