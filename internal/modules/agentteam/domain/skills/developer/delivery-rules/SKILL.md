@@ -1,6 +1,6 @@
 ---
 name: delivery-rules
-description: How to deliver a product in slices that look and work like a product, and the traps of the preview address and of tests that touch real data.
+description: How to deliver a product in slices that look and work like a product, and the traps of the preview address, of fonts that cannot be downloaded and of tests that touch real data.
 always: true
 ---
 
@@ -48,3 +48,20 @@ reset or overwrite the project's real database or `.env`. A test that wipes real
 ## 6. Keep the files readable
 Write normal, formatted TypeScript: no minified one-liners, lines under about 120 characters, files one person can
 read in one go, and no JavaScript files at all. The Architect and the next teammate must be able to read it.
+
+## 7. Fonts come from npm, never from a font website (any stack)
+The sandbox reaches package registries only, so a font cannot be downloaded from Google Fonts, a CDN or any other
+website, in a build or in a command. Do not link `fonts.googleapis.com`, do not `curl` a font, and do not build with
+a plugin that fetches fonts at build time. Every Google font is also an npm package from Fontsource, which works in
+any stack and also keeps the font pinned and the page free of third-party requests:
+- Name: the font's name in lower case with hyphens (`DM Serif Display` is `dm-serif-display`).
+- With a bundler (Vite, Nuxt, Next, SvelteKit, Astro and the like): `<package manager> add @fontsource-variable/<name>`,
+  or `@fontsource/<name>` when the family has no variable version, import its CSS once (`@import
+  "@fontsource-variable/<name>";` in the main stylesheet, or `import` in the entry file), and use the family name
+  `'<Name> Variable'` (a static package keeps `'<Name>'` and takes one import per weight: `@fontsource/<name>/400.css`).
+- Plain HTML and CSS without a build: `bun add @fontsource-variable/<name>`, copy
+  `node_modules/@fontsource-variable/<name>/files/<name>-latin-wght-normal.woff2` into the project (for a static
+  package `files/<name>-latin-400-normal.woff2`, one file per weight) and write the `@font-face` yourself with a relative
+  `url(./fonts/...)` and `font-display: swap`.
+- Keep only the weights and the latin subset the page uses. Always end the stack with a system font.
+- If a template or an example links Google Fonts, replace that link with the above.
