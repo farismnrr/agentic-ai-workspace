@@ -68,7 +68,7 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
 
-	if why := r.serverHold(call); why != "" {
+	if why := r.commandHold(call); why != "" {
 		r.result(ctx, task, call.ID, why, true)
 
 		return outcome{}, false

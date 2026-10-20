@@ -95,3 +95,23 @@ func TestACheckThatKillsItsOwnServerIsNotRefused(t *testing.T) {
 		t.Fatalf("a self-cleaning check must run, got %v", r.tools.executed)
 	}
 }
+
+func TestAFileThatLinksAFontWebsiteIsRefusedAndOneThatDoesNotIsWritten(t *testing.T) {
+	t.Parallel()
+
+	link := `<link href="https://fonts.googleapis.com/css2?family=Inter" rel="stylesheet">`
+
+	for content, want := range map[string]int{link: 0, `<h1 style="font-family:Inter">Hi</h1>`: 1} {
+		r := newTeamRig(nil, []application.AgentRole{developer()},
+			delegate("d1", "developer", "Write the page"),
+			call("c1", "edit_file", map[string]string{"path": "index.html", "new_text": content}),
+			report("r1", "Done"), finish("Done"),
+		)
+		r.tools.risks["edit_file"] = domain.RiskNone
+		r.run(r.startTeam(t, "Page").ID)
+
+		if len(r.tools.executed) != want {
+			t.Errorf("content %q: executed %v, want %d", content, r.tools.executed, want)
+		}
+	}
+}
