@@ -3,6 +3,8 @@ package http
 import (
 	"net/http"
 	"strings"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
 // sandboxPolicy puts every page a site serves in a sandbox without allow-same-origin: the
@@ -72,7 +74,7 @@ func forRequest(in http.Header, prefix, clientIP string) http.Header {
 }
 
 // forResponse returns the headers the browser may see, with the security headers added.
-func forResponse(in http.Header, prefix string) http.Header {
+func forResponse(in http.Header, base, prefix string) http.Header {
 	out := in.Clone()
 	stripHopByHop(out)
 
@@ -86,8 +88,8 @@ func forResponse(in http.Header, prefix string) http.Header {
 		}
 	}
 
-	if loc := out.Get("Location"); strings.HasPrefix(loc, "/") && !strings.HasPrefix(loc, "//") {
-		out.Set("Location", prefix+loc)
+	if loc := out.Get("Location"); loc != "" {
+		out.Set("Location", domain.Link(loc, base, prefix))
 	}
 
 	secure(out)

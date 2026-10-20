@@ -22,6 +22,7 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 
 - It runs in the same sandbox as checks. It can reach package registries, but not your computer or other projects.
 - Fonts are installed from npm (Fontsource), not loaded from Google Fonts, so they work in every stack and need no extra network access.
+- Any language works: Rust, Go, Python, Node, PHP, Next.js, SvelteKit and more. Nuxt is only the default for new apps.
 - It must listen on `127.0.0.1` at the port the AI chose. Use a normal server, not a hot-reload dev server. WebSockets aren't supported yet.
 - The path prefix is removed before requests reach the app. Relative links (`./style.css`) are the right way.
 - A link like `/style.css` in a page or stylesheet is moved under the address for you, so the page keeps its styling.

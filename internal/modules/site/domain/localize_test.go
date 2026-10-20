@@ -84,3 +84,14 @@ func TestLocalizeAddsTheShimOnceWithoutAHeadTag(t *testing.T) {
 		t.Fatal("the shim must not be added twice")
 	}
 }
+
+func TestLinkKeepsTheAddressAnAppAlreadyPut(t *testing.T) {
+	for in, want := range map[string]string{
+		"/login": "/run/shop/~t1/login", "/run/shop/~t1/login": "/run/shop/~t1/login", "/run/shop": "/run/shop/~t1",
+		"/run/shop/a?b=1": "/run/shop/~t1/a?b=1", "//x.test/y": "//x.test/y", "next": "next",
+	} {
+		if got := domain.Link(in, base, ticket); got != want {
+			t.Errorf("Link(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
