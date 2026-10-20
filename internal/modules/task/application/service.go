@@ -21,13 +21,16 @@ const (
 type Service struct {
 	deps       Deps
 	dispatcher Dispatcher
+	// calls counts the calls of each connected app's thread that are under way, so the thread shows as working
+	// until the last one ends.
+	calls map[string]int
 	// recording keeps two calls from a connected app from starting two threads.
 	recording sync.Mutex
 }
 
 // NewService wires the use cases to the same collaborators as the runner.
 func NewService(deps Deps, dispatcher Dispatcher) *Service {
-	return &Service{deps: deps, dispatcher: dispatcher}
+	return &Service{deps: deps, dispatcher: dispatcher, calls: map[string]int{}}
 }
 
 // CreateInput is what the composer sends.

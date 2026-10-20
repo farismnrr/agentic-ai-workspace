@@ -37,18 +37,27 @@ type appThreads struct {
 }
 
 func (a appThreads) Log(ctx context.Context, userID, client, projectID string, note codingmcp.Note) (string, error) {
-	if client == "" {
-		client = unnamedApp
-	}
-
-	id, err := a.tasks.Record(ctx, userID, taskapp.RecordInput{
-		ProjectID: projectID, Source: client, Event: eventOf(note),
-	})
+	id, err := a.tasks.Record(ctx, userID, appStep(client, projectID, note))
 	if err != nil {
 		return "", fmt.Errorf("record the app's step: %w", err)
 	}
 
 	return id, nil
+}
+
+func (a appThreads) Begin(ctx context.Context, userID, client, projectID string, note codingmcp.Note) (string, error) {
+	id, err := a.tasks.Begin(ctx, userID, appStep(client, projectID, note))
+	if err != nil {
+		return "", fmt.Errorf("record the app's step: %w", err)
+	}
+
+	return id, nil
+}
+
+func (a appThreads) End(ctx context.Context, taskID string) { a.tasks.End(ctx, taskID) }
+
+func appStep(client, projectID string, note codingmcp.Note) taskapp.RecordInput {
+	return taskapp.RecordInput{ProjectID: projectID, Source: appName(client), Event: eventOf(note)}
 }
 
 func eventOf(note codingmcp.Note) taskdomain.Event {

@@ -164,6 +164,14 @@ func (s *Service) Recover(ctx context.Context) error {
 	var failures []error
 
 	for _, task := range tasks {
+		if task.Source != "" { // a connected app's thread is only a record: nothing was running for it
+			if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, s.deps.Now()); err != nil {
+				failures = append(failures, err)
+			}
+
+			continue
+		}
+
 		err := s.fail(ctx, task.ID, "The app restarted while I was working.", "Press Continue to pick up where I left off.")
 		if err != nil {
 			failures = append(failures, err)
