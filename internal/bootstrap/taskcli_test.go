@@ -64,3 +64,15 @@ func TestAChosenWindowReachesTheProgram(t *testing.T) {
 		t.Error("no window chosen, or a program that takes it as an option, must add no variable")
 	}
 }
+
+func TestTheMeterCountsAgainstTheChosenWindowHeldToWhatTheModelTakes(t *testing.T) {
+	t.Parallel()
+
+	for _, c := range []struct{ chosen, reported, want int64 }{
+		{0, 1_000_000, 1_000_000}, {150_000, 1_000_000, 150_000}, {2_000_000, 1_000_000, 1_000_000}, {90_000, 0, 90_000},
+	} {
+		if got := shownWindow(c.chosen, c.reported); got != c.want {
+			t.Errorf("shownWindow(%d, %d) = %d, want %d", c.chosen, c.reported, got, c.want)
+		}
+	}
+}
