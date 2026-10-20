@@ -13,8 +13,8 @@ import (
 // module, so the name is repeated here.
 const toolStartSite = "start_site"
 
-// maxSecurityRounds bounds how often a start is held back for another review, so a reviewer that keeps finding
-// things cannot keep an app from ever starting.
+// maxSecurityRounds bounds how often a finish is held back for another security check, so a reviewer that keeps
+// finding things cannot keep the run from ever ending.
 const maxSecurityRounds = 3
 
 // maxArchitectRounds bounds how often a finish is held back for the Architect.
@@ -24,20 +24,36 @@ var codeExtensions = []string{
 	".ts", ".tsx", ".js", ".mjs", ".cjs", ".vue", ".py", ".go", ".rs", ".java", ".kt", ".rb", ".php", ".sql",
 }
 
-// securityHold returns why a start_site call must wait, or "" when it may go on. On a team with a Security role,
-// an app with code in it does not start until that role has reported on the latest changes.
-func (r *Runner) securityHold(ctx context.Context, task domain.Task, call Call) string {
-	if r.security == "" || call.Name != toolStartSite {
-		return ""
+// securityNotAsked holds a finish back while code was changed after the Security role last reported. The app can be
+// started and restarted freely while it is being built (a private site only the owner opens); the check of the
+// finished code happens once, before the person is told it is done. At most a few rounds.
+func (r *Runner) securityNotAsked(ctx context.Context, task domain.Task, state *runState, call Call) bool {
+	security := securityOf(state.roster)
+
+	return r.finalCheckMissing(ctx, task, call, security, &state.securityAsked, maxSecurityRounds,
+		"The "+security+" has not checked the final code yet. Hand it the changed files once, now that the work is "+
+			"done, send its \"Fix first\" findings back to the Developer, and finish when it says the code is safe.")
+}
+
+// finalCheckMissing holds a finish back, with text as the answer, while code changed after reviewer last reported.
+// It counts the holds in asked and gives up after maxRounds, so a check that cannot be met never blocks the end.
+func (r *Runner) finalCheckMissing(
+	ctx context.Context, task domain.Task, call Call, reviewer string, asked *int, maxRounds int, text string,
+) bool {
+	if reviewer == "" || *asked >= maxRounds {
+		return false
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if !changedSinceReview(events, r.security, hasCode, maxSecurityRounds) {
-		return ""
+	if !changedSinceReview(events, reviewer, hasCode, maxRounds) {
+		return false
 	}
 
-	return "The " + r.security + " has not checked the latest code yet, so the app cannot be started. Report back that " +
-		"the code is ready for the security check; the orchestrator will ask the " + r.security + " first."
+	*asked++
+
+	r.result(ctx, task, call.ID, text, true)
+
+	return true
 }
 
 // changedSinceReview reports whether files that touches matches were changed after the last time the named reviewer
@@ -114,19 +130,9 @@ func architectOf(roster *Roster) string {
 // knows the architecture verifies the final code before the person is told it is done. At most a few rounds.
 func (r *Runner) architectNotAsked(ctx context.Context, task domain.Task, state *runState, call Call) bool {
 	architect := architectOf(state.roster)
-	if architect == "" || state.architectAsked >= maxArchitectRounds {
-		return false
-	}
 
-	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if !changedSinceReview(events, architect, hasCode, maxArchitectRounds) {
-		return false
-	}
-
-	state.architectAsked++
-	r.result(ctx, task, call.ID, "The "+architect+" has not verified the final code yet. Hand it the changed files "+
-		"to check against the design and against SOLID and Clean Architecture, send what it finds back to the "+
-		"Developer, and finish when it reports that the code is sound.", true)
-
-	return true
+	return r.finalCheckMissing(ctx, task, call, architect, &state.architectAsked, maxArchitectRounds,
+		"The "+architect+" has not verified the final code yet. Hand it the changed files to check against the design "+
+			"and against SOLID and Clean Architecture, send what it finds back to the Developer, and finish when it "+
+			"reports that the code is sound.")
 }

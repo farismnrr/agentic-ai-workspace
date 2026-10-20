@@ -29,8 +29,8 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - The same goes for images, `fetch` and `history.pushState` that a page sets while it runs.
 - Links built in pieces or hidden in `.js` files are not moved. Use relative paths there.
 - When the AI starts an app, the server loads its pages and tells the AI about links that would not work.
+- Starting is quick. The security check and the other full checks run once, at the end, before the AI reports to you.
 - It also flags a stylesheet that is empty, never built (raw Tailwind) or answered with a web page.
-- Then it opens the home page in a headless browser at the app's real address and flags a page with no styling.
 - `screenshot` uses that same path, so the AI sees the page as you do, with no login even for a private app.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
 - Because of that, a login in your app cannot stay signed in inside the preview. The app itself is fine.

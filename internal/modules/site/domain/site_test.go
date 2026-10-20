@@ -1,7 +1,6 @@
 package domain_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
@@ -65,28 +64,5 @@ func TestBasePath(t *testing.T) {
 	site := domain.Site{Slug: "sensio", Token: "abc"}
 	if site.BasePath() != "/run/sensio" {
 		t.Fatal(site.BasePath())
-	}
-}
-
-func TestACaptureNamesWhatMakesThePageUnusable(t *testing.T) {
-	var c domain.Capture
-
-	c.Failed = []string{"stylesheet /_next/a.css answered 200 text/html", "https://fonts.example/x.woff2"}
-	c.Page.Images.Total, c.Page.Images.Broken = 3, 1
-
-	got := strings.Join(c.Problems(), "|")
-	for _, want := range []string{"no styling at all", "/_next/a.css answered 200 text/html", "1 of 3 images"} {
-		if !strings.Contains(got, want) {
-			t.Errorf("missing %q in %s", want, got)
-		}
-	}
-
-	if strings.Contains(got, "fonts.example") {
-		t.Errorf("a file from another website is not the app's fault: %s", got)
-	}
-
-	c.Page.Stylesheets.Rules = 40
-	if len((domain.Capture{Page: c.Page}).Problems()) != 1 {
-		t.Error("only the broken image is left once the page has styling")
 	}
 }

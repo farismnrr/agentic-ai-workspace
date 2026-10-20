@@ -74,12 +74,6 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 		return outcome{}, false
 	}
 
-	if why := r.securityHold(ctx, task, call); why != "" {
-		r.result(ctx, task, call.ID, why, true)
-
-		return outcome{}, false
-	}
-
 	if blocked, out, done := r.checkTool(ctx, task, call, described); blocked {
 		return out, done
 	}
