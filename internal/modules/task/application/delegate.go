@@ -121,7 +121,6 @@ func (r *Runner) runDelegation(
 	sub := &runState{budget: state.budget, segment: r.lim.delegateSteps()}
 
 	worker := r.child(role, d)
-	worker.security = securityOf(state.roster)
 	result := r.doJob(ctx, worker, teammate, sub, role, d)
 	if stopped, over := r.limitReached(ctx); over {
 		return stopped, true

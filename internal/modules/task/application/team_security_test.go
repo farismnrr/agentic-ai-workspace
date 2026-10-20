@@ -22,19 +22,17 @@ func appBuilder() application.AgentRole {
 	}
 }
 
-func TestAnAppWithCodeStartsOnlyAfterTheSecurityReview(t *testing.T) {
+func TestAnAppStartsFreelyWhileBuiltAndTheSecurityReviewComesOnceAtTheEnd(t *testing.T) {
 	t.Parallel()
 
 	r := newTeamRig(nil, []application.AgentRole{securityRole(), appBuilder()},
 		delegate("d1", "developer", "Build the API and start it"),
 		call("e1", "edit_file", map[string]string{"path": "server/api/items.ts"}),
 		call("s1", "start_site", map[string]string{"command": "node .output/server/index.mjs", "port": "3000"}),
-		report("r1", "Built, not started"),
-		delegate("d2", "security", "Check the app"),
+		report("r1", "Built and started"),
+		finish("Done too early"),
+		delegate("d2", "security", "Check the final code"),
 		report("r2", "Safe to start"),
-		delegate("d3", "developer", "Start it"),
-		call("s2", "start_site", map[string]string{"command": "node .output/server/index.mjs", "port": "3000"}),
-		report("r3", "Started"),
 		finish("Done"),
 	)
 	r.tools.risks["edit_file"] = domain.RiskLow
@@ -44,13 +42,17 @@ func TestAnAppWithCodeStartsOnlyAfterTheSecurityReview(t *testing.T) {
 	task := r.startTeam(t, "Make an app")
 	r.run(task.ID)
 
-	held := resultFor(r.model.requests[3], "s1")
-	if !held.IsError || !strings.Contains(held.Text, "Security") {
-		t.Fatalf("the start is refused before the review: %+v", held)
+	if started := resultFor(r.model.requests[3], "s1"); started.IsError {
+		t.Fatalf("the app starts while it is being built, without a review: %+v", started)
 	}
 
-	if r.lastEvent(task.ID, domain.EventSite).URL == "" {
-		t.Fatal("after the review the app starts and the person gets a link")
+	held := resultFor(r.model.requests[5], "fin")
+	if !held.IsError || !strings.Contains(held.Text, "Security") {
+		t.Fatalf("the first finish waits for the Security check: %+v", held)
+	}
+
+	if got := r.task(t, task.ID).Summary; got != "Done" {
+		t.Fatalf("after the Security check the task finishes: %q", got)
 	}
 }
 

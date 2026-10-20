@@ -6,6 +6,12 @@ always: true
 
 # Delivery rules
 
+## 0. Keep the checks in proportion
+A finished test is not a finished job. While you build, run the cheap check of what you touched (the type check, the
+tests of those files) and go on. The full lint, the whole test suite, the production build and every audit run once,
+in the last slice or when the brief asks. Do not run them after every slice, and do not start or restart the app
+yourself (only DevOps does, when someone needs to look).
+
 ## 1. One slice at a time
 Your brief names one slice of the PRD's todo (or less). Do that slice completely, run it, and report. If the brief
 asks for the whole app, build the first coherent slice, say what is left in your report, and stop; the lead sends the

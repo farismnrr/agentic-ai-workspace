@@ -75,23 +75,9 @@ func (a *agentTools) executeSite(ctx context.Context, projectID string, call tas
 
 	return taskapp.ToolResult{
 		Output: "The app is running and the person can open it from the link shown in the thread (" + link + "). " +
-			"Say so in plain words; do not paste the address." + pathReport(a.checkSite(ctx, projectID, site)),
+			"Say so in plain words; do not paste the address." + pathReport(a.sites.Audit(ctx, site)),
 		Link: link,
 	}
-}
-
-// checkSite lists what is wrong with the app at its address: links the audit finds, and what the browser saw
-// when it opened the home page the way the person's browser does. A browser that cannot start adds nothing.
-func (a *agentTools) checkSite(ctx context.Context, projectID string, site sitedomain.Site) []string {
-	problems := a.sites.Audit(ctx, site)
-
-	if shot, err := a.sites.Capture(ctx, projectID, sitedomain.CaptureSpec{Path: "/"}); err == nil {
-		for _, found := range shot.Problems() {
-			problems = append(problems, "in the browser, the home page: "+found)
-		}
-	}
-
-	return problems
 }
 
 // pathReport tells the agent which links of the page would not work under the app's address, so it fixes them

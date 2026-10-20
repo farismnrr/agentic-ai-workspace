@@ -128,14 +128,17 @@ the HTTP methods a route needs. Limit file uploads by size and type. Show errors
 
 ## 6. Build and start
 Check with `run_command`, one step per call (a command has about 2 GB of memory, and an install followed by a type
-check in the same call can run out): `bun install` when you added packages, then `bun --bun run typecheck` with
-`bun --bun run lint` and `bun test`, then `bun --bun run build`; every one must pass before you report. The app then runs from `.output`. You do not start it: the DevOps teammate does, and your report says so.
+check in the same call can run out). In a slice that is not the last (the brief says which), run only
+`bun install` when you added packages, `bun --bun run typecheck` and the tests of what you touched
+(`bun test <path>`): that is enough to hand the slice on. In the last slice, or when the brief asks for the full
+check, run `bun --bun run typecheck`, `bun --bun run lint`, `bun test` and `bun --bun run build`; every one must pass
+before you report. The app then runs from `.output`. You do not start it: the DevOps teammate does, and your report says so.
 Give it the start command, port 3000: `bun /usr/local/share/serve/site-serve.ts bun .output/server/index.mjs`.
 `site-serve` makes Nuxt work under the address prefix the sites proxy uses; do not run `.output` directly.
 In the preview the page has no cookies, so a login cannot stay signed in there. That is the preview's sandbox, not
 a fault in the app: test accounts with `curl` against the API instead (sign up, sign in, then call a protected
 route with the returned cookie) and say so in your report. Never weaken a security setting to make the preview work.
-Before the app is started the Security teammate must have checked the code.
+The Security teammate checks the code once, when the work is done; it does not hold up starting the app while you build.
 
 ## 7. Report
 Say in plain words what the app does, the stack, which commands you ran and how they ended, and what you could not check.

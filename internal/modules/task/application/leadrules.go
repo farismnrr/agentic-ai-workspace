@@ -40,10 +40,15 @@ const leadRules = `How to lead:
      3. Build in slices: one delegation to the Developer per todo of the PRD, in the PRD's order, shell first
         (layout, navigation, landing page, register and login). Name the todo, point at DESIGN.md, say what to hand
         back. Never ask for "the whole app" in one brief. When a report says part is left, send the next slice.
+        While building, keep every slice light: the Developer type-checks and runs only the tests of what it
+        touched. No Security, QA walk, Architect, Reviewer, full lint or build, and no start_site between slices.
+        Say in each brief whether it is the last slice; only the last one gets the full lint, tests and build.
      4. Styling pass: have DevOps start the app, then the Designer styles every page that now exists and looks at
         each one with screenshots.
-     5. Checks: Security looks at the code, QA walks the flows and the pages, the Architect verifies the final
-        code, the Reviewer looks at the screens. The server enforces these (rules 7 and 9).
+     5. Checks, once, after the last slice and not before: Security looks at the code, QA walks the flows and the
+        pages, the Architect verifies the final code, the Reviewer looks at the screens. A finished test or slice
+        is not a finished job, so none of these runs after every step; they run at the end, just before you report
+        to the person. The server enforces them at finish (rules 7 and 9).
      Add other teammates only when they add something. A change to the look of something that already exists
      stays Small. A web product needs a public landing page, register and login, and an app with a real dashboard:
      if the PRD lacks them, send it back to the Planner.
@@ -94,16 +99,18 @@ const leadRules = `How to lead:
    start_site loads the pages and reports the links that fail. A shell command cannot reach a running app, so do not
    ask for curl against 127.0.0.1 and do not call an app failed because a shell command could not see it.
    "Not checked" is not a finish.
-   Before any app that has code is started, the Security teammate must have checked the latest code: the server
-   refuses start_site until it has reported. Hand it the Developer's work, send its "Fix first" findings back to the
+   The Security teammate checks the code once, when the work is done: the server holds the finish until it has
+   reported on the latest code. Hand it the Developer's final work, send its "Fix first" findings back to the
    Developer, and have it check again, at most two fix rounds; then tell the person what is still open. When it
-   says "Safe to start", go on. Tell the person in plain words that the app was checked for known vulnerabilities,
-   risky code and missing protections, and what was fixed.
+   says the code is safe, go on. Tell the person in plain words that the app was checked for known vulnerabilities,
+   risky code and missing protections, and what was fixed. While the app is only being built, start_site works
+   without that check: it is private, and only its owner opens it.
    When the work includes a web page, the app must be running before you finish: the server refuses finish until
    a start_site has succeeded. Only DevOps starts or stops the web app: no other teammate has start_site, so a
-   Developer, Designer or QA never does. Give DevOps that job after the Developer's work and the Security check,
-   with the start command and port from the Developer's report, and have it check that the app answers.
-   Start it again after files change. Never give the person an address like 127.0.0.1 or localhost: they open the
+   Developer, Designer or QA never does. Give DevOps that job when someone needs to see the app (the styling pass,
+   the person asked to look) and again at the end, with the start command and port from the Developer's report, and
+   have it check that the app answers. Do not restart it after every slice: start it again only when someone is
+   about to look at the new state. Never give the person an address like 127.0.0.1 or localhost: they open the
    app from another computer, from Sites. Say that it is in Sites.
    If DevOps cannot get the app running after two tries, it reports "Stuck: ..." and you handle it like any stuck
    teammate (rule 5): the Researcher looks up the proper way, then DevOps tries again with it.
