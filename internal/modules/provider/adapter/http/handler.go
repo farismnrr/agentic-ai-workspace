@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"net/url"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -34,6 +35,16 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Delete("/api/providers/:id", auth, sameOrigin, h.remove)
 		app.Get("/api/models", auth, h.models)
 	}
+}
+
+// providerID is the provider the path names. A plan's id has a colon, which a browser sends as %3A.
+func providerID(c fiber.Ctx) string {
+	id := c.Params("id")
+	if decoded, err := url.PathUnescape(id); err == nil {
+		return decoded
+	}
+
+	return id
 }
 
 type providerPayload struct {
@@ -120,7 +131,7 @@ func (h *Handler) add(c fiber.Ctx) error {
 }
 
 func (h *Handler) verify(c fiber.Ctx) error {
-	provider, err := h.service.Verify(c.Context(), httpserver.UserID(c), c.Params("id"))
+	provider, err := h.service.Verify(c.Context(), httpserver.UserID(c), providerID(c))
 	if err != nil {
 		return fail(c, err)
 	}
@@ -136,7 +147,7 @@ func (h *Handler) setEnabled(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("invalid_body"))
 	}
 
-	if err := h.service.SetEnabled(c.Context(), httpserver.UserID(c), c.Params("id"), body.Enabled); err != nil {
+	if err := h.service.SetEnabled(c.Context(), httpserver.UserID(c), providerID(c), body.Enabled); err != nil {
 		return fail(c, err)
 	}
 
@@ -144,7 +155,7 @@ func (h *Handler) setEnabled(c fiber.Ctx) error {
 }
 
 func (h *Handler) remove(c fiber.Ctx) error {
-	if err := h.service.Remove(c.Context(), httpserver.UserID(c), c.Params("id")); err != nil {
+	if err := h.service.Remove(c.Context(), httpserver.UserID(c), providerID(c)); err != nil {
 		return fail(c, err)
 	}
 

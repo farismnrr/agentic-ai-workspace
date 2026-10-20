@@ -26,8 +26,8 @@ type codexCatalog struct {
 	} `json:"models"`
 }
 
-// ParseCodexCatalog reads what `codex debug models` prints: the models Codex offers people, best first,
-// each with the effort levels it takes. Anything printed before the list (a warning) is skipped.
+// ParseCodexCatalog reads what `codex debug models` prints while signed in: the models Codex offers the account,
+// best first, each with the effort levels it takes. Anything printed before the list (a warning) is skipped.
 func ParseCodexCatalog(printed []byte) ([]Model, error) {
 	start := bytes.Index(printed, []byte(`{"models"`))
 	if start < 0 {

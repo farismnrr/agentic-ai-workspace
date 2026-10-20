@@ -31,20 +31,20 @@ type checked struct {
 // Service lets a person sign in to a vendor's coding program with their own plan, and tells
 // whether they are signed in. It never reads the sign-in itself: only the program does.
 type Service struct {
-	sandbox Sandbox
-	hosts   map[domain.Runtime][]string
-	now     func() time.Time
-	active  map[key]*signIn
-	checked map[key]checked
-	catalog catalog
-	mu      sync.Mutex
+	sandbox  Sandbox
+	hosts    map[domain.Runtime][]string
+	now      func() time.Time
+	active   map[key]*signIn
+	checked  map[key]checked
+	catalogs map[key]catalog
+	mu       sync.Mutex
 }
 
 // NewService builds the service; hosts are the addresses each program may reach.
 func NewService(sandbox Sandbox, hosts map[domain.Runtime][]string, now func() time.Time) *Service {
 	return &Service{
 		sandbox: sandbox, hosts: hosts, now: now,
-		active: map[key]*signIn{}, checked: map[key]checked{},
+		active: map[key]*signIn{}, checked: map[key]checked{}, catalogs: map[key]catalog{},
 	}
 }
 
@@ -161,6 +161,7 @@ func (s *Service) Disconnect(ctx context.Context, user string, rt domain.Runtime
 
 	s.mu.Lock()
 	delete(s.checked, key{user, rt})
+	delete(s.catalogs, key{user, rt})
 	s.mu.Unlock()
 
 	return nil
