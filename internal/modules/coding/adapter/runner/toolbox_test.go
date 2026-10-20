@@ -120,7 +120,8 @@ func TestEachWorkspaceHasItsOwnCache(t *testing.T) {
 func TestGoModuleRedirectAndCache(t *testing.T) {
 	eng := toolboxEngine(t)
 	dir := t.TempDir()
-	first := runCommand(t, eng, dir, "GOPROXY=https://proxy.golang.org go mod download modernc.org/sqlite@v1.59.0 && echo download-ok")
+	download := "GOPROXY=https://proxy.golang.org go mod download modernc.org/sqlite@v1.59.0 && echo download-ok"
+	first := runCommand(t, eng, dir, download)
 	if !strings.Contains(first, "download-ok") {
 		t.Fatalf("Go module download through proxy failed: %s", first)
 	}
