@@ -37,8 +37,11 @@ Those commands are for `start_site`'s `command` field. Starting again replaces t
 ## 2. Check it
 - `start_site` loads the home page and the pages it links to, and lists every link that would fail. A list that is
   not empty is not ready: put the exact links in your report so the Developer can fix them.
-- `curl` against `127.0.0.1` from inside the sandbox may confirm that a page answers. That is for you; it is not an
-  address for anyone else. In the preview there are no cookies, so test a login through the API with `curl`.
+- The app runs in its own container, and a shell command (`curl 127.0.0.1`, a port scan) cannot reach it. Do not
+  check it that way and do not call it failed because a shell command cannot see it. `start_site` is the check: it
+  starts the app, loads the home page and the pages it links to, and says the app is running when they answer.
+  A "running" answer with an empty list of broken links is a pass; say so.
+- In the preview there are no cookies, so a login cannot stay signed in there. Say that, and do not call it a fault.
 - Never weaken a security setting to make the preview work.
 
 ## 3. When it will not start
