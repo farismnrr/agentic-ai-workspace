@@ -23,6 +23,8 @@ type AgentRole struct {
 	Model      string
 	// Effort is empty when the role has none of its own.
 	Effort domain.Effort
+	// Tier is the model tier the role uses when it has no model of its own; empty is the default tier.
+	Tier string
 	// Tools names the project tools the role may use; the lead is not limited by it.
 	Tools []string
 	Lead  bool

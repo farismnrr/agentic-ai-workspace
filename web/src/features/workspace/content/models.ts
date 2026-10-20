@@ -29,9 +29,19 @@ export const gatewayProviderNames: Record<string, string> = {
   oc: 'OpenCode Free',
 };
 
+/** The three model tiers: set a model once, and every role on the tier follows it. */
+export const tierCopy = {
+  intro: 'Pick a model for each tier once. Each teammate uses a tier (Settings, Agent team), so changing a model here changes it for everyone on that tier.',
+  unsetThinking: 'Use the default model',
+  unsetFast: 'Use the default model',
+  tiers: {
+    thinking: { label: 'Thinking', note: 'For hard problems: design, security and review. Slower and costs more; usually a strong model at high effort.' },
+    default: { label: 'Default', note: 'Used for new tasks and for teammates on the default tier unless you pick another.' },
+    fast: { label: 'Fast', note: 'For quick, simple jobs. Usually a small model at low effort.' },
+  },
+};
+
 export const modelsCopy = {
-  defaultIntro: 'Used for every new task unless you pick another when you start it.',
-  effortIntro: 'How hard the AI thinks before it answers. Auto lets the lead choose for each teammate; without a team the model uses its own level. Higher is slower and costs more.',
   refreshTip: 'Check the key again and update the list of models and how much each can hold.',
   providersIntro: 'Your own keys. Tasks are billed by the provider, not by us.',
   none: { title: 'Add your first AI model', body: 'Add a provider with your own key so your AI team has a model to work with. Use Add above.' },

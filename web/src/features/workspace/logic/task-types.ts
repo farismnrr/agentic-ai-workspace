@@ -50,7 +50,7 @@ export type TaskEvent =
   | (EventBase & { kind: 'plan'; text: string; technical: string })
   | (EventBase & { kind: 'prd'; text: string; technical: string })
   | (EventBase & { kind: 'research'; text: string; technical: string })
-  | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string });
+  | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string; effort?: string });
 
 /** How one question of a form is answered: pick one, pick several, or type. */
 export type QuestionType = 'single' | 'multi' | 'text';

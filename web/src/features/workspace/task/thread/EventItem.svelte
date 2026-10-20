@@ -43,7 +43,7 @@
     {:else if event.kind === 'plan'}
       <PlanCard text={event.text} steps={event.technical} />
     {:else if event.kind === 'handoff'}
-      <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} />
+      <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} effort={event.effort} />
     {:else if event.kind === 'shot'}
       <ShotCard text={event.text} src={shotUrl(taskId, event.image)} agent={event.agent} />
     {:else if event.kind === 'site'}

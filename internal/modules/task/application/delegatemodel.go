@@ -6,12 +6,16 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// pickModel is the role's own model when it has one the person can reach, else the person's default,
+// pickModel is the role's own model when it has one the person can reach, else its tier's, else the default,
 // else the model the task started with. No model is named here. A plan is reached when the person is signed in
 // to it; any other provider, when its key still works.
 func (r *Runner) pickModel(ctx context.Context, task domain.Task, role AgentRole) (string, string, domain.Effort) {
 	if role.ProviderID != "" && role.Model != "" && r.reachable(ctx, task.UserID, role.ProviderID) {
 		return role.ProviderID, role.Model, role.Effort
+	}
+
+	if providerID, model, effort, ok := r.tierModel(ctx, task.UserID, role.Tier); ok {
+		return providerID, model, effort
 	}
 
 	providerID, model, err := r.deps.Models.Default(ctx, task.UserID)
@@ -20,6 +24,30 @@ func (r *Runner) pickModel(ctx context.Context, task domain.Task, role AgentRole
 	}
 
 	return task.ProviderID, task.Model, task.Effort
+}
+
+// tierModel is the model the person set for the Thinking or the Fast tier, when they set one they can reach.
+func (r *Runner) tierModel(ctx context.Context, userID, tier string) (string, string, domain.Effort, bool) {
+	if tier != TierThinking && tier != TierFast {
+		return "", "", domain.EffortDefault, false
+	}
+
+	providerID, model, effort, ok := r.deps.Models.Tier(ctx, userID, tier)
+	if !ok || !r.reachable(ctx, userID, providerID) {
+		return "", "", domain.EffortDefault, false
+	}
+
+	return providerID, model, effort, true
+}
+
+// shownWith is the job as the card shows it: with the effort the orchestrator asked for when the teammate's own
+// is left to the model, so the card never says "auto".
+func shownWith(d Delegation, asked string) Delegation {
+	if d.Effort == domain.EffortDefault {
+		d.Effort = domain.Effort(asked)
+	}
+
+	return d
 }
 
 // reachable says whether a teammate can run on this provider right now.

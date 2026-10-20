@@ -101,7 +101,7 @@ func (r *Runner) startDelegation(
 		return Delegation{}, false
 	}
 
-	r.handoff(ctx, task, d, handoffAssigned, "Asked the "+role.Name+" to take this on", d.Brief)
+	r.handoff(ctx, task, shownWith(d, args.Effort), handoffAssigned, "Asked the "+role.Name+" to take this on", d.Brief)
 	r.trackPlan(ctx, task, d, domain.PlanActive, "")
 
 	return d, true
@@ -165,7 +165,7 @@ func (r *Runner) endDelegation(
 func (r *Runner) handoff(ctx context.Context, task domain.Task, d Delegation, action, text, detail string) {
 	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
 		Kind: domain.EventHandoff, Text: text, Technical: detail, Action: action, Agent: d.RoleName, Model: d.Model,
-		Time: r.deps.Now(),
+		Effort: string(d.Effort), Time: r.deps.Now(),
 	})
 }
 

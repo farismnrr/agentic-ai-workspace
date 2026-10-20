@@ -36,7 +36,7 @@ func (s *Store) Load(ctx context.Context, userID string) (domain.Team, bool, err
 	}
 
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT key, name, purpose, prompt, provider_id, model, effort, access, lead, enabled
+		`SELECT key, name, purpose, prompt, provider_id, model, effort, tier, access, lead, enabled
 		 FROM agent_roles WHERE user_id = ? ORDER BY position`, userID)
 	if err != nil {
 		return domain.Team{}, false, fmt.Errorf("select agent roles: %w", err)
@@ -53,7 +53,7 @@ func (s *Store) Load(ctx context.Context, userID string) (domain.Team, bool, err
 		)
 
 		if err := rows.Scan(&role.Key, &role.Name, &role.Purpose, &role.Prompt, &role.ProviderID, &role.Model,
-			&role.Effort, &access, &role.Lead, &role.Enabled); err != nil {
+			&role.Effort, &role.Tier, &access, &role.Lead, &role.Enabled); err != nil {
 			return domain.Team{}, false, fmt.Errorf("scan agent role: %w", err)
 		}
 
@@ -98,10 +98,10 @@ func (s *Store) Save(ctx context.Context, userID string, team domain.Team, at ti
 		}
 
 		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO agent_roles (user_id, key, name, purpose, prompt, provider_id, model, effort, access, lead,
-			   enabled, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO agent_roles (user_id, key, name, purpose, prompt, provider_id, model, effort, tier, access,
+			   lead, enabled, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			userID, role.Key, role.Name, role.Purpose, role.Prompt, role.ProviderID, role.Model, role.Effort,
-			string(access), role.Lead, role.Enabled, position); err != nil {
+			role.Tier, string(access), role.Lead, role.Enabled, position); err != nil {
 			return fmt.Errorf("insert agent role: %w", err)
 		}
 	}

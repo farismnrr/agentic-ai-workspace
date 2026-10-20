@@ -77,6 +77,21 @@ You can add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https:
 - With a gateway, each provider it serves is its own group. Codex, Claude Code and OpenCode have names. Others show the gateway's short name, such as `kr`.
 - A provider added in the gateway appears within about 30 seconds, or at once when you press Refresh.
 
+### Three model tiers
+
+Pick a model and an effort once for each tier, under **Settings → Models**.
+
+| Tier | Use it for |
+|---|---|
+| Thinking | Hard problems such as design, security and review. A strong model at high effort. |
+| Default | New tasks, and teammates on the default tier. |
+| Fast | Quick, simple jobs. A small model at low effort. |
+
+- Under **Settings → Agent team**, give each teammate a tier, or a model of its own (Custom).
+- Change a tier's model once, and every teammate on it follows.
+- A tier you leave empty uses the Default model.
+- The task thread shows the model and the effort each teammate was given, such as "Haiku · medium".
+
 Two settings shape how a model works:
 
 | Setting | What it does |

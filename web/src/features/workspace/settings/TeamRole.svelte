@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
   import ModelPicker from '../home/ModelPicker.svelte';
+  import { tierCopy } from '../content/models';
   import { accessSummary, teamCopy } from '../content/team-copy';
   import { applyPick, modelPick, newRole, type TeamRole } from '../logic/agent-team-api';
 
@@ -12,6 +13,21 @@
   let { role = $bindable(newRole()), onremove }: Props = $props();
   const id = $derived(`role-${role.key === '' ? 'new' : role.key}`);
   const groups = ['write', 'exec', 'ask', 'web', 'images'] as const;
+  // A role uses one of the three model tiers, or a model of its own ("Custom").
+  let custom = $state(role.providerId !== '');
+  const mode = $derived(custom || role.providerId !== '' ? 'custom' : role.tier === '' ? 'default' : role.tier);
+
+  function setMode(value: string): void {
+    custom = value === 'custom';
+    if (custom) {
+      role.tier = '';
+      return;
+    }
+    role.providerId = '';
+    role.model = '';
+    role.effort = '';
+    role.tier = value === 'default' ? '' : value;
+  }
 
   function allow(group: string, on: boolean): void {
     role.access = on ? [...role.access.filter((item) => item !== group), group] : role.access.filter((item) => item !== group);
@@ -41,8 +57,18 @@
       <textarea id="{id}-prompt" class="textarea w-full" rows="4" maxlength="2000" bind:value={role.prompt}></textarea>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-sm font-medium">Model</span>
-      <ModelPicker bind:model={() => modelPick(role), (value: string) => { applyPick(role, value); }} bind:effort={role.effort} />
+      <label class="text-sm font-medium" for="{id}-tier">Model</label>
+      <select id="{id}-tier" class="select select-sm w-40" value={mode} onchange={(event) => { setMode(event.currentTarget.value); }}>
+        <option value="thinking">{tierCopy.tiers.thinking.label}</option>
+        <option value="default">{tierCopy.tiers.default.label}</option>
+        <option value="fast">{tierCopy.tiers.fast.label}</option>
+        <option value="custom">Custom model</option>
+      </select>
+      {#if mode === 'custom'}
+        <ModelPicker bind:model={() => modelPick(role), (value: string) => { applyPick(role, value); }} bind:effort={role.effort} />
+      {:else}
+        <span class="text-xs text-[var(--brand-text-tertiary)]">{tierCopy.tiers[mode === 'thinking' || mode === 'fast' ? mode : 'default'].note}</span>
+      {/if}
     </div>
     {#if !role.lead && role.preset}
       <p class="text-sm text-[var(--brand-text-secondary)]">{accessSummary(role.access)} <span class="text-xs text-[var(--brand-text-tertiary)]">{teamCopy.builtInNote}</span></p>
