@@ -39,7 +39,7 @@
     void loadDocuments(current.id).then((items) => {
       if (active) documents = items;
     }).catch(() => {
-      if (active) error = 'Project documents could not be loaded. Reopen the Plan tab to retry.';
+      if (active) error = 'Project documents could not be loaded. Reopen the Documents tab to retry.';
     }).finally(() => {
       if (active) busy = false;
     });
@@ -47,8 +47,8 @@
   });
 </script>
 
-<details class="mb-4 border-b border-base-300 pb-3">
-  <summary class="cursor-pointer font-medium">Project documents {#if busy}<span class="loading loading-spinner loading-xs"></span>{/if}</summary>
+<section aria-label="Project documents">
+  <h2 class="font-semibold">Project documents {#if busy}<span class="loading loading-spinner loading-xs"></span>{/if}</h2>
   <p class="my-2 text-sm text-base-content/70">Plans, research and long messages saved in this project. Every task can read them. Earlier plans may still be drafts.</p>
   {#if error !== ''}<p class="text-sm text-error" role="alert">{error}</p>{/if}
   {#if documents.length === 0 && !busy && error === ''}<p class="text-sm text-base-content/70">Documents appear here when a plan, research or a long message is saved.</p>{/if}
@@ -67,4 +67,4 @@
       {#if truncated}<p class="mt-2 text-sm text-base-content/70">Preview shortened. Download the complete file.</p>{/if}
     </div>
   {/if}
-</details>
+</section>

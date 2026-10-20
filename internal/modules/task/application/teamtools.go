@@ -30,8 +30,8 @@ func delegateTool(members []AgentRole) domain.ToolDef {
 		"type": "object",
 		"properties": map[string]any{
 			"role":    map[string]any{"type": "string", "enum": keys},
-			"brief":   map[string]any{"type": "string", "description": "What the teammate must do and what done looks like."},
-			"context": map[string]any{"type": "string", "description": "Facts, file names or earlier findings they need."},
+			"brief":   map[string]any{"type": "string", "description": "Write a readable Markdown assignment: objective, scope, expected output and acceptance checks. Use bullets, not a run-on line."},
+			"context": map[string]any{"type": "string", "description": "Relevant facts, paths and constraints, preferably Markdown bullets. Do not repeat the brief."},
 			"effort": map[string]any{
 				"type": "string", "enum": []string{"low", "medium", "high", "xhigh", "max"},
 				"description": "Optional. How hard the teammate should think: low for a small obvious job, medium for " +
@@ -83,9 +83,9 @@ func parseDelegate(input json.RawMessage) (delegateArgs, bool) {
 
 // briefText is what the teammate reads first.
 func (a delegateArgs) briefText() string {
-	text := truncate(a.Brief, maxBrief)
+	text := "## Assignment\n\n" + truncate(a.Brief, maxBrief)
 	if context := strings.TrimSpace(a.Context); context != "" {
-		text += "\n\nContext from the orchestrator:\n" + truncate(context, maxBrief)
+		text += "\n\n## Context from the orchestrator:\n\n" + truncate(context, maxBrief)
 	}
 
 	return text

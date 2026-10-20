@@ -15,7 +15,7 @@
 
 {#if who === 'you'}
   <div class="flex flex-col items-end gap-1">
-    <p class="max-w-[85%] rounded-2xl bg-base-300/60 px-4 py-2 text-[15px] leading-6 break-words whitespace-pre-wrap">{text}</p>
+    <div class="max-w-[85%] rounded-2xl bg-base-300/60 px-4 py-2"><DocText class="text-[15px] leading-6" {text} /></div>
     <span class="text-xs text-[var(--brand-text-tertiary)]">{time}</span>
   </div>
 {:else}

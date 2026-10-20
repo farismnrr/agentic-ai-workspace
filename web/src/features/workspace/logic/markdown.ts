@@ -2,6 +2,7 @@
 export interface ListItem {
   text: string;
   depth: number;
+  checked?: boolean | undefined;
 }
 
 /** A document made of the markdown shapes agents write: headings, lists, tables, code, quotes and paragraphs. */
@@ -11,7 +12,8 @@ export type DocBlock =
   | { kind: 'list'; ordered: boolean; items: ListItem[] }
   | { kind: 'code'; text: string }
   | { kind: 'table'; head: string[]; rows: string[][] }
-  | { kind: 'rule' };
+  | { kind: 'rule' }
+  | { kind: 'quote'; text: string };
 
 const heading = /^(#{1,4})\s+(.*)$/;
 const bullet = /^[-*•]\s+(.*)$/;
@@ -20,9 +22,12 @@ const rule = /^([-*_])(\s*\1){2,}$/;
 const separator = /^\|?[\s:|-]*-[\s:|-]*\|?$/;
 const maxDepth = 2;
 
-function listItem(line: string): { ordered: boolean; text: string } | undefined {
+function listItem(line: string): { ordered: boolean; text: string; checked?: boolean } | undefined {
   const dash = bullet.exec(line);
-  if (dash?.[1] !== undefined) return { ordered: false, text: dash[1] };
+  if (dash?.[1] !== undefined) {
+    const check = /^\[([ xX])\]\s+(.*)$/.exec(dash[1]);
+    return check === null ? { ordered: false, text: dash[1] } : { ordered: false, text: check[2] ?? '', checked: check[1]?.toLowerCase() === 'x' };
+  }
   const number = numbered.exec(line);
   return number?.[1] === undefined ? undefined : { ordered: true, text: number[1] };
 }
@@ -56,8 +61,8 @@ function add(blocks: DocBlock[], line: string, indent: number): void {
   const last = blocks.at(-1);
   const depth = Math.min(maxDepth, Math.floor(indent / 2));
   if (item === undefined) blocks.push({ kind: 'paragraph', text: line.replace(/^>\s?/, '') });
-  else if (last?.kind === 'list' && last.ordered === item.ordered) last.items.push({ text: item.text, depth });
-  else blocks.push({ kind: 'list', ordered: item.ordered, items: [{ text: item.text, depth }] });
+  else if (last?.kind === 'list' && last.ordered === item.ordered) last.items.push({ text: item.text, depth, checked: item.checked });
+  else blocks.push({ kind: 'list', ordered: item.ordered, items: [{ text: item.text, depth, checked: item.checked }] });
 }
 
 /** Reads markdown text into blocks that can be shown as headings, lists, tables and code without any HTML. */
@@ -72,6 +77,7 @@ export function parseDoc(markdown: string): DocBlock[] {
         fence = undefined;
       } else fence.push(raw);
     } else if (line.startsWith('```')) fence = [];
+    else if (line.startsWith('>')) blocks.push({ kind: 'quote', text: line.replace(/^>\s?/, '') });
     else if (line !== '') add(blocks, line, raw.length - raw.trimStart().length);
   }
   // An answer still being written can end inside a code block.

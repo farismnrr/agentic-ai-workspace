@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DocText from '../../components/DocText.svelte';
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import type { TaskEvent } from '../../logic/task-types';
@@ -30,14 +31,14 @@
           <span class="badge badge-soft badge-sm {tones[state]}">{labels[state]}</span>
           {#if job.model !== ''}<span class="text-xs text-[var(--brand-text-tertiary)]">{job.model}</span>{/if}
         </p>
-        <p class="mt-1.5 text-[var(--brand-text-secondary)]">{job.brief}</p>
+        <DocText class="mt-1.5 text-sm text-[var(--brand-text-secondary)]" text={job.brief} />
         <p class="mt-2 flex items-center gap-1.5 text-xs text-[var(--brand-text-tertiary)]">
           <Icon name="activity" class="size-3.5" />{count(job.steps, 'step', 'steps')} · {count(job.files.length, 'file changed', 'files changed')} · {count(job.checks, 'check', 'checks')}
         </p>
         {#if job.report !== ''}
           <details class="mt-2">
             <summary class="cursor-pointer text-xs font-medium text-primary">Report</summary>
-            <p class="mt-1 whitespace-pre-wrap wrap-anywhere rounded-md bg-base-200 px-3 py-2">{job.report}</p>
+            <div class="mt-1 rounded-md bg-base-200 px-3 py-2"><DocText text={job.report} /></div>
           </details>
         {/if}
       </li>

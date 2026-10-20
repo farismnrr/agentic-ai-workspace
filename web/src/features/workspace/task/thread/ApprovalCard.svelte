@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DocText from '../../components/DocText.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import type { Risk } from '../../logic/task-types';
 
@@ -18,7 +19,7 @@
 <section class="card border border-warning/50 bg-base-100 p-3" aria-label="Permission request">
   <div class="flex items-start gap-2">
     <Icon name="shield" class="mt-0.5 size-5 shrink-0 text-warning" />
-    <p class="flex-1 font-medium">{#if agent !== undefined}<span class="badge badge-outline badge-sm mr-1.5 align-middle">{agent}</span>{/if}{text}</p>
+    <div class="min-w-0 flex-1 font-medium">{#if agent !== undefined}<span class="badge badge-outline badge-sm mr-1.5 align-middle">{agent}</span>{/if}<DocText text={text} /></div>
     {#if risk === 'high'}<span class="badge badge-sm badge-error badge-soft">Be careful</span>{/if}
   </div>
   <details class="mt-2 text-sm">
