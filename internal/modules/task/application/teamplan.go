@@ -35,40 +35,51 @@ const maxDocument = 12_000
 // research notes, one round after another. Any other role's document is only returned to the orchestrator.
 func (r *Runner) deliver(
 	ctx context.Context, task domain.Task, d Delegation, role AgentRole, result outcome,
-) string {
+) (string, error) {
 	text := reportText(result.text)
 
 	document := strings.TrimSpace(result.document)
 	if document == "" {
-		return text
+		return text, nil
 	}
-
-	document = truncate(document, maxDocument)
 
 	switch {
 	case role.WritesPRD:
-		_ = r.deps.Tasks.SavePRD(ctx, task.ID, document, r.deps.Now())
-		r.showDocument(ctx, task.ID, domain.EventPRD, "The "+d.RoleName+" wrote the PRD", document, d)
+		if err := r.deps.Tasks.SavePRD(ctx, task.ID, document, r.deps.Now()); err != nil {
+			return "", fmt.Errorf("save PRD: %w", err)
+		}
+		if err := r.showDocument(ctx, task, domain.EventPRD, "The "+d.RoleName+" wrote the PRD", document, d); err != nil {
+			return "", err
+		}
 
-		return text + "\n\nThe PRD is saved and shown to the person:\n" + document
+		return text + "\n\nThe PRD is saved and shown to the person:\n" + truncate(document, maxDocument), nil
 	case role.WritesResearch:
-		r.keepResearch(ctx, task.ID, document)
-		r.showDocument(ctx, task.ID, domain.EventResearch, "The "+d.RoleName+" wrote research notes", document, d)
+		if err := r.keepResearch(ctx, task.ID, document); err != nil {
+			return "", err
+		}
+		label := "The " + d.RoleName + " wrote research notes"
+		if err := r.showDocument(ctx, task, domain.EventResearch, label, document, d); err != nil {
+			return "", err
+		}
 
 		return text + "\n\nThe research notes are saved and shown to the person, " +
-			"and every teammate after you gets them:\n" + document
+			"and every teammate after you gets them:\n" + truncate(document, maxDocument), nil
 	}
 
 	// A review or a spec is not the PRD: saving it would replace the document everyone builds from.
-	return text + "\n\nWhat the " + d.RoleName + " wrote:\n" + document
+	return text + "\n\nWhat the " + d.RoleName + " wrote:\n" + truncate(document, maxDocument), nil
 }
 
 func (r *Runner) showDocument(
-	ctx context.Context, taskID string, kind domain.EventKind, text, document string, d Delegation,
-) {
-	_, _ = r.deps.Events.AppendEvent(ctx, taskID, domain.Event{
+	ctx context.Context, task domain.Task, kind domain.EventKind, text, document string, d Delegation,
+) error {
+	_, err := r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
 		Kind: kind, Text: text, Technical: document, Agent: d.RoleName, Time: r.deps.Now(),
 	})
+	if err != nil {
+		return fmt.Errorf("record document: %w", err)
+	}
+	return r.saveNotes(ctx, task)
 }
 
 // maxResearch bounds the notes kept on a task; when a new round does not fit, the oldest is dropped.
@@ -78,10 +89,10 @@ const maxResearch = 3 * maxDocument
 const researchBreak = "\n\n---\n\n"
 
 // keepResearch adds a round of notes after the earlier ones.
-func (r *Runner) keepResearch(ctx context.Context, taskID, document string) {
+func (r *Runner) keepResearch(ctx context.Context, taskID, document string) error {
 	current, err := r.deps.Tasks.Find(ctx, "", taskID)
 	if err != nil {
-		return
+		return fmt.Errorf("read research: %w", err)
 	}
 
 	all := document
@@ -98,7 +109,10 @@ func (r *Runner) keepResearch(ctx context.Context, taskID, document string) {
 		all = all[cut+len(researchBreak):]
 	}
 
-	_ = r.deps.Tasks.SaveResearch(ctx, taskID, truncate(all, maxResearch), r.deps.Now())
+	if err := r.deps.Tasks.SaveResearch(ctx, taskID, truncate(all, maxResearch), r.deps.Now()); err != nil {
+		return fmt.Errorf("save research: %w", err)
+	}
+	return nil
 }
 
 func stuckText(jobs int) string {
@@ -110,7 +124,7 @@ func stuckText(jobs int) string {
 // briefWithPlan is what a teammate reads first: the brief, plus the team's shared plan as it stands, so
 // everyone works from the same picture. The plan is read fresh, because the orchestrator updates it as it goes.
 func (r *Runner) briefWithPlan(ctx context.Context, task domain.Task, args delegateArgs) string {
-	text := args.briefText()
+	text := args.briefText() + r.notesPrompt()
 
 	current, err := r.deps.Tasks.Find(ctx, "", task.ID)
 	if err != nil {

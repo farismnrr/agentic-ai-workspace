@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"unicode/utf8"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 const (
-	maxPrompt   = 4000
-	maxTitle    = 60
-	listLimit   = 200
-	messageCuts = "…"
+	documentThreshold = 12_000
+	maxTitle          = 60
+	listLimit         = 200
+	messageCuts       = "…"
 )
 
 // Service holds the use cases people trigger from the app.
@@ -51,14 +50,15 @@ type CreateInput struct {
 // Create starts a task: it records the request and queues the agent.
 func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (domain.Task, error) {
 	prompt := strings.TrimSpace(in.Prompt)
-	if prompt == "" || utf8.RuneCountInString(prompt) > maxPrompt {
-		return domain.Task{}, domain.ErrBadRequest
+	if err := validatePrompt(prompt); err != nil {
+		return domain.Task{}, err
 	}
 
 	if _, err := s.deps.Projects.Name(ctx, userID, in.ProjectID); err != nil {
 		return domain.Task{}, domain.ErrNoProject
 	}
 
+	followSettings := in.followsSettings()
 	in, team := s.route(ctx, userID, in)
 
 	providerID, model, err := s.chooseModel(ctx, userID, in)
@@ -79,8 +79,9 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 	now := s.deps.Now()
 	task := domain.Task{
 		ID: id, ProjectID: in.ProjectID, UserID: userID, Title: titleOf(prompt), ProviderID: providerID,
-		Model: model, Effort: effort, Team: team, PlanFirst: in.PlanFirst == nil || *in.PlanFirst,
-		Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now,
+		FollowSettings: followSettings, Model: model, Effort: effort, Team: team,
+		PlanFirst: in.PlanFirst == nil || *in.PlanFirst,
+		Status:    domain.StatusQueued, CreatedAt: now, UpdatedAt: now,
 		Plan: []domain.PlanStep{},
 	}
 
@@ -88,7 +89,7 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 		return domain.Task{}, fmt.Errorf("save task: %w", err)
 	}
 
-	if err := s.say(ctx, task.ID, prompt); err != nil {
+	if err := s.say(ctx, task.ID, in.Prompt); err != nil {
 		return domain.Task{}, err
 	}
 
@@ -99,9 +100,8 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 
 // FollowUp adds a message to a task that is waiting for review, finished or stopped.
 func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) error {
-	text = strings.TrimSpace(text)
-	if text == "" || utf8.RuneCountInString(text) > maxPrompt {
-		return domain.ErrBadRequest
+	if err := validatePrompt(strings.TrimSpace(text)); err != nil {
+		return err
 	}
 
 	task, err := s.owned(ctx, userID, taskID)

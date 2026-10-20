@@ -11,6 +11,8 @@ import (
 // sessionWindow is how long a connected app can stay quiet before its next call starts a new thread.
 const sessionWindow = 30 * time.Minute
 
+const maxRecordedText = 4000
+
 // RecordInput is one thing that happened in a connected app's conversation.
 type RecordInput struct {
 	ProjectID string
@@ -33,7 +35,7 @@ func (s *Service) Record(ctx context.Context, userID string, in RecordInput) (st
 	}
 
 	in.Event.Time = s.deps.Now()
-	in.Event.Text = truncate(in.Event.Text, maxPrompt)
+	in.Event.Text = truncate(in.Event.Text, maxRecordedText)
 
 	if _, err := s.deps.Events.AppendEvent(ctx, task.ID, in.Event); err != nil {
 		return "", fmt.Errorf("record step: %w", err)

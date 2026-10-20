@@ -1,5 +1,5 @@
 export const taskErrors: Record<string, string> = {
-  bad_request: 'Write what you need in a few words.',
+  bad_request: 'Write what you need.',
   no_project: 'Choose a project first.',
   no_model: 'No AI model is set up yet. Add a provider under Settings, AI models.',
   busy: 'The agent is still working on this task.',

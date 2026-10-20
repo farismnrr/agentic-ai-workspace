@@ -155,3 +155,10 @@ func (m *memory) Running(context.Context) ([]domain.Task, error) {
 
 	return tasks, nil
 }
+
+func (m *memory) SetModel(_ context.Context, id, providerID, model string, effort domain.Effort) error {
+	return m.update(id, func(t *domain.Task) {
+		t.ProviderID, t.Model, t.Effort = providerID, model, effort
+		t.ContextUsed, t.ContextWindow = 0, 0
+	})
+}

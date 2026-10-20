@@ -62,15 +62,14 @@ func (s *Scheduler) Start(ctx context.Context, workers int) {
 	}()
 }
 
-// Enqueue schedules a task unless it is already queued or running.
+// Enqueue keeps one pending run, including a continuation while the previous run is settling.
 func (s *Scheduler) Enqueue(taskID, projectID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	_, running := s.running[taskID]
 	queued := slices.ContainsFunc(s.queue, func(j job) bool { return j.taskID == taskID })
 
-	if running || queued {
+	if queued {
 		return
 	}
 
@@ -84,6 +83,7 @@ func (s *Scheduler) Cancel(taskID string) CancelState {
 	defer s.mu.Unlock()
 
 	if cancel, running := s.running[taskID]; running {
+		s.queue = slices.DeleteFunc(s.queue, func(j job) bool { return j.taskID == taskID })
 		cancel()
 
 		return CancelRunning

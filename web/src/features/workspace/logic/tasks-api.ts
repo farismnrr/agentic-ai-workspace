@@ -55,3 +55,14 @@ export const loadUsage = (): Promise<{ since: string; models: UsageRow[] }> =>
 
 /** Where a screenshot of a task is served; the page sends the session cookie with the image request. */
 export const shotUrl = (id: string, image: string): string => `${base(id)}/shots/${encodeURIComponent(image)}`;
+
+export interface ProjectDocument {
+  path: string;
+  title: string;
+  taskId: string;
+  status: Task['status'];
+  updatedAt: string;
+}
+
+export const loadDocuments = (id: string): Promise<ProjectDocument[]> =>
+  request<ProjectDocument[]>('GET', `${base(id)}/documents`);

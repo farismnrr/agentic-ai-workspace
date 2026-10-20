@@ -178,3 +178,9 @@ Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read th
 - `agents/memory-backend.md`: platform lessons for Go, OAuth/MCP, sandbox, migrations and the agent loop.
 - `agents/memory-frontend.md`: lessons for the Svelte app, routing, workspace UI and status looks.
 - `agents/implementation-notes.md`: long, exact backend detail (sandbox, agent loop, models and effort, connectors, data, workspace screens) that `docs/` only summarizes.
+
+## Project document continuity
+
+- `internal/modules/task/adapter/notefiles/` exports task documents through the task application's `NoteFiles` port; bootstrap supplies the project-directory resolver.
+- Project `project-notes/` files are server-maintained reference material shared across that project's tasks. Input documents are attachments, never code changes or proof.
+- Task model settings are resolved at run boundaries; explicit API model selections and assigned teammate jobs keep their selection. Preserve pending continuations while a run settles.

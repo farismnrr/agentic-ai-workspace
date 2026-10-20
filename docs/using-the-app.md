@@ -29,6 +29,7 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
    - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.
    - If GitHub does not let the app create a repository, you are told. Create it on GitHub, share it with the app, then use "From a GitHub repository".
 3. Describe what you need on Home. The model and effort come from Settings: each teammate has its own, and the default covers the rest.
+   Long messages become project documents automatically. The complete text stays available to the AI and can be downloaded from the thread.
 4. Expect a few questions first. The AI asks what you want before it starts, with a recommended answer for each, and skips questions for a small, clear request. Answer in your own words or pick an option.
 5. If you asked for a browser extension, open **Extensions** in the sidebar to install it. See [extensions.md](./extensions.md).
 6. Before the AI tells you it is done, it saves the work in git on the branch `dev` and pushes it. Without a GitHub remote it only saves it here, and says so.
@@ -92,6 +93,8 @@ Pick a model and an effort once for each tier, under **Settings → Models**.
 
 - Under **Settings → Agent team**, give each teammate a tier, or a model of its own (Custom).
 - Change a tier's model once, and every teammate on it follows.
+- The orchestrator follows current Settings when a task starts or continues, including an old task. A run already working keeps its model until its next run.
+- The thread records model changes. Jobs already assigned to teammates keep their chosen model when resumed.
 - A tier you leave empty uses the Default model.
 - The task thread shows the model and the effort each teammate was given, such as "Haiku · medium".
 
@@ -146,6 +149,11 @@ When a teammate gets stuck, it says so instead of struggling alone. The Orchestr
 Only the DevOps teammate starts your app, and always in Sites, so you can open it from any computer. Nobody gives you a 127.0.0.1 or localhost address.
 
 You can read them under the Plan tab, in Research notes. Later teammates build from them.
+
+Under **Plan → Project documents**, open plans, requirements, research rounds and long messages from any task in the same project.
+The app saves these files automatically under `project-notes/`; a new task can read them without inheriting another task's conversation.
+Old plans and research are exported when the project is used or its document list is opened. Check their dates and status before reusing them.
+Earlier approval does not approve a new task.
 
 A team task always plans first. The team plans, then stops and waits for your yes:
 

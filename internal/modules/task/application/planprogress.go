@@ -32,7 +32,7 @@ func (r *Runner) trackPlan(ctx context.Context, task domain.Task, d Delegation, 
 				steps[at].Detail = detail
 			}
 
-			_ = r.deps.Tasks.SavePlan(ctx, task.ID, steps, r.deps.Now())
+			r.saveTrackedPlan(ctx, task, steps)
 
 			return
 		}
@@ -86,4 +86,14 @@ func (r *Runner) planStale(ctx context.Context, task domain.Task, state *runStat
 		"failed), and take out steps you did not do; then finish.", true)
 
 	return true
+}
+
+func (r *Runner) saveTrackedPlan(ctx context.Context, task domain.Task, steps []domain.PlanStep) {
+	if err := r.deps.Tasks.SavePlan(ctx, task.ID, steps, r.deps.Now()); err != nil {
+		r.say(ctx, task.ID, "Plan progress could not be saved. Please retry.")
+		return
+	}
+	if err := r.saveNotes(ctx, task); err != nil {
+		r.say(ctx, task.ID, "The plan file could not be updated; reopening Plan retries the export.")
+	}
 }
