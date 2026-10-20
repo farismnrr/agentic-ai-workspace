@@ -58,7 +58,7 @@ func TestStreams(t *testing.T) {
 			"1|Done.||0",
 		},
 		"codex.jsonl": {
-			"session=th-1", "summary=All set.", "reason=", "4|Ran go test ./...||1", "4|Ran ls||1",
+			"session=th-1", "summary=All set.", "reason=", "4|Ran go test ./... && echo 'ok'||1", "4|Ran ls||1",
 			"3|Changed main.go|main.go|0", "1|All set.||0",
 		},
 	}
