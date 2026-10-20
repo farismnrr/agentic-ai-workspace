@@ -99,7 +99,7 @@ Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay
 - **Each person signs in on their own.** Plans are never shared between people.
 - **Not signed in?** A task stops with a note telling you to sign in, and Continue works afterwards.
 - **Today** a task on your plan works in one project, one step at a time. There is no Undo and no per-step approval yet.
-- **Teams:** any teammate can use your plan, set under **Settings → Agent team**. The lead needs an API key or gateway model for now.
+- **Teams:** the lead and every teammate can use your plan, set under **Settings → Agent team**. The lead only looks at files; the team's server hands out the jobs, asks you questions and keeps the plan, so a plan lead works like any other model.
 
 ## Agent team
 

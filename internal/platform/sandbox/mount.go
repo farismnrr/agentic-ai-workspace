@@ -41,6 +41,7 @@ func (c Config) mounts(spec Spec) ([]mount.Mount, error) {
 		{spec.Egress, Egress, true},
 		{spec.Site, SiteDir, false},
 		{spec.Home, Home, false},
+		{spec.Bridge, BridgeDir, false},
 	}
 
 	var out []mount.Mount

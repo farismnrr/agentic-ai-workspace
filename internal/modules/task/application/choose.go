@@ -72,12 +72,12 @@ func (s *Service) planProgram(ctx context.Context, userID string, in CreateInput
 // route settles whether a team does the task, and which provider it starts on: the person's own plan when
 // that is what they asked for or prefer, the lead's model for a team, or the person's default model.
 func (s *Service) route(ctx context.Context, userID string, in CreateInput) (CreateInput, bool) {
-	program, model, onPlan := s.planProgram(ctx, userID, in)
-	team := s.chooseTeam(in.Team) && !onPlan
+	team := s.chooseTeam(in.Team)
+	in = s.leadModel(ctx, userID, in, team)
 
-	if onPlan {
+	if program, model, onPlan := s.planProgram(ctx, userID, in); onPlan {
 		in.ProviderID, in.Model = domain.PlanProvider(program), model
 	}
 
-	return s.leadModel(ctx, userID, in, team), team
+	return in, team
 }
