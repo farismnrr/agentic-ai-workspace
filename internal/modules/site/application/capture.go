@@ -16,8 +16,12 @@ const marker = "CAPTURE_JSON:"
 // CaptureRequest is what the runtime needs to photograph a page.
 type CaptureRequest struct {
 	ProjectID string
-	Spec      domain.CaptureSpec
-	Port      int
+	// ViewSocket and Prefix say how to reach the app as the person does; without a viewer the browser reaches the
+	// app's own port directly.
+	ViewSocket string
+	Prefix     string
+	Spec       domain.CaptureSpec
+	Port       int
 }
 
 // Capture opens one page of the project's running app in a browser inside the sandbox and returns a picture of
@@ -33,7 +37,25 @@ func (s *Service) Capture(ctx context.Context, projectID string, spec domain.Cap
 		return domain.Capture{}, domain.ErrNotRunning
 	}
 
-	output, err := s.deps.Runtime.Capture(ctx, CaptureRequest{ProjectID: projectID, Port: site.Port, Spec: spec})
+	request := CaptureRequest{ProjectID: projectID, Port: site.Port, Spec: spec}
+
+	if s.deps.View != nil {
+		prefix := site.BasePath()
+		if site.Visibility == domain.Private {
+			prefix += "/~preview" // a private site's address carries a ticket; the preview needs none
+		}
+
+		view, closeView, openErr := s.deps.View.Open(ctx, s.deps.Runtime.Socket(projectID), site.BasePath(), prefix)
+		if openErr != nil {
+			return domain.Capture{}, fmt.Errorf("capture: %w", openErr)
+		}
+
+		defer closeView()
+
+		request.ViewSocket, request.Prefix = view, prefix
+	}
+
+	output, err := s.deps.Runtime.Capture(ctx, request)
 	if err != nil {
 		return domain.Capture{}, fmt.Errorf("capture: %w", err)
 	}

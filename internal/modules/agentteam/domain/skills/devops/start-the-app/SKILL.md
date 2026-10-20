@@ -37,6 +37,9 @@ Those commands are for `start_site`'s `command` field. Starting again replaces t
 ## 2. Check it
 - `start_site` loads the home page and the pages it links to, and lists every link that would fail. A list that is
   not empty is not ready: put the exact links in your report so the Developer can fix them.
+  It also opens the home page in a real browser at the app's address, the way the person's browser does (no login
+  needed), and reports a page with no styling and any file the app answered badly. It also reports a stylesheet that is empty, answered with a web page, or never built (it still holds `@tailwind`
+  or `@apply`), and files named inside a stylesheet. Send those to the Developer too: they are why a page shows as plain HTML.
 - The app runs in its own container, and a shell command (`curl 127.0.0.1`, a port scan) cannot reach it. Do not
   check it that way and do not call it failed because a shell command cannot see it. `start_site` is the check: it
   starts the app, loads the home page and the pages it links to, and says the app is running when they answer.

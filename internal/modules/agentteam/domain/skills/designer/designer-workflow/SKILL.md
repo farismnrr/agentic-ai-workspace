@@ -90,6 +90,10 @@ Call `use_skill` with `frontend-design` and follow it. Use `baseline-ui` for spa
 motion rules when the project uses Tailwind; with another stack apply its principles, not its libraries.
 Design the real interface: every state (empty, loading, error), real copy in the person's language, responsive
 from a phone to a wide screen, visible focus, reduced motion.
+The app is opened under an address like `/run/<name>/`, and the screenshot reaches it without that address, so a root
+link (`/style.css`) looks right in the picture and can still fail for the person. Link the stylesheet, fonts and
+pictures with relative paths (`./style.css`, `url(./fonts/x.woff2)`), link the built stylesheet and not a Tailwind or
+Sass source, and read `window.__SITE_BASE__` where a router needs a base. A page without its stylesheet is not designed.
 
 ## 5. Check yourself
 Before you report, read `craft/anti-ai-slop`, `craft/state-coverage` and `craft/accessibility-baseline` with

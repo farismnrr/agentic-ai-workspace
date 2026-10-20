@@ -47,6 +47,13 @@ type Runtime interface {
 	Capture(ctx context.Context, req CaptureRequest) (output string, err error)
 }
 
+// Viewer opens the app the way the person's browser reaches it, but for the AI's own browser and without a login.
+type Viewer interface {
+	// Open serves the app under prefix on a socket in the app's socket folder, and returns that socket's path and
+	// the function that closes it.
+	Open(ctx context.Context, appSocket, base, prefix string) (socket string, closeView func(), err error)
+}
+
 // Projects says who owns a project.
 type Projects interface {
 	// Owner returns the owner and project ID of a project that exists and is not archived.

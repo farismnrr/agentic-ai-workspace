@@ -1,50 +1,27 @@
 package http
 
 import (
-	"bytes"
-	"io"
 	"net/http"
-	"net/url"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/adapter/runtime"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
 
-const (
-	requestTimeout = 5 * time.Minute
-	maxResponse    = 64 << 20
-)
-
 // forward sends the request to the app through its socket and writes the answer back,
-// filtered. The app sees the path without the /run/<name> prefix.
+// filtered. The app sees the path without the /run/<name> prefix, and the links of its pages get it back.
 func (h *Handler) forward(c fiber.Ctx, site domain.Site, rest, prefix string) error {
-	target := url.URL{Scheme: "http", Host: "site", Path: rest, RawQuery: string(c.Request().URI().QueryString())}
-
-	req, err := http.NewRequestWithContext(c.Context(), c.Method(), target.String(), bytes.NewReader(c.Body()))
+	out, err := relay(c.Context(), relayRequest{
+		Socket: h.service.Socket(site.ProjectID), Method: c.Method(), Path: rest,
+		Query: string(c.Request().URI().QueryString()), Body: c.Body(), Header: requestHeaders(c),
+		Base: site.BasePath(), Prefix: prefix, ClientIP: c.IP(),
+	})
 	if err != nil {
-		return reply(c, fiber.StatusBadRequest, "Bad request")
+		return reply(c, err.status, err.text)
 	}
 
-	req.Header = forRequest(requestHeaders(c), prefix, c.IP())
-	req.Host = "site"
-
-	resp, err := runtime.Client(h.service.Socket(site.ProjectID), requestTimeout).Do(req)
-	if err != nil {
-		return reply(c, fiber.StatusBadGateway, "The app is not answering.")
-	}
-
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponse+1))
-	if err != nil || len(body) > maxResponse {
-		return reply(c, fiber.StatusBadGateway, "The app's answer was too large.")
-	}
-
-	for name, values := range forResponse(resp.Header, prefix) {
+	for name, values := range out.Header {
 		for i, value := range values {
 			if i == 0 {
 				c.Set(name, value)
@@ -54,7 +31,7 @@ func (h *Handler) forward(c fiber.Ctx, site domain.Site, rest, prefix string) er
 		}
 	}
 
-	return c.Status(resp.StatusCode).Send(body)
+	return c.Status(out.Status).Send(out.Body)
 }
 
 func requestHeaders(c fiber.Ctx) http.Header {

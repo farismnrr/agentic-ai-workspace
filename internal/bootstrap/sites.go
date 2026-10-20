@@ -51,8 +51,9 @@ func newSites(
 
 	service := siteapp.NewService(siteapp.Deps{
 		Secret: []byte(secret),
-		Store:  sitesqlite.NewStore(db), Runtime: siteruntime.New(engine, folders, base), Projects: projects,
-		Notify: hubNotifier{hub: hub}, IDs: uuids{}, Now: time.Now,
+		Store:  sitesqlite.NewStore(db), Runtime: siteruntime.New(engine, folders, base), View: sitehttp.NewViewer(),
+		Projects: projects,
+		Notify:   hubNotifier{hub: hub}, IDs: uuids{}, Now: time.Now,
 		Limits: siteapp.Limits{PerUser: cfg.SiteMaxPerUser, Total: cfg.SiteMaxTotal},
 	})
 

@@ -23,7 +23,9 @@ type Page struct {
 }
 
 // Audit loads the app's home page and a few pages it links to, the way the proxy delivers them, and
-// reports links that would not work under the site's address. The screenshot tool cannot see this: it
+// reports links that would not work under the site's address. The proxy moves root links under the address
+// itself (domain.Localize), so the audit judges what the person would get: a file that is missing, a web page in
+// place of a file, a stylesheet that is empty or was never compiled. The screenshot tool cannot see this: it
 // reaches the app without the address prefix, so a link starting with "/" works there and fails for the person.
 func (s *Service) Audit(ctx context.Context, site domain.Site) []string {
 	base := site.BasePath()
@@ -64,8 +66,11 @@ func (a *auditor) scan(projectID, pagePath string) []string {
 
 	var next []string
 
-	for _, ref := range domain.References(a.base, pagePath, page.Body) {
+	body := string(domain.Localize(page.Type, "", a.base, a.base, []byte(page.Body)))
+	for _, ref := range domain.References(a.base, pagePath, body) {
 		inner, inside := domain.Inside(a.base, ref.Path)
+
+		ref.Raw = a.written(ref.Raw)
 
 		switch {
 		case !inside:
@@ -99,6 +104,8 @@ func (a *auditor) file(projectID string, ref domain.Reference, inner, pagePath s
 		a.add(domain.Problem{Link: ref.Raw, OnPage: pagePath, Reason: fmt.Sprintf("answers %d from the app", got.Status)})
 	case strings.Contains(got.Type, "html") && !strings.HasSuffix(inner, ".html"):
 		a.add(domain.Problem{Link: ref.Raw, OnPage: pagePath, Reason: "answers with a web page, not the file"})
+	case strings.Contains(got.Type, "css") || strings.HasSuffix(inner, ".css"):
+		a.stylesheet(projectID, ref, inner, pagePath, got)
 	}
 }
 
@@ -106,4 +113,13 @@ func (a *auditor) add(problem domain.Problem) {
 	if len(a.problems) < maxProblems {
 		a.problems = append(a.problems, problem)
 	}
+}
+
+// written gives a link as the app wrote it: the proxy added the address to root links before they were read.
+func (a *auditor) written(raw string) string {
+	if rest, found := strings.CutPrefix(raw, a.base+"/"); found {
+		return "/" + rest
+	}
+
+	return raw
 }

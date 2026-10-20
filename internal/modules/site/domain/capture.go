@@ -89,6 +89,10 @@ type Page struct {
 		Broken int `json:"broken"`
 		NoAlt  int `json:"noAlt"`
 	} `json:"images"`
+	Stylesheets struct {
+		Total int `json:"total"`
+		Rules int `json:"rules"`
+	} `json:"stylesheets"`
 	ViewportMeta bool `json:"viewportMeta"`
 	OverflowX    bool `json:"overflowX"`
 }
@@ -145,6 +149,11 @@ func (c Capture) writeProblems(out *strings.Builder) {
 
 	if !p.ViewportMeta {
 		found = append(found, "no <meta name=viewport>, so phones show it zoomed out")
+	}
+
+	if p.Stylesheets.Rules == 0 {
+		found = append(found, "NO STYLESHEET APPLIED: the page shows as plain HTML. Its stylesheet is missing, empty, "+
+			"never built or answered with a web page (see the failed requests); fix this before anything else")
 	}
 
 	if p.Images.Broken > 0 {

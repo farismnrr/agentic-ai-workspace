@@ -17,8 +17,9 @@ fi
 
 # Screenshots: the server's capture command runs in its own container and reaches the app through the same
 # socket, as a local port, because the container has no network.
-if [ -n "${CAPTURE_PORT:-}" ] && [ -S /run/site/s.sock ]; then
-  socat "TCP-LISTEN:${CAPTURE_PORT},bind=127.0.0.1,reuseaddr,fork" UNIX-CONNECT:/run/site/s.sock &
+CAPTURE_SOCKET="${CAPTURE_SOCKET:-/run/site/s.sock}"
+if [ -n "${CAPTURE_PORT:-}" ] && [ -S "$CAPTURE_SOCKET" ]; then
+  socat "TCP-LISTEN:${CAPTURE_PORT},bind=127.0.0.1,reuseaddr,fork" UNIX-CONNECT:"$CAPTURE_SOCKET" &
 fi
 
 exec "$@"

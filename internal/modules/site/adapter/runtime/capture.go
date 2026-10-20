@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -32,18 +33,23 @@ func (r *Runtime) Capture(ctx context.Context, req application.CaptureRequest) (
 	width, height := req.Spec.Window()
 
 	task, err := json.Marshal(map[string]any{
-		"url":   "http://127.0.0.1:" + strconv.Itoa(req.Port) + req.Spec.Path,
+		"url":   "http://127.0.0.1:" + strconv.Itoa(req.Port) + req.Prefix + req.Spec.Path,
 		"width": width, "height": height, "y": req.Spec.Y, "overview": req.Spec.Overview, "mobile": req.Spec.Mobile,
 	})
 	if err != nil {
 		return "", fmt.Errorf("describe capture: %w", err)
 	}
 
+	env := []string{
+		"LANG=C.UTF-8", "PATH=" + sandbox.Path, "HOME=/tmp", "TMPDIR=/tmp", "CAPTURE_PORT=" + strconv.Itoa(req.Port),
+	}
+	if req.ViewSocket != "" {
+		env = append(env, "CAPTURE_SOCKET=/run/site/"+filepath.Base(req.ViewSocket))
+	}
+
 	spec := sandbox.Spec{
 		Site: r.dir(req.ProjectID), Argv: []string{"node", captureScript, string(task)},
-		Env: []string{
-			"LANG=C.UTF-8", "PATH=" + sandbox.Path, "HOME=/tmp", "TMPDIR=/tmp", "CAPTURE_PORT=" + strconv.Itoa(req.Port),
-		},
+		Env: env,
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, captureTimeout)

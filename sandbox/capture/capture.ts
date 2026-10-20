@@ -33,6 +33,15 @@ async function pageSocket(): Promise<string> {
 function watch(cdp: Cdp, console: string[], failed: string[]) {
   const urls = new Map<string, string>();
   cdp.on('Network.requestWillBeSent', (p) => { urls.set(String(p.requestId), String((p.request as { url: string }).url)); });
+  // A file the page needs that the app answered badly looks like a working request to the browser's own error list.
+  cdp.on('Network.responseReceived', (p) => {
+    const res = p.response as { url: string; status: number; mimeType: string };
+    const kind = String(p.type);
+    const wrongType = kind === 'Stylesheet' && !res.mimeType.includes('css');
+    if ((res.status >= 400 || wrongType) && ['Stylesheet', 'Script', 'Image', 'Font'].includes(kind) && failed.length < 10) {
+      failed.push(`${kind.toLowerCase()} ${res.url.replace(/^https?:\/\/[^/]+/, '')} answered ${String(res.status)} ${res.mimeType}`);
+    }
+  });
   cdp.on('Network.loadingFailed', (p) => {
     if (!p.canceled && failed.length < 10) failed.push(urls.get(String(p.requestId)) ?? String(p.errorText));
   });
