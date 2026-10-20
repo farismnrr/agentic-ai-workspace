@@ -66,7 +66,7 @@ func (r *Runner) tryFinish(ctx context.Context, task domain.Task, state *runStat
 	if r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
 		r.localAddressHeld(ctx, task, state, call) || r.securityNotAsked(ctx, task, state, call) ||
 		r.architectNotAsked(ctx, task, state, call) ||
-		r.reviewerNotAsked(ctx, task, state, call) {
+		r.reviewerNotAsked(ctx, task, state, call) || r.commitMissing(ctx, task, state, call) {
 		return outcome{}, false
 	}
 

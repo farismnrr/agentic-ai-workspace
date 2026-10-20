@@ -18,14 +18,16 @@ func securityRole() application.AgentRole {
 func appBuilder() application.AgentRole {
 	return application.AgentRole{
 		Key: "developer", Name: "Developer", Purpose: "Writes the code.",
-		Tools: []string{"read_file", "edit_file", "start_site"},
+		Tools: []string{"read_file", "edit_file", "run_command", "start_site"},
 	}
 }
+
+func moreSteps(lim *application.Limits) { lim.MaxSteps, lim.TeamSteps = 40, 40 }
 
 func TestAnAppStartsFreelyWhileBuiltAndTheSecurityReviewComesOnceAtTheEnd(t *testing.T) {
 	t.Parallel()
 
-	r := newTeamRig(nil, []application.AgentRole{securityRole(), appBuilder()},
+	r := newTeamRig(moreSteps, []application.AgentRole{securityRole(), appBuilder()},
 		delegate("d1", "developer", "Build the API and start it"),
 		call("e1", "edit_file", map[string]string{"path": "server/api/items.ts"}),
 		call("s1", "start_site", map[string]string{"command": "node .output/server/index.mjs", "port": "3000"}),
@@ -33,8 +35,13 @@ func TestAnAppStartsFreelyWhileBuiltAndTheSecurityReviewComesOnceAtTheEnd(t *tes
 		finish("Done too early"),
 		delegate("d2", "security", "Check the final code"),
 		report("r2", "Safe to start"),
+		delegate("d3", "developer", "Save the work"),
+		call("c1", "run_command", map[string]string{"command": "ship \"Add the API\""}),
+		report("r3", "Saved"),
 		finish("Done"),
 	)
+	shipped := &domain.RunInfo{Name: "ship \"Add the API\""}
+	r.tools.results["run_command"] = application.ToolResult{Output: "ok", Run: shipped}
 	r.tools.risks["edit_file"] = domain.RiskLow
 	r.tools.results["edit_file"] = application.ToolResult{Output: "ok", Files: []string{"server/api/items.ts"}}
 	r.tools.results["start_site"] = application.ToolResult{Output: "started", Link: "/run/x/y/"}

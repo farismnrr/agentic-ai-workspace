@@ -9,6 +9,8 @@ type holds struct {
 	siteAsked int
 	// localAsked counts finishes sent back for naming 127.0.0.1 or localhost.
 	localAsked int
+	// commitAsked counts finishes held back until the work is saved in git.
+	commitAsked int
 	// clarifyAsked counts jobs held back so the orchestrator decides whether to ask the person first.
 	clarifyAsked int
 	// planAsked counts jobs held back because the person's latest request was not in the plan yet.

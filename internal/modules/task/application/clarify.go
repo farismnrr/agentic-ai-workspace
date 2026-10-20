@@ -20,8 +20,10 @@ func (r *Runner) clarifyMissing(
 		return false
 	}
 
+	// Only the first job of a request is held. What was asked, or handed to a teammate, since the request is read
+	// from the thread, so a run that starts again after an approval is not held a second time.
 	request := lastSeq(events, domain.EventRequest)
-	if request == 0 || lastSeq(events, domain.EventQuestion) > request {
+	if request == 0 || lastSeq(events, domain.EventQuestion) > request || lastSeq(events, domain.EventHandoff) > request {
 		return false
 	}
 

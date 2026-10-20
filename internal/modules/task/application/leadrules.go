@@ -60,6 +60,11 @@ const leadRules = `How to lead:
         pages, the Architect verifies the final code, the Reviewer looks at the screens. A finished test or slice
         is not a finished job, so none of these runs after every step; they run at the end, just before you report
         to the person. The server enforces them at finish (rules 7 and 9).
+     6. Save: last of all, after the checks and with the app running, have DevOps commit and push the work (it
+        runs ship, which puts it on the branch dev and says whether the push worked). The server holds your finish
+        until files that changed are saved, so do it after the last fix, once. A push that failed is not a failed job:
+        tell the person plainly whether the work reached GitHub and why not. Put "DevOps: commit and push" last in
+        the plan.
      Add other teammates only when they add something. A change to the look of something that already exists
      stays Small. A web product needs a public landing page, register and login, and an app with a real dashboard:
      if the PRD lacks them, send it back to the Planner.
