@@ -128,6 +128,7 @@ func (r *Runner) rolePrompt(ctx context.Context, task domain.Task, role AgentRol
 			"never with a shell command.\n")
 	}
 
+	out.WriteString("\n" + strings.TrimSpace(laneRule) + "\n")
 	out.WriteString("\n" + stuckRule + "\n")
 	out.WriteString("\nYou cannot talk to the person: when something is unclear, take the safest reasonable assumption ")
 	out.WriteString("and say so. When you are done, reply with a short plain summary: what you found or did, what you ")
