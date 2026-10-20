@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -106,4 +107,52 @@ func TestCreatingARepositoryExplainsWhyItFailed(t *testing.T) {
 			t.Errorf("status %d: %v, want %v", status, err, want)
 		}
 	}
+}
+
+func TestEveryPageOfAnInstallationIsRead(t *testing.T) {
+	t.Parallel()
+
+	c := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/user/installations":
+			_, _ = w.Write([]byte(`{"installations":[{"id":7}]}`))
+		case "/user/installations/7/repositories":
+			_, _ = w.Write([]byte(repoPage(r.URL.Query().Get("page"))))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	repos, err := c.Repos(context.Background(), "tok")
+	if err != nil || len(repos) != 150 {
+		t.Fatalf("want all 150 repositories, got %d: %v", len(repos), err)
+	}
+
+	found := false
+
+	for _, repo := range repos {
+		found = found || repo.FullName == "ann/pukat"
+	}
+
+	if !found {
+		t.Fatal("a repository on the second page was left out")
+	}
+}
+
+// repoPage is page one (a hundred repositories) or page two (fifty, one of them pukat) of a hundred and fifty.
+func repoPage(page string) string {
+	names, total := []string{}, 150
+	if page == "2" {
+		for i := range 49 {
+			names = append(names, `{"full_name":"ann/r`+strconv.Itoa(100+i)+`","pushed_at":"2023-01-01T00:00:00Z"}`)
+		}
+
+		names = append(names, `{"full_name":"ann/pukat","pushed_at":"2022-01-01T00:00:00Z"}`)
+	} else {
+		for i := range 100 {
+			names = append(names, `{"full_name":"ann/r`+strconv.Itoa(i)+`","pushed_at":"2026-01-01T00:00:00Z"}`)
+		}
+	}
+
+	return `{"total_count":` + strconv.Itoa(total) + `,"repositories":[` + strings.Join(names, ",") + `]}`
 }

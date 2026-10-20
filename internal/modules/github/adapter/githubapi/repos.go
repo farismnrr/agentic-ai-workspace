@@ -16,10 +16,18 @@ import (
 
 const (
 	pageSize     = 100
-	maxRepos     = 300
+	maxPages     = 20
+	maxRepos     = pageSize * maxPages
 	maxInstalls  = 10
 	repoTimeSlot = "2006-01-02T15:04:05Z"
 )
+
+type repoItem struct {
+	FullName    string `json:"full_name"`
+	Description string `json:"description"`
+	PushedAt    string `json:"pushed_at"`
+	Private     bool   `json:"private"`
+}
 
 // Repos lists the repositories of every installation of the app that the person can reach, newest first. A
 // GitHub App's user token cannot list "all repos"; it sees them through the installations the person made.
@@ -37,22 +45,12 @@ func (c *Client) Repos(ctx context.Context, access string) ([]domain.Repo, error
 	repos := []domain.Repo{}
 
 	for _, install := range installs.Installations {
-		var page struct {
-			Repositories []struct {
-				FullName    string `json:"full_name"`
-				Description string `json:"description"`
-				PushedAt    string `json:"pushed_at"`
-				Private     bool   `json:"private"`
-			} `json:"repositories"`
-		}
-
-		path := "/user/installations/" + strconv.FormatInt(install.ID, 10) + "/repositories?per_page=" +
-			strconv.Itoa(pageSize)
-		if err := c.get(ctx, access, path, &page); err != nil {
+		items, err := c.installationRepos(ctx, access, install.ID)
+		if err != nil {
 			return nil, err
 		}
 
-		for _, item := range page.Repositories {
+		for _, item := range items {
 			pushed, _ := time.Parse(repoTimeSlot, item.PushedAt)
 			repos = append(repos, domain.Repo{
 				FullName: item.FullName, Description: item.Description, Private: item.Private, UpdatedAt: pushed,
@@ -63,6 +61,33 @@ func (c *Client) Repos(ctx context.Context, access string) ([]domain.Repo, error
 	slices.SortStableFunc(repos, func(a, b domain.Repo) int { return b.UpdatedAt.Compare(a.UpdatedAt) })
 
 	return repos[:min(len(repos), maxRepos)], nil
+}
+
+// installationRepos reads every page of one installation's repositories: GitHub answers a hundred at a time and
+// in no order of its own, so stopping at the first page would leave out whichever repositories it did not put there.
+func (c *Client) installationRepos(ctx context.Context, access string, install int64) ([]repoItem, error) {
+	all := []repoItem{}
+
+	for page := 1; page <= maxPages; page++ {
+		var got struct {
+			Repositories []repoItem `json:"repositories"`
+			Total        int        `json:"total_count"`
+		}
+
+		path := "/user/installations/" + strconv.FormatInt(install, 10) + "/repositories?per_page=" +
+			strconv.Itoa(pageSize) + "&page=" + strconv.Itoa(page)
+		if err := c.get(ctx, access, path, &got); err != nil {
+			return nil, err
+		}
+
+		all = append(all, got.Repositories...)
+
+		if len(got.Repositories) < pageSize || len(all) >= got.Total {
+			break
+		}
+	}
+
+	return all, nil
 }
 
 // get reads one JSON answer from the API as the person.
