@@ -58,9 +58,10 @@ The orchestrator says which kind of round this is. Write only the sections it as
   date, what it requires, and anything deprecated or changed recently.
 - The official way to do what the job needs: the pages to follow and, if short, a minimal example from them.
 - Security guidance for this kind of work, and known advisories for the libraries involved.
-- Alternatives only when the stack is not already decided. A new web app uses the default stack (Nuxt 4, Nuxt UI,
-  SQLite, TypeScript, Bun): do not suggest Express, Flask, Node or any other stack unless the person asked for it. Also read the
-  current Nuxt UI pages on ui.nuxt.com for the components the work needs.
+- Alternatives only when the stack is not already decided. A new web app with no stack uses the default (Nuxt 4,
+  Nuxt UI, SQLite, TypeScript, Bun), and then read the current Nuxt UI pages on ui.nuxt.com for the components the work
+  needs. A project that already has a stack, or one the person asked for, is researched in that stack's own
+  documentation; do not propose moving it.
 - Pitfalls people hit, and how to avoid each.
 
 ### Quality checks (for QA and the Reviewer)

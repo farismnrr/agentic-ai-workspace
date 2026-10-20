@@ -41,14 +41,19 @@ which answers with its own page: the stylesheet does not apply, or the page is "
   address. It cannot see an address a script builds from pieces, text inside `.js` files, `location.assign` or a server
   that redirects to `/login` (that one is fixed on the way back). Write relative links anyway; do not lean on it.
 - A client router in history mode (React Router, Vue Router, SvelteKit, Next.js) reads `location.pathname`, which holds
-  the address, so it needs a base: read `window.__SITE_BASE__` (the platform sets it before any script runs) for the
-  router's `basename` or `base`. A framework that fixes its base path at build time (Next.js `basePath`) cannot know a
-  private app's ticket: choose Nuxt, or a static build with hash routing, and do not start with Next.js.
+  the address, so it needs a base. Read `window.__SITE_BASE__` (the platform sets it before any script runs) for the
+  router's `basename` or `base`. Next.js fixes its base at build time: build with `basePath` set to `/run/<project ID>`
+  (the ID never changes; take it from an env var, never hard-code it in the source) and start the app through
+  `bun /usr/local/share/serve/site-serve.ts <start command>` with `BASE_PATH=/run/<project ID>`, which also carries the
+  ticket of a private app. Then write links the Next way (`next/link`, `usePathname`) and do not prefix anything by hand:
+  a link prefixed twice is how an address becomes `/run/<id>/run/<id>`.
 - The stylesheet must be the built one. Tailwind (`@tailwind`, `@import "tailwindcss"`, `@apply`) and Sass only work
   after the build: link the file the build wrote (`dist/`, `.output/public/`), never the source. A page that shows as
   plain text and blue links means the stylesheet is missing, empty, uncompiled or answered with a web page; `start_site`
   reports all four, and so does a link inside a stylesheet (`url()`, `@import`). Fix them before you report.
-- Nuxt under `nuxt-serve` handles pages by itself, but its own rules apply (see `nuxt-app`).
+- A server built for a base path and started through `site-serve` (Nuxt, Next with `basePath`) handles its pages by
+  itself; for Nuxt see `nuxt-app` for the rest. Every other server (Rust, Go, Python, Express...) runs as it is and
+  writes relative links.
 - You do not start the app: the DevOps teammate does. Its `start_site` loads the home page and the pages it links to,
   and lists every link that would fail. If the orchestrator sends you that list, fix it and report; never call the
   app ready while it is not empty. In your report give the command and port that start the app.

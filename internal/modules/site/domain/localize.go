@@ -117,3 +117,20 @@ func withShim(body []byte, prefix string) []byte {
 
 	return append([]byte(tag), body...)
 }
+
+// Link returns one link, such as a redirect's Location, under prefix: a root link gets the address, a link that
+// already carries it is kept, and one with the base but no ticket is moved to prefix. Anything else is unchanged.
+func Link(link, base, prefix string) string {
+	if !strings.HasPrefix(link, "/") || strings.HasPrefix(link, "//") {
+		return link
+	}
+
+	switch raw := []byte(link); {
+	case hasAddress(raw, prefix):
+		return link
+	case base != prefix && hasAddress(raw, base):
+		return prefix + link[len(base):]
+	default:
+		return prefix + link
+	}
+}

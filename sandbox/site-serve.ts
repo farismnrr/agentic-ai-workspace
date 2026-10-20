@@ -1,9 +1,10 @@
-// Runs a Nuxt (or any Nitro) server behind the sites proxy, which removes the address prefix from every request
+// Runs a server that keeps its pages under a base path (Nuxt app.baseURL, Next basePath, SvelteKit paths.base and the
+// like) behind the sites proxy, which removes the address prefix from every request
 // while the server wants to live under it. The real server gets the prefix as its base URL and listens on the next
 // port; this process listens on the site's port, puts the prefix back on each request and takes it off the
 // redirects that come back. A private site is opened under /run/<name>/~<ticket>/, and the sandboxed page loads
 // its scripts and styles with no login, so every link in a text answer must carry that ticket: the proxy sends the
-// address it was opened at in X-Forwarded-Prefix and the base in the text is replaced with it. Usage: PORT=3000 BASE_PATH=/run/shop/<uuid> nuxt-serve node .output/server/index.mjs
+// address it was opened at in X-Forwarded-Prefix and the base in the text is replaced with it. Usage: PORT=3000 BASE_PATH=/run/shop/<uuid> site-serve node .output/server/index.mjs
 import { spawn } from 'node:child_process';
 import { request, createServer } from 'node:http';
 import { connect } from 'node:net';
@@ -14,7 +15,7 @@ const innerPort = port + 1;
 const base = (process.env.BASE_PATH ?? '').replace(/\/$/, '');
 
 if (program === undefined) {
-  console.error('usage: nuxt-serve <command that starts the server>');
+  console.error('usage: site-serve <command that starts the server>');
   process.exit(2);
 }
 
@@ -33,14 +34,28 @@ const openedAt = (header: string | string[] | undefined): string => {
   return prefix.startsWith(`${base}/~`) || prefix === base ? prefix.replace(/\/$/, '') : base;
 };
 
+// A server that keeps its pages under a base path (Next's basePath) answers the base with a slash by redirecting to
+// the base without one, and the sites proxy then asks for the slash again. The redirect only changes the slash, so
+// follow it here, once, for a request without a body.
+const onlySlash = (location: unknown, path: string): location is string => {
+  const bare = (value: string): string => value.split('?')[0]?.replace(/\/$/, '') ?? '';
+  return typeof location === 'string' && location !== path && bare(location) === bare(path);
+};
+
 const server = createServer((req, res) => {
   const prefix = openedAt(req.headers['x-forwarded-prefix']);
-  const upstream = request(
-    { host: '127.0.0.1', port: innerPort, method: req.method, path: base + (req.url ?? '/'), headers: req.headers },
-    (answer) => {
+  const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+  const send = (path: string, followed: boolean): void => {
+    const upstream = request({ host: '127.0.0.1', port: innerPort, method: req.method, path, headers: req.headers }, (answer) => {
+      if (!followed && !hasBody && onlySlash(answer.headers.location, path)) {
+        answer.resume();
+        send(answer.headers.location as string, true);
+        return;
+      }
       const headers = { ...answer.headers };
       const location = headers.location;
       if (typeof location === 'string' && location.startsWith(`${base}/`)) headers.location = location.slice(base.length);
+      else if (location === base) headers.location = '/';
       if (prefix === base || !isText(headers['content-type'])) {
         res.writeHead(answer.statusCode ?? 502, headers);
         answer.pipe(res);
@@ -53,12 +68,14 @@ const server = createServer((req, res) => {
         delete headers['content-length'];
         res.writeHead(answer.statusCode ?? 502, headers).end(text);
       });
-    },
-  );
-  upstream.on('error', () => {
-    res.writeHead(502).end('The app is still starting.');
-  });
-  req.pipe(upstream);
+    });
+    upstream.on('error', () => {
+      res.writeHead(502).end('The app is still starting.');
+    });
+    if (followed) upstream.end();
+    else req.pipe(upstream);
+  };
+  send(base + (req.url ?? '/'), false);
 });
 
 // Listen only once the real server answers, so the site counts as started when it really is.

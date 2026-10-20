@@ -63,7 +63,7 @@ func TestResponseIsSandboxedAndCannotTouchTheOrigin(t *testing.T) {
 		"Location":                         {"/login"},
 	}
 
-	out := forResponse(in, "/run/a/b")
+	out := forResponse(in, "/run/a/b", "/run/a/b")
 
 	forbidden := []string{
 		"Set-Cookie", "Clear-Site-Data", "Service-Worker-Allowed", "Strict-Transport-Security",
@@ -96,8 +96,10 @@ func TestResponseIsSandboxedAndCannotTouchTheOrigin(t *testing.T) {
 func TestOnlyRootRelativeRedirectsAreRewritten(t *testing.T) {
 	for in, want := range map[string]string{
 		"/x": "/run/a/b/x", "//evil.test/x": "//evil.test/x", "https://other.test/": "https://other.test/", "next": "next",
+		// an app that knows its address (Next basePath) already puts it in the redirect
+		"/run/a/b": "/run/a/b", "/run/a/b/x?y=1": "/run/a/b/x?y=1", "/run/a/bc": "/run/a/b/run/a/bc",
 	} {
-		if got := forResponse(http.Header{"Location": {in}}, "/run/a/b").Get("Location"); got != want {
+		if got := forResponse(http.Header{"Location": {in}}, "/run/a/b", "/run/a/b").Get("Location"); got != want {
 			t.Errorf("Location %q -> %q, want %q", in, got, want)
 		}
 	}

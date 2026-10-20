@@ -1,6 +1,6 @@
 ---
 name: nuxt-app
-description: How to build a new web app for the person: Nuxt, SQLite, a login form of its own and security built in, always on the latest stable versions.
+description: The default way to build a new web app (when the project has no stack yet): Nuxt, SQLite, a login form of its own and security built in, always on the latest stable versions. Not for a project in another stack.
 always: true
 ---
 
@@ -22,9 +22,9 @@ never ask them about libraries.
   fonts of `DESIGN.md`. `nuxt-security` for headers, rate limits and request limits. Better Auth for login when the
   app has accounts. `zod` to check what comes in. `@nuxt/eslint` with `eslint-plugin-security` as the linter.
   `chart.js` with `vue-chartjs` for charts.
-- This is the stack unless the brief says the person asked for another in their own words. If the brief names Express,
-  Flask, plain JavaScript, Node or anything else without saying the person asked, use this stack anyway and say so
-  in your report.
+- This is the default for a new web app. If the project already has code in another stack (Next.js, SvelteKit, Rust,
+  Go, Python...) or the brief says the person asked for one, work in that stack and ignore the rest of this skill that
+  is specific to Nuxt; the rules of `delivery-rules` still apply to every stack. Do not convert a project to Nuxt.
 - Always the latest stable. Never copy a version from memory or an old tutorial: run `bun pm view <package> version`
   and check what a package requires before you pin anything old. Keep `bun.lock`. One exception you must know:
   TypeScript 7 has no `lib/tsc`, so `vue-tsc` (the Vue type checker) cannot run on it; install `typescript@6`, the
@@ -110,7 +110,7 @@ A product is not one page. Use two layouts and these routes unless the PRD says 
   still checks the session on the server as well.
 
 Links and files under the address prefix. The app lives at `/run/<name>/` and Nuxt's `app.baseURL` carries that
-prefix (set by `nuxt-serve`), so a hand-written address starting with `/` leaves the app:
+prefix (set by `site-serve`), so a hand-written address starting with `/` leaves the app:
 - Pages: `<NuxtLink to="/login">`, `navigateTo('/app')` and `useRoute` all add the base themselves. Never write
   `<a href="/login">` for an app page.
 - Calls to the server, as the starter does: `$fetch(`${useRuntimeConfig().app.baseURL}api/...`)` or
@@ -130,8 +130,8 @@ the HTTP methods a route needs. Limit file uploads by size and type. Show errors
 Check with `run_command`, one step per call (a command has about 2 GB of memory, and an install followed by a type
 check in the same call can run out): `bun install` when you added packages, then `bun --bun run typecheck` with
 `bun --bun run lint` and `bun test`, then `bun --bun run build`; every one must pass before you report. The app then runs from `.output`. You do not start it: the DevOps teammate does, and your report says so.
-Give it the start command, port 3000: `bun /usr/local/share/serve/nuxt-serve.ts bun .output/server/index.mjs`.
-`nuxt-serve` makes Nuxt work under the address prefix the sites proxy uses; do not run `.output` directly.
+Give it the start command, port 3000: `bun /usr/local/share/serve/site-serve.ts bun .output/server/index.mjs`.
+`site-serve` makes Nuxt work under the address prefix the sites proxy uses; do not run `.output` directly.
 In the preview the page has no cookies, so a login cannot stay signed in there. That is the preview's sandbox, not
 a fault in the app: test accounts with `curl` against the API instead (sign up, sign in, then call a protected
 route with the returned cookie) and say so in your report. Never weaken a security setting to make the preview work.

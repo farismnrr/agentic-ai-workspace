@@ -6,7 +6,10 @@ always: true
 
 # Default stack for a new app
 
-Design new apps on this stack unless the person asks for another or the project already has one:
+This is the default for a new web app with screens, not the only stack. An existing project keeps its own stack and
+language (Next.js, SvelteKit, Rust, Go, Python, plain HTML...), a stack the person asked for is used, and something
+that is not a web app gets the language that fits it. A Rust or Go service is never made into a Nuxt app. Design a new
+web app on this stack unless one of those applies:
 Nuxt 4 (Vue 3, TypeScript) as the single server and UI, Nuxt UI for every component (no hand-made buttons, inputs,
 cards, tables or navigation), SQLite through Bun's built-in `bun:sqlite`, TypeScript everywhere (no JavaScript files), Bun as the runtime and package
 manager, `nuxt-security`

@@ -50,12 +50,14 @@ Never ask what a sensible default covers: take the default and list it under Ass
 question the person answered. If the answers open a real gap, one more small form is allowed. At most
 three questions for a medium job and five for a large one, counted over the whole task.
 
-## 2a. The stack is decided, not asked
-A new web app is built with Nuxt 4, Nuxt UI (the component library, so every screen is consistent) and SQLite, in
-TypeScript on Bun, on the latest stable versions. Never ask the person about the stack, and do not offer Express, Flask or any other framework
-as an option. Write "Stack: Nuxt 4, Nuxt UI, SQLite, TypeScript, Bun (the default)" under Assumptions. Another stack goes into the PRD
-only when the person's own words ask for it ("pakai Laravel", "use Django"); then write "Stack: <it>, requested by
-the person" and keep the rest of the PRD the same.
+## 2a. The stack follows the app
+Never ask the person about libraries. Choose like this, and write one line "Stack: ..." under Assumptions:
+- The project already has code: keep its stack and language (read the folder first). Do not move it to another one.
+- The person named a stack in their own words ("pakai Next", "pakai Svelte", "pakai Laravel", "in Rust"): use that.
+- A new web app with neither: Nuxt 4, Nuxt UI and SQLite, in TypeScript on Bun, on the latest stable versions. This
+  is the default, not a rule against the others; write "Stack: Nuxt 4, Nuxt UI, SQLite, TypeScript, Bun (the default)".
+- Something that is not a web app with screens (an API, a worker, a command-line tool): the language that fits it.
+When a stack is the person's, keep the rest of the PRD the same and write "Stack: <it>, requested by the person".
 
 ## 2b. A web product is more than its feature
 When the request is a web app, a service, a tool people sign in to, or anything that keeps data (not a one-page

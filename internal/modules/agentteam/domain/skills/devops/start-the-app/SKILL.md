@@ -29,9 +29,18 @@ a build, with one step per `run_command`. The command must keep running, listen 
 and be a production-style server.
 - Static pages: `python3 -m http.server 8000 --bind 127.0.0.1` in the folder that holds `index.html`.
 - Documents: run `docsite documents`, then `python3 -m http.server 8000 --bind 127.0.0.1 --directory documents`.
-- Nuxt: build, then `bun /usr/local/share/serve/nuxt-serve.ts bun .output/server/index.mjs`, port 3000.
-  `nuxt-serve` makes Nuxt work under the address prefix Sites uses; do not run `.output` directly.
-- Any other stack: the command the project documents, with every link and redirect relative.
+- A server in any language (Rust, Go, Python, Ruby, PHP, Java, Deno, Node with Express or Hono...): build it for
+  production and run the program itself on the port, for example `./target/release/app`, `./server`,
+  `gunicorn -b 127.0.0.1:8000 app:app`, `node dist/server.js`. No wrapper. The platform brings the address back to the
+  root links of its pages; the app need not know it.
+- A framework that keeps its pages under a base path (Nuxt `app.baseURL`, Next.js `basePath`, SvelteKit
+  `paths.base`, and the like) is started through `bun /usr/local/share/serve/site-serve.ts <its production start
+  command>` on the port you pass. `start_site` sets `BASE_PATH` to the app's address and the wrapper hands it to the
+  server and carries a private app's ticket; the Developer built the app for that base. Nuxt: build, then
+  `bun /usr/local/share/serve/site-serve.ts bun .output/server/index.mjs`, port 3000; do not run `.output` directly.
+  Never put a server through `site-serve` that was not built for a base path: it asks for `<BASE_PATH>/...` and
+  would answer 404 to everything.
+- Anything else: the command the project documents.
 Those commands are for `start_site`'s `command` field. Starting again replaces the running app.
 
 ## 2. Check it

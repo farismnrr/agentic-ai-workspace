@@ -158,7 +158,9 @@ COPY sandbox/removebg.py /usr/local/bin/removebg
 COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
 COPY sandbox/capture/ /usr/local/share/capture/
-COPY sandbox/nuxt-serve.ts /usr/local/share/serve/nuxt-serve.ts
+COPY sandbox/site-serve.ts /usr/local/share/serve/site-serve.ts
+# the name briefs and start commands used before the wrapper served every stack
+COPY sandbox/site-serve.ts /usr/local/share/serve/nuxt-serve.ts
 COPY sandbox/starter/nuxt/ /usr/local/share/starter/nuxt/
 COPY --from=templates /opt/templates /usr/local/share/templates
 COPY sandbox/new-nuxt-app.sh /usr/local/bin/new-nuxt-app

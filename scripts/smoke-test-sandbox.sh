@@ -29,7 +29,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     test -f /usr/local/share/templates/saas/app/pages/index.vue && test -f /usr/local/share/templates/dashboard/LICENSE && echo templates-ok
     bun --version | grep -q "^1\." && bun -e "import {Database} from \"bun:sqlite\"; const d=new Database(\":memory:\"); d.exec(\"create table t(a)\"); console.log(\"bun-ok\")"
     printf "require(\"http\").createServer((q,s)=>{s.setHeader(\"content-type\",\"text/html\");s.end(q.url)}).listen(process.env.PORT,\"127.0.0.1\")" > echo.cjs
-    PORT=8100 BASE_PATH=/run/a/b node /usr/local/share/serve/nuxt-serve.ts node echo.cjs > /dev/null 2>&1 &
+    PORT=8100 BASE_PATH=/run/a/b node /usr/local/share/serve/site-serve.ts node echo.cjs > /dev/null 2>&1 &
     sleep 2
     curl -s http://127.0.0.1:8100/x | grep -q "^/run/a/b/x$" && echo prefix-ok
     curl -s -H "X-Forwarded-Prefix: /run/a/b/~1.ab" http://127.0.0.1:8100/x | grep -q "^/run/a/b/~1.ab/x$" && echo ticket-prefix-ok
