@@ -98,7 +98,15 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 		toolCall("d1", "delegate", map[string]string{"role": "developer", "brief": "Make hello.txt"}),
 		toolCall("w1", "write_file", map[string]string{"path": "hello.txt", "content": "hi"}),
 		toolCall("r1", "report", map[string]string{"summary": "Made it"}),
+		finishCall("Made hello.txt"), // held: the work is not saved in git yet
+		toolCall("d2", "delegate", map[string]string{"role": "devops", "brief": "Commit and push"}),
+		// the test sandbox has no bash, so the commit cannot succeed: the hold gives up after a few tries
+		toolCall("c1", "run_command", map[string]string{"command": "ship \"Add hello\""}),
+		toolCall("r2", "report", map[string]string{"summary": "Could not save"}),
 		finishCall("Made hello.txt"),
+		finishCall("Made hello.txt"),
+		finishCall("Made hello.txt"),
+		finishCall("Made hello.txt"), // the run restarted after the approval of the command, so it counts again
 	)
 
 	created := do(t, a.env.app, "POST", "/api/tasks",

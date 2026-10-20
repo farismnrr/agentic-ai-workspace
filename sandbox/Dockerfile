@@ -167,7 +167,9 @@ COPY sandbox/site-serve.ts /usr/local/share/serve/nuxt-serve.ts
 COPY sandbox/starter/nuxt/ /usr/local/share/starter/nuxt/
 COPY --from=templates /opt/templates /usr/local/share/templates
 COPY sandbox/new-nuxt-app.sh /usr/local/bin/new-nuxt-app
+COPY sandbox/ship.sh /usr/local/bin/ship
 RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg /usr/local/bin/docconvert /usr/local/bin/new-nuxt-app \
+    /usr/local/bin/ship \
     && ln -s /opt/vector/node_modules/.bin/svgo /usr/local/bin/svgo \
     && ln -s /opt/cli/node_modules/.bin/claude /usr/local/bin/claude \
     && ln -s /opt/cli/node_modules/.bin/codex /usr/local/bin/codex \
