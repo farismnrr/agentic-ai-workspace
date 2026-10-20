@@ -32,6 +32,12 @@ func delegateTool(members []AgentRole) domain.ToolDef {
 			"role":    map[string]any{"type": "string", "enum": keys},
 			"brief":   map[string]any{"type": "string", "description": "What the teammate must do and what done looks like."},
 			"context": map[string]any{"type": "string", "description": "Facts, file names or earlier findings they need."},
+			"effort": map[string]any{
+				"type": "string", "enum": []string{"low", "medium", "high", "xhigh", "max"},
+				"description": "Optional. How hard the teammate should think: low for a small obvious job, medium for " +
+					"ordinary work, high for something intricate or risky, xhigh or max only for the hardest. " +
+					"Leave it out for the default.",
+			},
 		},
 		"required": []string{"role", "brief"},
 	})
@@ -61,6 +67,7 @@ type delegateArgs struct {
 	Role    string `json:"role"`
 	Brief   string `json:"brief"`
 	Context string `json:"context"`
+	Effort  string `json:"effort"`
 }
 
 func parseDelegate(input json.RawMessage) (delegateArgs, bool) {

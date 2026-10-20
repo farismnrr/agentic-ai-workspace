@@ -81,7 +81,7 @@ Two settings shape how a model works:
 
 | Setting | What it does |
 | --- | --- |
-| Effort | How hard the AI thinks before answering. Higher is slower and costs more. Default leaves it to the provider. |
+| Effort | How hard the AI thinks before answering. Higher is slower and costs more. **Auto** lets the lead pick a level for each teammate's job. A level you set yourself, on the default or on a role, always wins. Without a team, Auto leaves it to the model. |
 | Context window | How much the model keeps in mind at once. Near the limit, the AI summarizes its notes and keeps going. |
 
 The context window comes from what the provider reports, else 200K, or 1M for names ending in `[1m]`.

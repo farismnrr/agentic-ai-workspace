@@ -30,6 +30,7 @@ func newAgent(
 		Tasks: store, Events: store, Transcript: store, Usage: store,
 		Models:   models.agentModels(),
 		Windows:  models.providers,
+		Efforts:  models.providers,
 		Persona:  agentPersona{prefs: models.prefs},
 		Projects: agentProjects{projects: projects},
 		Tools:    tools, Gate: gate, IDs: opaque.Generator{}, Now: time.Now, Activity: steps,

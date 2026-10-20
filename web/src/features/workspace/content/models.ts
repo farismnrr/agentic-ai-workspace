@@ -31,7 +31,7 @@ export const gatewayProviderNames: Record<string, string> = {
 
 export const modelsCopy = {
   defaultIntro: 'Used for every new task unless you pick another when you start it.',
-  effortIntro: 'How hard the AI thinks before it answers. Higher is slower and costs more; a model that does not take a level will say so.',
+  effortIntro: 'How hard the AI thinks before it answers. Auto lets the lead choose for each teammate; without a team the model uses its own level. Higher is slower and costs more.',
   refreshTip: 'Check the key again and update the list of models and how much each can hold.',
   providersIntro: 'Your own keys. Tasks are billed by the provider, not by us.',
   none: { title: 'Add your first AI model', body: 'Add a provider with your own key so your AI team has a model to work with. Use Add above.' },

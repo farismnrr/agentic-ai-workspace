@@ -31,6 +31,11 @@ type ContextWindows interface {
 	ContextWindow(ctx context.Context, userID, providerID, model string) int64
 }
 
+// EffortLevels says which effort levels a model takes, so the lead's choice can be fitted to a teammate's model.
+type EffortLevels interface {
+	EffortLevels(ctx context.Context, userID, providerID, model string) []string
+}
+
 // Model sends a conversation to a model provider. Failures are *domain.ModelError.
 type Model interface {
 	Complete(ctx context.Context, request Request) (Reply, error)
