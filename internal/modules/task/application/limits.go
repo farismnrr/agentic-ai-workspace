@@ -32,8 +32,10 @@ type Limits struct {
 	MaxIdleJobs int
 	// RequirePlan holds the first job of a request until the plan shows it, so the todo list is always current.
 	RequirePlan bool
-	Retries     int
-	MaxResult   int
+	// AskFirst holds the first job of a request until the orchestrator has asked the person or chosen not to.
+	AskFirst  bool
+	Retries   int
+	MaxResult int
 }
 
 // DefaultLimits are the production limits.
@@ -42,7 +44,7 @@ func DefaultLimits() Limits {
 		Backoff:  func(attempt int) time.Duration { return time.Duration(attempt+1) * 3 * time.Second },
 		WallTime: defaultWallTime, MaxSteps: defaultMaxSteps,
 		TeamWallTime: defaultTeamWallTime, TeamSteps: defaultTeamSteps, DelegateSteps: defaultDelegateSteps,
-		MaxIdleJobs: defaultMaxIdleJobs, RequirePlan: true,
+		MaxIdleJobs: defaultMaxIdleJobs, RequirePlan: true, AskFirst: true,
 		Retries: defaultRetries, MaxResult: defaultMaxResult,
 	}
 }

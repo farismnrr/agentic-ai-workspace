@@ -60,6 +60,7 @@ func TestTeamTaskHandsWorkToATeammateAndShowsWhoDidWhat(t *testing.T) {
 		toolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Researcher: look around the project", "state": "pending"},
 		}}),
+		toolCall("d0", "delegate", map[string]string{"role": "researcher", "brief": "Look around the project"}),
 		toolCall("d1", "delegate", map[string]string{"role": "researcher", "brief": "Look around the project"}),
 		toolCall("l1", "list_files", map[string]string{"path": "."}),
 		toolCall("r1", "report", map[string]string{"summary": "The project is empty"}),
@@ -93,6 +94,7 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 		toolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: make hello.txt", "state": "pending"},
 		}}),
+		toolCall("d0", "delegate", map[string]string{"role": "developer", "brief": "Make hello.txt"}),
 		toolCall("d1", "delegate", map[string]string{"role": "developer", "brief": "Make hello.txt"}),
 		toolCall("w1", "write_file", map[string]string{"path": "hello.txt", "content": "hi"}),
 		toolCall("r1", "report", map[string]string{"summary": "Made it"}),
