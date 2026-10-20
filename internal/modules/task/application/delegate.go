@@ -55,7 +55,7 @@ func (r *Runner) startDelegation(
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if r.planMissing(ctx, task, state, call, events) {
+	if r.clarifyMissing(ctx, task, state, call, events) || r.planMissing(ctx, task, state, call, events) {
 		return Delegation{}, false
 	}
 

@@ -108,7 +108,7 @@ func TestPromptsSayWhoAsksAndWhoDoesNot(t *testing.T) {
 	r.run(task.ID)
 
 	lead, planning, looking := r.model.requests[0].System, r.model.requests[1].System, r.model.requests[3].System
-	wanted := []string{"asks the person its own questions", "Start building (Recommended)", "ask the person questions"}
+	wanted := []string{"what the PRD still lacks", "Start building (Recommended)", "ask the person questions"}
 
 	for _, want := range wanted {
 		if !strings.Contains(lead, want) {

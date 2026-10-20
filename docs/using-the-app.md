@@ -29,7 +29,8 @@ Press Ctrl/Cmd+K anywhere in the workspace to search.
    - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.
    - If GitHub does not let the app create a repository, you are told. Create it on GitHub, share it with the app, then use "From a GitHub repository".
 3. Describe what you need on Home. The model and effort come from Settings: each teammate has its own, and the default covers the rest.
-4. Watch the plan and the steps. The AI asks before it edits, deletes or moves files, runs commands, or starts a web app.
+4. Expect a few questions first. The AI asks what you want before it starts, with a recommended answer for each, and skips questions for a small, clear request. Answer in your own words or pick an option.
+5. Watch the plan and the steps. The AI asks before it edits, deletes or moves files, runs commands, or starts a web app.
 5. Review the result, then accept it or ask for changes.
 
 ## Reading a task

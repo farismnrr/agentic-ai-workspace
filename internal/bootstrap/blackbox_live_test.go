@@ -33,6 +33,7 @@ func TestLiveTeamResearchesThenFindsAPicture(t *testing.T) {
 		toolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Researcher: look up coffee shop sites", "state": "pending"},
 		}}),
+		toolCall("d0", "delegate", map[string]string{"role": "planner", "brief": "Plan a coffee shop site"}),
 		toolCall("d1", "delegate", map[string]string{"role": "planner", "brief": "Plan a coffee shop site"}),
 		toolCall("d2", "delegate", map[string]string{"role": "researcher", "brief": "Look up coffee shop sites"}),
 		toolCall("s1", "web_search", map[string]string{"query": "warung kopi bandung landing page"}),
@@ -45,7 +46,7 @@ func TestLiveTeamResearchesThenFindsAPicture(t *testing.T) {
 		toolCall("m3", "report", map[string]string{"summary": "Saved a picture"}),
 		finishCall("Done"),
 	)
-	a.gateway.late = map[int]func([]map[string]any) string{9: func(requests []map[string]any) string {
+	a.gateway.late = map[int]func([]map[string]any) string{10: func(requests []map[string]any) string {
 		raw, _ := json.Marshal(requests[len(requests)-1])
 		found := pictureURL.FindSubmatch(raw)
 
@@ -65,7 +66,7 @@ func TestLiveTeamResearchesThenFindsAPicture(t *testing.T) {
 func checkLive(t *testing.T, a agentRig, id string, requests []string) {
 	t.Helper()
 
-	if len(requests) < 11 {
+	if len(requests) < 12 {
 		t.Fatalf("the script did not run to the end: %d model requests", len(requests))
 	}
 
@@ -77,19 +78,19 @@ func checkLive(t *testing.T, a agentRig, id string, requests []string) {
 func checkResearch(t *testing.T, a agentRig, id string, requests []string) {
 	t.Helper()
 
-	if !strings.Contains(requests[2], "hand the Researcher a job") {
+	if !strings.Contains(requests[3], "hand the Researcher a job") {
 		t.Errorf("the Planner was not held back until the Researcher ran")
 	}
 
-	if !strings.Contains(requests[4], "written by strangers") {
+	if !strings.Contains(requests[5], "written by strangers") {
 		t.Errorf("search results are not marked as coming from strangers")
 	}
 
-	if !strings.Contains(requests[5], webdomain.ErrBlocked.Error()) {
+	if !strings.Contains(requests[6], webdomain.ErrBlocked.Error()) {
 		t.Errorf("an internal address was not refused")
 	}
 
-	if !strings.Contains(requests[6], "Bandung") {
+	if !strings.Contains(requests[7], "Bandung") {
 		t.Errorf("a real page was not read")
 	}
 
@@ -112,7 +113,7 @@ func checkPicture(t *testing.T, a agentRig, requests []string) {
 		t.Errorf("no real picture was saved under assets/: %v (%d bytes)", err, len(data))
 	}
 
-	if !strings.Contains(requests[10], "CREDITS.md") {
+	if !strings.Contains(requests[11], "CREDITS.md") {
 		t.Errorf("the credit line did not come back")
 	}
 }

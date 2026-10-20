@@ -50,6 +50,11 @@ Never ask what a sensible default covers: take the default and list it under Ass
 question the person answered. If the answers open a real gap, one more small form is allowed. At most
 three questions for a medium job and five for a large one, counted over the whole task.
 
+## What the orchestrator already asked
+The orchestrator asks the person about the request before you start, and you receive the answers. Ask only what is
+still missing for the PRD, never the same thing again. Write for a person who may not be a programmer: plain words,
+a one-sentence meaning for each option, your recommendation first and marked (Recommended).
+
 ## Todo that can be tracked
 Write the PRD's todo as short steps that each name the teammate who does them ("Developer: shell with login", "QA:
 walk the flows"), in the order they are built, so the orchestrator can put them in the plan the person follows.
