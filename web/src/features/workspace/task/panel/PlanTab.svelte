@@ -44,7 +44,7 @@
       <div class="pb-5">
         <p class="font-medium leading-6 {step.state === 'pending' ? 'text-[var(--brand-text-secondary)]' : ''}">{step.title}</p>
         <p class="text-xs text-[var(--brand-text-tertiary)]">{labels[step.state]}</p>
-        {#if step.detail !== undefined}<p class="mt-1 text-sm text-[var(--brand-text-secondary)]">{step.detail}</p>{/if}
+        {#if step.detail !== undefined}<DocText class="mt-1 text-sm text-[var(--brand-text-secondary)]" text={step.detail} />{/if}
       </div>
     </li>
   {/each}

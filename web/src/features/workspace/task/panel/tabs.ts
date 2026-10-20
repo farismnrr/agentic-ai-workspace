@@ -1,7 +1,8 @@
-export type PanelTab = 'plan' | 'team' | 'proof' | 'changes' | 'files';
+export type PanelTab = 'plan' | 'documents' | 'team' | 'proof' | 'changes' | 'files';
 
 const allTabs: { id: PanelTab; label: string }[] = [
   { id: 'plan', label: 'Plan' },
+  { id: 'documents', label: 'Documents' },
   { id: 'team', label: 'Team' },
   { id: 'proof', label: 'Proof' },
   { id: 'changes', label: 'Changes' },

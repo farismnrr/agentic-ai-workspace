@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DocText from '../../components/DocText.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import type { PlanState } from '../../logic/task-types';
 
@@ -30,7 +31,7 @@
     {#each rows as row, index (index)}
       <li class="flex gap-2">
         <span class="badge badge-sm shrink-0 {row.state === 'failed' ? 'badge-error' : row.state === 'done' ? 'badge-primary' : 'badge-outline'}">{marks[row.state]}</span>
-        <span class="min-w-0">{row.title}</span>
+        <span class="min-w-0"><DocText text={row.title} /></span>
       </li>
     {/each}
   </ul>

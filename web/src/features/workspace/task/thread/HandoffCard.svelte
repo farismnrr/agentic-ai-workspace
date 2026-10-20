@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DocText from '../../components/DocText.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import { effortLabel } from '../../logic/effort';
   import type { HandoffState } from '../../logic/task-types';
@@ -29,5 +30,5 @@
     {#if engine !== '' && state === 'assigned'}<span class="hidden shrink-0 text-xs text-[var(--brand-text-tertiary)] sm:inline">{engine}</span>{/if}
     {#if detail !== undefined && detail !== ''}<Icon name="chevron-down" class="size-3.5 shrink-0 transition-transform group-open:rotate-180" />{/if}
   </summary>
-  {#if detail !== undefined && detail !== ''}<p class="mt-2 whitespace-pre-wrap wrap-anywhere rounded-md bg-base-200 px-3 py-2 text-sm">{detail}</p>{/if}
+  {#if detail !== undefined && detail !== ''}<div class="mt-2 rounded-md bg-base-200 px-3 py-2"><DocText text={detail} /></div>{/if}
 </details>

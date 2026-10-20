@@ -19,9 +19,9 @@
       <h3 class="font-sans {block.level === 1 ? 'text-base' : 'text-sm'} font-semibold {index === 0 ? '' : 'mt-2'}"><InlineText text={block.text} /></h3>
     {:else if block.kind === 'list'}
       {#if block.ordered}
-        <ol class="list-decimal pl-5">{#each block.items as item, at (at)}<li class={indent[item.depth]}><InlineText text={item.text} /></li>{/each}</ol>
+        <ol class="list-decimal pl-5">{#each block.items as item, at (at)}<li class={indent[item.depth]}>{#if item.checked !== undefined}<span aria-label={item.checked ? 'Completed' : 'Not completed'} class="mr-1">{item.checked ? '☑' : '☐'}</span>{/if}<InlineText text={item.text} /></li>{/each}</ol>
       {:else}
-        <ul class="list-disc pl-5">{#each block.items as item, at (at)}<li class={indent[item.depth]}><InlineText text={item.text} /></li>{/each}</ul>
+        <ul class="list-disc pl-5">{#each block.items as item, at (at)}<li class={indent[item.depth]}>{#if item.checked !== undefined}<span aria-label={item.checked ? 'Completed' : 'Not completed'} class="mr-1">{item.checked ? '☑' : '☐'}</span>{/if}<InlineText text={item.text} /></li>{/each}</ul>
       {/if}
     {:else if block.kind === 'code'}
       <pre class="overflow-x-auto rounded-lg border border-base-300 bg-base-200 p-3 font-mono text-xs leading-5"><code>{block.text}</code></pre>
@@ -32,6 +32,8 @@
           <tbody>{#each block.rows as row, r (r)}<tr>{#each row as cell, at (at)}<td><InlineText text={cell} /></td>{/each}</tr>{/each}</tbody>
         </table>
       </div>
+    {:else if block.kind === 'quote'}
+      <blockquote class="border-l-2 border-base-300 pl-3 text-base-content/80"><InlineText text={block.text} /></blockquote>
     {:else if block.kind === 'rule'}
       <hr class="my-1 border-base-300" />
     {:else}
