@@ -27,16 +27,23 @@ func (r *Runner) turn(
 	}
 
 	system := r.system(ctx, task, state)
-	messages := r.compactIfNeeded(ctx, task, state, compaction{client: client, system: system, tools: offered}, transcript)
+	shrink := compaction{client: client, system: system, tools: offered}
+	messages := r.compactIfNeeded(ctx, task, state, shrink, transcript)
 
 	if !state.noImages {
 		messages = r.withImages(ctx, task, messages)
 	}
 
-	reply, err := r.askSeeing(ctx, client, Request{
+	request := Request{
 		Model: task.Model, System: system, Effort: task.Effort, Messages: orderBlocks(messages), OnText: r.streamTo(task.ID),
 		Tools: offered,
-	}, state)
+	}
+
+	reply, err := r.askSeeing(ctx, client, request, state)
+	if isOverflow(err) {
+		reply, err = r.askShorter(ctx, task, state, shrink, client, request)
+	}
+
 	if err != nil {
 		return r.modelFailure(ctx, err), true
 	}

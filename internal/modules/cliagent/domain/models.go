@@ -10,6 +10,8 @@ type Model struct {
 	ID      string
 	Name    string
 	Efforts []string
+	// ContextWindow is how many tokens the model holds at once, when the program says; zero when it does not.
+	ContextWindow int64
 }
 
 // Claude Code lists no models a person can reach, so these are its own names, from its documentation: the

@@ -22,7 +22,8 @@ type codexCatalog struct {
 		Levels     []struct {
 			Effort string `json:"effort"`
 		} `json:"supported_reasoning_levels"`
-		Priority int `json:"priority"`
+		Priority int   `json:"priority"`
+		Window   int64 `json:"context_window"`
 	} `json:"models"`
 }
 
@@ -54,7 +55,7 @@ func ParseCodexCatalog(printed []byte) ([]Model, error) {
 			efforts = append(efforts, level.Effort)
 		}
 
-		models = append(models, Model{ID: item.Slug, Name: item.Name, Efforts: efforts})
+		models = append(models, Model{ID: item.Slug, Name: item.Name, Efforts: efforts, ContextWindow: item.Window})
 	}
 
 	if len(models) == 0 {

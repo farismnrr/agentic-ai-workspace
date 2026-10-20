@@ -8,6 +8,9 @@ import (
 
 // claudeLine is one line of `claude -p --output-format stream-json`.
 type claudeLine struct {
+	ModelUsage map[string]struct {
+		Window int64 `json:"contextWindow"`
+	} `json:"modelUsage"`
 	Event struct {
 		Delta struct {
 			Type string `json:"type"`
@@ -19,8 +22,32 @@ type claudeLine struct {
 	Result    string `json:"result"`
 	Message   struct {
 		Content json.RawMessage `json:"content"`
+		Usage   claudeUsage     `json:"usage"`
 	} `json:"message"`
 	IsError bool `json:"is_error"`
+}
+
+// claudeUsage is what one call to the model carried: the new input, what was read from its cache, and the answer.
+type claudeUsage struct {
+	Input, Output, CacheRead, CacheWrite int64
+}
+
+// UnmarshalJSON reads the program's field names.
+func (u *claudeUsage) UnmarshalJSON(raw []byte) error {
+	var in struct {
+		Input      int64 `json:"input_tokens"`
+		Output     int64 `json:"output_tokens"`
+		CacheRead  int64 `json:"cache_read_input_tokens"`
+		CacheWrite int64 `json:"cache_creation_input_tokens"`
+	}
+
+	if err := json.Unmarshal(raw, &in); err != nil {
+		return nil //nolint:nilerr // a usage that cannot be read only leaves the meter empty
+	}
+
+	*u = claudeUsage{Input: in.Input, Output: in.Output, CacheRead: in.CacheRead, CacheWrite: in.CacheWrite}
+
+	return nil
 }
 
 type claudeBlock struct {
@@ -61,6 +88,10 @@ func (c *claude) line(raw []byte) {
 			c.out.emit(application.CLIEvent{Kind: application.CLIDelta, Text: line.Event.Delta.Text})
 		}
 	case "assistant", "user":
+		if u := line.Message.Usage; line.Type == "assistant" && u.Input+u.CacheRead+u.CacheWrite > 0 {
+			c.out.used = u.Input + u.CacheRead + u.CacheWrite + u.Output
+		}
+
 		c.blocks(line.Message.Content)
 	case "result":
 		c.finish(line)
@@ -143,6 +174,10 @@ func commandStep(in claudeInput, failed bool) application.CLIEvent {
 func (c *claude) finish(line claudeLine) {
 	c.out.session = line.SessionID
 	c.out.summary = line.Result
+
+	for _, usage := range line.ModelUsage {
+		c.out.window = max(c.out.window, usage.Window)
+	}
 
 	if line.IsError {
 		c.out.reason = "Claude stopped: " + brief(line.Result, errorChars)

@@ -74,6 +74,9 @@ type CLIResult struct {
 	Summary string
 	// Reason, when set, says in plain words why the turn failed.
 	Reason string
+	// Used is the tokens the program's last call to its model carried, and Window the model's window as the
+	// program reports it; zero when it says nothing.
+	Used, Window int64
 }
 
 // CLIRunner runs a person's own plan through the vendor's coding program, in the project's folder.

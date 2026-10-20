@@ -67,6 +67,7 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 	if result.Session != "" {
 		_ = r.deps.Sessions.SaveSession(ctx, task.ID, result.Session)
 	}
+	runner.saveMeter(ctx, task, result)
 
 	if lead != nil && lead.stopped != nil {
 		sink.flush(ctx)

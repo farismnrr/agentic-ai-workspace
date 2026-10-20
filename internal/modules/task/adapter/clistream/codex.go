@@ -25,6 +25,9 @@ type codexLine struct {
 			Path string `json:"path"`
 		} `json:"changes"`
 	} `json:"item"`
+	Usage struct {
+		Input int64 `json:"input_tokens"`
+	} `json:"usage"`
 }
 
 type codex struct{ out *Stream }
@@ -42,6 +45,8 @@ func (c *codex) line(raw []byte) {
 		c.out.session = line.ThreadID
 	case "item.completed":
 		c.item(line)
+	case "turn.completed":
+		c.out.used = line.Usage.Input
 	case "turn.failed":
 		c.out.reason = "ChatGPT stopped: " + brief(line.Error.Message, errorChars)
 	}
