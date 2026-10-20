@@ -13,6 +13,7 @@ import (
 var errBadMessage = errors.New("say who wrote the message (user or assistant) and what it says")
 
 type logInput struct {
+	Target
 	Role string `json:"role" jsonschema:"user for what the person asked, assistant for your answer"`
 	Text string `json:"text" jsonschema:"the message, or a short summary of your answer"`
 }

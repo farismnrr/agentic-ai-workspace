@@ -6,6 +6,8 @@ import "context"
 type identity struct {
 	User   string
 	Client string
+	// Project is the Project ID the call asked for; empty means the app's own project.
+	Project string
 }
 
 // whoami needs the token's user, which the guard has already verified; the

@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
+	projectdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/domain"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
 	spacedomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/domain"
 )
@@ -23,18 +25,70 @@ type appWorkspaces struct {
 	tools    *agentTools
 }
 
-// For returns the use cases bound to the project the app works in, making the project on first use.
-func (w appWorkspaces) For(ctx context.Context, userID, client string) (codingmcp.Services, error) {
-	if client == "" {
-		client = unnamedApp
+// For returns the use cases bound to a project: the one named by its Project ID, or, when the call names none,
+// the app's own project, made on first use. A person's other projects are open to their connected apps by ID.
+func (w appWorkspaces) For(ctx context.Context, userID, client, project string) (codingmcp.Services, error) {
+	if project != "" {
+		found, err := w.byID(ctx, userID, project)
+		if err != nil {
+			return codingmcp.Services{}, err
+		}
+
+		return w.tools.services(found.ID)
 	}
 
-	project, err := w.projects.ForApp(ctx, userID, client)
+	own, err := w.projects.ForApp(ctx, userID, appName(client))
 	if err != nil {
 		return codingmcp.Services{}, fmt.Errorf("open the app's project: %w", err)
 	}
 
-	return w.tools.services(project.ID)
+	return w.tools.services(own.ID)
+}
+
+// Projects lists the person's projects and marks the app's own.
+func (w appWorkspaces) Projects(ctx context.Context, userID, client string) ([]codingmcp.ProjectInfo, error) {
+	own, err := w.projects.ForApp(ctx, userID, appName(client))
+	if err != nil {
+		return nil, fmt.Errorf("open the app's project: %w", err)
+	}
+
+	all, err := w.projects.List(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list projects: %w", err)
+	}
+
+	infos := make([]codingmcp.ProjectInfo, 0, len(all))
+	for _, project := range all {
+		infos = append(infos, codingmcp.ProjectInfo{
+			ID: project.Slug, Name: project.Name, Description: project.Description, Default: project.ID == own.ID,
+		})
+	}
+
+	return infos, nil
+}
+
+// byID finds one of the person's active projects by its Project ID.
+func (w appWorkspaces) byID(ctx context.Context, userID, id string) (projectdomain.Project, error) {
+	all, err := w.projects.List(ctx, userID)
+	if err != nil {
+		return projectdomain.Project{}, fmt.Errorf("list projects: %w", err)
+	}
+
+	for _, project := range all {
+		if strings.EqualFold(project.Slug, id) {
+			return project, nil
+		}
+	}
+
+	return projectdomain.Project{}, codingdomain.ErrUnknownProject
+}
+
+func appName(client string) string {
+	if client == "" {
+		return unnamedApp
+	}
+
+	return client
 }
 
 // toolGate is the one switchboard for both the agent and connected apps.
