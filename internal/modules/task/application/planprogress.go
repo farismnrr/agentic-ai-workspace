@@ -12,7 +12,7 @@ import (
 // handed to them, and done or failed when they report. The orchestrator is told to keep the plan current but
 // does not reliably, and a plan that says "Not started" for finished work is worse than none. A step that names
 // no teammate is left to the orchestrator.
-func (r *Runner) trackPlan(ctx context.Context, task domain.Task, d Delegation, to domain.PlanState) {
+func (r *Runner) trackPlan(ctx context.Context, task domain.Task, d Delegation, to domain.PlanState, detail string) {
 	current, err := r.deps.Tasks.Find(ctx, "", task.ID)
 	if err != nil || len(current.Plan) == 0 {
 		return
@@ -28,6 +28,10 @@ func (r *Runner) trackPlan(ctx context.Context, task domain.Task, d Delegation, 
 	for _, state := range from {
 		if at := stepFor(steps, d, state); at >= 0 {
 			steps[at].State = to
+			if detail != "" {
+				steps[at].Detail = detail
+			}
+
 			_ = r.deps.Tasks.SavePlan(ctx, task.ID, steps, r.deps.Now())
 
 			return

@@ -37,7 +37,9 @@ func TestWorkReachesReviewWithPlanAndVerifiedProof(t *testing.T) {
 		t.Fatalf("expected review with plan and summary: %+v", done)
 	}
 
-	want := []domain.EventKind{domain.EventRequest, domain.EventAction, domain.EventAction, domain.EventReceipt}
+	want := []domain.EventKind{
+		domain.EventRequest, domain.EventPlan, domain.EventAction, domain.EventAction, domain.EventReceipt,
+	}
 	if got := r.kinds(task.ID); !slices.Equal(got, want) {
 		t.Fatalf("thread = %v, want %v", got, want)
 	}

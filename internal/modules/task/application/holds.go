@@ -9,6 +9,8 @@ type holds struct {
 	siteAsked int
 	// localAsked counts finishes sent back for naming 127.0.0.1 or localhost.
 	localAsked int
+	// planAsked counts jobs held back because the person's latest request was not in the plan yet.
+	planAsked int
 	// securityAsked counts finishes held back for the Security check of the final code.
 	securityAsked int
 	// architectAsked counts finishes held back for the Architect's check of the final code.

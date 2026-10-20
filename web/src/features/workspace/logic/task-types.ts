@@ -47,6 +47,7 @@ export type TaskEvent =
   | (EventBase & { kind: 'receipt'; text: string })
   | (EventBase & { kind: 'site'; text: string; url: string })
   | (EventBase & { kind: 'shot'; text: string; image: string })
+  | (EventBase & { kind: 'plan'; text: string; technical: string })
   | (EventBase & { kind: 'prd'; text: string; technical: string })
   | (EventBase & { kind: 'research'; text: string; technical: string })
   | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string });

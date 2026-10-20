@@ -21,6 +21,9 @@ const (
 	EventShot EventKind = "shot"
 	// EventResearch is research notes a teammate wrote; its text is the document.
 	EventResearch EventKind = "research"
+	// EventPlan marks the plan (the team's todo list) being set or changed; Text says how far it is and Technical
+	// lists the steps.
+	EventPlan EventKind = "plan"
 	// EventPRD is the product requirements document a teammate wrote; its text is the document.
 	EventPRD EventKind = "prd"
 )

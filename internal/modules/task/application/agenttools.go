@@ -15,7 +15,7 @@ const (
 )
 
 const (
-	maxPlanSteps = 12
+	maxPlanSteps = 40
 	maxText      = 600
 	maxOptions   = 8
 	maxChecks    = 8
@@ -24,8 +24,12 @@ const (
 func agentTools() []domain.ToolDef {
 	return []domain.ToolDef{
 		{
-			Name:        toolUpdatePlan,
-			Description: "Set or update the plan shown to the person: 3 to 6 short steps in plain words, each with a state.",
+			Name: toolUpdatePlan,
+			Description: "Set or update the plan, the team's todo list that the person follows. Send the whole list " +
+				"every time: keep the finished steps, change or add the steps for the person's newest request (3 to 6 " +
+				"short steps in plain words for it; one to three for a small job), and begin each step with the " +
+				"teammate who does it, such as " +
+				"\"Developer: add the login page\". Each step has a state.",
 			Schema: json.RawMessage(`{"type":"object","properties":{"steps":{"type":"array","items":{"type":"object",` +
 				`"properties":{"title":{"type":"string"},"detail":{"type":"string"},` +
 				`"state":{"type":"string","enum":["pending","active","done","failed"]}},"required":["title","state"]}}},` +

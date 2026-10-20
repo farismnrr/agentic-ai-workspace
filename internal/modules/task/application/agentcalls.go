@@ -70,13 +70,14 @@ func (r *Runner) askedEnough(ctx context.Context, task domain.Task, adding int) 
 func (r *Runner) updatePlan(ctx context.Context, task domain.Task, call Call) {
 	steps, ok := parsePlan(call.Input)
 	if !ok {
-		r.result(ctx, task, call.ID, "update_plan needs 1 to 12 steps, each with a title and a state.", true)
+		r.result(ctx, task, call.ID, "update_plan needs 1 to 40 steps, each with a title and a state.", true)
 
 		return
 	}
 
 	_ = r.deps.Tasks.SavePlan(ctx, task.ID, steps, r.deps.Now())
 	_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
+	r.recordPlan(ctx, task, steps)
 	r.result(ctx, task, call.ID, "Plan saved.", false)
 }
 

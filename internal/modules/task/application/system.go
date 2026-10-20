@@ -35,7 +35,7 @@ func (r *Runner) system(ctx context.Context, task domain.Task, state *runState) 
 
 	prompt := systemPrompt(project, persona, installed, github)
 	if state.roster != nil {
-		prompt += teamPrompt(*state.roster)
+		prompt += teamPrompt(*state.roster) + r.planPrompt(ctx, task)
 	}
 
 	return prompt

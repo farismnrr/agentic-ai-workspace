@@ -11,7 +11,7 @@
     research?: string | undefined;
   }
 
-  const labels: Record<PlanState, string> = { done: 'Done', active: 'In progress', pending: 'Not started', failed: "Didn't work" };
+  const labels: Record<PlanState, string> = { done: 'Done', active: 'In progress', pending: 'Not started', failed: 'Stuck or failed' };
 
   const { plan, prd = '', research = '' }: Props = $props();
 </script>
