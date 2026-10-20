@@ -52,7 +52,11 @@ var (
 		"Find lines containing some text across the coding workspace.")
 	ToolListTasks = readTool("list_tasks", "List tasks",
 		"List the named tasks (such as tests) that run_task can run.")
-	ToolWhoami     = readTool("whoami", "Current account", "Return the signed-in account's stable id.")
+	ToolWhoami       = readTool("whoami", "Current account", "Return the signed-in account's stable id.")
+	ToolListProjects = readTool("list_projects", "List projects",
+		"List the person's projects with their Project IDs, and which one is yours by default. Give a Project ID as "+
+			"project to any other tool to work in that project, for example to read its files or start its web app; "+
+			"leave project out to work in your own project. Ask the person which project they mean when it is not clear.")
 	ToolLogMessage = ToolInfo{
 		Name: "log_message", Title: "Save the conversation", Scope: ScopeRead, Group: GroupRead, DefaultOn: true,
 		Description: "Save a message of this conversation in the person's tasks, so they can read it later in the app. " +
@@ -87,8 +91,8 @@ var (
 		Name: "start_site", Title: "Start the web app", Scope: ScopeExec, Group: GroupExec,
 		Description: "Start a web app in the sandbox so the person can open it in their browser. The command " +
 			"must keep running and listen on 127.0.0.1 at the given port. The page is opened under a path, so the " +
-			"server removes that path before the request reaches the app: every link, form, stylesheet, script, " +
-			"fetch and redirect must be relative (./style.css, ../style.css from a folder), never start with /. " +
+			"server removes that path before the request reaches the app, and puts it back on links that start " +
+			"with /; relative links (./style.css, ../style.css from a folder) are still the safest. " +
 			"The result lists links that would fail. Use a production-style server, not a dev server with hot reload. " +
 			"Pages run in a " +
 			"sandbox: cookies, localStorage and service workers do not work. Starting again replaces the running app.",
@@ -151,7 +155,8 @@ func IsWebTool(name string) bool {
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {
 	return []ToolInfo{
-		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolLogMessage,
+		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolListProjects,
+		ToolLogMessage,
 		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand,
 	}
 }

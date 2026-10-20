@@ -69,7 +69,7 @@ func guarded[In, Out any](
 		}
 
 		state := &callState{}
-		who := context.WithValue(ctx, identityKey{}, identity{User: token.UserID, Client: client})
+		who := context.WithValue(ctx, identityKey{}, identity{User: token.UserID, Client: client, Project: projectOf(in)})
 
 		out, rep, err := run(context.WithValue(who, stateKey{}, state), in)
 		entry.Project = state.project

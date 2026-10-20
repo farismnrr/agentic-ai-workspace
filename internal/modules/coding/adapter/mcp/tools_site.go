@@ -22,6 +22,7 @@ type SiteStart struct {
 }
 
 type startSiteInput struct {
+	Target
 	Command string `json:"command" jsonschema:"shell command that starts the server and keeps running"`
 	Port    int    `json:"port" jsonschema:"the port it listens on, 1024 to 65535"`
 }
@@ -36,7 +37,7 @@ func (t *tools) addSiteTools(server *sdk.Server) {
 	sdk.AddTool(server, toolOf(domain.ToolStartSite), guarded(t.guard, domain.ToolStartSite,
 		func(in startSiteInput) string { return "start web app: " + in.Command }, t.startSite))
 	sdk.AddTool(server, toolOf(domain.ToolStopSite), guarded(t.guard, domain.ToolStopSite,
-		func(struct{}) string { return "stop web app" }, t.stopSite))
+		func(Target) string { return "stop web app" }, t.stopSite))
 }
 
 func (t *tools) startSite(ctx context.Context, in startSiteInput) (siteOutput, report, error) {
@@ -55,7 +56,7 @@ func (t *tools) startSite(ctx context.Context, in startSiteInput) (siteOutput, r
 	return siteOutput{Running: true, URL: started.Link, Message: message}, report{detail: "running"}, nil
 }
 
-func (t *tools) stopSite(ctx context.Context, _ struct{}) (siteOutput, report, error) {
+func (t *tools) stopSite(ctx context.Context, _ Target) (siteOutput, report, error) {
 	svc, err := t.services(ctx)
 	if err != nil {
 		return siteOutput{}, report{}, err

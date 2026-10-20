@@ -23,6 +23,16 @@ Each connected app works in its own project, named after it (ChatGPT works in "C
 - No one can see anyone else's projects.
 - Projects are deleted with the account.
 
+## Working in your other projects
+
+Tell the AI app which project you mean, such as "work in sensio". It lists your projects and uses the Project ID.
+
+- Every active project of yours is open to your connected apps, by its Project ID.
+- Without a project, the app stays in its own project ("ChatGPT").
+- It can read, edit, run checks and start the web app of the project you named.
+- The same tool switches and approvals apply as in its own project.
+- The web app still opens from Sites and stays private.
+
 Every check runs in its own throwaway container:
 
 - It sees only that project's folder, as `/workspace`, plus a private `/tmp` and download cache.

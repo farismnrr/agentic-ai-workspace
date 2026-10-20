@@ -11,6 +11,7 @@ import (
 )
 
 type editInput struct {
+	Target
 	Path       string `json:"path" jsonschema:"file to change, relative to the workspace root"`
 	OldText    string `json:"old_text" jsonschema:"exact text to replace; must be unique unless replace_all is set"`
 	NewText    string `json:"new_text" jsonschema:"the replacement text"`
@@ -18,15 +19,18 @@ type editInput struct {
 }
 
 type writeInput struct {
+	Target
 	Path    string `json:"path" jsonschema:"file to create or replace, relative to the workspace root"`
 	Content string `json:"content" jsonschema:"the complete new content of the file"`
 }
 
 type deleteInput struct {
+	Target
 	Path string `json:"path" jsonschema:"file to delete, relative to the workspace root"`
 }
 
 type moveInput struct {
+	Target
 	From string `json:"from" jsonschema:"current path of the file"`
 	To   string `json:"to" jsonschema:"new path; it must not exist yet"`
 }

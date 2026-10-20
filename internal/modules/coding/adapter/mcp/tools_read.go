@@ -12,6 +12,7 @@ import (
 )
 
 type listInput struct {
+	Target
 	Path string `json:"path,omitempty" jsonschema:"directory relative to the workspace root; defaults to the root"`
 }
 
@@ -27,6 +28,7 @@ type listOutput struct {
 }
 
 type findInput struct {
+	Target
 	Pattern string `json:"pattern" jsonschema:"glob such as **/*.go or src/*.ts; ** spans folders"`
 	Path    string `json:"path,omitempty" jsonschema:"directory to search in; defaults to the workspace root"`
 }
@@ -37,6 +39,7 @@ type findOutput struct {
 }
 
 type readInput struct {
+	Target
 	Path      string `json:"path" jsonschema:"file path relative to the workspace root"`
 	StartLine int    `json:"start_line,omitempty" jsonschema:"first line to return (1-based); defaults to the first line"`
 	EndLine   int    `json:"end_line,omitempty" jsonschema:"last line to return, inclusive; defaults to the last line"`
@@ -50,6 +53,7 @@ type readOutput struct {
 }
 
 type searchInput struct {
+	Target
 	Query         string `json:"query" jsonschema:"text to look for (matched literally, not as a regular expression)"`
 	Path          string `json:"path,omitempty" jsonschema:"directory to search in; defaults to the workspace root"`
 	CaseSensitive bool   `json:"case_sensitive,omitempty" jsonschema:"match upper and lower case exactly"`
@@ -75,7 +79,7 @@ func (t *tools) addReadTools(server *sdk.Server) {
 	sdk.AddTool(server, toolOf(domain.ToolSearchCode), guarded(t.guard, domain.ToolSearchCode,
 		func(in searchInput) string { return "search " + strconv.Quote(in.Query) }, t.searchCode))
 	sdk.AddTool(server, toolOf(domain.ToolListTasks), guarded(t.guard, domain.ToolListTasks,
-		func(struct{}) string { return "list tasks" }, t.listTasks))
+		func(Target) string { return "list tasks" }, t.listTasks))
 	sdk.AddTool(server, toolOf(domain.ToolWhoami), guarded(t.guard, domain.ToolWhoami,
 		func(struct{}) string { return "whoami" }, t.whoami))
 }

@@ -21,6 +21,7 @@ type tasksOutput struct {
 }
 
 type runInput struct {
+	Target
 	Name string `json:"name" jsonschema:"task name from list_tasks"`
 }
 
@@ -34,6 +35,7 @@ type runOutput struct {
 }
 
 type commandInput struct {
+	Target
 	Command        string `json:"command" jsonschema:"shell command line, run with bash in the sandbox"`
 	TimeoutSeconds int    `json:"timeout_seconds,omitempty" jsonschema:"stop after this many seconds (max 600)"`
 }
@@ -81,7 +83,7 @@ func runNote(name string, result application.RunResult) *RunNote {
 	return &RunNote{Name: name, ExitCode: result.ExitCode, TimedOut: result.TimedOut}
 }
 
-func (t *tools) listTasks(ctx context.Context, _ struct{}) (tasksOutput, report, error) {
+func (t *tools) listTasks(ctx context.Context, _ Target) (tasksOutput, report, error) {
 	svc, err := t.services(ctx)
 	if err != nil {
 		return tasksOutput{}, report{}, err

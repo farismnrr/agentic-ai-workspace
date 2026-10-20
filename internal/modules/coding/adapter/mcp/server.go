@@ -35,7 +35,11 @@ type Options struct {
 // Workspaces gives each connected app a project of the person's own to work in. A call can only ever
 // reach the project of the person whose token it carries, named after the app that made it.
 type Workspaces interface {
-	For(ctx context.Context, userID, client string) (Services, error)
+	// For returns the services of the project named by its Project ID, or of the app's own project when project is
+	// empty. It fails with domain.ErrUnknownProject for an ID that is none of the person's projects.
+	For(ctx context.Context, userID, client, project string) (Services, error)
+	// Projects lists the person's projects, marking the one that is the app's own.
+	Projects(ctx context.Context, userID, client string) ([]ProjectInfo, error)
 }
 
 type tools struct {
@@ -50,7 +54,7 @@ func (t *tools) services(ctx context.Context) (Services, error) {
 		return Services{}, errNoIdentity
 	}
 
-	services, err := t.workspaces.For(ctx, who.User, who.Client)
+	services, err := t.workspaces.For(ctx, who.User, who.Client, who.Project)
 	if err != nil {
 		return Services{}, fmt.Errorf("open workspace: %w", err)
 	}
@@ -73,6 +77,7 @@ func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	t.addExecTools(server)
 	t.addLogTools(server)
 	t.addSiteTools(server)
+	t.addProjectTools(server)
 
 	return server
 }
@@ -108,5 +113,5 @@ var knownErrors = []error{
 	domain.ErrDenied, domain.ErrNotFound, domain.ErrIsDir, domain.ErrNotDir, domain.ErrBinary, domain.ErrEmptyQuery,
 	domain.ErrTooLarge, domain.ErrExists, domain.ErrNotUnique, domain.ErrNoMatch, domain.ErrBadRange,
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
-	domain.ErrServerBusy, errBadMessage,
+	domain.ErrServerBusy, domain.ErrUnknownProject, errBadMessage,
 }
