@@ -39,6 +39,19 @@ is stored and which routes take input. Skip nothing you can read in a few minute
 - Accounts: password length of at least 10, passwords never logged or returned, rate limit on `/api/auth/**`, cookies
   that are `HttpOnly` and, on https, `Secure`.
 
+## 3b. A browser extension
+An extension runs inside the person's own browser, with their logins, so check it harder than a web app. Read
+`manifest.json` of the build (`.output/chrome-mv3`) and the code:
+- Every permission and host pattern needs a reason in the feature. `<all_urls>`, `cookies`, `history`, `webRequest`,
+  `debugger`, `management` and `nativeMessaging` are "Fix first" unless the request is exactly about them.
+- Remote code: a script loaded from the web, `eval`, `new Function`, `innerHTML` with page text, an inline script in a
+  page of the extension.
+- Data leaving the browser: any `fetch` or `XMLHttpRequest` to an address that is not named in the brief, and any
+  page text, form value, cookie or tab address that goes into it. The extension must not read passwords or form fields.
+- A content script that trusts the page it runs in (messages from the page, `window.postMessage` without an origin
+  check, storing what a page sends).
+- Secrets (keys, tokens) in the package: anyone who unzips it can read them.
+
 ## 4. Report
 Call `report` with a short summary that starts with a verdict: **Safe to start**, or **Fix first**.
 Then a table of findings: severity (critical, high, medium, low), what it is in plain words, where, and the fix.

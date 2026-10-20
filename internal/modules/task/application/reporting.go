@@ -34,6 +34,13 @@ func (r *Runner) report(ctx context.Context, task domain.Task, call Call, descri
 	r.logStep(ctx, task, call, event, result.IsError)
 	r.announceFiles(task, call)
 
+	if result.ExtensionLink != "" && !result.IsError {
+		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
+			Kind: domain.EventExtension, Text: "Your extension is ready to install", URL: result.ExtensionLink,
+			Time: r.deps.Now(),
+		})
+	}
+
 	if result.Link != "" && !result.IsError {
 		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
 			Kind: domain.EventSite, Text: "Your app is running", URL: result.Link, Time: r.deps.Now(),

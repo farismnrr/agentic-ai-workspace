@@ -23,7 +23,8 @@ func (g *fakeGate) Enabled(context.Context, string) (map[string]bool, error) {
 	on := map[string]bool{}
 
 	known := []string{
-		"read_file", "edit_file", "write_file", "delete_file", "run_task", "run_command", "start_site", "screenshot", "test",
+		"read_file", "edit_file", "write_file", "delete_file", "run_task", "run_command", "start_site", "screenshot",
+		"test", "deploy_extension",
 	}
 
 	for _, name := range known {

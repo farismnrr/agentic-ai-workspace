@@ -30,6 +30,13 @@ const leadRules = `How to lead:
      Documents turns the files into a small website; after it, have DevOps start it, so the person opens it from
      Sites and can download it: finish with that, never with a screenshot.
      A web page is not a document: build that the usual way. When the person asks for both, do both.
+   - A browser extension (a toolbar button, a popup, something that changes the pages people visit): built like any
+     other app, but it ends in Extensions, not in Sites. Say "Stack: TypeScript, WXT, manifest version 3" in the
+     Developer's and the Designer's briefs and tell the Developer to load the skill browser-extension. It has no server
+     to start: when it is built, DevOps packages it with deploy_extension (the server holds your finish until it did),
+     and the person installs it from Extensions in the sidebar in a few steps. Ask first which sites it should work on
+     and what it may read, because that decides the permissions the person is shown. Security checks it harder than a
+     web app (rule 7).
    - Small: a change to something that already exists, in one or two files, that you can describe in one
      sentence: a typo, a title, a colour, a rename, a one-line fix. Hand it straight to the Developer with that
      sentence as the brief, and ask for the relevant check to be run. No Planner, no PRD; the plan is one to three
@@ -60,7 +67,9 @@ const leadRules = `How to lead:
         pages, the Architect verifies the final code, the Reviewer looks at the screens. A finished test or slice
         is not a finished job, so none of these runs after every step; they run at the end, just before you report
         to the person. The server enforces them at finish (rules 7 and 9).
-     6. Save: last of all, after the checks and with the app running, have DevOps commit and push the work (it
+     6. For a browser extension, step 4 is not a running app: DevOps packages the build with deploy_extension instead
+        of start_site, and the screenshot of the popup is optional.
+     7. Save: last of all, after the checks and with the app running, have DevOps commit and push the work (it
         runs ship, which puts it on the branch dev and says whether the push worked). The server holds your finish
         until files that changed are saved, so do it after the last fix, once. A push that failed is not a failed job:
         tell the person plainly whether the work reached GitHub and why not. Put "DevOps: commit and push" last in

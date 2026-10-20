@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { loadProjects } from './projects-api';
+import { loadExtensions, type Extension } from './extensions-api';
 import { loadSites, type Site } from './sites-api';
 import { loadTasks } from './tasks-api';
 import type { Project, Task } from './task-types';
@@ -7,6 +8,7 @@ import type { Project, Task } from './task-types';
 export const projects = writable<Project[]>([]);
 export const tasks = writable<Task[]>([]);
 export const sites = writable<Site[]>([]);
+export const extensions = writable<Extension[]>([]);
 export const loaded = writable(false);
 /** The project the next task goes to; set when someone starts a task from a project page. */
 export const chosenProject = writable('');
@@ -17,10 +19,11 @@ const debounce = 150;
 /** Reloads projects and tasks; failures keep what is already shown. */
 export async function refresh(): Promise<void> {
   try {
-    const [nextProjects, nextTasks, nextSites] = await Promise.all([loadProjects(), loadTasks(), loadSites()]);
+    const [nextProjects, nextTasks, nextSites, nextExtensions] = await Promise.all([loadProjects(), loadTasks(), loadSites(), loadExtensions()]);
     projects.set(nextProjects);
     tasks.set(nextTasks);
     sites.set(nextSites);
+    extensions.set(nextExtensions);
     loaded.set(true);
   } catch {
     // The next change or fallback poll tries again; stale data is better than an error flash.

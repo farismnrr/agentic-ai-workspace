@@ -127,6 +127,9 @@ func TestTheLibraryIsLimitedToTheRolesGroups(t *testing.T) {
 func TestTheStackSecurityAndArchitecturePlaybooksAreAlwaysOn(t *testing.T) {
 	t.Parallel()
 
+	// Loaded when the job needs them, not put in every prompt.
+	onDemand := map[string]bool{"browser-extension": true}
+
 	playbooks := map[string][]string{
 		"developer": {"clean-code", "delivery-rules", "nuxt-app"}, "architect": {"architecture-review", "stack-defaults"},
 		"security": {"security-review"}, "qa": {"qa-flows"}, "business-analyst": {"requirements"},
@@ -137,7 +140,11 @@ func TestTheStackSecurityAndArchitecturePlaybooksAreAlwaysOn(t *testing.T) {
 
 		for _, skill := range SkillsFor(key) {
 			if !skill.Always {
-				t.Errorf("%s: %s must always be on", key, skill.Name)
+				if !onDemand[skill.Name] {
+					t.Errorf("%s: %s must always be on", key, skill.Name)
+				}
+
+				continue
 			}
 
 			names = append(names, skill.Name)

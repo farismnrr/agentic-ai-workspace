@@ -16,7 +16,8 @@ import (
 // page, while these run on the server (SearXNG for the search, a public-only fetch for the page). The screenshot runs
 // there too, because a program has no browser; the picture cannot cross the bridge, so it gets the report of the page.
 var siteToolNames = []string{
-	toolStartSite, "stop_site", "web_search", "fetch_page", "search_images", "download_asset", "screenshot",
+	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
+	"screenshot",
 }
 
 // siteSession serves the site tools to a teammate's program. Each call goes through the same code as a call of the
