@@ -14,6 +14,8 @@ type Plans interface {
 	Connected(ctx context.Context, userID string) []domain.Provider
 	SetEnabled(ctx context.Context, userID, id string, enabled bool) error
 	SignOut(ctx context.Context, userID, id string) error
+	// SetWindow records the context window the person chose for one of a plan's models.
+	SetWindow(ctx context.Context, userID, id, model string, tokens int64) error
 }
 
 // WithPlans lists the person's own plans among their providers.

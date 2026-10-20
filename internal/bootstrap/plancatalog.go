@@ -17,6 +17,7 @@ var programs = []cliagentdomain.Runtime{cliagentdomain.Claude, cliagentdomain.Ch
 type planCatalog struct {
 	plans    *plans
 	switches *cliagentsqlite.Switches
+	windows  *cliagentsqlite.Windows
 }
 
 // Connected lists the plans the person is signed in to. A plan that cannot be checked right now is left out.
@@ -42,6 +43,7 @@ func (c planCatalog) Connected(ctx context.Context, userID string) []providerdom
 			}
 
 			plan := planProvider(rt, enabled, c.plans.service.Models(ctx, userID, rt))
+			plan.ContextWindows, _ = c.windows.All(ctx, userID, string(rt))
 			found[i] = &plan
 		}()
 	}
@@ -102,6 +104,20 @@ func (c planCatalog) SignOut(ctx context.Context, userID, id string) error {
 
 	if err = c.plans.service.Disconnect(ctx, userID, rt); err != nil {
 		return fmt.Errorf("sign out: %w", err)
+	}
+
+	return nil
+}
+
+// SetWindow records the context window the person chose for one model of a plan.
+func (c planCatalog) SetWindow(ctx context.Context, userID, id, model string, tokens int64) error {
+	rt, err := cliagentdomain.Parse(strings.TrimPrefix(id, providerdomain.PlanPrefix))
+	if err != nil {
+		return fmt.Errorf("find plan: %w", providerdomain.ErrNotFound)
+	}
+
+	if err = c.windows.Set(ctx, userID, string(rt), model, tokens); err != nil {
+		return fmt.Errorf("save plan window: %w", err)
 	}
 
 	return nil
