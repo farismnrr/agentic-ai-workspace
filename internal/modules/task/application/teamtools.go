@@ -29,9 +29,11 @@ func delegateTool(members []AgentRole) domain.ToolDef {
 	schema, _ := json.Marshal(map[string]any{
 		"type": "object",
 		"properties": map[string]any{
-			"role":    map[string]any{"type": "string", "enum": keys},
-			"brief":   map[string]any{"type": "string", "description": "Write a readable Markdown assignment: objective, scope, expected output and acceptance checks. Use bullets, not a run-on line."},
-			"context": map[string]any{"type": "string", "description": "Relevant facts, paths and constraints, preferably Markdown bullets. Do not repeat the brief."},
+			"role": map[string]any{"type": "string", "enum": keys},
+			"brief": map[string]any{"type": "string", "description": "Write a readable Markdown assignment: " +
+				"objective, scope, expected output and acceptance checks. Use bullets, not a run-on line."},
+			"context": map[string]any{"type": "string", "description": "Relevant facts, paths and constraints, " +
+				"preferably Markdown bullets. Do not repeat the brief."},
 			"effort": map[string]any{
 				"type": "string", "enum": []string{"low", "medium", "high", "xhigh", "max"},
 				"description": "Optional. How hard the teammate should think: low for a small obvious job, medium for " +

@@ -46,7 +46,8 @@ func teamPrompt(roster Roster) string {
 	var out strings.Builder
 
 	out.WriteString("\nYou lead a team. Hand work to a teammate with the delegate tool; they report back to you.\n")
-	out.WriteString("When calling delegate, write a structured Markdown brief: objective, relevant scope, expected output, and checks.\n")
+	out.WriteString("When calling delegate, write a structured Markdown brief: objective, relevant scope, " +
+		"expected output, and checks.\n")
 	out.WriteString("Keep separate context factual and concise; avoid a single run-on line.\n")
 	out.WriteString("Your team:\n")
 
