@@ -61,14 +61,28 @@ func (t *tools) services(ctx context.Context) (Services, error) {
 
 	if state, ok := ctx.Value(stateKey{}).(*callState); ok {
 		state.project = services.ProjectID
+
+		if state.begin != nil && !state.started {
+			state.started = true
+			state.begin(services.ProjectID)
+		}
 	}
 
 	return services, nil
 }
 
+// serverInstructions are shown to the app's model when it connects. The person follows the work in their own
+// workspace, and only what the model writes down tells them what they asked for.
+const serverInstructions = "These tools work in the person's own workspace, where they follow your work in a thread. " +
+	"Start each request by calling log_message with role user and what the person asked, in their words. " +
+	"End it by calling log_message with role assistant and a short summary of the result. " +
+	"When the person names a project (such as sensio), call list_projects and give its id as project to the other " +
+	"tools; without a project you work in your own. Start a web app with start_site, never with a shell command."
+
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
-	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"}, nil)
+	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"},
+		&sdk.ServerOptions{Instructions: serverInstructions})
 	g := &guard{gate: opts.Gate, recorder: opts.Recorder, tasks: opts.Tasks, metadataURL: opts.ResourceMetadataURL}
 	t := &tools{workspaces: workspaces, guard: g}
 

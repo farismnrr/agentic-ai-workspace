@@ -23,6 +23,15 @@ Each connected app works in its own project, named after it (ChatGPT works in "C
 - No one can see anyone else's projects.
 - Projects are deleted with the account.
 
+## Following the AI app's work
+
+Each conversation of a connected app shows up as a task, next to the ones the AI team ran.
+
+- Every step is written down: reading, searching, editing and running commands.
+- A command that takes a while shows as "Running: …" while it runs, and the task shows as working until it ends.
+- Your request and the app's answer appear only if the app saves them. The server asks it to, but ChatGPT and Gemini may skip it.
+- Settings, Activity lists every call, whether or not the app saved the conversation.
+
 ## Working in your other projects
 
 Tell the AI app which project you mean, such as "work in sensio". It lists your projects and uses the Project ID.

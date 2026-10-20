@@ -33,7 +33,12 @@ type report struct {
 
 // callState collects what a run learns about the call, such as the project it worked in.
 type callState struct {
+	// begin writes the step that is under way, once the project is known. It is set for calls that take a while.
+	begin   func(project string)
 	project string
+	// taskID is the thread begin wrote into, so end can mark the call over.
+	taskID  string
+	started bool
 }
 
 type stateKey struct{}
@@ -68,53 +73,21 @@ func guarded[In, Out any](
 			return refusal, none, nil
 		}
 
-		state := &callState{}
+		state := g.newState(ctx, info, &entry, req)
 		who := context.WithValue(ctx, identityKey{}, identity{User: token.UserID, Client: client, Project: projectOf(in)})
 
 		out, rep, err := run(context.WithValue(who, stateKey{}, state), in)
+		defer g.end(ctx, state)
+
 		entry.Project = state.project
 
 		if err != nil {
-			entry.Outcome, entry.Detail = OutcomeFailed, UserFacing(err).Error()
-			g.thread(ctx, info, &entry, report{})
-			g.record(ctx, entry)
-
-			return nil, none, UserFacing(err)
+			return nil, none, g.failed(ctx, info, &entry, err)
 		}
 
-		entry.Outcome, entry.Detail, entry.Undo = OutcomeOK, rep.detail, rep.undo
-		if rep.project != "" {
-			entry.Project = rep.project
-		}
-
-		if rep.failed {
-			entry.Outcome = OutcomeFailed
-		}
-
-		g.thread(ctx, info, &entry, rep)
-		g.record(ctx, entry)
+		g.succeeded(ctx, info, &entry, rep)
 
 		return nil, out, nil
-	}
-}
-
-// thread writes the call into the app's thread, so the person can read what the app did. Looking
-// around is not written; a failure to write never turns a finished call into an error.
-func (g *guard) thread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) {
-	note := rep.note
-	if note == nil && info.Group != domain.GroupRead {
-		note = &Note{Kind: NoteAction, Text: entry.Summary, Technical: entry.Detail, Run: rep.run}
-		if entry.Outcome == OutcomeFailed && rep.run == nil {
-			note.Text = "Tried to, but it did not work: " + entry.Summary
-		}
-	}
-
-	if note == nil || g.tasks == nil || entry.Project == "" {
-		return
-	}
-
-	if id, err := g.tasks.Log(ctx, entry.UserID, entry.Client, entry.Project, *note); err == nil {
-		entry.Task = id
 	}
 }
 

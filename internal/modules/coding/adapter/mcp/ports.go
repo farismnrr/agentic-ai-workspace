@@ -68,4 +68,8 @@ type Note struct {
 type TaskLog interface {
 	// Log adds the note to the app's current thread in the project and returns the thread's id.
 	Log(ctx context.Context, userID, client, projectID string, note Note) (string, error)
+	// Begin writes a step that is under way and shows the thread as working until End.
+	Begin(ctx context.Context, userID, client, projectID string, note Note) (string, error)
+	// End says the call that Begin started is over.
+	End(ctx context.Context, taskID string)
 }

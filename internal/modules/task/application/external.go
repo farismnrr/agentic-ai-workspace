@@ -78,3 +78,40 @@ func externalTitle(in RecordInput) string {
 
 	return "Work done by " + in.Source
 }
+
+// Begin writes a step that is under way, such as a command that is still running, and shows the thread as working
+// until End. It returns the id of the thread.
+func (s *Service) Begin(ctx context.Context, userID string, in RecordInput) (string, error) {
+	id, err := s.Record(ctx, userID, in)
+	if err != nil {
+		return "", err
+	}
+
+	s.recording.Lock()
+	s.calls[id]++
+	first := s.calls[id] == 1
+	s.recording.Unlock()
+
+	if first {
+		_ = s.deps.Tasks.SetStatus(ctx, id, domain.StatusWorking, s.deps.Now())
+	}
+
+	return id, nil
+}
+
+// End says one call of the thread is over; the thread is done again when none is left.
+func (s *Service) End(ctx context.Context, taskID string) {
+	s.recording.Lock()
+	s.calls[taskID]--
+	last := s.calls[taskID] <= 0
+
+	if last {
+		delete(s.calls, taskID)
+	}
+
+	s.recording.Unlock()
+
+	if last {
+		_ = s.deps.Tasks.SetStatus(ctx, taskID, domain.StatusDone, s.deps.Now())
+	}
+}
