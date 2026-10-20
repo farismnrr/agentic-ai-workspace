@@ -28,8 +28,10 @@ adds permissions. The version comes from `package.json` (`"version": "1.0.0"`); 
 
 ## Icons
 Make real icons, not empty files. Draw a simple mark in the colours of `DESIGN.md` with ImageMagick and write all five
-sizes, for example `convert -size 128x128 xc:'#2563eb' -fill white -gravity center -pointsize 72 -annotate 0 'T'
-public/icon/128.png`, then `convert public/icon/128.png -resize 48x48 public/icon/48.png`, and the same for 16, 32, 96.
+sizes. Text needs a font named on the command line (without one `convert` crashes here), for example:
+`convert -size 128x128 xc:'#2563eb' -font /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf -fill white -gravity
+center -pointsize 72 -annotate 0 T public/icon/128.png`, or a shape with `-draw "circle 64,64 64,24"`. Then
+`convert public/icon/128.png -resize 48x48 public/icon/48.png`, and the same for 16, 32 and 96.
 
 ## Permissions: as few as possible
 The person reads what the extension may do before installing it, in plain words, and a long list scares people off.
