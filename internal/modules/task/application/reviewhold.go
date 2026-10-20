@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"path"
 	"slices"
 	"strings"
@@ -82,7 +83,7 @@ func madeAndLooked(events []domain.Event, name string) (changed, looked bool) {
 // since it began changed screens, and none of them was a screenshot. Told at most a few times, so an app that cannot
 // be shown does not stop the report for ever.
 func (r *Runner) lookNotTaken(ctx context.Context, task domain.Task, state *runState, call Call) bool {
-	if r.role == nil || !r.role.LooksAtScreens || state.lookAsked >= maxLookRounds {
+	if r.role == nil || !r.role.LooksAtScreens || state.lookAsked >= maxLookRounds || asksForApp(call.Input) {
 		return false
 	}
 
@@ -92,9 +93,18 @@ func (r *Runner) lookNotTaken(ctx context.Context, task domain.Task, state *runS
 	}
 
 	state.lookAsked++
-	r.result(ctx, task, call.ID, "You changed screens but have not looked at them. Start the app (start_site), then "+
-		"look at every page you made with screenshot: desktop first, then device mobile. Fix what you see, look "+
-		"again, and then report.", true)
+	r.result(ctx, task, call.ID, "You changed screens but have not looked at them. You cannot start the app: the "+
+		"DevOps teammate does. If it is not running, report \"Needs the app started\". Once it runs, look at every "+
+		"page you made with screenshot: desktop first, then device mobile. Fix what you see, look again, and then "+
+		"report.", true)
 
 	return true
+}
+
+// asksForApp reports whether a report says the app must be started first: only DevOps can, so that is not a
+// teammate who skipped looking.
+func asksForApp(input json.RawMessage) bool {
+	text, _, ok := parseReport(input)
+
+	return ok && strings.Contains(strings.ToLower(text), "needs the app started")
 }

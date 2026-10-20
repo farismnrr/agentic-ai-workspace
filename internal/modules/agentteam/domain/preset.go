@@ -6,7 +6,7 @@ type preset struct {
 	lead                       bool
 	// prd is set for the role whose document is the team's PRD, research for the role whose documents are its research,
 	// security for the role that must check the code before an app is started.
-	prd, research, security, architecture, look, designs bool
+	prd, research, security, architecture, look, designs, runs bool
 }
 
 var presets = []preset{
@@ -103,10 +103,11 @@ var presets = []preset{
 			"Do not change anything.",
 	},
 	{
-		key: "devops", name: "DevOps", access: []string{AccessRead, AccessWrite, AccessExec},
+		key: "devops", name: "DevOps", access: []string{AccessRead, AccessWrite, AccessExec}, runs: true,
 		purpose: "Handles builds, packaging, running the app and anything about how it is shipped.",
 		prompt: "You are a DevOps engineer. Work on builds, scripts, configuration and running the app. Prefer the " +
-			"project's own commands, keep changes minimal and reversible, and report what you ran and what came out.",
+			"project's own commands, keep changes minimal and reversible, and report what you ran and what came out. " +
+			"You are the only one who starts and stops the web app.",
 	},
 }
 
@@ -130,7 +131,7 @@ func Presets() Team {
 			Access: append([]string{}, p.access...), Lead: p.lead, Enabled: true,
 			Skills: SkillsFor(p.key), Library: LibraryFor(p.key), WritesPRD: p.prd, WritesResearch: p.research,
 			ChecksSecurity: p.security, ChecksArchitecture: p.architecture,
-			ChecksLook: p.look, LooksAtScreens: p.designs,
+			ChecksLook: p.look, LooksAtScreens: p.designs, RunsApps: p.runs,
 		})
 	}
 

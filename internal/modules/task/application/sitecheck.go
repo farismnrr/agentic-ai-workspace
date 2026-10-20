@@ -56,7 +56,7 @@ func (r *Runner) siteNotRunning(ctx context.Context, task domain.Task, state *ru
 	state.siteAsked++
 	r.result(ctx, task, call.ID, "The work includes a web page, but no app is running for the person to open. "+
 		"Start it first with start_site (serve the project folder, for example python3 -m http.server on a port), "+
-		"check that it answers, and then finish. On a team, give the job to a teammate who can run commands.", true)
+		"check that it answers, and then finish. On a team, only the DevOps teammate can start it: give it that job.", true)
 
 	return true
 }
@@ -64,7 +64,8 @@ func (r *Runner) siteNotRunning(ctx context.Context, task domain.Task, state *ru
 // tryFinish ends the run unless the plan is out of date or a page the person cannot open is waiting to be served.
 func (r *Runner) tryFinish(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
 	if r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
-		r.architectNotAsked(ctx, task, state, call) || r.reviewerNotAsked(ctx, task, state, call) {
+		r.localAddressHeld(ctx, task, state, call) || r.architectNotAsked(ctx, task, state, call) ||
+		r.reviewerNotAsked(ctx, task, state, call) {
 		return outcome{}, false
 	}
 

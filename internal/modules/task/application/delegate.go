@@ -135,7 +135,7 @@ func (r *Runner) runDelegation(
 	case stopFinished:
 		r.endDelegation(ctx, task, call, d, DelegationDone, r.deliver(ctx, task, d, role, result)+r.facts(ctx, task, d))
 	case stopFailed:
-		r.endDelegation(ctx, task, call, d, DelegationFailed, d.RoleName+" could not finish: "+result.text)
+		r.endDelegation(ctx, task, call, d, DelegationFailed, d.RoleName+" could not finish: "+result.text+stuckAdvice)
 	}
 
 	return outcome{}, false
@@ -188,7 +188,7 @@ func (r *Runner) doJob(
 	ctx context.Context, worker *Runner, teammate domain.Task, sub *runState, role AgentRole, d Delegation,
 ) outcome {
 	if onPlan(d.ProviderID) {
-		return r.workOnPlan(ctx, teammate, role, d)
+		return r.workOnPlan(ctx, worker, teammate, role, d)
 	}
 
 	return worker.drive(ctx, teammate, sub, stepsText("The "+d.RoleName, r.lim.delegateSteps()))

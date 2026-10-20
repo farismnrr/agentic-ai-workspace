@@ -124,6 +124,8 @@ The lead sizes your request first and tells you:
 | Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Designer shapes anything you will see. A Reviewer looks it over. |
 
 Research always comes first on a medium or large task, and again after the PRD for the stack and the look. Facts about the real world matter most: a business, a market, a style or a technology. The Researcher looks it up on the web and writes short notes with sources.
+When a teammate gets stuck, it says so instead of struggling alone. The Orchestrator asks the Researcher how it is done properly, then sends the job again with the answer.
+Only the DevOps teammate starts your app, and always in Sites, so you can open it from any computer. Nobody gives you a 127.0.0.1 or localhost address.
 
 You can read them under the Plan tab, in Research notes. Later teammates build from them.
 

@@ -37,8 +37,9 @@ which answers with its own page: the stylesheet does not apply, or the page is "
   `redirect('./login')` or a `Location` header with a relative value.
 - Express, Hono, Flask and the like: build every link and `Location` header relative; read nothing from the host.
 - Nuxt under `nuxt-serve` handles pages by itself, but its own rules apply (see `nuxt-app`).
-- `start_site` loads the home page and the pages it links to, and lists every link that would fail. Fix the list and
-  start again; do not report the app as ready while it is not empty.
+- You do not start the app: the DevOps teammate does. Its `start_site` loads the home page and the pages it links to,
+  and lists every link that would fail. If the orchestrator sends you that list, fix it and report; never call the
+  app ready while it is not empty. In your report give the command and port that start the app.
 
 ## 5. Never touch the real data in a test
 Tests and scripts use their own temporary database (a file under `/tmp` or an in-memory one), and never delete,

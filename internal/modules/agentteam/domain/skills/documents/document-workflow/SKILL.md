@@ -53,10 +53,11 @@ LibreOffice may differ a little from Word or PowerPoint, so keep layouts simple 
 its edge.
 
 ## 6. Open it as a site
-The person opens the result from Sites, not from screenshots. After the last `docsite documents`, call `start_site`
-with the command `python3 -m http.server 8000 --bind 127.0.0.1 --directory documents` and port 8000. The page shows
+The person opens the result from Sites, not from screenshots. After the last `docsite documents`, say in your
+report that the DevOps teammate must start the app with the command
+`python3 -m http.server 8000 --bind 127.0.0.1 --directory documents` and port 8000. You cannot start it yourself. The page shows
 every file with a Download button and all its pages; the links are relative, so it works under the site address.
-Run `docsite documents` and `start_site` again after every change to a file. Do not edit `index.html` or `preview/`
+Run `docsite documents` again after every change to a file, and ask for the app to be started again. Do not edit `index.html` or `preview/`
 by hand: they are rebuilt each time.
 
 ## 7. Report

@@ -37,6 +37,8 @@ type runState struct {
 	failed int
 	// segment is the model turns this loop may still take; a teammate's has a share of its own.
 	segment int
+	// misses is how many of a teammate's steps in a row failed.
+	misses int
 	// noImages is set once the model refused a request with screenshots; it then gets their text reports only.
 	noImages bool
 	holds

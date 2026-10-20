@@ -95,7 +95,7 @@ from a phone to a wide screen, visible focus, reduced motion.
 Before you report, read `craft/anti-ai-slop`, `craft/state-coverage` and `craft/accessibility-baseline` with
 `read_reference` and go through them against what you built. Fix what fails: it is your job, not the reviewer's.
 You may not report screens you changed without having looked at them: the server sends the report back until you have
-taken a screenshot. Start the site (`start_site`), then look at it with `screenshot`: the desktop screen first, then `device: mobile`;
+taken a screenshot. You cannot start the app: the DevOps teammate does. If it is not running, report "Needs the app started" and the orchestrator will have it started; then look at it with `screenshot`: the desktop screen first, then `device: mobile`;
 use `y` to read further down a long page and `overview` for the whole composition. Check what you see against
 the Layout section of `DESIGN.md`, one section at a time, on both screens: columns and gutters as planned, equal
 gaps where they should be equal, edges that line up, one clear focal point, a balanced mix of text and picture,

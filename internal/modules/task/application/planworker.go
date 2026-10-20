@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -11,7 +12,9 @@ import (
 
 // workOnPlan lets a teammate do their job with the person's own plan: one turn of the vendor's program with the
 // role's brief, held to the tools the role may use. What it reports back is the teammate's report.
-func (r *Runner) workOnPlan(ctx context.Context, teammate domain.Task, role AgentRole, d Delegation) outcome {
+func (r *Runner) workOnPlan(
+	ctx context.Context, worker *Runner, teammate domain.Task, role AgentRole, d Delegation,
+) outcome {
 	program, _ := domain.PlanRuntime(d.ProviderID)
 	name := programNames[program]
 
@@ -23,23 +26,26 @@ func (r *Runner) workOnPlan(ctx context.Context, teammate domain.Task, role Agen
 		return failed("The "+d.RoleName+" is set to use your "+name+" plan, which is not signed in.", "")
 	}
 
-	worker := r.child(role, d)
-
 	allowed, err := worker.allowedTools(ctx, teammate.UserID)
 	if err != nil {
 		return failed("I could not check what the "+d.RoleName+" may use.", "")
 	}
 
 	sink := &planSink{runner: worker, task: teammate, quiet: true}
+	site := worker.siteBridge(teammate, role, d.ID)
 
 	result, err := r.deps.CLI.Run(ctx, CLIRequest{
 		UserID: teammate.UserID, ProjectID: teammate.ProjectID, Program: program,
-		Model: d.Model, Effort: string(d.Effort), Tools: allowed, Limited: true,
+		Model: d.Model, Effort: string(d.Effort), Tools: allowed, Limited: true, Bridge: site.bridge(),
 		Prompt: worker.rolePrompt(ctx, teammate, role, d),
 	}, func(event CLIEvent) { sink.emit(ctx, event) })
 
 	if stopped, over := r.limitReached(ctx); over {
 		return stopped
+	}
+
+	if waiting, ok := site.stoppedOutcome(); ok {
+		return waiting
 	}
 
 	if err != nil {
@@ -116,6 +122,13 @@ func (r *Runner) rolePrompt(ctx context.Context, task domain.Task, role AgentRol
 	}
 
 	appendSkills(&out, role)
+
+	if slices.Contains(role.Tools, toolStartSite) {
+		out.WriteString("\nYou start and stop the web app with the start_site and stop_site tools of the team server, " +
+			"never with a shell command.\n")
+	}
+
+	out.WriteString("\n" + stuckRule + "\n")
 	out.WriteString("\nYou cannot talk to the person: when something is unclear, take the safest reasonable assumption ")
 	out.WriteString("and say so. When you are done, reply with a short plain summary: what you found or did, what you ")
 	out.WriteString("ran and how it ended, and anything left open. Never claim a check you did not run.\n")

@@ -50,10 +50,13 @@ type fakeTools struct {
 	risks    map[string]domain.Risk
 	results  map[string]application.ToolResult
 	executed []string
+	extra    []domain.ToolDef
 	undone   [][]byte
 }
 
-func (f *fakeTools) Definitions() []domain.ToolDef { return []domain.ToolDef{{Name: "read_file"}} }
+func (f *fakeTools) Definitions() []domain.ToolDef {
+	return append([]domain.ToolDef{{Name: "read_file"}}, f.extra...)
+}
 
 func (f *fakeTools) Risk(name string) domain.Risk { return f.risks[name] }
 
