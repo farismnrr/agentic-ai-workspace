@@ -30,6 +30,8 @@ type Limits struct {
 	DelegateSteps int
 	// MaxIdleJobs is how many jobs in a row may hand nothing back, before the orchestrator is told it is stuck.
 	MaxIdleJobs int
+	// RequirePlan holds the first job of a request until the plan shows it, so the todo list is always current.
+	RequirePlan bool
 	Retries     int
 	MaxResult   int
 }
@@ -40,8 +42,8 @@ func DefaultLimits() Limits {
 		Backoff:  func(attempt int) time.Duration { return time.Duration(attempt+1) * 3 * time.Second },
 		WallTime: defaultWallTime, MaxSteps: defaultMaxSteps,
 		TeamWallTime: defaultTeamWallTime, TeamSteps: defaultTeamSteps, DelegateSteps: defaultDelegateSteps,
-		MaxIdleJobs: defaultMaxIdleJobs,
-		Retries:     defaultRetries, MaxResult: defaultMaxResult,
+		MaxIdleJobs: defaultMaxIdleJobs, RequirePlan: true,
+		Retries: defaultRetries, MaxResult: defaultMaxResult,
 	}
 }
 

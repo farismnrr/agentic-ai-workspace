@@ -55,6 +55,10 @@ func (r *Runner) startDelegation(
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if r.planMissing(ctx, task, state, call, events) {
+		return Delegation{}, false
+	}
+
 	if why := awaitingApproval(task, state.roster.Lead.Name, role, events); why != "" {
 		r.result(ctx, task, call.ID, why, true)
 
@@ -98,7 +102,7 @@ func (r *Runner) startDelegation(
 	}
 
 	r.handoff(ctx, task, d, handoffAssigned, "Asked the "+role.Name+" to take this on", d.Brief)
-	r.trackPlan(ctx, task, d, domain.PlanActive)
+	r.trackPlan(ctx, task, d, domain.PlanActive, "")
 
 	return d, true
 }
@@ -146,12 +150,13 @@ func (r *Runner) endDelegation(
 ) {
 	_ = r.deps.Delegations.EndDelegation(ctx, task.ID, d.ID, status, report, r.deps.Now())
 
-	action, text, plan := handoffReported, "The "+d.RoleName+" reported back", domain.PlanDone
+	action, text := handoffReported, "The "+d.RoleName+" reported back"
 	if status == DelegationFailed {
-		action, text, plan = handoffFailed, "The "+d.RoleName+" could not finish", domain.PlanFailed
+		action, text = handoffFailed, "The "+d.RoleName+" could not finish"
 	}
 
-	r.trackPlan(ctx, task, d, plan)
+	plan, detail := planStateAfter(status == DelegationFailed, report)
+	r.trackPlan(ctx, task, d, plan, detail)
 
 	r.handoff(ctx, task, d, action, text, report)
 	r.result(ctx, task, call.ID, report, status == DelegationFailed)

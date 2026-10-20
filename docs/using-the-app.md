@@ -38,7 +38,7 @@ The task page has the conversation on one side and a panel on the other. On a ph
 
 | Tab | Shows |
 | --- | --- |
-| Plan | The steps the AI intends to take, and where it is |
+| Plan | The team's todo list: every request you send adds its steps, and each step shows who does it and where it is. A teammate that gets stuck turns its step red with the reason |
 | Proof | What changed, how it was tested, and what was checked |
 | Changes | Each file the task changed, as a diff, with every step and its Undo |
 | Files | The whole project: open any file, edit it by hand and save. PDFs and pictures are shown in place, and any file can be downloaded |

@@ -50,6 +50,10 @@ Never ask what a sensible default covers: take the default and list it under Ass
 question the person answered. If the answers open a real gap, one more small form is allowed. At most
 three questions for a medium job and five for a large one, counted over the whole task.
 
+## Todo that can be tracked
+Write the PRD's todo as short steps that each name the teammate who does them ("Developer: shell with login", "QA:
+walk the flows"), in the order they are built, so the orchestrator can put them in the plan the person follows.
+
 ## 2a. The stack follows the app
 Never ask the person about libraries. Choose like this, and write one line "Stack: ..." under Assumptions:
 - The project already has code: keep its stack and language (read the folder first). Do not move it to another one.

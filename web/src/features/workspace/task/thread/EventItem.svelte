@@ -7,6 +7,7 @@
   import ApprovalCard from './ApprovalCard.svelte';
   import ChatBubble from './ChatBubble.svelte';
   import HandoffCard from './HandoffCard.svelte';
+  import PlanCard from './PlanCard.svelte';
   import PrdCard from './PrdCard.svelte';
   import QuestionCard from './QuestionCard.svelte';
   import ResultCard from './ResultCard.svelte';
@@ -39,6 +40,8 @@
       <ResultCard kind="error" text={event.text} hint={event.hint} {onretry} />
     {:else if event.kind === 'prd' || event.kind === 'research'}
       <PrdCard text={event.text} document={event.technical} agent={event.agent} />
+    {:else if event.kind === 'plan'}
+      <PlanCard text={event.text} steps={event.technical} />
     {:else if event.kind === 'handoff'}
       <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} />
     {:else if event.kind === 'shot'}
