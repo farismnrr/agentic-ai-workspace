@@ -70,7 +70,7 @@ func codexCommand(command string, exit *int, status string) application.CLIEvent
 	}
 
 	return application.CLIEvent{
-		Kind: application.CLICommand, Technical: command, ExitCode: code,
+		Kind: application.CLICommand, Technical: unwrapShell(command), ExitCode: code,
 		Text: "Ran " + brief(unwrapShell(command), commandChars),
 	}
 }
@@ -78,10 +78,19 @@ func codexCommand(command string, exit *int, status string) application.CLIEvent
 // unwrapShell drops the `bash -lc '...'` that Codex puts around a command.
 func unwrapShell(command string) string {
 	if _, rest, ok := strings.Cut(command, " -lc "); ok {
-		return strings.Trim(rest, `'"`)
+		return unquote(strings.TrimSpace(rest))
 	}
 
 	return command
+}
+
+// unquote drops one pair of quotes around the whole text, and nothing inside it.
+func unquote(text string) string {
+	if len(text) >= 2 && (text[0] == '"' || text[0] == '\'') && text[len(text)-1] == text[0] {
+		return text[1 : len(text)-1]
+	}
+
+	return text
 }
 
 func codexChange(line codexLine) application.CLIEvent {

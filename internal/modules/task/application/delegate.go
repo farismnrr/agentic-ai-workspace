@@ -164,22 +164,6 @@ func (r *Runner) handoff(ctx context.Context, task domain.Task, d Delegation, ac
 	})
 }
 
-// pickModel is the role's own model when it has one the person can reach, else the person's default,
-// else the model the task started with. No model is named here.
-func (r *Runner) pickModel(ctx context.Context, task domain.Task, role AgentRole) (string, string, domain.Effort) {
-	if role.ProviderID != "" && role.Model != "" {
-		if _, err := r.deps.Models.Client(ctx, task.UserID, role.ProviderID); err == nil {
-			return role.ProviderID, role.Model, role.Effort
-		}
-	}
-
-	if providerID, model, err := r.deps.Models.Default(ctx, task.UserID); err == nil && providerID != "" && model != "" {
-		return providerID, model, r.deps.Models.DefaultEffort(ctx, task.UserID)
-	}
-
-	return task.ProviderID, task.Model, task.Effort
-}
-
 func teammateKeys(roster *Roster) string {
 	keys := make([]string, 0, len(roster.Members))
 	for _, member := range roster.Members {
