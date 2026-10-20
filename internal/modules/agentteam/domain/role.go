@@ -52,6 +52,9 @@ type Role struct {
 	ProviderID string `json:"providerId"`
 	Model      string `json:"model"`
 	Effort     string `json:"effort"`
+	// Tier is the model tier the role uses when it has no model of its own: thinking, default or fast. Empty is
+	// the default tier. The person sets what each tier means once, in Settings, Models.
+	Tier string `json:"tier"`
 	// Skills are the built-in playbooks of a built-in role. They are not saved or sent out: they are read from the
 	// app each time.
 	Skills []Skill `json:"-"`
@@ -91,7 +94,7 @@ func (r Role) Can(group string) bool {
 }
 
 func (r Role) normalize() (Role, error) {
-	for _, field := range []*string{&r.Key, &r.Name, &r.Purpose, &r.Prompt, &r.ProviderID, &r.Model, &r.Effort} {
+	for _, field := range []*string{&r.Key, &r.Name, &r.Purpose, &r.Prompt, &r.ProviderID, &r.Model, &r.Effort, &r.Tier} {
 		*field = strings.TrimSpace(*field)
 	}
 
@@ -102,6 +105,8 @@ func (r Role) normalize() (Role, error) {
 	if r.ProviderID == "" || r.Model == "" {
 		r.ProviderID, r.Model = "", ""
 	}
+
+	r.Tier = cleanTier(r.Tier, r.ProviderID != "")
 
 	access, err := cleanAccess(r.Access)
 	if err != nil {
@@ -145,24 +150,6 @@ func (r Role) fits() bool {
 	return r.Key == "" || keyPattern.MatchString(r.Key)
 }
 
-func cleanAccess(groups []string) ([]string, error) {
-	clean := []string{AccessRead}
-
-	for _, group := range groups {
-		switch group {
-		case AccessRead:
-		case AccessWrite, AccessExec, AccessAsk, AccessWeb, AccessImages:
-			if !slices.Contains(clean, group) {
-				clean = append(clean, group)
-			}
-		default:
-			return nil, ErrInvalid
-		}
-	}
-
-	return clean, nil
-}
-
 func tooLong(limit int, values ...string) bool {
 	for _, value := range values {
 		if utf8.RuneCountInString(value) > limit {
@@ -185,15 +172,4 @@ func slug(name string) string {
 	}
 
 	return key
-}
-
-// withoutWebWhenItCanChange drops web access from a role that can also change files or run commands: text from
-// strangers must not reach a role that could act on it. Pictures (a separate group) stay.
-func withoutWebWhenItCanChange(access []string) []string {
-	changes := slices.Contains(access, AccessWrite) || slices.Contains(access, AccessExec)
-	if !slices.Contains(access, AccessWeb) || !changes {
-		return access
-	}
-
-	return slices.DeleteFunc(slices.Clone(access), func(group string) bool { return group == AccessWeb })
 }

@@ -47,7 +47,18 @@ type Models interface {
 	Default(ctx context.Context, userID string) (providerID, model string, err error)
 	// DefaultEffort is the effort the person prefers when they do not pick one; empty when none.
 	DefaultEffort(ctx context.Context, userID string) domain.Effort
+	// Tier is the model and effort the person set for the named tier (TierThinking or TierFast); ok is false when
+	// they set none, so the default model is used.
+	Tier(ctx context.Context, userID, tier string) (providerID, model string, effort domain.Effort, ok bool)
 }
+
+// The model tiers a role can use. A person sets each once; a role picks one, so changing a model changes every role
+// that uses it. The default tier is the person's default model.
+const (
+	TierDefault  = "default"
+	TierThinking = "thinking"
+	TierFast     = "fast"
+)
 
 // Persona is how the person wants the agent to behave.
 type Persona struct {

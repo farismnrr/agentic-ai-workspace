@@ -60,30 +60,6 @@ func failing(message string, retryable bool) step {
 	return step{err: &domain.ModelError{Message: message, Retryable: retryable}}
 }
 
-type fakeModels struct {
-	model  application.Model
-	effort domain.Effort
-	none   bool
-}
-
-func (f *fakeModels) Client(context.Context, string, string) (application.Model, error) {
-	if f.none {
-		return nil, errBoom
-	}
-
-	return f.model, nil
-}
-
-func (f *fakeModels) DefaultEffort(context.Context, string) domain.Effort { return f.effort }
-
-func (f *fakeModels) Default(context.Context, string) (string, string, error) {
-	if f.none {
-		return "", "", errBoom
-	}
-
-	return "prov", "model-x", nil
-}
-
 const defaultWindow = 200_000
 
 // fakeWindows gives every model the same context window.

@@ -2,21 +2,19 @@
   import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { onMount } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
-  import { modelsCopy } from '../content/models';
+  import { modelsCopy, tierCopy } from '../content/models';
   import { programs, subscriptionsCopy } from '../content/subscriptions';
   import type { Program } from '../logic/subscriptions-api';
-  import { effortChoices, hasEffortChoice } from '../logic/effort';
-  import { groupModels, modelValue } from '../logic/model-groups';
-  import { loadPreferences, savePreferences, type Preferences } from '../logic/preferences-api';
+  import { loadPreferences, savePreferences, type ModelTier, type Preferences } from '../logic/preferences-api';
   import { loadModels, loadProviders, removeProvider, type ModelOption, type Provider } from '../logic/providers-api';
   import { describeProviderError } from '../logic/provider-errors';
   import AddProviderModal from './AddProviderModal.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
-  import SettingRow from './parts/SettingRow.svelte';
   import SettingsSection from './parts/SettingsSection.svelte';
   import ContextWindows from './ContextWindows.svelte';
   import ProviderRow from './ProviderRow.svelte';
   import SubscriptionDialog from './SubscriptionDialog.svelte';
+  import TierRow from './TierRow.svelte';
 
   let providers: Provider[] = $state([]);
   let options: ModelOption[] = $state([]);
@@ -29,7 +27,7 @@
   let signingIn: Program | undefined = $state();
 
   const pendingPlan = $derived<Program | undefined>(pending?.kind === 'plan' ? (pending.id.slice('plan:'.length) as Program) : undefined);
-  const chosen = $derived(prefs === undefined || prefs.defaultModel === '' ? '' : `${prefs.defaultProviderId}::${prefs.defaultModel}`);
+  const defaultTier = $derived<ModelTier>({ providerId: prefs?.defaultProviderId ?? '', model: prefs?.defaultModel ?? '', effort: prefs?.defaultEffort ?? '' });
 
   async function refresh(): Promise<void> {
     try {
@@ -42,26 +40,16 @@
     }
   }
 
-  async function pick(value: string): Promise<void> {
+  async function save(change: Partial<Preferences>): Promise<void> {
     if (prefs === undefined) return;
-    const [providerId = '', model = ''] = value.split('::');
     try {
-      prefs = await savePreferences({ ...prefs, defaultProviderId: providerId, defaultModel: model });
+      prefs = await savePreferences({ ...prefs, ...change });
     } catch (error) {
       notice = describeProviderError(error);
     }
   }
 
-  const defaultLevels = $derived(providers.find((provider) => provider.id === prefs?.defaultProviderId)?.efforts[prefs?.defaultModel ?? '']);
-
-  async function pickEffort(value: string): Promise<void> {
-    if (prefs === undefined) return;
-    try {
-      prefs = await savePreferences({ ...prefs, defaultEffort: value });
-    } catch (error) {
-      notice = describeProviderError(error);
-    }
-  }
+  const saveDefault = (next: ModelTier): Promise<void> => save({ defaultProviderId: next.providerId, defaultModel: next.model, defaultEffort: next.effort });
 
   async function confirmRemove(): Promise<void> {
     const target = pending;
@@ -101,27 +89,13 @@
 {:else if failed}
   <p class="text-error" role="alert">{modelsCopy.failed}</p>
 {:else}
-  <SettingsSection title="Default model" description={modelsCopy.defaultIntro}>
+  <SettingsSection title="Models" description={tierCopy.intro}>
     {#if options.length === 0}
       <EmptyState compact icon="key" title={modelsCopy.noModels.title} body={modelsCopy.noModels.body} />
-    {:else}
-      <SettingRow label="Model" for="default-model">
-        <select id="default-model" class="select select-sm w-72" value={chosen} onchange={(event) => pick(event.currentTarget.value)}>
-          <option value="">Choose when I start a task</option>
-          {#each groupModels(options) as group (group.label)}
-            <optgroup label={group.label}>
-              {#each group.models as option (modelValue(option))}<option value={modelValue(option)}>{option.model}</option>{/each}
-            </optgroup>
-          {/each}
-        </select>
-      </SettingRow>
-      {#if hasEffortChoice(defaultLevels)}
-        <SettingRow label="Effort" description={modelsCopy.effortIntro} for="default-effort">
-          <select id="default-effort" class="select select-sm w-40" value={prefs?.defaultEffort ?? ''} onchange={(event) => pickEffort(event.currentTarget.value)}>
-            {#each effortChoices(defaultLevels) as choice (choice.value)}<option value={choice.value}>{choice.label}</option>{/each}
-          </select>
-        </SettingRow>
-      {/if}
+    {:else if prefs !== undefined}
+      <TierRow id="tier-thinking" label={tierCopy.tiers.thinking.label} note={tierCopy.tiers.thinking.note} value={prefs.thinking} {options} {providers} emptyLabel={tierCopy.unsetThinking} onchange={(next: ModelTier) => save({ thinking: next })} />
+      <TierRow id="tier-default" label={tierCopy.tiers.default.label} note={tierCopy.tiers.default.note} value={defaultTier} {options} {providers} emptyLabel="Choose when I start a task" onchange={saveDefault} />
+      <TierRow id="tier-fast" label={tierCopy.tiers.fast.label} note={tierCopy.tiers.fast.note} value={prefs.fast} {options} {providers} emptyLabel={tierCopy.unsetFast} onchange={(next: ModelTier) => save({ fast: next })} />
     {/if}
   </SettingsSection>
 

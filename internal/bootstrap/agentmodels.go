@@ -89,6 +89,27 @@ func (m agentModels) DefaultEffort(ctx context.Context, userID string) taskdomai
 	return taskdomain.Effort(prefs.DefaultEffort)
 }
 
+// Tier is the model the person set for the Thinking or the Fast tier; ok is false when they set none.
+func (m agentModels) Tier(
+	ctx context.Context, userID, tier string,
+) (providerID, model string, effort taskdomain.Effort, ok bool) {
+	prefs, err := m.prefs.Get(ctx, userID)
+	if err != nil {
+		return "", "", taskdomain.EffortDefault, false
+	}
+
+	chosen := prefs.Thinking
+	if tier == taskapp.TierFast {
+		chosen = prefs.Fast
+	}
+
+	if chosen.Empty() {
+		return "", "", taskdomain.EffortDefault, false
+	}
+
+	return chosen.ProviderID, chosen.Model, taskdomain.Effort(chosen.Effort), true
+}
+
 // agentPersona gives the agent a person's persona and the rules they switched on.
 type agentPersona struct {
 	prefs *prefapp.Service

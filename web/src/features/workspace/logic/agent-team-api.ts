@@ -13,6 +13,8 @@ export interface TeamRole {
   providerId: string;
   model: string;
   effort: string;
+  /** The model tier used when the role has no model of its own: thinking, fast, or empty for default. */
+  tier: string;
   access: string[];
   lead: boolean;
   enabled: boolean;
@@ -39,6 +41,7 @@ export const newRole = (): TeamRole => ({
   providerId: '',
   model: '',
   effort: '',
+  tier: '',
   access: ['read'],
   lead: false,
   enabled: true,

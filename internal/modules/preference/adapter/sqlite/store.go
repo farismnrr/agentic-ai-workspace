@@ -24,15 +24,15 @@ func NewStore(db *sql.DB) *Store {
 // Load returns a person's preferences, or empty ones when none were saved.
 func (s *Store) Load(ctx context.Context, userID string) (domain.Preferences, error) {
 	var (
-		p     domain.Preferences
-		rules string
+		p                     domain.Preferences
+		rules, thinking, fast string
 	)
 
 	err := s.db.QueryRowContext(ctx,
 		`SELECT default_provider_id, default_model, default_effort, persona_name, talk_style, language,
-		   about, rules FROM preferences WHERE user_id = ?`, userID).
+		   about, rules, tier_thinking, tier_fast FROM preferences WHERE user_id = ?`, userID).
 		Scan(&p.DefaultProviderID, &p.DefaultModel, &p.DefaultEffort, &p.PersonaName, &p.TalkStyle, &p.Language,
-			&p.About, &rules)
+			&p.About, &rules, &thinking, &fast)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Preferences{Rules: []domain.Rule{}}, nil
 	}
@@ -44,6 +44,8 @@ func (s *Store) Load(ctx context.Context, userID string) (domain.Preferences, er
 	if err := json.Unmarshal([]byte(rules), &p.Rules); err != nil {
 		return domain.Preferences{}, fmt.Errorf("decode rules: %w", err)
 	}
+
+	p.Thinking, p.Fast = decodeTier(thinking), decodeTier(fast)
 
 	return p, nil
 }
@@ -57,16 +59,41 @@ func (s *Store) Save(ctx context.Context, userID string, p domain.Preferences, a
 
 	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO preferences (user_id, default_provider_id, default_model, default_effort, persona_name,
-		   talk_style, language, about, rules, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		   talk_style, language, about, rules, tier_thinking, tier_fast, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT (user_id) DO UPDATE SET default_provider_id = excluded.default_provider_id,
 		   default_model = excluded.default_model, default_effort = excluded.default_effort,
 		   persona_name = excluded.persona_name, talk_style = excluded.talk_style, language = excluded.language,
-		   about = excluded.about, rules = excluded.rules, updated_at = excluded.updated_at`,
+		   about = excluded.about, rules = excluded.rules, tier_thinking = excluded.tier_thinking,
+		   tier_fast = excluded.tier_fast, updated_at = excluded.updated_at`,
 		userID, p.DefaultProviderID, p.DefaultModel, p.DefaultEffort, p.PersonaName, p.TalkStyle, p.Language,
-		p.About, string(rules), at.Unix())
+		p.About, string(rules), encodeTier(p.Thinking), encodeTier(p.Fast), at.Unix())
 	if err != nil {
 		return fmt.Errorf("upsert preferences: %w", err)
 	}
 
 	return nil
+}
+
+// decodeTier reads a saved tier; anything unreadable is an empty tier, which falls back to the default.
+func decodeTier(text string) domain.Tier {
+	var tier domain.Tier
+	if text != "" {
+		_ = json.Unmarshal([]byte(text), &tier)
+	}
+
+	return tier
+}
+
+func encodeTier(tier domain.Tier) string {
+	if tier.Empty() && tier.Effort == "" {
+		return ""
+	}
+
+	encoded, err := json.Marshal(tier)
+	if err != nil {
+		return ""
+	}
+
+	return string(encoded)
 }

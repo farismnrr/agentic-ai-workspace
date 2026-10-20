@@ -37,6 +37,7 @@ type rolePayload struct {
 	ProviderID string   `json:"providerId"`
 	Model      string   `json:"model"`
 	Effort     string   `json:"effort"`
+	Tier       string   `json:"tier"`
 	Access     []string `json:"access"`
 	Lead       bool     `json:"lead"`
 	Enabled    bool     `json:"enabled"`
@@ -54,7 +55,7 @@ func toPayload(team domain.Team) teamPayload {
 	for _, r := range team.Roles {
 		roles = append(roles, rolePayload{
 			Key: r.Key, Name: r.Name, Purpose: r.Purpose, Prompt: r.Prompt, ProviderID: r.ProviderID,
-			Model: r.Model, Effort: r.Effort, Access: append([]string{}, r.Access...), Lead: r.Lead,
+			Model: r.Model, Effort: r.Effort, Tier: r.Tier, Access: append([]string{}, r.Access...), Lead: r.Lead,
 			Enabled: r.Enabled, Preset: r.Preset(),
 		})
 	}
@@ -68,7 +69,7 @@ func (p teamPayload) team() domain.Team {
 	for _, r := range p.Roles {
 		roles = append(roles, domain.Role{
 			Key: r.Key, Name: r.Name, Purpose: r.Purpose, Prompt: r.Prompt, ProviderID: r.ProviderID,
-			Model: r.Model, Effort: r.Effort, Access: r.Access, Lead: r.Lead, Enabled: r.Enabled,
+			Model: r.Model, Effort: r.Effort, Tier: r.Tier, Access: r.Access, Lead: r.Lead, Enabled: r.Enabled,
 		})
 	}
 
