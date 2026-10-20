@@ -67,6 +67,17 @@ func TestLongMessagesBecomeCompleteProjectDocumentsOnCreateAndFollowUp(t *testin
 	id, _ := res.JSON(t)["id"].(string)
 	a.waitFor(t, id, "done")
 	checkOriginalInput(t, a, id, text)
+	events := do(t, a.env.app, "GET", "/api/tasks/"+id+"/events", "", jsonCookie(a.cookie))
+	var thread []struct {
+		Kind string `json:"kind"`
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal(events.Body, &thread); err != nil {
+		t.Fatal(err)
+	}
+	if thread[0].Kind != "request" || !strings.HasPrefix(thread[0].Text, "Long message saved") {
+		t.Fatal("the user's bubble must show a document preview rather than internal model instructions")
+	}
 	body, _ = json.Marshal(map[string]string{"text": text + "FOLLOW-UP-END"})
 	res = do(t, a.env.app, "POST", "/api/tasks/"+id+"/messages", string(body), jsonCookie(a.cookie))
 	if res.Status != 204 {
