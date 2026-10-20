@@ -16,7 +16,7 @@ func (r *Runner) report(ctx context.Context, task domain.Task, call Call, descri
 		return
 	}
 
-	r.result(ctx, task, call.ID, result.Output, result.IsError)
+	r.result(ctx, task, call.ID, withHint(result), result.IsError)
 
 	event := domain.Event{
 		Text: described.Text, Technical: described.Technical, Files: result.Files, Undo: result.Undo, Run: result.Run,

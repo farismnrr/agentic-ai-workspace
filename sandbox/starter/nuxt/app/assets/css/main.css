@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import "@fontsource-variable/public-sans";
 
-/* The font comes from DESIGN.md. */
+/* The font comes from DESIGN.md, installed from npm as a Fontsource package (see delivery-rules). */
 @theme {
-  --font-sans: 'Public Sans', system-ui, sans-serif;
+  --font-sans: 'Public Sans Variable', system-ui, sans-serif;
 }

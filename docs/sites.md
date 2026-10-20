@@ -21,6 +21,7 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 ## What a site can do
 
 - It runs in the same sandbox as checks. It can reach package registries, but not your computer or other projects.
+- Fonts are installed from npm (Fontsource), not loaded from Google Fonts, so they work in every stack and need no extra network access.
 - It must listen on `127.0.0.1` at the port the AI chose. Use a normal server, not a hot-reload dev server. WebSockets aren't supported yet.
 - The path prefix is removed before requests reach the app. Use relative links (`./style.css`), never `/style.css`.
 - When the AI starts an app, the server loads its pages and tells the AI about links that would not work.

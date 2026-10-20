@@ -51,7 +51,7 @@ template from GitHub, which the sandbox cannot reach. What the starter already i
 - `server/infrastructure/db.ts` (`bun:sqlite`) and `auth.ts` (Better Auth), `server/api/auth/[...all].ts`, `server/api/me.get.ts`
   and `server/plugins/migrate.ts`; `eslint.config.ts`, `tsconfig.json`, `tests/smoke.test.ts`, `.gitignore`.
 It type-checks, lints, tests and builds as it is. Your slices turn it into the PRD's product: set the colours and the font
-from `DESIGN.md`, replace the words and the sections of the landing page, add the feature pages and routes, and put the
+from `DESIGN.md` (install its Fontsource package, `bun add @fontsource-variable/<name>`, import it in `main.css`), replace the words and the sections of the landing page, add the feature pages and routes, and put the
 real numbers on the dashboard. Keep what works (the login, the middleware, the layouts); change what the PRD changes.
 Scripts: `typecheck`, `lint`, `test`, `build`. Add packages the PRD needs with `bun add <package>`. Bun does not run a
 dependency's install script unless it is listed under `trustedDependencies` in `package.json`; add one only when a

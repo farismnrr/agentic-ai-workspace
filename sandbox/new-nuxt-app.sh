@@ -18,7 +18,8 @@ if [ ! -e package.json ]; then
   printf '{\n  "name": "%s",\n  "type": "module",\n  "private": true,\n  "scripts": {\n    "dev": "nuxt dev",\n    "build": "nuxt build",\n    "typecheck": "nuxt typecheck",\n    "lint": "eslint .",\n    "test": "bun test"\n  }\n}\n' "${name:-app}" > package.json
 fi
 
-bun add nuxt vue vue-router @nuxt/ui tailwindcss @iconify-json/lucide nuxt-security better-auth zod chart.js vue-chartjs
+bun add nuxt vue vue-router @nuxt/ui tailwindcss @iconify-json/lucide nuxt-security better-auth zod chart.js vue-chartjs \
+  @fontsource-variable/public-sans
 # TypeScript 7 has no lib/tsc, so vue-tsc cannot run on it: use 6, the newest that works.
 bun add -d typescript@6 vue-tsc @types/bun @nuxt/eslint eslint eslint-plugin-security
 

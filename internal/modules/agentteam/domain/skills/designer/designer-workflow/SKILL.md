@@ -103,7 +103,8 @@ nothing cramped or floating in empty space, nothing cut off, covered by a fixed 
 edge. Then hierarchy, contrast and overflowing text. The report that
 comes with the picture lists sideways scroll, broken images, low contrast and console errors: fix every one. Fix
 what you see, take another screenshot, and only then report. Fonts and images from other websites cannot load in
-the sandbox; they will for the person.
+the sandbox. Choose fonts that Fontsource ships (every Google font does) and say so in `DESIGN.md`, so the Developer
+installs them from npm (`delivery-rules`, "Fonts come from npm"); never link a font website.
 
 ## 6. Report
 Call `report` with a short summary: the direction you chose and why, the files you wrote, the tokens you used,
