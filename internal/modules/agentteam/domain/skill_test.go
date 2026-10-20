@@ -13,7 +13,7 @@ func TestThePlannerCarriesItsPlaybook(t *testing.T) {
 		t.Fatalf("playbook = %+v", skills)
 	}
 
-	if len(SkillsFor("devops")) != 0 || len(SkillsFor("../x")) != 0 {
+	if len(SkillsFor("designer-none")) != 0 || len(SkillsFor("../x")) != 0 {
 		t.Fatal("a role without a playbook has none")
 	}
 }

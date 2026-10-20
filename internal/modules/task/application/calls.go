@@ -61,12 +61,18 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 		return outcome{}, false
 	}
 
-	return r.tool(ctx, task, call)
+	return r.tool(ctx, task, state, call)
 }
 
 // tool runs a project tool, unless the person switched it off or has to say yes first.
-func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome, bool) {
+func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
+
+	if why := r.serverHold(call); why != "" {
+		r.result(ctx, task, call.ID, why, true)
+
+		return outcome{}, false
+	}
 
 	if why := r.securityHold(ctx, task, call); why != "" {
 		r.result(ctx, task, call.ID, why, true)
@@ -84,9 +90,10 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, call Call) (outcome
 		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
 	}
 
-	r.report(ctx, task, call, described, r.deps.Tools.Execute(ctx, task.ProjectID, call))
+	result := r.deps.Tools.Execute(ctx, task.ProjectID, call)
+	r.report(ctx, task, call, described, result)
 
-	return outcome{}, false
+	return r.trackMisses(ctx, task, state, result)
 }
 
 // checkTool decides whether a call may run now. blocked is true when it must not: either the

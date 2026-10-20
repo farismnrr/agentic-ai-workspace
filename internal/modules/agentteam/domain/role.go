@@ -68,6 +68,8 @@ type Role struct {
 	WritesResearch bool `json:"-"`
 	// ChecksSecurity is true for the role whose review must come before an app is started.
 	ChecksSecurity bool `json:"-"`
+	// RunsApps is true for the role that alone may start and stop the web app.
+	RunsApps bool `json:"-"`
 	// ChecksArchitecture is true for the role that must verify the final code before the task is finished.
 	ChecksArchitecture bool `json:"-"`
 	// ChecksLook is true for the Reviewer, whose look at the screens must come before the task is finished.
@@ -114,6 +116,7 @@ func (r Role) normalize() (Role, error) {
 
 	r.Skills, r.Library, r.WritesPRD, r.WritesResearch = nil, nil, false, false
 	r.ChecksSecurity, r.ChecksArchitecture, r.ChecksLook, r.LooksAtScreens = false, false, false, false
+	r.RunsApps = false
 
 	if isBuiltIn {
 		r.Access = slices.Clone(built.access)
@@ -121,6 +124,7 @@ func (r Role) normalize() (Role, error) {
 		r.WritesPRD, r.WritesResearch = built.prd, built.research
 		r.ChecksSecurity, r.ChecksArchitecture = built.security, built.architecture
 		r.ChecksLook, r.LooksAtScreens = built.look, built.designs
+		r.RunsApps = built.runs
 	}
 
 	r.Enabled = r.Enabled || r.Lead

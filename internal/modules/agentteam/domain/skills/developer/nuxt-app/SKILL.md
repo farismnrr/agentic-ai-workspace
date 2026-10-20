@@ -118,7 +118,8 @@ prefix (set by `nuxt-serve`), so a hand-written address starting with `/` leaves
 - Pictures and other files from `public/`: `useRuntimeConfig().app.baseURL + 'logo.svg'`, or `import` them from
   `app/assets/` so the build adds the base. CSS `url()` points only at files under `app/assets/` (Vite rewrites those).
 - Never hard-code `/run/...` and never turn `app.baseURL` into a relative path (`./`); Nuxt does not support that on a
-  server. `start_site` loads your pages and reports any link that would not work: fix all of them before you report.
+  server. The DevOps teammate's `start_site` loads your pages and reports any link that would not work: fix every
+  one of them when you are sent the list.
 
 ## 5. Safe by default
 Check every body and query with `zod` (`readValidatedBody`, `getValidatedQuery`). Vue escapes text; never use
@@ -128,13 +129,13 @@ the HTTP methods a route needs. Limit file uploads by size and type. Show errors
 ## 6. Build and start
 Check with `run_command`, one step per call (a command has about 2 GB of memory, and an install followed by a type
 check in the same call can run out): `bun install` when you added packages, then `bun --bun run typecheck` with
-`bun --bun run lint` and `bun test`, then `bun --bun run build`; every one must pass before you report. The app then runs from `.output`. Start it with
-`start_site`, port 3000: `bun /usr/local/share/serve/nuxt-serve.ts bun .output/server/index.mjs`.
+`bun --bun run lint` and `bun test`, then `bun --bun run build`; every one must pass before you report. The app then runs from `.output`. You do not start it: the DevOps teammate does, and your report says so.
+Give it the start command, port 3000: `bun /usr/local/share/serve/nuxt-serve.ts bun .output/server/index.mjs`.
 `nuxt-serve` makes Nuxt work under the address prefix the sites proxy uses; do not run `.output` directly.
 In the preview the page has no cookies, so a login cannot stay signed in there. That is the preview's sandbox, not
 a fault in the app: test accounts with `curl` against the API instead (sign up, sign in, then call a protected
 route with the returned cookie) and say so in your report. Never weaken a security setting to make the preview work.
-Before `start_site` the Security teammate must have checked the code; if you are told it has not, report back.
+Before the app is started the Security teammate must have checked the code.
 
 ## 7. Report
 Say in plain words what the app does, the stack, which commands you ran and how they ended, and what you could not check.

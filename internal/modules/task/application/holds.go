@@ -7,6 +7,8 @@ type holds struct {
 	planWarned bool
 	// siteAsked counts finishes held back because a page was built and no app was running.
 	siteAsked int
+	// localAsked counts finishes sent back for naming 127.0.0.1 or localhost.
+	localAsked int
 	// architectAsked counts finishes held back for the Architect's check of the final code.
 	architectAsked int
 	// reviewerAsked counts finishes held back for the Reviewer's look at the screens.
