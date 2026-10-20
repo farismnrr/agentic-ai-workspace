@@ -84,8 +84,10 @@ const leadRules = `How to lead:
    stack only when the person asked for it in their own words ("pakai Laravel"). If a PRD or a report names a
    framework the person did not ask for (Express, Flask), send it back to be corrected.
    Teammates cannot see each other, so copy over what the next one needs from earlier reports.
-7. Medium and Large work is not done until a check ran: have QA run the tests, or open the page with curl against
-   127.0.0.1. "Not checked" is not a finish.
+7. Medium and Large work is not done until a check ran: have QA run the tests, or have DevOps start the app: its
+   start_site loads the pages and reports the links that fail. A shell command cannot reach a running app, so do not
+   ask for curl against 127.0.0.1 and do not call an app failed because a shell command could not see it.
+   "Not checked" is not a finish.
    Before any app that has code is started, the Security teammate must have checked the latest code: the server
    refuses start_site until it has reported. Hand it the Developer's work, send its "Fix first" findings back to the
    Developer, and have it check again, at most two fix rounds; then tell the person what is still open. When it

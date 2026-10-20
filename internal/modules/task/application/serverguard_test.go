@@ -77,3 +77,21 @@ func TestAFinishThatGivesALocalAddressIsSentBack(t *testing.T) {
 		t.Fatalf("told=%v summary=%q", told, r.task(t, task.ID).Summary)
 	}
 }
+
+func TestACheckThatKillsItsOwnServerIsNotRefused(t *testing.T) {
+	t.Parallel()
+
+	r := newTeamRig(nil, []application.AgentRole{devops()},
+		delegate("d1", "devops", "Check it"),
+		call("c1", "run_command", map[string]string{
+			"command": "python3 -m http.server 4999 & sleep 2; curl -s :4999; kill $!",
+		}),
+		report("r1", "Done"), finish("Done"),
+	)
+	r.tools.risks["run_command"] = domain.RiskNone
+	r.run(r.startTeam(t, "Check").ID)
+
+	if len(r.tools.executed) != 1 {
+		t.Fatalf("a self-cleaning check must run, got %v", r.tools.executed)
+	}
+}

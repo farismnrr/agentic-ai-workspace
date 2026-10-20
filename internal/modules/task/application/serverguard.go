@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -35,7 +36,9 @@ func (r *Runner) serverHold(call Call) string {
 		Command string `json:"command"`
 	}
 
-	if json.Unmarshal(call.Input, &in) != nil || !serverStarts.MatchString(in.Command) {
+	// A command that starts a server and kills it again leaves nothing behind, as a check of a built app does.
+	if json.Unmarshal(call.Input, &in) != nil || !serverStarts.MatchString(in.Command) ||
+		strings.Contains(in.Command, "kill") {
 		return ""
 	}
 
