@@ -10,9 +10,13 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// siteToolNames are the tools that run the person's web app. A program on a plan has no such tool of its own, so
-// the server serves them: the app is started the same way, and shows up under Sites, as for any other model.
-var siteToolNames = []string{toolStartSite, "stop_site"}
+// siteToolNames are the tools a program on a plan lacks or cannot use, so the server serves them. Starting the web
+// app: it is started the same way and shows up under Sites, as for any other model. Looking things up on the web:
+// the program's own WebFetch runs in its container, which reaches package registries only and so refuses every
+// page, while these run on the server (SearXNG for the search, a public-only fetch for the page).
+var siteToolNames = []string{
+	toolStartSite, "stop_site", "web_search", "fetch_page", "search_images", "download_asset",
+}
 
 // siteSession serves the site tools to a teammate's program. Each call goes through the same code as a call of the
 // app's own loop (the Security check, the person's approval, the link in the thread).
