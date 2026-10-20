@@ -37,6 +37,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     docpython -c "from pptx import Presentation; from docx import Document; from reportlab.pdfgen import canvas; import pypdf, openpyxl; p=Presentation(); p.slides.add_slide(p.slide_layouts[0]); p.save(\"d.pptx\"); d=Document(); d.add_heading(\"Hi\"); d.save(\"d.docx\"); canvas.Canvas(\"d.pdf\").save()" \
       && docconvert d.pptx pdf . > /dev/null 2>&1 && docconvert d.docx pdf . > /dev/null 2>&1 \
       && pdftoppm -png -r 40 -f 1 -l 1 d.pdf page && ls page*.png > /dev/null && mkdir documents && cp d.pptx d.docx d.pdf documents/ && docsite documents > /dev/null && test -f documents/preview/d-pptx/page-1.png && grep -q "preview/d-pptx/page-1.png" documents/index.html && echo docs-ok
+    printf "{\"tool_input\":{\"command\":\"nohup npx next dev &\"}}" | GUARD_SERVER_PATTERN="nohup" node /usr/local/share/guard/guard-command.ts > /dev/null 2>&1; test $? -eq 2 && echo guard-ok
     node /usr/local/share/capture/capture.ts "{\"url\":\"http://127.0.0.1:8000/\",\"width\":800,\"height\":600,\"y\":0}" \
       | grep -q "\"ok\":true" && echo shot-ok
   ' 2>&1)"

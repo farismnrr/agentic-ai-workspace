@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	cliagentdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/domain"
@@ -67,10 +68,10 @@ func (p *plans) Run(
 
 	window := p.chosenWindow(ctx, req)
 	spec.Home, spec.Stdin, spec.Argv = home, strings.NewReader(req.Prompt), programArgv(req, models, window)
-	spec.Env = codingrunner.Environment(spec, append(windowEnv(req.Program, window), "HOME="+sandbox.Home,
+	spec.Env = codingrunner.Environment(spec, append(append(windowEnv(req.Program, window), "HOME="+sandbox.Home,
 		"CODEX_HOME="+sandbox.Home+"/.codex",
 		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "DISABLE_AUTOUPDATER=1",
-		fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))...)
+		fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis)), guardEnv(req)...)...)
 
 	stream := clistream.New(req.Program, emit)
 
@@ -113,6 +114,10 @@ func programArgv(req taskapp.CLIRequest, models []cliagentdomain.Model, window i
 		argv = append(argv, bridgeArgs(runtime)...)
 	}
 
+	if req.Limited {
+		argv = append(argv, "--settings", guardSettings)
+	}
+
 	if req.Session != "" {
 		argv = append(argv, "--resume", req.Session)
 	}
@@ -133,4 +138,24 @@ func choice(modelFlag, model, effortFlag, effortOption, effort string) []string 
 	}
 
 	return options
+}
+
+// guardSettings makes the program ask guard-command before every shell command of a teammate, because its own shell
+// does not pass through the server's checks. The command refuses one that starts a server.
+const guardSettings = `{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command",` +
+	`"command":"node /usr/local/share/guard/guard-command.ts"}]}]}}`
+
+// guardEnv is what guard-command needs to apply the same rule as the app's own loop: the pattern of a command that
+// starts a server and the words that say why not, which depend on whether this teammate may start the app.
+func guardEnv(req taskapp.CLIRequest) []string {
+	if !req.Limited {
+		return nil
+	}
+
+	canStart := slices.Contains(req.Tools, "start_site")
+
+	return []string{
+		"GUARD_SERVER_PATTERN=" + taskapp.ServerStartPattern,
+		"GUARD_SERVER_MESSAGE=" + taskapp.ServerHoldText(canStart),
+	}
 }

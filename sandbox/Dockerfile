@@ -158,6 +158,7 @@ COPY sandbox/removebg.py /usr/local/bin/removebg
 COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
 COPY sandbox/capture/ /usr/local/share/capture/
+COPY sandbox/guard-command.ts /usr/local/share/guard/guard-command.ts
 # Playwright must use the browser that is here: it cannot download one, the sandbox has no network
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 COPY sandbox/site-serve.ts /usr/local/share/serve/site-serve.ts
