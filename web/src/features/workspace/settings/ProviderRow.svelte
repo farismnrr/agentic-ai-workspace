@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../../../shared/ui/Icon.svelte';
   import { kindLabel, modelsCopy } from '../content/models';
+  import { programs } from '../content/subscriptions';
   import { describeProviderError } from '../logic/provider-errors';
   import { setProviderEnabled, verifyProvider, type Provider } from '../logic/providers-api';
 
@@ -13,6 +14,7 @@
 
   const { provider, onchange, onremove, onerror }: Props = $props();
   let busy = $state(false);
+  const plan = $derived(provider.kind === 'plan' ? programs[provider.id.slice('plan:'.length) as keyof typeof programs] : undefined);
 
   async function run(action: () => Promise<unknown>): Promise<void> {
     busy = true;
@@ -30,10 +32,16 @@
 <li class="flex flex-wrap items-center gap-3 py-3">
   <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-base-300 text-sm font-medium" aria-hidden="true">{provider.name.slice(0, 1)}</span>
   <span class="flex min-w-0 flex-1 flex-col leading-tight">
-    <span class="font-medium">{provider.name} <span class="font-normal text-xs text-[var(--brand-text-tertiary)]">· {kindLabel(provider.kind)}</span></span>
-    <code class="truncate text-xs text-[var(--brand-text-secondary)]">{provider.keyHint} · {provider.baseUrl}</code>
+    <span class="font-medium">{provider.name} <span class="font-normal text-xs text-[var(--brand-text-tertiary)]">· {plan === undefined ? kindLabel(provider.kind) : plan.badge}</span></span>
+    {#if plan === undefined}
+      <code class="truncate text-xs text-[var(--brand-text-secondary)]">{provider.keyHint} · {provider.baseUrl}</code>
+    {:else}
+      <span class="text-xs text-[var(--brand-text-secondary)]">{plan.connected}</span>
+    {/if}
   </span>
-  {#if provider.verified}
+  {#if plan !== undefined}
+    <span class="flex items-center gap-1 text-xs"><Icon name="check-circle" class="size-4 text-success" /> Signed in</span>
+  {:else if provider.verified}
     <span class="flex items-center gap-1 text-xs"><Icon name="check-circle" class="size-4 text-success" /> Verified</span>
     <button class="btn btn-ghost btn-xs" type="button" disabled={busy} title={modelsCopy.refreshTip} onclick={() => run(() => verifyProvider(provider.id))}>Refresh</button>
   {:else}
@@ -47,5 +55,5 @@
     disabled={busy}
     onchange={(event) => run(() => setProviderEnabled(provider.id, event.currentTarget.checked))}
   />
-  <button class="btn btn-ghost btn-xs btn-square" type="button" aria-label="Remove {provider.name}" onclick={onremove}><Icon name="trash" class="size-4" /></button>
+  <button class="btn btn-ghost btn-xs btn-square" type="button" aria-label="{plan === undefined ? 'Remove' : 'Sign out of'} {provider.name}" onclick={onremove}><Icon name="trash" class="size-4" /></button>
 </li>

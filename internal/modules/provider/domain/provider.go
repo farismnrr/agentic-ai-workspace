@@ -18,7 +18,15 @@ const (
 	KindOpenAI     Kind = "openai"
 	KindGemini     Kind = "gemini"
 	KindCompatible Kind = "compatible"
+	// KindPlan is a vendor's own coding program on the person's own plan. Nobody adds it with a key: they sign in.
+	KindPlan Kind = "plan"
 )
+
+// PlanPrefix starts the id of a plan, so it never clashes with the id of a provider a person added.
+const PlanPrefix = "plan:"
+
+// IsPlanID says whether an id is a plan's.
+func IsPlanID(id string) bool { return strings.HasPrefix(id, PlanPrefix) }
 
 // Errors of the provider use cases.
 var (
@@ -78,7 +86,7 @@ func DefaultBaseURL(kind Kind) string {
 		return "https://api.openai.com/v1"
 	case KindGemini:
 		return "https://generativelanguage.googleapis.com/v1beta/openai"
-	case KindCompatible:
+	case KindCompatible, KindPlan:
 		return ""
 	}
 

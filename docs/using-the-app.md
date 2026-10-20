@@ -93,12 +93,13 @@ Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay
 1. Open **Settings → Models**, press **Add**, and choose **Anthropic** (or **OpenAI**).
 2. Switch from **API key** to **Your plan**, press **Sign in with Claude** (or ChatGPT), then **Open Claude** (or **Open ChatGPT**).
 3. Claude shows a code: paste it into the window. ChatGPT shows a code in the window: type it on the ChatGPT page.
-4. The plan now shows under **Connected providers**. Choose it under **Default model → Your own plan**: Claude lets you pick Fable, Opus, Sonnet or Haiku, and every plan has an **Effort** level. New tasks then run on your plan.
+4. The plan now shows under **Connected providers**, like any other provider, with its own on/off switch. Its models appear in every model list, with an **Effort** level per model. Claude lists Default, Fable, Opus, Sonnet and Haiku. ChatGPT lists the models Codex offers.
 
 - **Your sign-in stays private.** You sign in on the provider's own page. The app never sees your password or token.
 - **Each person signs in on their own.** Plans are never shared between people.
 - **Not signed in?** A task stops with a note telling you to sign in, and Continue works afterwards.
-- **Today** these tasks work in one project, one step at a time. There is no team, no Undo and no per-step approval yet.
+- **Today** a task on your plan works in one project, one step at a time. There is no Undo and no per-step approval yet.
+- **Teams:** any teammate can use your plan, set under **Settings → Agent team**. The lead needs an API key or gateway model for now.
 
 ## Agent team
 

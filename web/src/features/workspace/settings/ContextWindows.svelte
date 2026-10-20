@@ -16,7 +16,9 @@
     onerror: (message: string) => void;
   }
 
-  const { options, providers, onchange, onerror }: Props = $props();
+  const { options: all, providers, onchange, onerror }: Props = $props();
+  // A plan's program keeps its own context, so there is nothing to set for it.
+  const options = $derived(all.filter((option) => !option.providerId.startsWith('plan:')));
 
   const sizeOf = (option: ModelOption): number =>
     providers.find((provider) => provider.id === option.providerId)?.contextWindows[option.model] ?? 200_000;

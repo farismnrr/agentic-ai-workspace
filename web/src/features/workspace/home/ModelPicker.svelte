@@ -10,10 +10,13 @@
     model?: string | undefined;
     effort?: string | undefined;
     disabled?: boolean | undefined;
+    /** False for a role that cannot run on a plan. */
+    plans?: boolean | undefined;
   }
 
-  let { model = $bindable(''), effort = $bindable(''), disabled = false }: Props = $props();
-  let options: ModelOption[] = $state([]);
+  let { model = $bindable(''), effort = $bindable(''), disabled = false, plans = true }: Props = $props();
+  let all: ModelOption[] = $state([]);
+  const options = $derived(plans ? all : all.filter((option) => !option.providerId.startsWith('plan:')));
   let providers: Provider[] = $state([]);
   let prefs: Preferences | undefined = $state();
 
@@ -37,9 +40,9 @@
 
   onMount(async () => {
     try {
-      [options, providers, prefs] = await Promise.all([loadModels(), loadProviders(), loadPreferences()]);
+      [all, providers, prefs] = await Promise.all([loadModels(), loadProviders(), loadPreferences()]);
     } catch {
-      options = [];
+      all = [];
     }
   });
 </script>

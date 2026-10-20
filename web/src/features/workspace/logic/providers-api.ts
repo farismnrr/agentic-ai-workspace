@@ -1,6 +1,6 @@
 import { request } from '../../../shared/api/http';
 
-export type ProviderKind = 'anthropic' | 'openai' | 'gemini' | 'compatible';
+export type ProviderKind = 'anthropic' | 'openai' | 'gemini' | 'compatible' | 'plan';
 
 export interface Provider {
   id: string;

@@ -12,20 +12,12 @@ type Model struct {
 	Efforts []string
 }
 
-// The vendors list no models a program can reach, so these are the program's own names and levels, from its
-// documentation: Claude Code's model aliases (each one follows the newest model of its family) and its effort
-// levels. Codex is left to choose its own model; the levels are the ones every Codex model takes.
-var (
-	claudeEfforts = []string{"low", "medium", "high", "xhigh", "max"}
-	codexEfforts  = []string{"low", "medium", "high"}
-)
+// Claude Code lists no models a person can reach, so these are its own names, from its documentation: the
+// model aliases (each one follows the newest model of its family) and its effort levels.
+var claudeEfforts = []string{"low", "medium", "high", "xhigh", "max"}
 
-// Models are the choices a person has with a program, the program's own choice first.
-func Models(rt Runtime) []Model {
-	if rt == ChatGPT {
-		return []Model{{ID: DefaultModel, Name: "Default", Efforts: codexEfforts}}
-	}
-
+// ClaudeModels are the choices with Claude Code, its own choice first.
+func ClaudeModels() []Model {
 	return []Model{
 		{ID: DefaultModel, Name: "Default", Efforts: claudeEfforts},
 		{ID: "fable", Name: "Fable", Efforts: claudeEfforts},
@@ -35,10 +27,16 @@ func Models(rt Runtime) []Model {
 	}
 }
 
-// Choice checks a model and an effort a person asked for against what the program accepts. It returns what to
-// pass to the program: an empty model or effort means the program's own.
-func Choice(rt Runtime, model, effort string) (string, string) {
-	for _, known := range Models(rt) {
+// OwnChoice is all there is to pick from a program whose models cannot be listed: its own.
+func OwnChoice() []Model {
+	return []Model{{ID: DefaultModel, Name: "Default", Efforts: []string{"low", "medium", "high"}}}
+}
+
+// Choice checks a model and an effort a person asked for against the models the program lists. It returns
+// what to pass to the program: an empty model or effort means the program's own, which is also what a model
+// the list does not name gets.
+func Choice(models []Model, model, effort string) (string, string) {
+	for _, known := range models {
 		if known.ID != model {
 			continue
 		}

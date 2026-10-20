@@ -44,6 +44,7 @@ type Service struct {
 	cipher   Cipher
 	verifier Verifier
 	ids      IDs
+	plans    Plans
 	// synced remembers when each gateway's model list was last read, so it is not read on every page load.
 	synced map[string]time.Time
 	mu     sync.Mutex
@@ -56,6 +57,10 @@ func NewService(store Store, cipher Cipher, verifier Verifier, ids IDs, now func
 
 // Verify checks the key with the provider and caches the models it offers.
 func (s *Service) Verify(ctx context.Context, userID, id string) (domain.Provider, error) {
+	if domain.IsPlanID(id) {
+		return s.plan(ctx, userID, id)
+	}
+
 	credential, err := s.Credential(ctx, userID, id)
 	if err != nil {
 		return domain.Provider{}, err
@@ -84,6 +89,10 @@ func (s *Service) Verify(ctx context.Context, userID, id string) (domain.Provide
 
 // Credential decrypts what a model client needs; it is only for server-side use.
 func (s *Service) Credential(ctx context.Context, userID, id string) (domain.Credential, error) {
+	if domain.IsPlanID(id) {
+		return domain.Credential{}, fmt.Errorf("a plan has no key: %w", domain.ErrNotFound)
+	}
+
 	provider, sealed, err := s.store.Find(ctx, userID, id)
 	if err != nil {
 		return domain.Credential{}, fmt.Errorf("find provider: %w", err)
@@ -104,11 +113,23 @@ func (s *Service) List(ctx context.Context, userID string) ([]domain.Provider, e
 		return nil, fmt.Errorf("list providers: %w", err)
 	}
 
+	if s.plans != nil {
+		providers = append(s.plans.Connected(ctx, userID), providers...)
+	}
+
 	return providers, nil
 }
 
 // SetEnabled switches a provider on or off.
 func (s *Service) SetEnabled(ctx context.Context, userID, id string, enabled bool) error {
+	if domain.IsPlanID(id) && s.plans != nil {
+		if err := s.plans.SetEnabled(ctx, userID, id, enabled); err != nil {
+			return fmt.Errorf("switch plan: %w", err)
+		}
+
+		return nil
+	}
+
 	if err := s.store.SetEnabled(ctx, userID, id, enabled); err != nil {
 		return fmt.Errorf("switch provider: %w", err)
 	}
@@ -118,6 +139,14 @@ func (s *Service) SetEnabled(ctx context.Context, userID, id string, enabled boo
 
 // Remove deletes a provider and its key.
 func (s *Service) Remove(ctx context.Context, userID, id string) error {
+	if domain.IsPlanID(id) && s.plans != nil {
+		if err := s.plans.SignOut(ctx, userID, id); err != nil {
+			return fmt.Errorf("sign out of plan: %w", err)
+		}
+
+		return nil
+	}
+
 	if err := s.store.Delete(ctx, userID, id); err != nil {
 		return fmt.Errorf("remove provider: %w", err)
 	}

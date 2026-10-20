@@ -36,7 +36,7 @@ func (c Config) mounts(spec Spec) ([]mount.Mount, error) {
 		dir, target string
 		readOnly    bool
 	}{
-		{spec.Workspace, Workspace, false},
+		{spec.Workspace, Workspace, spec.WorkspaceReadOnly},
 		{spec.Cache, Cache, false},
 		{spec.Egress, Egress, true},
 		{spec.Site, SiteDir, false},
