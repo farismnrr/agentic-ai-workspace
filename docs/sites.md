@@ -23,8 +23,14 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - It runs in the same sandbox as checks. It can reach package registries, but not your computer or other projects.
 - Fonts are installed from npm (Fontsource), not loaded from Google Fonts, so they work in every stack and need no extra network access.
 - It must listen on `127.0.0.1` at the port the AI chose. Use a normal server, not a hot-reload dev server. WebSockets aren't supported yet.
-- The path prefix is removed before requests reach the app. Use relative links (`./style.css`), never `/style.css`.
+- The path prefix is removed before requests reach the app. Relative links (`./style.css`) are the right way.
+- A link like `/style.css` in a page or stylesheet is moved under the address for you, so the page keeps its styling.
+- The same goes for images, `fetch` and `history.pushState` that a page sets while it runs.
+- Links built in pieces or hidden in `.js` files are not moved. Use relative paths there.
 - When the AI starts an app, the server loads its pages and tells the AI about links that would not work.
+- It also flags a stylesheet that is empty, never built (raw Tailwind) or answered with a web page.
+- Then it opens the home page in a headless browser at the app's real address and flags a page with no styling.
+- `screenshot` uses that same path, so the AI sees the page as you do, with no login even for a private app.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
 - Because of that, a login in your app cannot stay signed in inside the preview. The app itself is fine.
 - The AI tests accounts through the app's API instead, and tells you so.

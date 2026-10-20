@@ -15,6 +15,7 @@ const maxCommandLength = 4000
 type Deps struct {
 	Store    Store
 	Runtime  Runtime
+	View     Viewer
 	Projects Projects
 	Notify   Notifier
 	IDs      IDs

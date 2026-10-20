@@ -36,6 +36,18 @@ which answers with its own page: the stylesheet does not apply, or the page is "
   (`createWebHashHistory`), and `fetch('./api/...')`. Plain HTML or a server that renders pages: relative paths, and
   `redirect('./login')` or a `Location` header with a relative value.
 - Express, Hono, Flask and the like: build every link and `Location` header relative; read nothing from the host.
+- The platform is a safety net, not a licence. It moves a root link (`/style.css`) in the pages and stylesheets the app
+  sends, and in `src`, `href`, `fetch`, `history.pushState` and the like that a page sets while it runs, under the
+  address. It cannot see an address a script builds from pieces, text inside `.js` files, `location.assign` or a server
+  that redirects to `/login` (that one is fixed on the way back). Write relative links anyway; do not lean on it.
+- A client router in history mode (React Router, Vue Router, SvelteKit, Next.js) reads `location.pathname`, which holds
+  the address, so it needs a base: read `window.__SITE_BASE__` (the platform sets it before any script runs) for the
+  router's `basename` or `base`. A framework that fixes its base path at build time (Next.js `basePath`) cannot know a
+  private app's ticket: choose Nuxt, or a static build with hash routing, and do not start with Next.js.
+- The stylesheet must be the built one. Tailwind (`@tailwind`, `@import "tailwindcss"`, `@apply`) and Sass only work
+  after the build: link the file the build wrote (`dist/`, `.output/public/`), never the source. A page that shows as
+  plain text and blue links means the stylesheet is missing, empty, uncompiled or answered with a web page; `start_site`
+  reports all four, and so does a link inside a stylesheet (`url()`, `@import`). Fix them before you report.
 - Nuxt under `nuxt-serve` handles pages by itself, but its own rules apply (see `nuxt-app`).
 - You do not start the app: the DevOps teammate does. Its `start_site` loads the home page and the pages it links to,
   and lists every link that would fail. If the orchestrator sends you that list, fix it and report; never call the

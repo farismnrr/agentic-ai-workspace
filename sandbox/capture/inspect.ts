@@ -41,7 +41,11 @@ export function inspectPage() {
       !(id && document.querySelector(`label[for="${id}"]`));
   });
   const body = getComputedStyle(document.body);
+  const rules = [...document.styleSheets].reduce((sum, sheet) => {
+    try { return sum + sheet.cssRules.length; } catch { return sum + 1; }
+  }, 0);
   return {
+    stylesheets: { total: document.styleSheets.length, rules },
     title: document.title,
     lang: document.documentElement.lang,
     viewportMeta: document.querySelector('meta[name=viewport]') !== null,
