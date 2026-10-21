@@ -11,6 +11,12 @@ if [ -S /run/egress/p.sock ]; then
   socat TCP-LISTEN:3128,bind=127.0.0.1,reuseaddr,fork UNIX-CONNECT:/run/egress/p.sock &
 fi
 
+# Database: the one host:port the server may reach for this project (DB_TUNNEL) is opened on the same
+# loopback port and passed through the proxy socket; the database's own name resolves here (/etc/hosts).
+if [ -n "${DB_TUNNEL:-}" ] && [ -S /run/egress/p.sock ]; then
+  socat "TCP-LISTEN:${DB_TUNNEL##*:},bind=127.0.0.1,reuseaddr,fork" "PROXY:127.0.0.1:${DB_TUNNEL},proxyport=3128" &
+fi
+
 if [ -n "${SITE_PORT:-}" ] && [ -d /run/site ]; then
   socat UNIX-LISTEN:/run/site/s.sock,fork,mode=0660 "TCP:127.0.0.1:${SITE_PORT}" &
 fi

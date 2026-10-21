@@ -116,6 +116,7 @@ The Env tab's **Database** section starts with **SQLite (default)**. It uses
 the project's own SQLite file. Choose PostgreSQL, MySQL or MongoDB to create
 an isolated connection from details saved under **Settings → Database**.
 PostgreSQL and MySQL use `DATABASE_URL`; MongoDB uses `MONGODB_URL`.
+The AI's commands and your running app can reach that database, and only that one.
 When configured, the public CA is provided as `DATABASE_SSL_CA`.
 
 Project apps can read `DATABASE_SSL_CA` as PEM text and pass it to their

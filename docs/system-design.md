@@ -104,7 +104,7 @@ Tasks, commands and web apps run in one throwaway Docker container per run.
 | Limit | How |
 | --- | --- |
 | Files | Only that person's project folder is visible |
-| Network | No direct network. Package registries only, through a proxy |
+| Network | No direct network. Package registries and the project's saved database only, through a proxy |
 | System | Read-only root, no extra privileges, memory, CPU and process limits |
 | Capacity | `MAX_SANDBOXES` runs at once. A run stops if its folder passes 2 GiB |
 
@@ -119,6 +119,11 @@ The server's `platform/egress` checks outgoing addresses when it dials them.
 PostgreSQL provisioning: it allows public, private and loopback addresses, but
 blocks link-local, special ranges and the server's own port. Sandbox containers
 remain network-disabled.
+
+The egress proxy also tunnels one exact `host:port` per run: the database an
+admin saved in Settings, for a project whose connection was created from it.
+The sandbox opens that port on its own loopback and the proxy dials the target
+with `PrivateAllowed`, never the server's own port.
 
 Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 

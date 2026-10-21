@@ -51,7 +51,8 @@ func sandboxConfig(cfg config.Config) sandbox.Config {
 // are answered with a plain reason until it works.
 func newSandboxEngine(cfg config.Config) (*codingrunner.Engine, func()) {
 	conf := sandboxConfig(cfg)
-	hub := egressproxy.NewHub(filepath.Join(conf.DataDir, "egress"), egressproxy.New(cfg.SandboxEgress))
+	proxy := egressproxy.New(cfg.SandboxEgress).WithOwnPort(cfg.Port)
+	hub := egressproxy.NewHub(filepath.Join(conf.DataDir, "egress"), proxy)
 
 	engine := codingrunner.NewEngine(codingrunner.EngineConfig{
 		Size:   cfg.MaxSandboxes,

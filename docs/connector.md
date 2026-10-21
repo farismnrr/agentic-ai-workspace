@@ -46,6 +46,7 @@ Every check runs in its own throwaway container:
 
 - It sees only that project's folder, as `/workspace`, plus a private `/tmp` and download cache.
 - It reaches only package registries, and GitHub if you connected it.
+- It also reaches your project's database, if an admin saved one in Settings and the project uses it. Nothing else on your network.
 - It can't see your other files or processes.
 - It runs without privileges, with limits on memory, CPU, processes, file size and workspace size.
 

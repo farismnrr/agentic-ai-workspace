@@ -9,12 +9,12 @@ import (
 )
 
 // SiteSpec describes a long-lived command in a workspace, such as a web app: it gets the
-// same cache, registry proxy and environment as any command, plus extraEnv.
+// same cache, registry proxy and environment as any command, plus extraEnv. Its proxy also reaches hosts.
 func (e *Engine) SiteSpec(
-	ctx context.Context, dir string, docker *sandbox.Docker, argv, extraEnv []string,
+	ctx context.Context, dir string, docker *sandbox.Docker, argv, extraEnv []string, hosts ...string,
 ) sandbox.Spec {
 	spec := sandbox.Spec{Workspace: dir, Argv: argv}
-	e.prepare(ctx, dir, &spec, docker)
+	e.prepare(ctx, dir, &spec, docker, hosts...)
 	spec.Env = append(environment(spec), extraEnv...)
 
 	return spec

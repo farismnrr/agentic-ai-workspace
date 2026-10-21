@@ -230,6 +230,18 @@ The address must be reachable from the app server. With Docker, use
 another private or LAN machine, use its LAN address and allow connections from
 the app host. Provisioning allows private addresses and has a 10-second timeout.
 
+### Database from commands and apps
+
+Commands and web apps have no network, but they can reach the project's database.
+
+- Only the exact host and port saved in **Settings → Database** are reachable. Nothing else on that network is.
+- Only a project whose connection was created from those settings gets it. A hand-typed `DATABASE_URL` does not.
+- If an admin changes or removes the settings, projects that used the old ones lose access.
+- The saved `DATABASE_URL` works as it is. Inside the container its host name points to a local port that the server forwards.
+- A saved IP address is rewritten to `127.0.0.1`. `sslmode=verify-full` then needs a certificate that matches that address.
+- The server's own port is always refused.
+- Needs the `-sandbox` image that includes `socat` (it already does).
+
 Removing a project's database connection does not drop its schema, role or
 data. To reconnect to the existing schema, choose **Use shared Postgres (schema
 created automatically)** and click **Create my schema**. For a connected
@@ -270,7 +282,7 @@ What you should know about the token:
 
 ## Docker and security
 
-Commands have no network of their own. They reach only the hosts in `SANDBOX_EGRESS_HOSTS` (plus GitHub, if connected), through a proxy in the app. Downloads are cached per person in `DATA_DIR/caches`, up to 5 GB.
+Commands have no network of their own. They reach only the hosts in `SANDBOX_EGRESS_HOSTS` (plus GitHub, if connected, and the project's saved database), through a proxy in the app. Downloads are cached per person in `DATA_DIR/caches`, up to 5 GB.
 
 The Claude and ChatGPT programs run in the same image, each person with a folder in `DATA_DIR/cli`. It holds their sign-in and is removed with their account.
 

@@ -3,6 +3,8 @@
 // so the server still listens on one TCP port only. The proxy tunnels HTTPS (CONNECT on
 // port 443) to an allowlist of hostnames, and the address each name resolves to is
 // checked when the connection opens, so the host, the LAN and loopback stay unreachable.
+// The one exception is an exact host:port target, which a run is given for the project's
+// database; only that address and port are reachable, and only through that run's socket.
 package egressproxy
 
 import (
@@ -28,10 +30,13 @@ const (
 
 type dialFunc func(ctx context.Context, address string) (net.Conn, error)
 
-// Proxy tunnels HTTPS connections to allowed hostnames.
+// Proxy tunnels HTTPS connections to allowed hostnames, and any TCP connection to an exact target.
 type Proxy struct {
-	hosts map[string]struct{}
-	dial  dialFunc
+	hosts   map[string]struct{}
+	targets map[string]struct{}
+	dial    dialFunc
+	// dialTarget connects to an exact target, which may be on the LAN or this computer.
+	dialTarget dialFunc
 }
 
 // New allows the given hostnames. Names resolving to non-public addresses are still refused.
@@ -51,25 +56,11 @@ func New(hosts []string) *Proxy {
 		},
 	}
 
-	return &Proxy{hosts: allowed, dial: func(ctx context.Context, address string) (net.Conn, error) {
+	dial := func(ctx context.Context, address string) (net.Conn, error) {
 		return dialer.DialContext(ctx, "tcp", address)
-	}}
-}
-
-// WithHosts returns a proxy that allows the extra hostnames as well; the original is unchanged.
-func (p *Proxy) WithHosts(extra []string) *Proxy {
-	allowed := make(map[string]struct{}, len(p.hosts)+len(extra))
-	for host := range p.hosts {
-		allowed[host] = struct{}{}
 	}
 
-	for _, host := range extra {
-		if host = strings.ToLower(strings.TrimSpace(host)); host != "" {
-			allowed[host] = struct{}{}
-		}
-	}
-
-	return &Proxy{hosts: allowed, dial: p.dial}
+	return &Proxy{hosts: allowed, dial: dial, dialTarget: targetDial("")}
 }
 
 // Serve answers connections on l until it is closed.
@@ -83,13 +74,21 @@ func (p *Proxy) Serve(l net.Listener) error {
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host, port, err := net.SplitHostPort(r.Host)
 
-	if r.Method != http.MethodConnect || err != nil || port != httpsPort || !p.allowed(host) {
+	target := p.isTarget(host, port)
+	permitted := target || (port == httpsPort && p.allowed(host))
+
+	if r.Method != http.MethodConnect || err != nil || !permitted {
 		http.Error(w, blockedText, http.StatusForbidden)
 
 		return
 	}
 
-	upstream, err := p.dial(r.Context(), net.JoinHostPort(host, port))
+	dial := p.dial
+	if target {
+		dial = p.dialTarget
+	}
+
+	upstream, err := dial(r.Context(), net.JoinHostPort(host, port))
 	if err != nil {
 		http.Error(w, "Could not reach "+host+".", http.StatusBadGateway)
 
