@@ -27,6 +27,7 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - The path prefix is removed before requests reach the app. Relative links (`./style.css`) are the right way.
 - A link like `/style.css` in a page or stylesheet is moved under the address for you, so the page keeps its styling.
 - The same goes for images, `fetch` and `history.pushState` that a page sets while it runs.
+- `fetch` with `credentials: 'include'` and XHR with `withCredentials` are sent without credentials. The page has no cookies, and the browser would refuse them.
 - Links built in pieces or hidden in `.js` files are not moved. Use relative paths there.
 - When the AI starts an app, the server loads its pages and tells the AI about links that would not work.
 - Starting is quick. The security check and the other full checks run once, at the end, before the AI reports to you.
