@@ -24,7 +24,7 @@ var hopByHop = []string{
 // and the header browsers send when fetching a service worker script.
 var requestDrop = []string{
 	"Cookie", "Authorization", "Service-Worker", "Forwarded", "X-Forwarded-For", "X-Forwarded-Host",
-	"X-Forwarded-Proto", "X-Forwarded-Prefix", "X-Real-Ip", "Expect", "Accept-Encoding",
+	"X-Forwarded-Proto", "X-Forwarded-Prefix", "X-Real-Ip", "Expect", "Accept-Encoding", visitorHeader,
 }
 
 // responseDrop never reaches the browser: cookies for the shared origin, instructions that

@@ -105,3 +105,28 @@ func TestShimMakesRequestsAskForNoCredentials(t *testing.T) {
 		}
 	}
 }
+
+func TestWithVisitorGivesAPageItsPassBeforeTheShim(t *testing.T) {
+	page := localize("text/html", "<head></head><body>hi</body>")
+	got := string(domain.WithVisitor([]byte(page), "ab.12.cd"))
+
+	pass, shim := strings.Index(got, `window.__SITE_VISITOR__="ab.12.cd"`), strings.Index(got, "<script data-site-shim>")
+	if pass < 0 || shim < 0 || pass > shim {
+		t.Errorf("the pass goes in before the shim: %q", got)
+	}
+
+	plain := "<p>no shim</p>"
+	if string(domain.WithVisitor([]byte(plain), "x")) != plain || string(domain.WithVisitor([]byte(page), "")) != page {
+		t.Error("a body without the shim, or an empty pass, is left alone")
+	}
+}
+
+func TestShimSendsThePassOnRequestsToTheSite(t *testing.T) {
+	got := localize("text/html", "<head></head>")
+
+	for _, want := range []string{`"X-Site-Visitor"`, "window.__SITE_VISITOR__", "mine("} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the shim must send the pass, missing %s", want)
+		}
+	}
+}

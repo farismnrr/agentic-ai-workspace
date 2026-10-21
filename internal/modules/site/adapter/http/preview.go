@@ -67,13 +67,3 @@ func (h *Handler) previewSegment(c fiber.Ctx, site domain.Site, ticket string, v
 	}
 	return ""
 }
-
-// jarFor returns the visitor's cookie jar for a private site they hold a valid ticket for. A site on its own
-// host keeps cookies in the browser, and a public site has no visitor to tell apart yet.
-func (h *Handler) jarFor(c fiber.Ctx, site domain.Site, valid, preview bool) *jarSession {
-	if !valid || preview || site.Visibility != domain.Private {
-		return nil
-	}
-
-	return h.jar.session(site.Token, h.holder(c))
-}

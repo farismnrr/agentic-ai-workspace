@@ -2,6 +2,7 @@ package domain
 
 import (
 	"bytes"
+	"encoding/json"
 	"regexp"
 	"strings"
 )
@@ -133,4 +134,22 @@ func Link(link, base, prefix string) string {
 	default:
 		return prefix + link
 	}
+}
+
+// WithVisitor gives an HTML page the pass the shim sends on its requests to the site, so the proxy knows whose
+// app login to use. It goes just before the shim; a body without the shim, or an empty pass, is left alone.
+func WithVisitor(body []byte, pass string) []byte {
+	i := bytes.Index(body, []byte("<script "+shimMarker+">"))
+	if pass == "" || i < 0 {
+		return body
+	}
+
+	quoted, _ := json.Marshal(pass)
+	tag := "<script data-site-visitor>window.__SITE_VISITOR__=" + string(quoted) + ";</script>"
+
+	out := make([]byte, 0, len(body)+len(tag))
+	out = append(out, body[:i]...)
+	out = append(out, tag...)
+
+	return append(out, body[i:]...)
 }
