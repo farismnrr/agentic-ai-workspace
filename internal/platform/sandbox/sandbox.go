@@ -52,6 +52,9 @@ type Spec struct {
 	Home string
 	// Bridge is an optional folder holding the socket of tools the server runs, shown at /run/bridge.
 	Bridge string
+	// Tunnel is an optional "host:port" of the one database the proxy socket may reach. The start script
+	// opens that port on loopback and the host name resolves to it. It needs Egress to be set.
+	Tunnel string
 	// Stdin, when set, is copied to the command's standard input and then closed.
 	Stdin io.Reader
 	Argv  []string

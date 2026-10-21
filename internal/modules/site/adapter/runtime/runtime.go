@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
@@ -49,6 +48,7 @@ type Runtime struct {
 	engine  *codingrunner.Engine
 	folders Folders
 	env     ProjectEnv
+	tunnel  codingrunner.DBTunnel
 	base    string
 }
 
@@ -98,13 +98,10 @@ func (r *Runtime) Start(ctx context.Context, spec application.StartSpec) (string
 
 	_ = os.Remove(r.Socket(spec.ProjectID))
 
-	port := strconv.Itoa(spec.Port)
-	sandboxSpec := r.engine.SiteSpec(ctx, project, docker, []string{"bash", "-c", spec.Command},
-		[]string{"SITE_PORT=" + port, "PORT=" + port, "HOST=127.0.0.1", "BASE_PATH=" + spec.BasePath})
-	if sandboxSpec.Env, err = r.projectEnvironment(ctx, spec.ProjectID, sandboxSpec.Env); err != nil {
+	sandboxSpec, err := r.siteSpec(ctx, docker, project, dir, spec)
+	if err != nil {
 		return "", err
 	}
-	sandboxSpec.Site = dir
 
 	id, err := docker.Start(ctx, sandboxSpec)
 	if err != nil {

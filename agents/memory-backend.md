@@ -42,6 +42,7 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
   `egress.PrivateAllowed` at dial time (Mongo checks every resolved address),
   block the server's own port, and are limited to 5/user/minute with a 10 s
   deadline. They run in the app process; sandbox containers stay offline.
+  The only database path from a sandbox is the exact-target tunnel (`dbconn/application/tunnel.go`, `egressproxy`, `platform/sandbox/tunnel.go`): never connect a sandbox to a Docker network, and never widen the gate to "a URL that points at the shared host" because users write their own Env.
   Shared PostgreSQL settings live in `shared_database_settings`, encrypted
   with `platform/secretbox`; `bootstrap/dbconn.go` resolves saved settings at
   provision time and falls back to `POSTGRES_ADMIN_URL` only when none exist.

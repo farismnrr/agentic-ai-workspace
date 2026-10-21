@@ -117,7 +117,7 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 
 	return client.ContainerCreateOptions{
 		Config: &container.Config{
-			Image: d.cfg.Image, Cmd: command(spec), Env: spec.Env, WorkingDir: Workspace,
+			Image: d.cfg.Image, Cmd: command(spec), Env: containerEnv(spec), WorkingDir: Workspace,
 			User:   strconv.Itoa(d.cfg.UID) + ":" + strconv.Itoa(d.cfg.GID),
 			Labels: map[string]string{taskLabel: d.cfg.Owner}, NetworkDisabled: true,
 			AttachStdin: spec.Stdin != nil, OpenStdin: spec.Stdin != nil, StdinOnce: spec.Stdin != nil,
@@ -127,7 +127,8 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 		},
 		HostConfig: &container.HostConfig{
 			NetworkMode: "none", ReadonlyRootfs: true, Init: &enabled, Runtime: d.cfg.Runtime,
-			CapDrop: []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"},
+			ExtraHosts: tunnelHosts(spec),
+			CapDrop:    []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"},
 			Mounts: mounts, Tmpfs: map[string]string{"/tmp": tmpfsOpts},
 			Resources: container.Resources{
 				Memory: memory, MemorySwap: memory, PidsLimit: &pids,
@@ -139,7 +140,7 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 
 // command runs through the image's start script when the proxy socket is mounted, so tools find it on a local port.
 func command(spec Spec) []string {
-	if spec.Egress == "" && spec.Site == "" {
+	if spec.Egress == "" && spec.Site == "" && spec.Tunnel == "" {
 		return spec.Argv
 	}
 
