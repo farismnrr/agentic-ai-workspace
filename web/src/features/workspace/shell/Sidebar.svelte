@@ -27,6 +27,8 @@
   <NavItem href="/app" icon="pencil" label="New task" {collapsed} active={name === 'home'} />
   <NavItem icon="search" label="Search" {collapsed} hint="Ctrl K" onclick={() => { paletteOpen.set(true); }} />
   <NavItem href="/app/inbox" icon="inbox" label="Inbox" {collapsed} active={name === 'inbox'} badge={waiting} />
+  <NavItem href="/app/tasks" icon="check-square" label="Tasks" {collapsed} active={name === 'tasks'} />
+  <NavItem href="/app/archive" icon="box" label="Archive" {collapsed} active={name === 'archive'} />
   <NavItem href="/app/projects" icon="folder" label="All projects" {collapsed} active={inProjects} />
   <NavItem href="/app/sites" icon="globe" label="Sites" {collapsed} active={name === 'sites'} badge={live} />
   <NavItem href="/app/extensions" icon="puzzle" label="Extensions" {collapsed} active={name === 'extensions'} />

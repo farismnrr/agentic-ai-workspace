@@ -18,7 +18,7 @@ const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
 	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, ` +
-	`plan_first, follow_settings, pinned_at`
+	`plan_first, follow_settings, pinned_at, archived_at`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -50,25 +50,6 @@ func (s *Store) Create(ctx context.Context, t domain.Task) error {
 		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team, t.PlanFirst, t.FollowSettings)
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
-	}
-
-	return nil
-}
-
-// DeleteProject removes a person's tasks in one project; their events, messages and usage go with them.
-func (s *Store) DeleteProject(ctx context.Context, userID, projectID string) error {
-	const remove = `DELETE FROM tasks WHERE user_id = ? AND project_id = ?`
-	if _, err := s.db.ExecContext(ctx, remove, userID, projectID); err != nil {
-		return fmt.Errorf("delete project tasks: %w", err)
-	}
-
-	return nil
-}
-
-// DeleteAll removes a person's tasks; their events, messages and usage go with them.
-func (s *Store) DeleteAll(ctx context.Context, userID string) error {
-	if _, err := s.db.ExecContext(ctx, `DELETE FROM tasks WHERE user_id = ?`, userID); err != nil {
-		return fmt.Errorf("delete tasks: %w", err)
 	}
 
 	return nil
@@ -112,12 +93,30 @@ func (s *Store) Unpin(ctx context.Context, userID, id string) (domain.Task, erro
 
 // List returns a person's tasks, newest activity first.
 func (s *Store) List(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error) {
+	return s.list(ctx, userID, projectID, limit, `archived_at IS NULL`)
+}
+
+// All returns active and archived tasks for server maintenance and document exports.
+func (s *Store) All(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error) {
+	return s.list(ctx, userID, projectID, limit, "")
+}
+
+func (s *Store) list(ctx context.Context, userID, projectID string, limit int, state string) ([]domain.Task, error) {
 	query, args := `SELECT `+taskColumns+` FROM tasks WHERE user_id = ?`, []any{userID}
 	if projectID != "" {
 		query, args = query+` AND project_id = ?`, append(args, projectID)
 	}
+	if state != "" {
+		// #nosec G202 -- state is a fixed internal predicate, never request input.
+		query += ` AND ` + state
+	}
 
-	rows, err := s.db.QueryContext(ctx, query+` ORDER BY updated_at DESC, rowid DESC LIMIT ?`, append(args, limit)...)
+	query += ` ORDER BY updated_at DESC, rowid DESC`
+	if limit >= 0 {
+		query += ` LIMIT ?`
+		args = append(args, limit)
+	}
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("select tasks: %w", err)
 	}
@@ -128,7 +127,7 @@ func (s *Store) List(ctx context.Context, userID, projectID string, limit int) (
 // Running lists tasks left queued, planning or working.
 func (s *Store) Running(ctx context.Context) ([]domain.Task, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT `+taskColumns+` FROM tasks WHERE status IN ('queued', 'planning', 'working')`)
+		`SELECT `+taskColumns+` FROM tasks WHERE status IN ('queued', 'planning', 'working') AND archived_at IS NULL`)
 	if err != nil {
 		return nil, fmt.Errorf("select running tasks: %w", err)
 	}

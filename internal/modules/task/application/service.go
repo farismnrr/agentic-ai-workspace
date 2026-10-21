@@ -108,6 +108,9 @@ func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) err
 	if err != nil {
 		return err
 	}
+	if task.ArchivedAt != nil {
+		return domain.ErrWrongState
+	}
 
 	switch {
 	case task.Source != "":
@@ -137,6 +140,13 @@ func (s *Service) Get(ctx context.Context, userID, taskID string) (domain.Task, 
 
 // Pin records the first time the person pinned their task.
 func (s *Service) Pin(ctx context.Context, userID, taskID string) (domain.Task, error) {
+	current, err := s.owned(ctx, userID, taskID)
+	if err != nil {
+		return domain.Task{}, err
+	}
+	if current.ArchivedAt != nil {
+		return domain.Task{}, domain.ErrWrongState
+	}
 	task, err := s.deps.Tasks.Pin(ctx, userID, taskID, s.deps.Now())
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("pin task: %w", err)
@@ -147,6 +157,13 @@ func (s *Service) Pin(ctx context.Context, userID, taskID string) (domain.Task, 
 
 // Unpin clears the person's pin from their task.
 func (s *Service) Unpin(ctx context.Context, userID, taskID string) (domain.Task, error) {
+	current, err := s.owned(ctx, userID, taskID)
+	if err != nil {
+		return domain.Task{}, err
+	}
+	if current.ArchivedAt != nil {
+		return domain.Task{}, domain.ErrWrongState
+	}
 	task, err := s.deps.Tasks.Unpin(ctx, userID, taskID)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("unpin task: %w", err)
@@ -167,18 +184,4 @@ func (s *Service) List(ctx context.Context, userID, projectID string) ([]domain.
 	}
 
 	return tasks, nil
-}
-
-// Events returns the thread entries after a cursor.
-func (s *Service) Events(ctx context.Context, userID, taskID string, after int64) ([]domain.Event, error) {
-	if _, err := s.owned(ctx, userID, taskID); err != nil {
-		return nil, err
-	}
-
-	events, err := s.deps.Events.EventsAfter(ctx, taskID, after)
-	if err != nil {
-		return nil, fmt.Errorf("list events: %w", err)
-	}
-
-	return events, nil
 }

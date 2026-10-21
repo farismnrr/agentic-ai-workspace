@@ -5,7 +5,7 @@
   import { tasksOf } from '../logic/derive';
   import type { Task, TaskStatus } from '../logic/task-types';
   import { loaded, tasks } from '../logic/workspace-store';
-  import TaskRow from './TaskRow.svelte';
+  import TaskSelection from '../tasks/TaskSelection.svelte';
   import SkeletonList from '../../../shared/ui/SkeletonList.svelte';
 
   interface Props {
@@ -41,7 +41,9 @@
   {#if !$loaded}
     <SkeletonList rows={4} />
   {:else}
-  {#each rows as task (task.id)}<TaskRow {task} />{:else}
+  {#if rows.length > 0}
+    <TaskSelection tasks={rows} />
+  {:else}
     {#if all.length === 0}
       <EmptyState compact icon="check-square" title={projectsCopy.noTasks.title} body={projectsCopy.noTasks.body}>
         <a class="btn btn-primary btn-sm" href="/app">New task</a>
@@ -49,6 +51,6 @@
     {:else}
       <EmptyState compact icon="search" title="Nothing in “{labels[filter]}”" body="Pick another filter to see the rest of this project's tasks." />
     {/if}
-  {/each}
+  {/if}
   {/if}
 </div>

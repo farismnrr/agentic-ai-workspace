@@ -118,6 +118,8 @@ export interface Task {
   updatedAt: string;
   /** ISO timestamp when this task was pinned; null when it is not pinned. */
   pinnedAt: string | null;
+  /** ISO timestamp when this task was archived; null while it is active. */
+  archivedAt: string | null;
 }
 
 export interface Project {

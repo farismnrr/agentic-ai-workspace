@@ -91,21 +91,6 @@ func (m *memory) Unpin(_ context.Context, userID, id string) (domain.Task, error
 	return task, nil
 }
 
-func (m *memory) List(_ context.Context, userID, _ string, _ int) ([]domain.Task, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var tasks []domain.Task
-
-	for _, task := range m.tasks {
-		if task.UserID == userID {
-			tasks = append(tasks, task)
-		}
-	}
-
-	return tasks, nil
-}
-
 func (m *memory) update(id string, change func(*domain.Task)) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

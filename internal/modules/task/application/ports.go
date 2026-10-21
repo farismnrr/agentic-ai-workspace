@@ -118,6 +118,11 @@ type TaskStore interface {
 	Pin(ctx context.Context, userID, id string, at time.Time) (domain.Task, error)
 	Unpin(ctx context.Context, userID, id string) (domain.Task, error)
 	List(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error)
+	Archived(ctx context.Context, userID string, limit int) ([]domain.Task, error)
+	All(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error)
+	Archive(ctx context.Context, userID, id string, at time.Time) error
+	Restore(ctx context.Context, userID, id string) error
+	DeleteOwned(ctx context.Context, userID string, ids []string) ([]string, error)
 	SetModel(ctx context.Context, id, providerID, model string, effort domain.Effort) error
 	SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error
 	SavePlan(ctx context.Context, id string, plan []domain.PlanStep, at time.Time) error

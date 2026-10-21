@@ -11,9 +11,10 @@
     /** The teammate asking, when it is not the lead. */
     agent?: string | undefined;
     onanswer: (allow: boolean) => void;
+    readOnly?: boolean;
   }
 
-  const { text, action, risk, resolved, agent, onanswer }: Props = $props();
+  const { text, action, risk, resolved, agent, onanswer, readOnly = false }: Props = $props();
 </script>
 
 <section class="card border border-warning/50 bg-base-100 p-3" aria-label="Permission request">
@@ -26,7 +27,9 @@
     <summary class="cursor-pointer text-[var(--brand-text-secondary)]">Show details</summary>
     <p class="mt-1 rounded-lg bg-base-200 px-3 py-2"><code class="break-all">{action}</code></p>
   </details>
-  {#if resolved === undefined}
+  {#if resolved === undefined && readOnly}
+    <p class="mt-3 text-sm">This task is archived, so approval is read-only.</p>
+  {:else if resolved === undefined}
     <ul class="mt-3 flex flex-wrap gap-2">
       <li><button class="btn btn-primary btn-sm rounded-lg" type="button" onclick={() => { onanswer(true); }}>Allow</button></li>
       <li><button class="btn btn-outline btn-sm rounded-lg" type="button" onclick={() => { onanswer(false); }}>Don't allow</button></li>

@@ -4,18 +4,24 @@ package notefiles
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"sync"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 )
 
+var taskIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+
 const (
 	directoryMode = 0o750
 	documentMode  = 0o600
 )
+
+var errInvalidTaskID = errors.New("invalid task id")
 
 // Store writes documents atomically so readers never observe a partially written file.
 type Store struct {
@@ -49,6 +55,29 @@ func (s *Store) Write(ctx context.Context, projectID string, files []application
 		if err = write(root, file); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// RemoveTask removes only one validated task's exported documents inside its project root.
+func (s *Store) RemoveTask(ctx context.Context, projectID, taskID string) error {
+	if !taskIDPattern.MatchString(taskID) {
+		return errInvalidTaskID
+	}
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("remove task documents: %w", err)
+	}
+	dir, err := s.dir(projectID)
+	if err != nil {
+		return fmt.Errorf("resolve notes folder: %w", err)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return fmt.Errorf("open notes folder: %w", err)
+	}
+	defer func() { _ = root.Close() }()
+	if err := root.RemoveAll("project-notes/tasks/" + taskID); err != nil {
+		return fmt.Errorf("remove task documents: %w", err)
 	}
 	return nil
 }

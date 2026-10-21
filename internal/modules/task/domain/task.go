@@ -68,6 +68,7 @@ type Proof struct {
 type Task struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+	ArchivedAt *time.Time
 	PinnedAt   *time.Time
 	Proof      *Proof
 	ProviderID string

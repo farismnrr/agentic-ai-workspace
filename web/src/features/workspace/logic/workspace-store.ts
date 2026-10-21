@@ -13,6 +13,12 @@ export const loaded = writable(false);
 /** The project the next task goes to; set when someone starts a task from a project page. */
 export const chosenProject = writable('');
 
+/** Removes tasks that the server has archived or permanently deleted from every shared view. */
+export function removeTasks(ids: string[]): void {
+  const removed = new Set(ids);
+  tasks.update((items) => items.filter((task) => !removed.has(task.id)));
+}
+
 /** Changes a task's pin and patches the shared list with the server's canonical response. */
 export async function setTaskPinned(id: string, pinned: boolean): Promise<void> {
   const updated = pinned ? await pinTask(id) : await unpinTask(id);

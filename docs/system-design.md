@@ -135,6 +135,7 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 - **Switches win.** A tool that is off is never offered to the model and never run.
 - **Pause and resume.** The conversation is stored, so a task can wait for you and continue later.
 - **Project documents.** Task plans, requirements and research are exported into `project-notes/`. New tasks get an index reference; documents are loaded through existing file tools.
+- **Task archive.** Archived tasks leave active lists and counts, but retain their records and pin. Restore returns them to active lists. Permanent deletion stops a running task, removes its screenshots and task documents, deletes its records, then rebuilds the project document index. Shared project uploads are not task-owned and remain untouched.
 - **Long input.** Messages over 12,000 characters become an exact text document, a manifest and readable parts. The thread holds a preview and download link. Request-body limits still apply.
 - **Proof.** Built only from checks the app ran itself after the last change. Claims the AI makes alone are marked "claimed".
 - **Checks.** A project's checks live in `.workspace/tasks.json`. The AI's tools can never read or write that file.
@@ -159,7 +160,7 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 
 ## Data and updates
 
-- **Export and delete:** your data downloads as one zip. Deleting a task list or the account removes everything tied to it.
+- **Export and delete:** your data downloads as one zip. Permanent task deletion removes task records and task-specific files; project-shared uploads remain. Account deletion removes everything tied to the account.
 - **Live updates:** pages follow changes over server-sent events and fall back to a slow poll.
 - **Rate limits:** sign-in, sign-up and OAuth endpoints are limited per visitor. Wrong guesses never lock you out.
 - **Database changes:** only through numbered migration files. Applied files are checksummed and never edited.

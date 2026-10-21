@@ -15,6 +15,7 @@ type NoteFile struct{ Path, Content string }
 // NoteFiles writes complete documents inside one confined project folder.
 type NoteFiles interface {
 	Write(ctx context.Context, projectID string, files []NoteFile) error
+	RemoveTask(ctx context.Context, projectID, taskID string) error
 }
 
 // ProjectDocument identifies a saved document without copying another task's conversation.
@@ -42,7 +43,7 @@ func (s *Service) projectDocuments(ctx context.Context, task domain.Task) ([]Pro
 	if s.deps.Notes == nil {
 		return docs, nil
 	}
-	tasks, err := s.deps.Tasks.List(ctx, task.UserID, task.ProjectID, -1)
+	tasks, err := s.deps.Tasks.All(ctx, task.UserID, task.ProjectID, -1)
 	if err != nil {
 		return nil, fmt.Errorf("list project documents: %w", err)
 	}

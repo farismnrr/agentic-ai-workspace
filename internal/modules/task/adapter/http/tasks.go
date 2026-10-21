@@ -14,6 +14,7 @@ type taskPayload struct {
 	CreatedAt  time.Time     `json:"createdAt"`
 	UpdatedAt  time.Time     `json:"updatedAt"`
 	PinnedAt   *time.Time    `json:"pinnedAt"`
+	ArchivedAt *time.Time    `json:"archivedAt"`
 	Proof      *domain.Proof `json:"proof,omitempty"`
 	ProviderID string        `json:"providerId"`
 	ProjectID  string        `json:"projectId"`
@@ -45,7 +46,7 @@ func toPayload(t domain.Task) taskPayload {
 		PlanFirst: t.PlanFirst,
 		PRD:       t.PRD, Research: t.Research, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
-		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, PinnedAt: t.PinnedAt,
+		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, PinnedAt: t.PinnedAt, ArchivedAt: t.ArchivedAt,
 		ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
 	}
 }

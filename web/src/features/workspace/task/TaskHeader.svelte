@@ -7,11 +7,12 @@
 
   interface Props {
     task: Task;
+    archived?: boolean;
     onstop: () => void;
     onretry: () => void;
   }
 
-  const { task, onstop, onretry }: Props = $props();
+  const { task, archived = false, onstop, onretry }: Props = $props();
   const running = $derived(['queued', 'planning', 'working'].includes(task.status));
 </script>
 
@@ -23,8 +24,8 @@
     <p class="hidden flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">Started {timeAgo(task.createdAt)} · {task.model}{task.effort === '' ? '' : ` · ${effortLabel(task.effort)} effort`}</p>
     <span class="flex-1 md:hidden"></span>
     <ContextMeter used={task.contextUsed} window={task.contextWindow} />
-    {#if running}<button class="btn btn-outline btn-sm" type="button" onclick={onstop}>Stop</button>{/if}
-    {#if task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
+    {#if !archived && running}<button class="btn btn-outline btn-sm" type="button" onclick={onstop}>Stop</button>{/if}
+    {#if !archived && task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
   </div>
   <div class="flex pb-2 sm:hidden"><ContextMeter used={task.contextUsed} window={task.contextWindow} phone /></div>
 </header>

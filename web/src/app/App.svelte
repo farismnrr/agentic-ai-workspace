@@ -20,6 +20,8 @@
   import { goTo, interceptLinkClick, navigate, route, syncFromLocation } from './router';
   import { isAdminSettingsTab } from '../features/workspace/settings/settings-nav';
   import LoadingScreen from '../shared/ui/LoadingScreen.svelte';
+  import TasksPage from '../features/workspace/tasks/TasksPage.svelte';
+  import ArchivePage from '../features/workspace/tasks/ArchivePage.svelte';
 
   const gated = $derived(requiresSession($route));
   const guest = $derived(guestOnly($route));
@@ -55,6 +57,10 @@
   <ConsentPage />
 {:else if $route.name === 'home'}
   <HomePage />
+{:else if $route.name === 'tasks'}
+  <TasksPage />
+{:else if $route.name === 'archive'}
+  <ArchivePage />
 {:else if $route.name === 'inbox'}
   <InboxPage />
 {:else if $route.name === 'projects'}
