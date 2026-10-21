@@ -113,6 +113,29 @@ func TestEnvironmentIsScrubbed(t *testing.T) {
 	}
 }
 
+type projectEnvValues map[string]map[string]string
+
+func (v projectEnvValues) Values(_ context.Context, projectID string) (map[string]string, error) {
+	return v[projectID], nil
+}
+
+func TestProjectCommandReceivesOnlyItsProjectValues(t *testing.T) {
+	t.Parallel()
+	requireDocker(t)
+
+	values := projectEnvValues{
+		"project-a": {"PROJECT_TOKEN": "a-only"},
+		"project-b": {"PROJECT_TOKEN": "b-only"},
+	}
+	for projectID, expected := range map[string]string{"project-a": "a-only", "project-b": "b-only"} {
+		result, err := runner.New(t.TempDir(), engine).WithProjectEnv(projectID, values).Run(context.Background(),
+			domain.Task{Command: []string{"sh", "-c", "printf '%s' \"$PROJECT_TOKEN\""}, TimeoutSeconds: 30})
+		if err != nil || result.ExitCode != 0 || result.Output != expected {
+			t.Fatalf("project %s command output = %q, %v (exit %d)", projectID, result.Output, err, result.ExitCode)
+		}
+	}
+}
+
 func TestMissingCommandIsReportedNotFatal(t *testing.T) {
 	t.Parallel()
 

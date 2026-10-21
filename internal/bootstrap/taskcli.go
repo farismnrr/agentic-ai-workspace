@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	cliagentdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/domain"
-	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/clistream"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
@@ -35,44 +34,27 @@ func (p *plans) Ready(ctx context.Context, userID, program string) (bool, error)
 func (p *plans) Run(
 	ctx context.Context, req taskapp.CLIRequest, emit func(taskapp.CLIEvent),
 ) (taskapp.CLIResult, error) {
-	dir, err := p.folders.Dir(req.ProjectID)
+	docker, spec, release, err := p.prepareRun(ctx, req)
 	if err != nil {
-		return taskapp.CLIResult{}, fmt.Errorf("find project folder: %w", err)
+		return taskapp.CLIResult{}, err
 	}
+	defer release()
 
-	home, err := p.box.home(req.UserID)
+	models := p.service.Models(ctx, req.UserID, cliagentdomain.Runtime(req.Program))
+	window := p.chosenWindow(ctx, req)
+	spec.Stdin, spec.Argv = strings.NewReader(req.Prompt), programArgv(req, models, window)
+	spec.Env, err = p.environment(ctx, req, spec, window)
 	if err != nil {
 		return taskapp.CLIResult{}, err
 	}
 
-	docker, spec, release, err := p.engine.Lease(ctx, dir, p.hosts[req.Program]...)
-	if err != nil {
-		return taskapp.CLIResult{}, fmt.Errorf("start program: %w", err)
-	}
+	return p.execute(ctx, req, emit, docker, spec, window)
+}
 
-	defer release()
-
-	models := p.service.Models(ctx, req.UserID, cliagentdomain.Runtime(req.Program))
-	spec.WorkspaceReadOnly = req.Limited && !mayChange(req.Tools)
-
-	if req.Bridge != nil {
-		stop, bridgeDir, bridgeErr := p.serveBridge(ctx, req.Bridge)
-		if bridgeErr != nil {
-			return taskapp.CLIResult{}, bridgeErr
-		}
-
-		defer stop()
-
-		spec.Bridge = bridgeDir
-	}
-
-	window := p.chosenWindow(ctx, req)
-	spec.Home, spec.Stdin, spec.Argv = home, strings.NewReader(req.Prompt), programArgv(req, models, window)
-	spec.Env = codingrunner.Environment(spec, append(append(windowEnv(req.Program, window), "HOME="+sandbox.Home,
-		"CODEX_HOME="+sandbox.Home+"/.codex",
-		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "DISABLE_AUTOUPDATER=1",
-		fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis)), guardEnv(req)...)...)
-
+func (p *plans) execute(
+	ctx context.Context, req taskapp.CLIRequest, emit func(taskapp.CLIEvent),
+	docker *sandbox.Docker, spec sandbox.Spec, window int64,
+) (taskapp.CLIResult, error) {
 	stream := clistream.New(req.Program, emit)
 
 	res, err := docker.Run(ctx, spec, stream)

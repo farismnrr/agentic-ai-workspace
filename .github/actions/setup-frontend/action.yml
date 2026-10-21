@@ -9,4 +9,4 @@ runs:
         cache: npm
         cache-dependency-path: web/package-lock.json
     - shell: bash
-      run: npm --prefix web ci --no-audit --no-fund
+      run: npm --prefix web ci --ignore-scripts --no-audit --no-fund

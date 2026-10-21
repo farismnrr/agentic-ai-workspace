@@ -103,6 +103,9 @@ linters:
         - module: golang.org/x/sys
         - module: github.com/moby/moby/client
         - module: github.com/moby/moby/api
+        - module: github.com/jackc/pgx/v5
+        - module: github.com/go-sql-driver/mysql
+        - module: go.mongodb.org/mongo-driver/v2
     govet:
       enable-all: true
     lll:

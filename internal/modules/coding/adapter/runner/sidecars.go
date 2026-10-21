@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egressproxy"
@@ -127,6 +128,36 @@ func Environment(spec sandbox.Spec, replace ...string) []string {
 	}
 
 	return append(out, replace...)
+}
+
+// MergeProjectEnvironment adds project values without replacing base or proxy entries.
+func MergeProjectEnvironment(base []string, values map[string]string) []string {
+	names := make([]string, 0, len(values))
+	for name := range values {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	env := make([]string, 0, len(names))
+	for _, name := range names {
+		env = append(env, name+"="+values[name])
+	}
+
+	return mergeEnvironment(base, env)
+}
+
+// mergeEnvironment adds values only when the base environment does not already define the key.
+func mergeEnvironment(base, additional []string) []string {
+	out := append([]string(nil), base...)
+
+	for _, entry := range additional {
+		key, _, _ := strings.Cut(entry, "=")
+		if !slices.ContainsFunc(out, func(existing string) bool { return strings.HasPrefix(existing, key+"=") }) {
+			out = append(out, entry)
+		}
+	}
+
+	return out
 }
 
 // ProxyEnv points a program at the local port the start script publishes the proxy socket on.

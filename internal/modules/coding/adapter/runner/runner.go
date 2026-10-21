@@ -15,11 +15,18 @@ import (
 // a container whose only writable folder is the workspace, one task at a time,
 // with a scrubbed environment. The shared engine bounds all runners together.
 type Runner struct {
-	engine *Engine
-	slot   chan struct{}
-	git    GitSource
-	dir    string
-	quota  int64
+	engine    *Engine
+	slot      chan struct{}
+	git       GitSource
+	env       ProjectEnv
+	projectID string
+	dir       string
+	quota     int64
+}
+
+// ProjectEnv supplies values for the project whose work is running.
+type ProjectEnv interface {
+	Values(context.Context, string) (map[string]string, error)
 }
 
 // New runs tasks with dir (an absolute path) as the workspace, on the shared engine.
@@ -38,6 +45,13 @@ func (r *Runner) WithWorkspaceLimit(bytes int64) *Runner {
 // web apps a workspace serves never do.
 func (r *Runner) WithGit(source GitSource) *Runner {
 	r.git = source
+
+	return r
+}
+
+// WithProjectEnv loads this project's values for each sandbox run.
+func (r *Runner) WithProjectEnv(projectID string, source ProjectEnv) *Runner {
+	r.projectID, r.env = projectID, source
 
 	return r
 }
@@ -83,6 +97,11 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 	}
 
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command}
+	projectValues, err := r.projectValues(ctx)
+	if err != nil {
+		return application.RunResult{ExitCode: -1, Output: "could not load project environment"}
+	}
+
 	git, hasGit := r.credentials(ctx)
 
 	var hosts []string
@@ -91,11 +110,12 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 	}
 
 	r.engine.prepare(ctx, r.dir, &spec, docker, hosts...)
-	spec.Env = environment(spec)
+	baseEnv := environment(spec)
 
 	if hasGit && spec.Egress != "" {
-		spec.Env = append(spec.Env, gitEnvironment(git)...)
+		baseEnv = append(baseEnv, gitEnvironment(git)...)
 	}
+	spec.Env = MergeProjectEnvironment(baseEnv, projectValues)
 
 	over := watchSize(ctx, r.dir, r.quota, cancel)
 

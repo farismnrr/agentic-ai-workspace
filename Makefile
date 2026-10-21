@@ -68,7 +68,7 @@ guardrails:
 	MAX_FILE_LINES="$(MAX_FILE_LINES)" sh ./scripts/check-guardrails.sh
 
 $(FRONTEND_DEPS_STAMP): $(WEB_DIR)/package-lock.json
-	npm --prefix "$(WEB_DIR)" ci --no-audit --no-fund
+	npm --prefix "$(WEB_DIR)" ci --ignore-scripts --no-audit --no-fund
 
 frontend-deps: $(FRONTEND_DEPS_STAMP)
 
@@ -78,6 +78,7 @@ frontend: frontend-deps
 frontend-verify: frontend-deps
 	npm --prefix "$(WEB_DIR)" run check
 	npm --prefix "$(WEB_DIR)" run lint
+	npm --prefix "$(WEB_DIR)" test
 	npm --prefix "$(WEB_DIR)" run build
 
 backend-test:

@@ -71,6 +71,48 @@ About Proof:
 - **A question that needs no changes** is answered in the conversation and ends as Done, with no review step.
 - **The header** shows which model and effort the task used, and how full the AI's memory is.
 
+## Project environment
+
+Open **Settings → Env** to manage environment variables for a project. Each
+project has its own list; variables are added only to runs in that project.
+Other projects do not receive them.
+
+- Names use uppercase letters, numbers and underscores. Values are limited to
+  4 KB, with up to 50 variables per project.
+- New variables are secret by default. Their values stay hidden after saving.
+  A non-secret value can be shown again and edited.
+- Saving an existing name replaces its value after confirmation. Deleting a
+  variable removes it from later runs.
+- The app encrypts secret values in its data folder. The agent receives them as
+  environment variables for commands, checks and project sites. Names appear
+  in this list. The app keeps values out of notes and model prompts, but a
+  command such as `env` or `printenv`, or app output that echoes a value, can
+  expose it in the task log. Avoid printing secret values.
+
+### External database
+
+The Env tab can save one PostgreSQL, MySQL/MariaDB or MongoDB connection for a
+project. The app builds and encrypts the connection string, then exposes it to
+that project's runs as `DATABASE_URL` or the name you choose. MongoDB defaults
+to `MONGODB_URL`.
+
+When TLS is on for PostgreSQL, the connection uses `sslmode=require`; it does
+not verify the PostgreSQL server certificate.
+
+Use **Test connection** to check the credentials from the app server. Tests
+allow public, private-network and loopback database addresses. They block
+link-local addresses, including `169.254.169.254`, and the app's own port.
+Tests are limited to five per minute per signed-in person.
+
+When the app runs in Docker, `localhost` means the app container. For a database
+on the Docker host, try `host.docker.internal`; for another computer, use its
+LAN IP and make sure the database accepts connections from the app host.
+
+The agent receives the connection string as an environment variable, but its
+sandbox cannot connect directly to the database. The test checks access from
+the app server only. The app does not run queries, inspect schemas or manage
+database migrations or backups.
+
 ## Models
 
 You can add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https://aistudio.google.com/apikey)), or an OpenAI-compatible gateway such as 9router.

@@ -26,3 +26,15 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
 - **Own-plan sign-in (Claude, ChatGPT).** The vendor's CLI is run unmodified in the sandbox image (`claude`, `codex` pinned in `sandbox/Dockerfile`); the app never reads, stores or proxies subscription tokens (Anthropic forbids it; see `implementation-notes.md`). Only the per-person folder `DATA_DIR/cli/<userID>` is mounted at `/home/cli`. A task runs on a plan when its `provider_id` is `plan:claude` or `plan:chatgpt` (`task/domain/plan.go`), which the default-model preference can hold, so no schema column marks it; the sign-in lives in Settings, Models (`PlanProviders.svelte`) and the signed-in plans are options of the default-model picker (value `plan:<program>::default`); `modules/cliagent` owns sign-in, `task/application/cli.go` the turn, `task/adapter/clistream` the output parsers. Do not add models for plans: the program picks its own, and models are never hard-coded.
 - **A Unix socket path is limited to about 100 bytes.** `egressproxy.Hub.Dir` fails with a long data folder (a scratchpad path was enough). `Engine.Slot` used to swallow that and the sandbox simply had no network; it now fails when hosts were asked for. Use a short `DATA_DIR` (such as `/tmp/wsbb`) for throwaway instances.
 - **Black-box a change by running the binary.** Build `./cmd/workspace`, start it on a spare port with a temporary `DATA_DIR`, register through `/api/auth/register` (send `Origin` equal to `PUBLIC_URL`) and call the HTTP API; leave real data and port 8081 alone. Sign-in cannot be completed without a real account, so the signed-in task path needs the owner's login.
+- **Project Env and database settings (migrations 043/044).** `modules/env` owns
+  sealed `project_env_vars`; `modules/dbconn` owns the one sealed connection in
+  `project_db_connections`. Routes are `/api/projects/:id/env` (GET/PUT),
+  `/env/:name` (DELETE), and `/db` (GET/PUT/DELETE) plus `/db/test` (POST).
+  Names are uppercase identifiers up to 64 chars; reject `PATH`, `HOME`, all
+  proxy names, `LD_*`, `GO*` and `DOCKER_*`; cap at 50 entries and 4 KiB/value.
+  `runner.WithProjectEnv` and `site.Runtime.WithProjectEnv` inject only that
+  project's values after the fixed base env; `bootstrap/taskcli.go` does the
+  same for CLI runs. Keep values out of logs and model text. DB probes use
+  `egress.PrivateAllowed` at dial time (Mongo checks every resolved address),
+  block the server's own port, and are limited to 5/user/minute with a 10 s
+  deadline. They run in the app process; sandbox containers stay offline.

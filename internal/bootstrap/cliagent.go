@@ -26,9 +26,14 @@ const homeMode = 0o700
 
 var safeUser = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
+type projectEnv interface {
+	Values(context.Context, string) (map[string]string, error)
+}
+
 // plans is everything for using a person's own plan with a vendor's coding program: signing in to it, and
 // doing a task with it. The programs run in the toolbox image, each person with a folder of their own.
 type plans struct {
+	env     projectEnv
 	service *cliagentapp.Service
 	engine  *codingrunner.Engine
 	folders *folder.Folders
@@ -92,7 +97,6 @@ func (b cliSandbox) Run(ctx context.Context, job cliagentapp.Job, out io.Writer)
 	if egress != "" {
 		env = append(env, codingrunner.ProxyEnv()...)
 	}
-
 	res, err := docker.Run(ctx, sandbox.Spec{Home: home, Egress: egress, Stdin: job.Stdin, Argv: job.Argv, Env: env}, out)
 	if err != nil {
 		return 0, fmt.Errorf("run program: %w", err)

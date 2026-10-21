@@ -7,7 +7,8 @@
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "lint": "eslint src vite.config.ts eslint.config.ts --max-warnings 0",
-    "verify": "npm run check && npm run lint && npm run build"
+    "test": "vitest run",
+    "verify": "npm run check && npm run lint && npm test && npm run build"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -24,7 +25,8 @@
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.1",
-    "vite": "8.3.4"
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
   },
   "dependencies": {
     "@codemirror/commands": "6.11.1",

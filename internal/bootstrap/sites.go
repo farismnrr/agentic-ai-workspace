@@ -36,7 +36,8 @@ func (uuids) UUID() (string, error) { return opaque.Generator{}.UUID() } //nolin
 // project stops its site, and nothing survives a restart, so the table is reset at startup.
 func newSites(
 	db *sql.DB, cfg config.Config, engine *codingrunner.Engine, folders *folder.Folders,
-	projects *projectapp.Service, hub *taskapp.Hub, sess sessions, auth, sameOrigin fiber.Handler,
+	projects *projectapp.Service, env siteruntime.ProjectEnv, hub *taskapp.Hub, sess sessions,
+	auth, sameOrigin fiber.Handler,
 ) (*siteapp.Service, httpserver.Mount, error) {
 	base, err := filepath.Abs(filepath.Join(cfg.DataDir, "sites"))
 	if err != nil {
@@ -51,7 +52,8 @@ func newSites(
 
 	service := siteapp.NewService(siteapp.Deps{
 		Secret: []byte(secret),
-		Store:  sitesqlite.NewStore(db), Runtime: siteruntime.New(engine, folders, base), View: sitehttp.NewViewer(),
+		Store:  sitesqlite.NewStore(db), Runtime: siteruntime.New(engine, folders, base).WithProjectEnv(env),
+		View:     sitehttp.NewViewer(),
 		Projects: projects,
 		Notify:   hubNotifier{hub: hub}, IDs: uuids{}, Now: time.Now,
 		Limits: siteapp.Limits{PerUser: cfg.SiteMaxPerUser, Total: cfg.SiteMaxTotal},
@@ -75,7 +77,7 @@ func newAgentAndSites(
 ) (*taskapp.Service, *siteapp.Service, []httpserver.Mount, func(), error) {
 	hub := taskapp.NewHub()
 
-	sites, siteMount, err := newSites(db, cfg, tools.engine, folders, projects, hub, sess, auth, sameOrigin)
+	sites, siteMount, err := newSites(db, cfg, tools.engine, folders, projects, tools.env, hub, sess, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

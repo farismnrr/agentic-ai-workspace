@@ -33,6 +33,7 @@ export const navGroups: NavGroup[] = [
       { id: 'account', label: 'Account', icon: 'user' },
     ],
   },
+  { label: 'Project', items: [{ id: 'env', label: 'Env', icon: 'key' }] },
 ];
 
 export const currentLabel = (tab: SettingsTab): string => navGroups.flatMap((group) => group.items).find((item) => item.id === tab)?.label ?? 'Settings';
