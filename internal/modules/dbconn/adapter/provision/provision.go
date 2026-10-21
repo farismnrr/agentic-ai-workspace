@@ -3,7 +3,6 @@ package provision
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/application"
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/domain"
 )
 
 const (
@@ -150,8 +150,7 @@ func (p *Provisioner) provisionPassword(
 }
 
 func projectName(projectID string) string {
-	digest := sha256.Sum256([]byte(projectID))
-	return "p_" + fmt.Sprintf("%x", digest[:12])
+	return domain.ProjectDatabaseIdentifier(projectID)
 }
 
 func generatedPassword() (string, error) {

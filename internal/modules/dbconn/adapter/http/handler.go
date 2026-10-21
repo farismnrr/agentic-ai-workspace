@@ -34,45 +34,7 @@ func (h *Handler) Mount(auth, sameOrigin, testLimit fiber.Handler, sharedLimits 
 		app.Delete("/api/projects/:id/db/sqlite", auth, sameOrigin, h.detachSQLite)
 		app.Post("/api/projects/:id/db/test", auth, sameOrigin, testLimit, h.test)
 		app.Post("/api/projects/:id/db/shared", auth, sameOrigin, sharedLimit, h.provisionShared)
-	}
-}
-
-func (h *Handler) provisionShared(c fiber.Ctx) error {
-	ctx, cancel := context.WithTimeout(c.Context(), sharedProvisionTimeout)
-	defer cancel()
-	item, err := h.service.ProvisionShared(ctx, httpserver.UserID(c), c.Params("id"))
-	if err == nil {
-		return c.JSON(item)
-	}
-	var failure application.ProvisionError
-	if errors.As(err, &failure) {
-		return c.Status(provisionStatus(failure)).JSON(httpserver.Failure(string(failure.Category)))
-	}
-	return fail(c, err)
-}
-
-func provisionStatus(failure application.ProvisionError) int {
-	switch failure.Category {
-	case application.ProvisionInProgress, application.ManualConnectionExists, application.EnvironmentNameInUse:
-		return http.StatusConflict
-	case application.AdminNotConfigured, application.AdminURLInvalid:
-		return http.StatusServiceUnavailable
-	case application.AdminRejected, application.InsufficientPrivileges:
-		return http.StatusBadGateway
-	case application.ProvisionFailed:
-		if failure.Remote {
-			return http.StatusBadGateway
-		}
-		return http.StatusInternalServerError
-	case application.CompensationFailed:
-		if failure.Remote {
-			return http.StatusBadGateway
-		}
-		return http.StatusInternalServerError
-	case application.LocalSaveFailed, application.EnvironmentWriteFailed:
-		return http.StatusInternalServerError
-	default:
-		return http.StatusInternalServerError
+		app.Post("/api/projects/:id/db/provision", auth, sameOrigin, sharedLimit, h.provisionKind)
 	}
 }
 

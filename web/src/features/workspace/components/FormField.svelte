@@ -6,14 +6,16 @@
     label: string;
     optional?: boolean | undefined;
     hint?: string | undefined;
+    hintLink?: { href: string; label: string } | undefined;
     /** Shown under the field instead of the hint, once the person has touched it or tried to submit. */
     error?: string | undefined;
     children: Snippet<[{ describedby: string | undefined; invalid: boolean }]>;
   }
 
-  const { id, label, optional = false, hint, error = '', children }: Props = $props();
+  const { id, label, optional = false, hint, hintLink, error = '', children }: Props = $props();
   const invalid = $derived(error !== '');
-  const describedby = $derived(invalid ? `${id}-error` : hint === undefined ? undefined : `${id}-hint`);
+  const hasHint = $derived(hint !== undefined);
+  const describedby = $derived(invalid ? `${id}-error` : !hasHint ? undefined : `${id}-hint`);
 </script>
 
 <div class="flex flex-col gap-1">
@@ -21,7 +23,7 @@
   {@render children({ describedby, invalid })}
   {#if invalid}
     <p id="{id}-error" class="text-sm text-error">{error}</p>
-  {:else if hint !== undefined}
-    <p id="{id}-hint" class="text-xs text-[var(--brand-text-secondary)]">{hint}</p>
+  {:else if hasHint}
+    <p id="{id}-hint" class="text-xs text-[var(--brand-text-secondary)]">{hint}{#if hintLink !== undefined}&nbsp;<a class="link link-primary" href={hintLink.href}>{hintLink.label}</a>.{/if}</p>
   {/if}
 </div>

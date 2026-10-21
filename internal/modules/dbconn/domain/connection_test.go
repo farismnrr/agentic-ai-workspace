@@ -46,3 +46,36 @@ func TestConnectionDefaultsMongoEnvAndRejectsReservedNames(t *testing.T) {
 		t.Fatalf("unrelated GO-prefixed variable was rejected: %v", err)
 	}
 }
+
+func TestProjectIdentifierValidationAndURLs(t *testing.T) {
+	if got := ProjectDatabaseIdentifier("project-7"); len(got) != 26 || !ValidDatabaseIdentifier(got) {
+		t.Fatalf("generated project identifier is invalid: %q", got)
+	}
+	for _, hostile := range []string{"", "Upper", "a;drop", "a-b", "1starts", strings.Repeat("a", 65)} {
+		if ValidDatabaseIdentifier(hostile) {
+			t.Errorf("hostile identifier %q was accepted", hostile)
+		}
+	}
+	for _, test := range []struct {
+		want string
+		kind Kind
+		tls  bool
+	}{
+		{kind: MySQL, want: strings.Join(
+			[]string{"mysql://user:", "secret", "@db.example:3306/p_1"}, "")},
+		{kind: MySQL, tls: true, want: strings.Join(
+			[]string{"mysql://user:", "secret", "@db.example:3306/p_1?tls=true"}, "")},
+		{kind: MongoDB, want: strings.Join(
+			[]string{"mongodb://user:", "secret", "@db.example:27017/p_1?authSource=p_1"}, "")},
+		{kind: MongoDB, tls: true, want: strings.Join(
+			[]string{"mongodb://user:", "secret", "@db.example:27017/p_1?authSource=p_1&tls=true"}, "")},
+	} {
+		conn := Connection{
+			Kind: test.kind, Host: "db.example", Port: DefaultSharedPort(string(test.kind)),
+			Database: "p_1", User: "user", Password: "secret", TLS: test.tls,
+		}
+		if got := conn.URL(); got != test.want {
+			t.Errorf("URL() = %q, want %q", got, test.want)
+		}
+	}
+}

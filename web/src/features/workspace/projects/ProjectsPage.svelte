@@ -21,8 +21,8 @@
       <p class="mt-1 text-[var(--brand-text-secondary)]">{projectsCopy.intro}</p>
     </div>
     <div class="flex items-center gap-3">
-      <label class="input input-sm h-9 w-52 rounded-lg"><Icon name="search" class="size-4 text-base-content/70" /><input type="search" placeholder="Search projects" aria-label="Search projects" bind:value={query} /></label>
-      <button class="btn btn-primary btn-sm rounded-lg" type="button" onclick={() => { navigate('/app/projects/new'); }}><Icon name="plus" class="size-4" /> New project</button>
+      <label class="input input-sm w-52"><Icon name="search" class="size-4 text-base-content/70" /><input type="search" placeholder="Search projects" aria-label="Search projects" bind:value={query} /></label>
+      <button class="btn btn-primary btn-sm" type="button" onclick={() => { navigate('/app/projects/new'); }}><Icon name="plus" class="size-4" /> New project</button>
     </div>
   </div>
 

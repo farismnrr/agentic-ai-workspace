@@ -2,64 +2,66 @@
 
 Task: f2515af4f54b16129c324566b53f5145
 Status: working
-Updated: 2026-10-21T09:16:02Z
+Updated: 2026-10-21T11:22:28Z
 
 Reference material; confirm applicability before reusing.
 
-Note: the "team's PRD" in my brief describes the file-attachments job, not this one. I planned only the database SSL and UI cleanup job from my assignment. I read no repo files and changed nothing. I used AGENTS.md rules as given and the Researcher's audit.
+**Scope:** Medium. It is mostly extending code that already exists: kinds, URL builders and probes for all three databases are in place, the Postgres provisioner and the 3-way TLS choice are built, and the UI reuses existing components. It needs no new service, port, dependency or generic component.
 
-**Scope:** medium. Backend changes are one settings migration, PEM validation and an in-memory TLS config. The frontend work is a reuse-only cleanup. No new component, service, port or dependency.
 **Out of scope:**
-- SSL fields for MySQL or MongoDB, because those project forms are removed.
-- Writing cert files into project folders.
-- Deleting saved legacy connections or any data in external databases.
-- A new theme, a new shared component, or a sticky SaveBar on the Database tab.
+- Deleting data or dropping databases (detach only removes the connection and managed env).
+- Removing legacy manual connections.
+- Passing the client cert or key to projects (only `DATABASE_SSL_CA` goes to projects).
+- A new theme, new shared components, scoped CSS or arbitrary sizes.
+- A dark theme.
+- Sticky save bars.
 
 **Done when:**
-1. In Settings → Database (admin only), you can paste a CA certificate, client certificate and client key and save. Reopening the tab shows only "set" flags and Remove buttons, never the PEM text. A bad PEM or a mismatched cert/key pair is refused with a plain message. A test connection works with `verify-full`.
-2. A project's database section offers only SQLite or Shared (plus schema check and detach). No manual connection form or TLS switch remains. An old custom connection shows as "Custom (legacy)", read-only, with a "Switch to SQLite / Shared" action.
-3. `make verify` passes. `git diff ce2dfa4 --stat -- web/` shows no leftover `text-[..px]`, hex colors, scoped `<style>` blocks or hand-built buttons, fields or alerts in changed files.
+1. An admin can configure PostgreSQL, MySQL and MongoDB in Settings → Database, each with host, port, user, password and No TLS / CA only / Full. Certificates are uploaded as files. After saving, the GET response and the screen show only "set" flags. Non-admins get nothing but `configured`.
+2. In a project, the "Database" dropdown offers SQLite (default), PostgreSQL, MySQL and MongoDB. Kinds that aren't set up are disabled with the "not set up yet, ask an admin to add it in Settings" wording. Admins also get a Settings link. Choosing a configured kind creates an isolated place for the project and writes `DATABASE_URL` (`MONGODB_URL` for MongoDB), plus `DATABASE_SSL_CA` when a CA is set. Switching to SQLite removes only the connection and managed env, and a legacy connection stays read-only.
+3. `make verify` passes. Screenshots of the logged-in Projects list and each tab (Tasks, About, Env, Database, Checks, Files) at desktop and mobile widths show no `rounded-lg` overrides, hand-built forms, manual borders or custom filter buttons.
 
 **Todo:**
-1. **Developer: SSL material saved in Settings.**
-   - Add a migration with three sealed columns (CA, client cert, client key). Store them with secretbox, and cap each value at about 16 KB.
-   - Validate that cert blocks parse and the cert/key pair matches.
-   - GET returns `caSet`, `clientCertSet` and `clientKeySet` only. An empty field on save keeps the saved value. An explicit remove flag clears it.
-   - Verify: Go tests for save, keep, remove, bad PEM, mismatched pair, and a GET that never contains PEM text.
-2. **Developer: provisioner connects with that TLS.**
-   - Build the pgx `tls.Config` in memory (RootCAs, Certificates, ServerName=host).
-   - `verify-full` checks the hostname. `verify-ca` checks the chain only, using `VerifyConnection` with `InsecureSkipVerify`. No files are written.
-   - Keep the `POSTGRES_ADMIN_URL` env fallback working.
-   - Verify: tests for the config in each mode, and the fallback still passes.
-3. **Developer: shared DB gives projects the SSL values.** This is a default you can change.
-   - `DATABASE_URL` carries `sslmode=<mode>`.
-   - When a CA or client cert is set, add sealed project Env values `DATABASE_SSL_CA`, `DATABASE_SSL_CERT` and `DATABASE_SSL_KEY` holding the PEM. The docs explain how an app uses them.
-   - Verify: a test that a project on the shared DB gets the expected env, and a project without certs gets none.
-4. **Designer: Settings → Database tab rebuilt with existing parts.**
-   - Use `SettingsSection` and `FormField`, with the daisyUI select and textarea styles.
-   - Add the three PEM fields, each with a "set" badge and a Remove button.
-   - Keep the save feedback beside the form.
-   - Verify: a screenshot compared with the Models and Team tabs, and the type check passes.
-5. **Designer: the project database section is only SQLite or Shared.**
-   - Remove the manual forms from `DatabaseFields` and `DatabaseSection`.
-   - Show a legacy connection read-only. "Switch" detaches it and leaves external data untouched.
-   - Move `VariablesSection` and `DatabaseSection` onto `SettingsSection` and `FormField`.
-   - Verify: a screenshot of the project page, a test for the legacy switch, and no dead imports.
-6. **Designer: sweep the leftover inconsistencies.**
-   - Pin button in `SidebarTaskRow`: `btn btn-ghost btn-circle btn-xs`, no scoped CSS.
-   - `text-[11px]` becomes `text-xs`.
-   - Add `SkeletonList` to `SidebarPinned`.
-   - `AttachmentNotices` errors become `alert alert-error alert-soft`.
-   - `AttachmentChips` remove button becomes `btn btn-ghost btn-circle btn-xs`.
-   - `ComposerBox`: replace `text-[15px]` with existing control sizes, and check the drop overlay uses daisyUI classes.
-   - `web/index.html` first paint matches `LoadingScreen`, using a daisyUI spinner and the minimum documented literal values.
-   - Sweep every file in `git diff ce2dfa4 --stat -- web/`.
-   - Verify: grep finds no arbitrary sizes or colors and no scoped styles, then run `make verify`.
+1. **DevOps: throwaway logged-in instance and screenshots.**
+   - Check what browser tooling exists first (Playwright, or `sandbox/capture/capture.ts` as the fallback). If none works offline, say so and name the fallback.
+   - Build the binary and start a second instance on another port with a temporary `DATA_DIR` and `ADMIN_EMAIL`.
+   - Register an admin through `POST /api/auth/register`, keep the cookie, and create a demo project with a few tasks.
+   - Write a script that saves desktop and mobile PNGs under `local-build/shots` (not `bin/`, which the site container can't see).
+   - Verify: open one PNG with Read and confirm it shows the logged-in Projects page.
+2. **Developer: settings for three database kinds.**
+   - Add a migration that keys the shared settings by kind and carries the existing Postgres row over. It must contain no DROP of user data.
+   - Add `/api/settings/database/:kind`, still admin-only, with the 3-way TLS and sealed uploaded PEMs (CA, client cert, client key). Validate PEMs and cap their size.
+   - GET returns set flags only. An empty field keeps the saved value, and an explicit flag removes it.
+   - Verify: Go tests for each kind covering save, keep, remove, bad PEM, mismatched cert/key, no PEM in GET, and a non-admin getting only `configured`. The existing Postgres test and the `POSTGRES_ADMIN_URL` fallback must still pass.
+3. **Developer: MySQL and MongoDB provisioners.**
+   - MySQL gets one database per project and a user with a generated password, granted only on that database. Identifiers are validated and quoted.
+   - MongoDB gets one database per project and a user with `readWrite` on that database only, with `authSource` set in the URL.
+   - Neither drops anything.
+   - Verify: unit tests for identifier validation, generated statements and URLs (`MONGODB_URL` for Mongo). If a local MySQL or Mongo is available, an isolation check that one project's user is refused on another project's database. If none is available, say so.
+4. **Developer: project-level database choice in the backend.**
+   - Select a kind to provision and write the managed env (`DATABASE_URL` or `MONGODB_URL`, plus `DATABASE_SSL_CA` when a CA is set, and never the cert or key).
+   - Detach on SQLite removes the connection and managed env only.
+   - Add an "available kinds" endpoint that tells admins and non-admins apart. Legacy connections stay read-only.
+   - Verify: Go tests for each kind's env, detach leaving data untouched, a failed provision restoring the prior env, and unconfigured kinds being refused.
+5. **Designer: Settings → Database and the project dropdown.**
+   - Settings: a kind selector (PostgreSQL / MySQL / MongoDB) over one `SettingsSection` and `FormField` form, with file inputs for certificates and a "set" badge with a Remove button for each. This is the simplest option and avoids three near-identical sections.
+   - Project: replace the SQLite/shared choice with one daisyUI select. Disabled options carry the friendly wording, with a Settings link for admins. Legacy shows read-only.
+   - Verify: `svelte-check` and the ESLint gate, plus screenshots (from step 1) of Settings → Database and the project Database tab at both widths.
+6. **Designer: tidy the Projects list and every project tab.**
+   - Projects list: drop the `rounded-lg` overrides on search and New project.
+   - Project detail header and tabs: use the daisyUI tab styling instead of the manual border.
+   - Tasks: remove the bordered card and the custom filter buttons in favour of daisyUI.
+   - About: move to `SettingsSection` and `FormField`.
+   - Env, Checks and Files: apply the same sweep.
+   - Reuse only (`EmptyState`, `SkeletonList`, `StatusBadge`, `ProjectTile`).
+   - Update `docs/` (Settings fields and how an app reads `DATABASE_SSL_CA`) and `agents/memory-*.md` or `docs/design-system.md` if a rule changed.
+   - Verify: `make verify`, a grep for `rounded-lg`, `text-[`, hex colours and `<style>` in the changed files, and before and after screenshots of every tab at both widths.
 
-   This step is a sweep of one kind of fix across many files. Split it per file group if it gets large.
+Security and QA run after step 6. They check sealed storage, no PEM in GET or logs, admin-only access, MySQL and Mongo isolation, and that detach drops nothing.
 
-Docs go with each step as a part of it: `docs/` for the Settings fields and how an app reads `DATABASE_SSL_*`, plus `agents/memory-*.md` and `docs/design-system.md` if a rule changes. Security and QA run after step 6 and check the sealed storage, the no-PEM-in-GET rule and admin-only access.
+**Open questions:** None block the work. These defaults are mine; tell me if you want any changed:
+- A kind selector instead of three sections.
+- The Postgres row is carried into the new per-kind table.
+- Projects get only the CA, as decided.
 
-**Open questions:** none block the work. These defaults need your OK:
-- Legacy connections are kept and read-only, never deleted.
-- The project app gets the PEM through `DATABASE_SSL_*` Env values, not files.
+I changed no files and ran nothing. The earlier "team's PRD" (file attachments) and the site-binary note in the context are from other jobs, so I ignored them. I planned from the brief and the Researcher's notes without re-reading the repo.

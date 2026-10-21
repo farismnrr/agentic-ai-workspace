@@ -57,6 +57,7 @@ type Connection struct {
 
 // Metadata is the safe subset returned by read APIs.
 type Metadata struct {
+	Choice     string `json:"choice"`
 	Kind       Kind   `json:"type"`
 	Host       string `json:"host"`
 	Database   string `json:"database"`
@@ -66,6 +67,7 @@ type Metadata struct {
 	TLS        bool   `json:"tls"`
 	Configured bool   `json:"configured"`
 	Managed    bool   `json:"managed"`
+	ReadOnly   bool   `json:"readOnly"`
 }
 
 func (c Connection) Validate() error {
@@ -114,6 +116,9 @@ func (c Connection) URLWithSSLMode(sslMode string) string {
 		scheme = "postgres"
 	}
 	query := connectionQuery(c.Kind, c.TLS)
+	if c.Kind == MongoDB {
+		query.Set("authSource", c.Database)
+	}
 	if c.Kind == Postgres && sslMode != "" {
 		query.Set("sslmode", sslMode)
 	}
@@ -134,8 +139,8 @@ func connectionQuery(kind Kind, tls bool) url.Values {
 			mode = "require"
 		}
 		query.Set("sslmode", mode)
-	} else {
-		query.Set("tls", strconv.FormatBool(tls))
+	} else if tls {
+		query.Set("tls", "true")
 	}
 	return query
 }

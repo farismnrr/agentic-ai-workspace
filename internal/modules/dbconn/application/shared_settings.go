@@ -18,10 +18,10 @@ type StoredSharedSettings struct {
 	Settings                                                        domain.SharedSettings
 }
 
-// SharedSettingsStore persists the one server-wide PostgreSQL provisioning config.
+// SharedSettingsStore persists one encrypted server-wide config per database kind.
 type SharedSettingsStore interface {
-	Get(context.Context) (StoredSharedSettings, error)
-	Save(context.Context, StoredSharedSettings) error
+	Get(context.Context, string) (StoredSharedSettings, error)
+	Save(context.Context, string, StoredSharedSettings) error
 }
 
 type SharedSettingsService struct {
@@ -34,31 +34,62 @@ func NewSharedSettingsService(store SharedSettingsStore, cipher Cipher) *SharedS
 }
 
 type SharedSettingsView struct {
-	Host, Database, User, SSLMode          string
-	Port                                   int
-	PasswordSet, Configured                bool
-	CACertSet, ClientCertSet, ClientKeySet bool
+	Kind, Host, Database, User, SSLMode, TLS string
+	Port                                     int
+	PasswordSet, Configured                  bool
+	CACertSet, ClientCertSet, ClientKeySet   bool
 }
 
-func (s *SharedSettingsService) Get(ctx context.Context) (SharedSettingsView, error) {
-	stored, err := s.store.Get(ctx)
+func (s *SharedSettingsService) Get(ctx context.Context, kind string) (SharedSettingsView, error) {
+	if !domain.IsSharedKind(kind) {
+		return SharedSettingsView{}, domain.ErrInvalidSharedSettings
+	}
+	stored, err := s.store.Get(ctx, kind)
 	if errors.Is(err, ErrSharedSettingsMissing) {
-		return SharedSettingsView{}, nil
+		return SharedSettingsView{
+			Kind: kind, Port: domain.DefaultSharedPort(kind), TLS: "none",
+		}, nil
 	}
 	if err != nil {
 		return SharedSettingsView{}, fmt.Errorf("load shared database settings: %w", err)
 	}
+	stored.Settings.Kind = kind
 	return sharedSettingsView(stored, true), nil
 }
 
+func (s *SharedSettingsService) Configured(ctx context.Context, kind string) (bool, error) {
+	if !domain.IsSharedKind(kind) {
+		return false, domain.ErrInvalidSharedSettings
+	}
+	stored, err := s.store.Get(ctx, kind)
+	if errors.Is(err, ErrSharedSettingsMissing) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("load shared database settings: %w", err)
+	}
+	return stored.PasswordSealed != "", nil
+}
+
 func (s *SharedSettingsService) AdminSettings(ctx context.Context) (domain.SharedSettings, bool, error) {
-	stored, err := s.store.Get(ctx)
+	return s.AdminSettingsForKind(ctx, "postgres")
+}
+
+// AdminSettingsForKind opens the saved settings needed by a database provisioner.
+func (s *SharedSettingsService) AdminSettingsForKind(
+	ctx context.Context, kind string,
+) (domain.SharedSettings, bool, error) {
+	if !domain.IsSharedKind(kind) {
+		return domain.SharedSettings{}, false, domain.ErrInvalidSharedSettings
+	}
+	stored, err := s.store.Get(ctx, kind)
 	if errors.Is(err, ErrSharedSettingsMissing) {
 		return domain.SharedSettings{}, false, nil
 	}
 	if err != nil {
 		return domain.SharedSettings{}, false, fmt.Errorf("load shared database settings: %w", err)
 	}
+	stored.Settings.Kind = kind
 	password, err := s.cipher.Decrypt(stored.PasswordSealed)
 	if err != nil {
 		return domain.SharedSettings{}, false, fmt.Errorf("open shared database password: %w", err)
@@ -70,15 +101,21 @@ func (s *SharedSettingsService) AdminSettings(ctx context.Context) (domain.Share
 	return stored.Settings, true, nil
 }
 
-func (s *SharedSettingsService) Save(ctx context.Context, input domain.SharedSettings) (SharedSettingsView, error) {
-	return s.SaveWithRemovals(ctx, input, false, false)
+func (s *SharedSettingsService) Save(
+	ctx context.Context, kind string, input domain.SharedSettings,
+) (SharedSettingsView, error) {
+	return s.SaveWithRemovals(ctx, kind, input, false, false)
 }
 
 // SaveWithRemovals keeps blank certificate fields unless their explicit remove flag is set.
 func (s *SharedSettingsService) SaveWithRemovals(
-	ctx context.Context, input domain.SharedSettings, removeCA, removeClient bool,
+	ctx context.Context, kind string, input domain.SharedSettings, removeCA, removeClient bool,
 ) (SharedSettingsView, error) {
-	previous, err := s.previous(ctx)
+	if !domain.IsSharedKind(kind) {
+		return SharedSettingsView{}, domain.ErrInvalidSharedSettings
+	}
+	input = normalizeSharedSettings(kind, input)
+	previous, err := s.previous(ctx, kind)
 	if err != nil && !errors.Is(err, ErrSharedSettingsMissing) {
 		return SharedSettingsView{}, err
 	}
@@ -87,7 +124,7 @@ func (s *SharedSettingsService) SaveWithRemovals(
 		return SharedSettingsView{}, err
 	}
 	if input.Password == "" {
-		input.Password, err = s.savedPassword(ctx)
+		input.Password, err = s.savedPassword(ctx, kind)
 		if err != nil {
 			return SharedSettingsView{}, err
 		}
@@ -96,6 +133,23 @@ func (s *SharedSettingsService) SaveWithRemovals(
 		return SharedSettingsView{}, fmt.Errorf("validate shared database settings: %w", err)
 	}
 	return s.persistSettings(ctx, input)
+}
+
+func normalizeSharedSettings(kind string, input domain.SharedSettings) domain.SharedSettings {
+	input.Kind = kind
+	if input.Port == 0 {
+		input.Port = domain.DefaultSharedPort(kind)
+	}
+	if input.TLS == "" {
+		input.TLS = "none"
+	}
+	if kind == "postgres" {
+		input.SSLMode = "verify-full"
+		if input.TLS == "none" {
+			input.SSLMode = "disable"
+		}
+	}
+	return input
 }
 
 func (s *SharedSettingsService) retainCertificateMaterial(
@@ -118,61 +172,4 @@ func (s *SharedSettingsService) retainCertificateMaterial(
 		return domain.SharedSettings{}, fmt.Errorf("validate database certificates: %w", err)
 	}
 	return input, nil
-}
-
-func (s *SharedSettingsService) persistSettings(
-	ctx context.Context, input domain.SharedSettings,
-) (SharedSettingsView, error) {
-	sealed, err := s.cipher.Encrypt([]byte(input.Password))
-	if err != nil {
-		return SharedSettingsView{}, fmt.Errorf("seal shared database password: %w", err)
-	}
-	ca, err := sealOptional(s.cipher, input.CACert)
-	if err != nil {
-		return SharedSettingsView{}, fmt.Errorf("seal database CA: %w", err)
-	}
-	cert, err := sealOptional(s.cipher, input.ClientCert)
-	if err != nil {
-		return SharedSettingsView{}, fmt.Errorf("seal database client certificate: %w", err)
-	}
-	key, err := sealOptional(s.cipher, input.ClientKey)
-	if err != nil {
-		return SharedSettingsView{}, fmt.Errorf("seal database client key: %w", err)
-	}
-	stored := StoredSharedSettings{
-		Settings: input, PasswordSealed: sealed,
-		CACertSealed: ca, ClientCertSealed: cert, ClientKeySealed: key,
-	}
-	stored.Settings.Password = ""
-	stored.Settings.CACert, stored.Settings.ClientCert, stored.Settings.ClientKey = "", "", ""
-	if err := s.store.Save(ctx, stored); err != nil {
-		return SharedSettingsView{}, fmt.Errorf("save shared database settings: %w", err)
-	}
-	return sharedSettingsView(stored, true), nil
-}
-
-func (s *SharedSettingsService) savedPassword(ctx context.Context) (string, error) {
-	stored, err := s.store.Get(ctx)
-	if errors.Is(err, ErrSharedSettingsMissing) {
-		return "", ErrSharedPasswordRequired
-	}
-	if err != nil {
-		return "", fmt.Errorf("load shared database settings: %w", err)
-	}
-	password, err := s.cipher.Decrypt(stored.PasswordSealed)
-	if err != nil {
-		return "", fmt.Errorf("open shared database password: %w", err)
-	}
-	return string(password), nil
-}
-
-func sharedSettingsView(stored StoredSharedSettings, configured bool) SharedSettingsView {
-	settings := stored.Settings
-	return SharedSettingsView{
-		Host: settings.Host, Port: settings.Port, Database: settings.Database,
-		User: settings.User, SSLMode: settings.SSLMode,
-		PasswordSet: stored.PasswordSealed != "", Configured: configured,
-		CACertSet: stored.CACertSealed != "", ClientCertSet: stored.ClientCertSealed != "",
-		ClientKeySet: stored.ClientKeySealed != "",
-	}
 }

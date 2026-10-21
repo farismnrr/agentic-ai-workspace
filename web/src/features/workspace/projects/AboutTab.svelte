@@ -1,6 +1,8 @@
 <script lang="ts">
   import { navigate } from '../../../app/router';
   import ConfirmModal from '../components/ConfirmModal.svelte';
+  import FormField from '../components/FormField.svelte';
+  import SettingsSection from '../settings/parts/SettingsSection.svelte';
   import { projectsCopy } from '../content/projects-copy';
   import { describeProjectError } from '../logic/project-errors';
   import { archiveProject, deleteProject, updateProject } from '../logic/projects-api';
@@ -66,29 +68,29 @@
   }
 </script>
 
-<form class="card flex max-w-xl flex-col gap-4 border border-[var(--brand-border)] bg-base-100 p-5" onsubmit={save}>
-  <div>
-    <label class="font-medium" for="about-name">Name</label>
-    <input id="about-name" class="input input-sm mt-1 w-full" maxlength="80" required bind:value={name} />
-  </div>
-  <div>
-    <span class="font-medium">Project ID</span>
-    <p class="mt-1"><code class="rounded bg-base-200 px-2 py-1 font-mono text-sm">{project.slug}</code></p>
-    <p class="mt-1 text-sm text-[var(--brand-text-tertiary)]">{projectsCopy.idFixed}</p>
-  </div>
-  <div>
-    <label class="font-medium" for="about-description">What is it?</label>
-    <textarea id="about-description" class="textarea mt-1 w-full" rows="3" maxlength="500" bind:value={description}></textarea>
-  </div>
-  <p class="text-sm text-[var(--brand-text-secondary)]">{projectsCopy.rules}</p>
-  <div class="flex items-center gap-3">
-    <button class="btn btn-primary btn-sm" type="submit">Save changes</button>
-    <button class="btn btn-outline btn-error btn-sm" type="button" onclick={() => (archiving = true)}>Archive project</button>
-    <button class="btn btn-error btn-sm" type="button" onclick={() => (deleting = true)}>Delete project</button>
-    {#if message !== ''}<p class="text-sm {failed ? 'text-error' : 'text-[var(--brand-text-secondary)]'}" role="status">{message}</p>{/if}
-  </div>
-</form>
-<a class="link link-hover mt-4 inline-block font-medium text-primary" href="/app/settings/persona">Edit your rules</a>
+<SettingsSection title="About" description="Basic details about this project.">
+  {#snippet action()}
+    <a class="link link-hover text-xs font-medium" href="/app/settings/persona">Edit your rules</a>
+  {/snippet}
+  <form class="flex max-w-xl flex-col gap-4 py-4" onsubmit={save}>
+    <FormField id="about-name" label="Name">
+      {#snippet children({ describedby, invalid })}<input id="about-name" class="input input-sm w-full" maxlength="80" required bind:value={name} aria-describedby={describedby} aria-invalid={invalid} />{/snippet}
+    </FormField>
+    <FormField id="about-id" label="Project ID" hint={projectsCopy.idFixed}>
+      <p><output id="about-id"><code>{project.slug}</code></output></p>
+    </FormField>
+    <FormField id="about-description" label="What is it?">
+      {#snippet children({ describedby, invalid })}<textarea id="about-description" class="textarea w-full" rows="3" maxlength="500" bind:value={description} aria-describedby={describedby} aria-invalid={invalid}></textarea>{/snippet}
+    </FormField>
+    <p class="text-sm text-[var(--brand-text-secondary)]">{projectsCopy.rules}</p>
+    <div class="flex flex-wrap items-center gap-3">
+      <button class="btn btn-primary btn-sm" type="submit">Save changes</button>
+      <button class="btn btn-outline btn-error btn-sm" type="button" onclick={() => (archiving = true)}>Archive project</button>
+      <button class="btn btn-error btn-sm" type="button" onclick={() => (deleting = true)}>Delete project</button>
+      {#if message !== ''}<p class="text-sm {failed ? 'text-error' : 'text-[var(--brand-text-secondary)]'}" role="status">{message}</p>{/if}
+    </div>
+  </form>
+</SettingsSection>
 <ConfirmModal
   open={archiving}
   title="Archive {project.name}?"

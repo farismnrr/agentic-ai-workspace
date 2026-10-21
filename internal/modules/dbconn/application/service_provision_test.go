@@ -60,7 +60,7 @@ func TestProvisionSharedOwnerOnlyAndNotConfigured(t *testing.T) {
 	service = NewService(nil, nil, fixedOwner{"project-a": "user-a"}, nil, nil)
 	_, err := service.ProvisionShared(context.Background(), "user-a", "project-a")
 	var failure ProvisionError
-	if !errors.As(err, &failure) || failure.Category != AdminNotConfigured {
+	if !errors.As(err, &failure) || failure.Category != KindNotConfigured {
 		t.Fatalf("unconfigured admin error = %v", err)
 	}
 }

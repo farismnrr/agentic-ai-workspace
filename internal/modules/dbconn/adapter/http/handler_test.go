@@ -103,6 +103,28 @@ func TestSharedProvisionRouteReturnsMetadataOnly(t *testing.T) {
 	}
 }
 
+func TestProvisionRouteAcceptsEmptyBodyAsPostgres(t *testing.T) {
+	store := &testStore{records: map[string]application.StoredConnection{}}
+	service := application.NewService(
+		store, testCipher{}, testOwner{}, testEnvironment{}, failedProbe{}, routeProvisioner{},
+	)
+	app := fiber.New()
+	continueRequest := func(c fiber.Ctx) error { return c.Next() }
+	NewHandler(service).Mount(httpserver.RequireSession(testSessions{}), continueRequest, continueRequest)(app)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost,
+		"/api/projects/p1/db/provision", nil)
+	req.AddCookie(secureSessionCookie())
+	response, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, _ := io.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK || !strings.Contains(string(body), `"choice":"postgres"`) {
+		t.Fatalf("empty provision request = %d %s", response.StatusCode, body)
+	}
+}
+
 type routeProvisioner struct{}
 
 func (routeProvisioner) Configured(context.Context) (bool, error) { return true, nil }

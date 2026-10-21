@@ -37,7 +37,7 @@ func (s *Service) removeManagedEnvironment(ctx context.Context, projectID string
 		_ = s.store.Save(ctx, projectID, stored)
 		return fmt.Errorf("read database environment variables: %w", err)
 	}
-	for _, name := range managedEnvNames() {
+	for _, name := range []string{stored.Connection.EnvName, "DATABASE_SSL_CA", "DATABASE_SSL_CERT", "DATABASE_SSL_KEY"} {
 		if err := s.env.DeleteSecret(ctx, projectID, name); err != nil {
 			_ = s.store.Save(ctx, projectID, stored)
 			restoreManagedEnvironment(ctx, s.env, projectID, values)

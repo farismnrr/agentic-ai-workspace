@@ -14,6 +14,7 @@ import (
 
 func TestSharedAdminURLPreservesReservedPassword(t *testing.T) {
 	want := domain.SharedSettings{
+		Kind: "postgres", TLS: "full",
 		Host: "db.example", Port: 5432, Database: "workspace", User: "admin user",
 		Password: strings.Join([]string{"p@", "ss:/?% ", `"雪`}, ""), SSLMode: "verify-full",
 	}
@@ -57,11 +58,11 @@ func TestProvisionerFallsBackToEnvironmentURLOrReportsUnconfigured(t *testing.T)
 
 type emptySharedSettingsStore struct{}
 
-func (emptySharedSettingsStore) Get(context.Context) (application.StoredSharedSettings, error) {
+func (emptySharedSettingsStore) Get(context.Context, string) (application.StoredSharedSettings, error) {
 	return application.StoredSharedSettings{}, application.ErrSharedSettingsMissing
 }
 
-func (emptySharedSettingsStore) Save(context.Context, application.StoredSharedSettings) error {
+func (emptySharedSettingsStore) Save(context.Context, string, application.StoredSharedSettings) error {
 	return nil
 }
 

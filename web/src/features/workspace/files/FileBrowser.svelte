@@ -2,6 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { ApiError } from '../../../shared/api/http';
   import Icon from '../../../shared/ui/Icon.svelte';
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { createFileStore } from '../logic/file-store';
   import { createFileView } from '../logic/file-view';
   import { deleteFolder, followFiles, saveFile } from '../logic/files-api';
@@ -69,7 +70,7 @@
   }
 </script>
 
-<div class="@container overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100 {height}">
+<div class="@container overflow-hidden {height}">
   <div class="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] @2xl:grid-cols-[16rem_minmax(0,1fr)]">
     <nav class="min-h-0 flex-col overflow-y-auto border-[var(--brand-border)] p-2 @2xl:border-r {$shown.path === undefined ? 'flex' : 'hidden @2xl:flex'}" aria-label="Files">
       <div class="mb-1 flex items-center justify-between px-1">
@@ -83,7 +84,13 @@
         </form>
       {/if}
       {#if deleteProblem !== ''}<p class="px-1 pb-1 text-xs text-error" role="alert">{deleteProblem}</p>{/if}
-      <TreeLevel dirs={$dirs} expanded={$expanded} path="." depth={0} selected={$shown.path} {changed} ontoggle={(path: string) => void store.toggle(path)} onopen={(path: string) => void view.open(path)} ondeletefolder={(path: string) => { deleting = path; }} />
+      {#if $dirs['.'] === undefined}
+        <div class="grid flex-1 place-items-center"><span class="loading loading-spinner loading-sm" aria-label="Loading files"></span></div>
+      {:else if $dirs['.'].length === 0}
+        <EmptyState compact icon="folder" title="No files yet" body="Create a file to get started." />
+      {:else}
+        <TreeLevel dirs={$dirs} expanded={$expanded} path="." depth={0} selected={$shown.path} {changed} ontoggle={(path: string) => void store.toggle(path)} onopen={(path: string) => void view.open(path)} ondeletefolder={(path: string) => { deleting = path; }} />
+      {/if}
     </nav>
     <div class="min-h-0 min-w-0 {$shown.path === undefined ? 'hidden @2xl:block' : 'block'}">
       <FileView {view} {projectId} onback={view.close} ondeleted={() => void store.reload()} />

@@ -11,35 +11,6 @@ import (
 
 const compensationTimeout = 10 * time.Second
 
-// ProvisionShared creates or reconciles the project's shared PostgreSQL login.
-func (s *Service) ProvisionShared(ctx context.Context, userID, projectID string) (domain.Metadata, error) {
-	if err := s.checkOwner(ctx, userID, projectID); err != nil {
-		return domain.Metadata{}, err
-	}
-	if configured, err := s.SharedConfigured(ctx); err != nil {
-		return domain.Metadata{}, fmt.Errorf("check shared database configuration: %w", err)
-	} else if !configured {
-		return domain.Metadata{}, ProvisionError{Category: AdminNotConfigured}
-	}
-	if !s.beginProvision(projectID) {
-		return domain.Metadata{}, ProvisionError{Category: ProvisionInProgress}
-	}
-	defer s.endProvision(projectID)
-
-	previous, err := s.provisionSnapshot(ctx, projectID)
-	if err != nil {
-		return domain.Metadata{}, safeProvisionError(err)
-	}
-	if previous.exists && !previous.connection.Connection.Managed {
-		return domain.Metadata{}, ProvisionError{Category: ManualConnectionExists}
-	}
-	result, err := s.provisioner.Provision(ctx, projectID)
-	if err != nil {
-		return domain.Metadata{}, safeProvisionError(err)
-	}
-	return s.saveProvisioned(ctx, projectID, result, previous)
-}
-
 type provisionSnapshot struct {
 	oldEnv      map[string]string
 	hadEnv      map[string]bool
@@ -69,7 +40,7 @@ func (s *Service) provisionSnapshot(ctx context.Context, projectID string) (prov
 	}
 	if !exists || !old.Connection.Managed {
 		for _, name := range []string{
-			domain.DefaultEnvName(domain.Postgres), "DATABASE_SSL_CA", "DATABASE_SSL_CERT", "DATABASE_SSL_KEY",
+			"DATABASE_URL", "MONGODB_URL", "DATABASE_SSL_CA", "DATABASE_SSL_CERT", "DATABASE_SSL_KEY",
 		} {
 			if hadEnv[name] {
 				return provisionSnapshot{}, ProvisionError{Category: EnvironmentNameInUse}
@@ -83,12 +54,12 @@ func (s *Service) provisionSnapshot(ctx context.Context, projectID string) (prov
 }
 
 func (s *Service) saveProvisioned(
-	ctx context.Context, projectID string, result ProvisionResult, previous provisionSnapshot,
+	ctx context.Context, projectID string, kind domain.Kind, result ProvisionResult, previous provisionSnapshot,
 ) (domain.Metadata, error) {
 	conn := domain.Connection{
-		Kind: domain.Postgres, Host: result.Host, Port: result.Port, Database: result.Database,
+		Kind: kind, Host: result.Host, Port: result.Port, Database: result.Database,
 		User: result.Role, Password: result.Password, TLS: result.TLS,
-		EnvName: domain.DefaultEnvName(domain.Postgres), Managed: true,
+		EnvName: domain.DefaultEnvName(kind), Managed: true,
 	}
 	if validateErr := conn.Validate(); validateErr != nil {
 		return domain.Metadata{}, s.provisionSaveError(
@@ -110,13 +81,18 @@ func (s *Service) saveProvisioned(
 			ctx, projectID, previous, conn.EnvName, LocalSaveFailed,
 		)
 	}
-	previousManaged := previous.exists && previous.connection.Connection.Managed
-	if err := s.writeProvisionEnvironment(ctx, projectID, conn, result, previousManaged); err != nil {
+	previousConnection := previous.connection.Connection
+	previousManaged := previous.exists && previousConnection.Managed
+	if err := s.writeProvisionEnvironment(
+		ctx, projectID, conn, result, previousManaged, previousConnection.EnvName,
+	); err != nil {
 		return domain.Metadata{}, s.provisionSaveError(
 			ctx, projectID, previous, conn.EnvName, EnvironmentWriteFailed,
 		)
 	}
-	return conn.Meta(), nil
+	metadata := conn.Meta()
+	metadata.Choice = string(kind)
+	return metadata, nil
 }
 
 func (s *Service) provisionSaveError(
@@ -167,12 +143,13 @@ func safeProvisionError(err error) error {
 	return ProvisionError{Category: ProvisionFailed}
 }
 
-// SharedConfigured reports whether shared PostgreSQL provisioning is available.
+// SharedConfigured reports whether PostgreSQL provisioning is available.
 func (s *Service) SharedConfigured(ctx context.Context) (bool, error) {
-	if s == nil || s.provisioner == nil {
+	provisioner := s.provisioner(domain.Postgres)
+	if provisioner == nil {
 		return false, nil
 	}
-	configured, err := s.provisioner.Configured(ctx)
+	configured, err := provisioner.Configured(ctx)
 	if err != nil {
 		return false, fmt.Errorf("check provisioner configuration: %w", err)
 	}
