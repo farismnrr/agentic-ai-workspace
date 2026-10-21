@@ -232,7 +232,7 @@ the app host. Provisioning allows private addresses and has a 10-second timeout.
 
 ### Database from commands and apps
 
-Commands and web apps have no network, but they can reach the project's database.
+Commands, web apps and the Claude and ChatGPT programs have no network, but they can reach the project's database.
 
 - Only the exact host and port saved in **Settings → Database** are reachable. Nothing else on that network is.
 - Only a project whose connection was created from those settings gets it. A hand-typed `DATABASE_URL` does not.
