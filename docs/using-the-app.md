@@ -116,7 +116,7 @@ The Env tab's **Database** section starts with **SQLite (default)**. This uses
 the project's own SQLite file. **Shared database** provisions a PostgreSQL
 schema and login from the database details saved under **Settings → Database**.
 The connection appears in this project's Env as `DATABASE_URL`, with its
-selected `sslmode`. A saved public CA certificate appears as
+selected TLS setting. A saved public CA certificate appears as
 `DATABASE_SSL_CA`; the project app never receives the administrator's client
 certificate or private key. Mutual TLS client certificates for project apps
 are not supported. Apps that need their own client certificate must set their
@@ -132,13 +132,22 @@ Switching from a shared or legacy connection to SQLite asks for confirmation.
 The app removes this project's connection and its managed database Env values;
 the data stays in its database. A shared schema and role stay on the server.
 
-The administrator selects PostgreSQL's `sslmode` and may save a CA certificate
-and a matching client certificate and key for the server's provisioner
-connection. Certificate values are encrypted at rest, up to 16 KiB each, and
-are never returned by Settings; that page reports only whether each value is
-set. Only the public CA is shared with project apps. `verify-ca` checks the
-server chain without checking its hostname. `verify-full` checks both the
-chain and hostname.
+Choose one of these three options:
+
+- **No TLS** uses no TLS.
+- **CA certificate only**
+  verifies the server.
+- **Full (CA + client certificate)**
+  also sends a client certificate.
+
+Choose files instead of pasting PEM text.
+Each file can be up to 16 KiB.
+
+Certificate values are encrypted at rest.
+Settings never returns them; it reports which
+values are saved. The public CA is shared with
+project apps. TLS checks the server chain and
+hostname.
 
 Use **Test connection** to check the credentials from the app server. Tests
 allow public, private-network and loopback database addresses. They block
@@ -149,15 +158,19 @@ When the app runs in Docker, `localhost` means the app container. For a database
 on the Docker host, try `host.docker.internal`; for another computer, use its
 LAN IP and make sure the database accepts connections from the app host.
 
-Only administrators can open **Settings → Database** or change the shared
-PostgreSQL host, port, database, user, password, SSL mode and certificates.
-Password and certificate contents are write-only. Other Settings pages
-configure each signed-in person's own account.
-The project database API reports whether shared PostgreSQL is available, even
-when the server uses `POSTGRES_ADMIN_URL` as its fallback.
+Only administrators can open **Settings → Database**
+or change the shared PostgreSQL host, port, database,
+user, password, TLS choice and certificates.
+Password and certificate contents are write-only.
+Other Settings pages configure each signed-in
+person's own account. The project database API
+reports whether shared PostgreSQL is available, even
+when the server uses `POSTGRES_ADMIN_URL` as its
+fallback.
 
-An administrator saves the shared PostgreSQL host, port, database, user,
-password, SSL mode and optional certificate material under **Settings → Database**.
+An administrator saves the shared PostgreSQL host,
+port, database, user, password, TLS choice and
+optional certificates under **Settings → Database**.
 Secret contents are write-only.
 If no saved settings exist, the server can use `POSTGRES_ADMIN_URL` instead.
 Use a dedicated database because enabling shared PostgreSQL revokes `PUBLIC`
