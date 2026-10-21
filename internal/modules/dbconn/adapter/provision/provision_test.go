@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/application"
@@ -47,8 +48,8 @@ func TestProvisionReturnsAdminAddressAndProjectIdentity(t *testing.T) {
 	name := projectName("project-7")
 	fake := &fakeSession{tx: &fakeTx{passwordLiteral: "'generated'", schemaOwner: name}}
 	adapter := New(adminURL, "8081")
-	adapter.connect = func(_ context.Context, gotURL, ownPort string) (session, error) {
-		if gotURL != adminURL || ownPort != "8081" {
+	adapter.connect = func(_ context.Context, cfg *pgx.ConnConfig, ownPort string) (session, error) {
+		if cfg.Host != "db.example" || cfg.Port != 5544 || cfg.TLSConfig == nil || ownPort != "8081" {
 			t.Fatalf("connector received unexpected configuration")
 		}
 		return fake, nil
@@ -77,17 +78,22 @@ func assertProvisionIdentity(t *testing.T, result application.ProvisionResult, n
 
 var errDialFailed = errors.New("dial failed for postgres://admin:admin-secret@host/private")
 
-func TestAdminTLSUsesExplicitSSLMode(t *testing.T) {
+func TestSSLModeReadsURLAndKeywordDSNs(t *testing.T) {
 	for _, test := range []struct {
-		url  string
-		want bool
+		dsn  string
+		want string
 	}{
-		{url: "postgres://admin@db/work?sslmode=require", want: true},
-		{url: "postgres://admin@db/work?sslmode=disable", want: false},
-		{url: "postgres://admin@db/work", want: false},
+		{dsn: "postgres://admin@db/work?sslmode=require", want: "require"},
+		{dsn: "postgres://admin@db/work?sslmode=disable", want: "disable"},
+		{dsn: "postgres://admin@db/work", want: "prefer"},
+		{dsn: "host=db password=colon:secret sslmode=verify-full dbname=work", want: "verify-full"},
+		{dsn: "host=db password=colon:secret sslmode=verify-ca dbname=work", want: "verify-ca"},
+		{dsn: "host=2001:db8::1 dbname=work sslmode=verify-ca", want: "verify-ca"},
+		{dsn: "host=2001:db8::1 dbname=work sslmode=disable", want: "disable"},
 	} {
-		if got := adminTLS(test.url); got != test.want {
-			t.Errorf("adminTLS(%q) = %t, want %t", test.url, got, test.want)
+		got, err := sslMode(test.dsn)
+		if err != nil || got != test.want {
+			t.Errorf("sslMode(%q) = %q, %v; want %q", test.dsn, got, err, test.want)
 		}
 	}
 }

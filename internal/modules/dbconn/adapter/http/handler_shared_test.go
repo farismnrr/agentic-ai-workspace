@@ -114,8 +114,8 @@ func TestSharedProvisionRemoteCompensationFailureReturnsBadGateway(t *testing.T)
 	}
 }
 
-func TestProvisionInProgressReturnsConflictForPutAndDelete(t *testing.T) {
-	for _, method := range []string{http.MethodPut, http.MethodDelete} {
+func TestProvisionInProgressReturnsConflictForDelete(t *testing.T) {
+	for _, method := range []string{http.MethodDelete} {
 		t.Run(method, func(t *testing.T) {
 			store := &busyStore{}
 			service := application.NewService(store, testCipher{}, testOwner{}, testEnvironment{}, failedProbe{})
@@ -145,6 +145,27 @@ func TestProvisionInProgressReturnsConflictForPutAndDelete(t *testing.T) {
 				t.Fatalf("provision conflict = status %d, body %s", response.StatusCode, result)
 			}
 		})
+	}
+}
+
+func TestManualConnectionCreateReturnsGone(t *testing.T) {
+	app := fiber.New()
+	continueRequest := func(c fiber.Ctx) error { return c.Next() }
+	service := application.NewService(&testStore{records: map[string]application.StoredConnection{}},
+		testCipher{}, testOwner{}, testEnvironment{}, failedProbe{})
+	NewHandler(service).Mount(httpserver.RequireSession(testSessions{}), continueRequest, continueRequest)(app)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPut, "/api/projects/p1/db",
+		strings.NewReader(`{"type":"postgres"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(secureSessionCookie())
+	response, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, _ := io.ReadAll(response.Body)
+	if response.StatusCode != http.StatusGone || !strings.Contains(string(body), "manual_connection_removed") {
+		t.Fatalf("manual connection create response = %d %s", response.StatusCode, body)
 	}
 }
 

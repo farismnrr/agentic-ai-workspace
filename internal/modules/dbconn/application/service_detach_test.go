@@ -7,12 +7,13 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/domain"
 )
 
-func TestDetachSQLiteRemovesConnectionAndOnlyDatabaseURL(t *testing.T) {
+func TestDetachSQLiteRemovesManagedDatabaseEnvironment(t *testing.T) {
 	store := &memoryStore{records: map[string]StoredConnection{"project-a": {
-		Connection: domain.Connection{Kind: domain.MongoDB, EnvName: "MONGODB_URL", Managed: true},
+		Connection: domain.Connection{Kind: domain.Postgres, EnvName: "DATABASE_URL", Managed: true},
 	}}}
 	env := &memoryEnvironment{values: map[string]string{
 		"project-a:DATABASE_URL": "postgres://shared", "project-a:MONGODB_URL": "mongodb://custom",
+		"project-a:DATABASE_SSL_CA": "ca", "project-a:DATABASE_SSL_CERT": "cert", "project-a:DATABASE_SSL_KEY": "key",
 	}}
 	service, _, _, provisioner := provisionService(t, store, env)
 	if err := service.DetachSQLite(context.Background(), "user-a", "project-a"); err != nil {
@@ -26,6 +27,11 @@ func TestDetachSQLiteRemovesConnectionAndOnlyDatabaseURL(t *testing.T) {
 	}
 	if env.values["project-a:MONGODB_URL"] != "mongodb://custom" {
 		t.Fatal("detach removed an environment variable other than DATABASE_URL")
+	}
+	for _, name := range []string{"DATABASE_SSL_CA", "DATABASE_SSL_CERT", "DATABASE_SSL_KEY"} {
+		if _, exists := env.values["project-a:"+name]; exists {
+			t.Fatalf("%s remains after detach", name)
+		}
 	}
 	if provisioner.calls != 0 || provisioner.restored != "" {
 		t.Fatal("detach called the provisioner; remote database objects must remain")

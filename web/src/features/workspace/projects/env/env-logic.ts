@@ -1,11 +1,5 @@
-import type { DatabaseType, EnvVariable } from './env-api';
+import type { EnvVariable } from './env-api';
 import { ApiError } from '../../../../shared/api/http';
-
-export const databaseDefaults: Record<DatabaseType, { port: number; envName: string }> = {
-  postgres: { port: 5432, envName: 'DATABASE_URL' },
-  mysql: { port: 3306, envName: 'DATABASE_URL' },
-  mongodb: { port: 27017, envName: 'MONGODB_URL' },
-};
 
 export function normalizeVariableName(name: string): string {
   return name.toUpperCase();
@@ -31,8 +25,6 @@ export function variableErrorMessage(error: unknown): string {
   }
 }
 
-export type DatabaseMode = 'manual' | 'shared';
-
 const sharedProvisionMessages: Record<string, string> = {
   rate_limited: 'Too many attempts. Wait a minute and try again.',
   env_name_in_use: 'An environment variable named DATABASE_URL already exists. Delete or rename it in Variables first.',
@@ -42,7 +34,6 @@ const sharedProvisionMessages: Record<string, string> = {
   insufficient_privileges: 'The shared database account does not have permission to create your schema.',
   provision_failed: 'Could not create your database schema. Try again.',
   provision_in_progress: 'Your schema is already being created. Wait a moment and try again.',
-  manual_connection_exists: 'A manual connection exists. Delete it first, then create the shared schema.',
   compensation_failed: 'The save failed and the previous database setup could not be fully restored. Contact your workspace administrator.',
 };
 
@@ -54,5 +45,5 @@ export function sharedProvisionErrorMessage(code: string | undefined): string {
 
 export function databaseTestErrorMessage(code: string | undefined): string {
   if (code === 'rate_limited') return 'Too many attempts. Wait a minute and try again.';
-  return 'Could not test this connection. Check the fields and try again.';
+  return 'Could not check the shared database. Try again.';
 }

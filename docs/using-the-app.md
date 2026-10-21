@@ -115,21 +115,30 @@ Other projects do not receive them.
 The Env tab's **Database** section starts with **SQLite (default)**. This uses
 the project's own SQLite file. **Shared database** provisions a PostgreSQL
 schema and login from the database details saved under **Settings → Database**.
-The connection appears in this project's Env as `DATABASE_URL`.
+The connection appears in this project's Env as `DATABASE_URL`, with its
+selected `sslmode`. A saved public CA certificate appears as
+`DATABASE_SSL_CA`; the project app never receives the administrator's client
+certificate or private key. Mutual TLS client certificates for project apps
+are not supported. Apps that need their own client certificate must set their
+own Env values. The app does not write certificate files.
 
 When Settings has no database configured, the shared choice is unavailable.
-Custom PostgreSQL, MySQL/MariaDB and MongoDB connections remain under
-**Advanced: custom connection**. The app builds and encrypts each connection
-string, then exposes it as `DATABASE_URL` or the chosen variable name.
-MongoDB defaults to `MONGODB_URL`.
+Older PostgreSQL, MySQL/MariaDB and MongoDB connections remain visible as
+read-only legacy details. Choose SQLite or Shared to detach one. No password
+is shown, and the external database and its data are left untouched. New custom
+connections are unavailable. MongoDB connections use `MONGODB_URL`.
 
-Switching from a shared or custom connection to SQLite asks for confirmation.
-The app removes this project's connection and `DATABASE_URL`; the data stays
-in its database. A shared schema and role stay on the server. Custom
-environment variables with other names are left alone.
+Switching from a shared or legacy connection to SQLite asks for confirmation.
+The app removes this project's connection and its managed database Env values;
+the data stays in its database. A shared schema and role stay on the server.
 
-When TLS is on for PostgreSQL, the connection uses `sslmode=require`; it does
-not verify the PostgreSQL server certificate.
+The administrator selects PostgreSQL's `sslmode` and may save a CA certificate
+and a matching client certificate and key for the server's provisioner
+connection. Certificate values are encrypted at rest, up to 16 KiB each, and
+are never returned by Settings; that page reports only whether each value is
+set. Only the public CA is shared with project apps. `verify-ca` checks the
+server chain without checking its hostname. `verify-full` checks both the
+chain and hostname.
 
 Use **Test connection** to check the credentials from the app server. Tests
 allow public, private-network and loopback database addresses. They block
@@ -141,13 +150,15 @@ on the Docker host, try `host.docker.internal`; for another computer, use its
 LAN IP and make sure the database accepts connections from the app host.
 
 Only administrators can open **Settings → Database** or change the shared
-PostgreSQL host, port, database, user, password and SSL mode. The password is
-write-only. Other Settings pages configure each signed-in person's own account.
+PostgreSQL host, port, database, user, password, SSL mode and certificates.
+Password and certificate contents are write-only. Other Settings pages
+configure each signed-in person's own account.
 The project database API reports whether shared PostgreSQL is available, even
 when the server uses `POSTGRES_ADMIN_URL` as its fallback.
 
 An administrator saves the shared PostgreSQL host, port, database, user,
-password and SSL mode under **Settings → Database**. The password is write-only.
+password, SSL mode and optional certificate material under **Settings → Database**.
+Secret contents are write-only.
 If no saved settings exist, the server can use `POSTGRES_ADMIN_URL` instead.
 Use a dedicated database because enabling shared PostgreSQL revokes `PUBLIC`
 access to the `public` schema for that whole database. The admin account must

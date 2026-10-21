@@ -1,5 +1,6 @@
 <script lang="ts">
   import { loaded, projects, tasks } from '../logic/workspace-store';
+  import SkeletonList from '../../../shared/ui/SkeletonList.svelte';
   import SidebarTaskRow from './SidebarTaskRow.svelte';
 
   const pinned = $derived(
@@ -10,7 +11,10 @@
   const projectNames = $derived(new Map($projects.map((project) => [project.id, project.name])));
 </script>
 
-{#if $loaded && pinned.length > 0}
+{#if !$loaded}
+  <p class="px-2 pb-1 pt-3 text-xs text-[var(--brand-text-tertiary)]">Pinned</p>
+  <SkeletonList variant="sidebar" rows={3} />
+{:else if pinned.length > 0}
   <p class="px-2 pb-1 pt-3 text-xs text-[var(--brand-text-tertiary)]">Pinned</p>
   <ul class="flex flex-col" aria-label="Pinned">
     {#each pinned as task (task.id)}

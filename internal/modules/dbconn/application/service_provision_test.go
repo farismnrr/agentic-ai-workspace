@@ -65,7 +65,7 @@ func TestProvisionSharedOwnerOnlyAndNotConfigured(t *testing.T) {
 	}
 }
 
-func TestProvisionSharedRefusesToReplaceManualConnection(t *testing.T) {
+func TestProvisionSharedRefusesToReplaceLegacyConnection(t *testing.T) {
 	manual := StoredConnection{Connection: domain.Connection{
 		Kind: domain.Postgres, Host: "db.local", Port: 5432, Database: "records",
 		User: "manual", Password: "", EnvName: "DATABASE_URL",
@@ -86,6 +86,19 @@ func TestProvisionSharedRefusesExistingDatabaseURLVariableWithoutManagedConnecti
 	var failure ProvisionError
 	if !errors.As(err, &failure) || failure.Category != EnvironmentNameInUse || provisioner.calls != 0 {
 		t.Fatalf("existing DATABASE_URL was not preserved: err=%v calls=%d", err, provisioner.calls)
+	}
+}
+
+func TestProvisionSharedRefusesAndPreservesUserOwnedSSLKey(t *testing.T) {
+	env := &memoryEnvironment{values: map[string]string{"project-a:DATABASE_SSL_KEY": "user-key"}}
+	service, _, _, provisioner := provisionService(t, &memoryStore{records: map[string]StoredConnection{}}, env)
+	_, err := service.ProvisionShared(context.Background(), "user-a", "project-a")
+	var failure ProvisionError
+	if !errors.As(err, &failure) || failure.Category != EnvironmentNameInUse || provisioner.calls != 0 {
+		t.Fatalf("existing DATABASE_SSL_KEY was not protected: err=%v calls=%d", err, provisioner.calls)
+	}
+	if got := env.values["project-a:DATABASE_SSL_KEY"]; got != "user-key" {
+		t.Fatalf("user-owned DATABASE_SSL_KEY = %q, want preserved value", got)
 	}
 }
 
@@ -138,12 +151,14 @@ func TestProvisionSharedCompensatesCipherFailureAndStopsOnSnapshotFailure(t *tes
 }
 
 func TestDeleteNeverCallsSharedProvisioner(t *testing.T) {
-	service, _, _, provisioner := provisionService(t, nil, nil)
-	if _, err := service.Save(context.Background(), "user-a", "project-a", domain.Connection{
-		Kind: domain.Postgres, Host: "db.local", Port: 5432, Database: "records", User: "manual", Password: "pw",
-	}); err != nil {
-		t.Fatal(err)
-	}
+	legacy := StoredConnection{Connection: domain.Connection{
+		Kind: domain.Postgres, Host: "db.local", Port: 5432, Database: "records",
+		User: "manual", EnvName: "DATABASE_URL",
+	}, PasswordSealed: "sealed:pw"}
+	store := &memoryStore{records: map[string]StoredConnection{"project-a": legacy}}
+	service, _, _, provisioner := provisionService(t, store, &memoryEnvironment{
+		values: map[string]string{"project-a:DATABASE_URL": legacy.Connection.URL()},
+	})
 	if err := service.Delete(context.Background(), "user-a", "project-a"); err != nil {
 		t.Fatal(err)
 	}
@@ -169,12 +184,6 @@ func TestProvisionSharedRejectsConcurrentRunForProject(t *testing.T) {
 	var failure ProvisionError
 	if !errors.As(err, &failure) || failure.Category != ProvisionInProgress {
 		t.Fatalf("concurrent run error = %v", err)
-	}
-	_, err = service.Save(context.Background(), "user-a", "project-a", domain.Connection{
-		Kind: domain.Postgres, Host: "db.local", Port: 5432, Database: "records", User: "manual", Password: "pw",
-	})
-	if !errors.As(err, &failure) || failure.Category != ProvisionInProgress {
-		t.Fatalf("concurrent save error = %v", err)
 	}
 	err = service.Delete(context.Background(), "user-a", "project-a")
 	if !errors.As(err, &failure) || failure.Category != ProvisionInProgress {

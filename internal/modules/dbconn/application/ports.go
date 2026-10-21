@@ -46,6 +46,7 @@ type Provisioner interface {
 
 type ProvisionResult struct {
 	Host, Database, Schema, Role, Password string
+	SSLMode, CACert, ClientCert, ClientKey string
 	Port                                   int
 	TLS                                    bool
 }

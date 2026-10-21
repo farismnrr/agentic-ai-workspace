@@ -57,9 +57,13 @@ internal/platform/        config, egress, HTTP server, embedded web app
   port and a pgx adapter. Settings store the admin connection encrypted;
   `POSTGRES_ADMIN_URL` is the fallback when no saved settings exist.
   Migration 045 adds the connection's `managed` flag. The project Env tab
-  selects SQLite, shared PostgreSQL, or an advanced custom connection.
-  Detaching removes the local connection and `DATABASE_URL` only; it never
-  drops remote schemas, roles, databases or data.
+  selects SQLite or shared PostgreSQL. Shared project Env receives the public
+  CA as `DATABASE_SSL_CA` and the selected `sslmode` in `DATABASE_URL`.
+  Administrator client certificates and keys stay in the server provisioner;
+  project app mutual TLS is unsupported. Apps needing their own client
+  certificate must set their own Env values. Detaching a managed connection
+  removes its SSL Env values, including stale client cert/key entries, without
+  dropping remote schemas, roles, databases or data.
 
 ### Frontend
 

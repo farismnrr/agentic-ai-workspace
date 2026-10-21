@@ -23,12 +23,16 @@ const (
 )
 
 type Provisioner struct {
-	connect  connector
-	adminURL string
-	ownPort  string
+	connect   connector
+	adminURL  string
+	ownPort   string
+	material  TLSMaterial
+	customTLS bool
 }
 
-type connector func(context.Context, string, string) (session, error)
+type connector func(context.Context, *pgx.ConnConfig, string) (session, error)
+
+type TLSMaterial struct{ CACert, ClientCert, ClientKey string }
 
 type session interface {
 	Begin(context.Context) (transaction, error)
@@ -44,8 +48,13 @@ type transaction interface {
 
 type row interface{ Scan(...any) error }
 
-func New(adminURL, ownPort string) *Provisioner {
-	return &Provisioner{adminURL: strings.TrimSpace(adminURL), ownPort: ownPort, connect: connect}
+func New(adminURL, ownPort string, material ...TLSMaterial) *Provisioner {
+	p := &Provisioner{adminURL: strings.TrimSpace(adminURL), ownPort: ownPort, connect: connect}
+	if len(material) > 0 {
+		p.material = material[0]
+		p.customTLS = true
+	}
+	return p
 }
 
 func (p *Provisioner) Configured(context.Context) (bool, error) {
@@ -62,13 +71,22 @@ func (p *Provisioner) Provision(ctx context.Context, projectID string) (applicat
 	if err != nil {
 		return application.ProvisionResult{}, err
 	}
+	mode, err := sslMode(p.adminURL)
+	if err != nil {
+		return application.ProvisionResult{}, provisionError(application.AdminURLInvalid)
+	}
+	if p.customTLS {
+		if tlsErr := applyTLS(cfg, p.material, mode); tlsErr != nil {
+			return application.ProvisionResult{}, provisionError(application.AdminURLInvalid)
+		}
+	}
 	ctx, cancel := context.WithTimeout(ctx, provisionTimeout)
 	defer cancel()
 	password, err := generatedPassword()
 	if err != nil {
 		return application.ProvisionResult{}, provisionError(application.ProvisionFailed)
 	}
-	return p.provisionPassword(ctx, projectID, cfg, password)
+	return p.provisionPassword(ctx, projectID, cfg, password, mode)
 }
 
 func (p *Provisioner) Restore(ctx context.Context, projectID, password string) error {
@@ -79,27 +97,40 @@ func (p *Provisioner) Restore(ctx context.Context, projectID, password string) e
 	if err != nil {
 		return err
 	}
+	mode, err := sslMode(p.adminURL)
+	if err != nil {
+		return provisionError(application.AdminURLInvalid)
+	}
+	if p.customTLS {
+		if tlsErr := applyTLS(cfg, p.material, mode); tlsErr != nil {
+			return provisionError(application.AdminURLInvalid)
+		}
+	}
 	ctx, cancel := context.WithTimeout(ctx, provisionTimeout)
 	defer cancel()
-	_, err = p.provisionPassword(ctx, projectID, cfg, password)
+	_, err = p.provisionPassword(ctx, projectID, cfg, password, mode)
 	return err
 }
 
 func parseAdminURL(rawURL string) (*pgx.ConnConfig, error) {
 	cfg, err := pgx.ParseConfig(rawURL)
-	parsed, urlErr := url.Parse(rawURL)
-	if err != nil || urlErr != nil || strings.Trim(strings.TrimSpace(parsed.Path), "/") == "" ||
-		strings.TrimSpace(cfg.Database) == "" {
+	if err != nil || strings.TrimSpace(cfg.Database) == "" {
 		return nil, provisionError(application.AdminURLInvalid)
+	}
+	if strings.HasPrefix(rawURL, "postgres://") || strings.HasPrefix(rawURL, "postgresql://") {
+		parsed, urlErr := url.Parse(rawURL)
+		if urlErr != nil || strings.Trim(strings.TrimSpace(parsed.Path), "/") == "" {
+			return nil, provisionError(application.AdminURLInvalid)
+		}
 	}
 	return cfg, nil
 }
 
 func (p *Provisioner) provisionPassword(
-	ctx context.Context, projectID string, cfg *pgx.ConnConfig, password string,
+	ctx context.Context, projectID string, cfg *pgx.ConnConfig, password, mode string,
 ) (application.ProvisionResult, error) {
 	name := projectName(projectID)
-	s, err := p.connect(ctx, p.adminURL, p.ownPort)
+	s, err := p.connect(ctx, cfg, p.ownPort)
 	if err != nil {
 		return application.ProvisionResult{}, classifyError(err)
 	}
@@ -113,17 +144,9 @@ func (p *Provisioner) provisionPassword(
 	}
 	return application.ProvisionResult{
 		Host: cfg.Host, Port: int(cfg.Port), Database: cfg.Database, Schema: name, Role: name,
-		Password: password, TLS: adminTLS(p.adminURL),
+		Password: password, TLS: mode != "disable", SSLMode: mode,
+		CACert: p.material.CACert, ClientCert: p.material.ClientCert, ClientKey: p.material.ClientKey,
 	}, nil
-}
-
-func adminTLS(rawURL string) bool {
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		return false
-	}
-	mode := parsed.Query().Get("sslmode")
-	return mode != "" && mode != "disable"
 }
 
 func projectName(projectID string) string {

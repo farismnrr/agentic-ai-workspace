@@ -21,7 +21,7 @@ func provisionService(
 	if envOverride != nil {
 		actualEnv = envOverride
 	}
-	provisioner := &fakeProvisioner{}
+	provisioner := &fakeProvisioner{withTLS: true}
 	service := NewService(actualStore, testCipher{}, fixedOwner{"project-a": "user-a"}, actualEnv,
 		healthyProbe{}, provisioner)
 	return service, store, env, provisioner
@@ -30,15 +30,21 @@ func provisionService(
 type fakeProvisioner struct {
 	restored string
 	calls    int
+	withTLS  bool
 }
 
 func (*fakeProvisioner) Configured(context.Context) (bool, error) { return true, nil }
 func (f *fakeProvisioner) Provision(context.Context, string) (ProvisionResult, error) {
 	f.calls++
-	return ProvisionResult{
+	result := ProvisionResult{
 		Host: "db.local", Port: 5432, Database: "records", Role: "project",
-		Password: fmt.Sprintf("generated-%d", f.calls), TLS: true,
-	}, nil
+		Password: fmt.Sprintf("generated-%d", f.calls),
+	}
+	if f.withTLS {
+		result.TLS, result.SSLMode = true, "verify-full"
+		result.CACert, result.ClientCert, result.ClientKey = "shared-ca", "shared-cert", "shared-key"
+	}
+	return result, nil
 }
 
 type failedCipher struct{}

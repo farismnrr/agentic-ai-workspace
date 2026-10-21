@@ -29,12 +29,13 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
 - **Own-plan sign-in (Claude, ChatGPT).** The vendor's CLI is run unmodified in the sandbox image (`claude`, `codex` pinned in `sandbox/Dockerfile`); the app never reads, stores or proxies subscription tokens (Anthropic forbids it; see `implementation-notes.md`). Only the per-person folder `DATA_DIR/cli/<userID>` is mounted at `/home/cli`. A task runs on a plan when its `provider_id` is `plan:claude` or `plan:chatgpt` (`task/domain/plan.go`), which the default-model preference can hold, so no schema column marks it; the sign-in lives in Settings, Models (`PlanProviders.svelte`) and the signed-in plans are options of the default-model picker (value `plan:<program>::default`); `modules/cliagent` owns sign-in, `task/application/cli.go` the turn, `task/adapter/clistream` the output parsers. Do not add models for plans: the program picks its own, and models are never hard-coded.
 - **A Unix socket path is limited to about 100 bytes.** `egressproxy.Hub.Dir` fails with a long data folder (a scratchpad path was enough). `Engine.Slot` used to swallow that and the sandbox simply had no network; it now fails when hosts were asked for. Use a short `DATA_DIR` (such as `/tmp/wsbb`) for throwaway instances.
 - **Black-box a change by running the binary.** Build `./cmd/workspace`, start it on a spare port with a temporary `DATA_DIR`, register through `/api/auth/register` (send `Origin` equal to `PUBLIC_URL`) and call the HTTP API; leave real data and port 8081 alone. Sign-in cannot be completed without a real account, so the signed-in task path needs the owner's login.
-- **Project Env and database settings (migrations 043–045).** `modules/env` owns
+- **Project Env and database settings (migrations 043–049).** `modules/env` owns
   sealed `project_env_vars`; `modules/dbconn` owns the one sealed connection in
   `project_db_connections`. Routes are `/api/projects/:id/env` (GET/PUT),
   `/env/:name` (DELETE), and `/db` (GET/PUT/DELETE) plus `/db/test` (POST).
   Names are uppercase identifiers up to 64 chars; reject `PATH`, `HOME`, all
-  proxy names, `LD_*`, `GO*` and `DOCKER_*`; cap at 50 entries and 4 KiB/value.
+  proxy names, `LD_*`, `GO*` and `DOCKER_*`; cap at 50 entries and user-written
+  values at 4 KiB. Server-managed secrets may be up to 16 KiB for PEM values.
   `runner.WithProjectEnv` and `site.Runtime.WithProjectEnv` inject only that
   project's values after the fixed base env; `bootstrap/taskcli.go` does the
   same for CLI runs. Keep values out of logs and model text. DB probes use
@@ -51,11 +52,20 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
   on schema `public`, grants the project role database `CONNECT`, then sets
   `search_path`. PostgreSQL keeps database `TEMPORARY` for `PUBLIC`; do not
   describe the effective database rights as CONNECT-only.
-  ProvisionShared refuses to replace a saved manual connection. The project
-  UI confirms custom-to-shared first, then calls `DELETE /db/sqlite` before
-  provisioning. That endpoint's `DetachSQLite` removes the connection and
-  `DATABASE_URL` only, even when a custom connection used another Env name.
-  It never invokes the provisioner, so remote schemas, roles and data remain.
+  Shared PostgreSQL settings seal CA, client certificate and key in
+  `shared_database_settings`; admin GET returns set flags only. The provisioner
+  applies pgx TLS configuration in memory, including explicit fallback order.
+  Managed projects receive only the public CA as `DATABASE_SSL_CA`; the URL
+  carries the selected `sslmode`. Administrator client certificates and keys
+  stay in the server provisioner. Mutual TLS for project apps is unsupported;
+  an app that needs its own client certificate must set its own Env values.
+  Provision/re-provision and detach remove stale managed `DATABASE_SSL_CERT`
+  and `DATABASE_SSL_KEY` values. Detach removes these with `DATABASE_URL` only
+  when a managed connection exists. Manual project DB
+  writes now return `manual_connection_removed`; saved legacy records remain
+  visible and detachable. Detach never invokes the provisioner or drops
+  external data. Projects choose SQLite or Shared; the web still calls
+  `/db/test` for a saved connection, so retain the probe adapters and tests.
   ProvisionShared, Save, Delete and DetachSQLite share one per-project lock;
   compensation uses an independent 10-second context and reports
   `compensation_failed` if restoration fails.

@@ -104,11 +104,19 @@ func DefaultEnvName(kind Kind) string {
 }
 
 func (c Connection) URL() string {
+	return c.URLWithSSLMode("")
+}
+
+// URLWithSSLMode keeps the selected shared PostgreSQL verification mode in the project URL.
+func (c Connection) URLWithSSLMode(sslMode string) string {
 	scheme := string(c.Kind)
 	if c.Kind == Postgres {
 		scheme = "postgres"
 	}
 	query := connectionQuery(c.Kind, c.TLS)
+	if c.Kind == Postgres && sslMode != "" {
+		query.Set("sslmode", sslMode)
+	}
 	path := "/" + c.Database
 	result := url.URL{
 		Scheme: scheme, User: url.UserPassword(c.User, c.Password),

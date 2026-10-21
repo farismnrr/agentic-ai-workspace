@@ -3,6 +3,8 @@
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import ConfirmModal from '../../components/ConfirmModal.svelte';
+  import FormField from '../../components/FormField.svelte';
+  import SettingsSection from '../../settings/parts/SettingsSection.svelte';
   import { deleteVariable, listVariables, saveVariable, getDatabase, type EnvVariable } from './env-api';
   import { formatUpdatedAt, normalizeVariableName, variableErrorMessage, variableValue } from './env-logic';
 
@@ -18,6 +20,7 @@
   let error = $state(false);
   let busy = $state(false);
   let loading = $state(true);
+  let loadFailed = $state(false);
   let valueInput = $state<HTMLInputElement>();
   let pending = $state<{ kind: 'replace' | 'delete'; item: EnvVariable }>();
 
@@ -31,9 +34,11 @@
       const [items, database] = await Promise.all([listVariables(projectId), getDatabase(projectId)]);
       variables = items;
       managedName = database.configured ? database.envName : '';
+      loadFailed = false;
       error = false;
     } catch {
       message = 'Could not load environment variables.';
+      loadFailed = true;
       error = true;
     } finally { loading = false; }
   }
@@ -83,11 +88,11 @@
   }
 </script>
 
-<section class="mb-8" aria-labelledby="variables-heading">
-  <div class="mb-1"><h2 id="variables-heading" class="text-sm font-semibold">Variables</h2><p class="mt-0.5 text-xs text-[var(--brand-text-tertiary)]">Secret values are masked and never shown again after saving.</p></div>
-  <div class="divide-y divide-[var(--brand-border)]">
+<SettingsSection title="Variables" description="Secret values are masked and never shown again after saving.">
   {#if loading}
-    <p class="py-3" aria-busy="true"><span class="loading loading-spinner loading-sm" aria-label="Loading variables"></span></p>
+    <div class="py-3" role="status"><span class="loading loading-spinner loading-sm" aria-label="Loading variables"></span></div>
+  {:else if loadFailed}
+    <div class="alert alert-error alert-soft" role="alert">{message}</div>
   {:else if variables.length === 0}
     <EmptyState compact icon="key" title="No variables yet" body="Add a variable below for runs in this project." />
   {:else}
@@ -104,10 +109,10 @@
             <time datetime={item.updatedAt}>{formatUpdatedAt(item.updatedAt)}</time>
           </div>
           {#if item.name !== managedName}
-            <button class="btn btn-ghost btn-sm min-h-11" type="button" aria-label="Replace {item.name}" onclick={() => void beginReplace(item)}>
+            <button class="btn btn-ghost btn-sm" type="button" aria-label="Replace {item.name}" onclick={() => void beginReplace(item)}>
               <Icon name="pencil" class="size-4" />Replace
             </button>
-            <button class="btn btn-ghost btn-sm min-h-11 text-error" type="button" aria-label="Delete {item.name}" onclick={() => (pending = { kind: 'delete', item })}>
+            <button class="btn btn-ghost btn-sm text-error" type="button" aria-label="Delete {item.name}" onclick={() => (pending = { kind: 'delete', item })}>
               <Icon name="trash" class="size-4" />Delete
             </button>
           {/if}
@@ -115,34 +120,34 @@
       {/each}
     </ul>
   {/if}
-  <form class="grid gap-3 py-4" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
+  {#if !loading && !loadFailed}<form class="grid gap-3 py-4" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
     <div class="grid gap-3 sm:grid-cols-2">
-      <label>
-        <span class="label-text mb-1 block">Name</span>
-        <input class="input input-sm w-full font-mono uppercase" value={name} readonly={editing}
+      <FormField id="variable-name" label="Name" hint="Uppercase letters, numbers and underscores.">
+        {#snippet children({ describedby, invalid })}
+          <input id="variable-name" class="input input-sm w-full font-mono uppercase" value={name} readonly={editing}
           oninput={(event) => (name = normalizeVariableName(event.currentTarget.value))}
-          placeholder="SERVICE_TOKEN" required maxlength="64" pattern="[A-Za-z_][A-Za-z0-9_]*" autocomplete="off" />
-        <span class="mt-1 block text-xs text-[var(--brand-text-secondary)]">Uppercase letters, numbers and underscores.</span>
-      </label>
-      <label>
-        <span class="label-text mb-1 block">Value</span>
-        <input bind:this={valueInput} class="input input-sm w-full" type="password" bind:value required
-          maxlength="4096" autocomplete="new-password" placeholder="Enter value" />
-      </label>
+          placeholder="SERVICE_TOKEN" required maxlength="64" pattern="[A-Za-z_][A-Za-z0-9_]*" autocomplete="off" aria-describedby={describedby} aria-invalid={invalid} />
+        {/snippet}
+      </FormField>
+      <FormField id="variable-value" label="Value">
+        {#snippet children({ describedby, invalid })}
+          <input id="variable-value" bind:this={valueInput} class="input input-sm w-full" type="password" bind:value required
+            maxlength="4096" autocomplete="new-password" placeholder="Enter value" aria-describedby={describedby} aria-invalid={invalid} />
+        {/snippet}
+      </FormField>
     </div>
     <label class="flex w-fit items-center gap-2 text-sm"><input class="checkbox checkbox-sm" type="checkbox" bind:checked={isSecret} />Secret</label>
     <div class="flex flex-wrap items-center gap-3">
-      <button class="btn btn-primary btn-sm rounded-lg min-h-11" type="submit" disabled={busy}>
+      <button class="btn btn-primary btn-sm" type="submit" disabled={busy}>
         {editing ? 'Save replacement' : 'Add variable'}
       </button>
-      {#if editing}<button class="btn btn-ghost btn-sm min-h-11" type="button" onclick={() => { editing = false; name = ''; value = ''; }}>Cancel</button>{/if}
+      {#if editing}<button class="btn btn-ghost btn-sm" type="button" onclick={() => { editing = false; name = ''; value = ''; }}>Cancel</button>{/if}
     </div>
     <div class="min-h-6" aria-live="polite">
-      {#if message !== ''}<p class="flex items-center gap-2 text-sm" class:text-error={error}><Icon name={error ? 'alert-triangle' : 'check-circle'} class="size-4 shrink-0" />{message}</p>{/if}
+      {#if message !== ''}<p class="text-xs {error ? 'text-error' : 'text-[var(--brand-text-secondary)]'}" role={error ? 'alert' : 'status'}>{message}</p>{/if}
     </div>
-  </form>
-  </div>
-</section>
+  </form>{/if}
+</SettingsSection>
 
 <ConfirmModal
   open={pending !== undefined}

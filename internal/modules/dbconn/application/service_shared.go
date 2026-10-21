@@ -41,11 +41,11 @@ func (s *Service) ProvisionShared(ctx context.Context, userID, projectID string)
 }
 
 type provisionSnapshot struct {
+	oldEnv      map[string]string
+	hadEnv      map[string]bool
 	oldPassword string
-	oldEnv      string
 	connection  StoredConnection
 	restore     bool
-	hadEnv      bool
 	exists      bool
 }
 
@@ -62,9 +62,19 @@ func (s *Service) provisionSnapshot(ctx context.Context, projectID string) (prov
 	if err != nil {
 		return provisionSnapshot{}, fmt.Errorf("read previous managed password: %w", err)
 	}
-	oldEnv, hadEnv := values[domain.DefaultEnvName(domain.Postgres)]
-	if !exists && hadEnv {
-		return provisionSnapshot{}, ProvisionError{Category: EnvironmentNameInUse}
+	envNames := managedEnvNames()
+	oldEnv, hadEnv := make(map[string]string), make(map[string]bool)
+	for _, name := range envNames {
+		oldEnv[name], hadEnv[name] = values[name]
+	}
+	if !exists || !old.Connection.Managed {
+		for _, name := range []string{
+			domain.DefaultEnvName(domain.Postgres), "DATABASE_SSL_CA", "DATABASE_SSL_CERT", "DATABASE_SSL_KEY",
+		} {
+			if hadEnv[name] {
+				return provisionSnapshot{}, ProvisionError{Category: EnvironmentNameInUse}
+			}
+		}
 	}
 	return provisionSnapshot{
 		connection: old, exists: exists, oldPassword: oldPassword, restore: restore,
@@ -81,35 +91,42 @@ func (s *Service) saveProvisioned(
 		EnvName: domain.DefaultEnvName(domain.Postgres), Managed: true,
 	}
 	if validateErr := conn.Validate(); validateErr != nil {
-		if failed, remote := s.compensate(ctx, projectID, previous, conn.EnvName); failed {
-			return domain.Metadata{}, ProvisionError{Category: CompensationFailed, Remote: remote}
-		}
-		return domain.Metadata{}, ProvisionError{Category: ProvisionFailed}
+		return domain.Metadata{}, s.provisionSaveError(
+			ctx, projectID, previous, conn.EnvName, ProvisionFailed,
+		)
 	}
 	sealed, err := s.cipher.Encrypt([]byte(conn.Password))
 	if err != nil {
-		if failed, remote := s.compensate(ctx, projectID, previous, conn.EnvName); failed {
-			return domain.Metadata{}, ProvisionError{Category: CompensationFailed, Remote: remote}
-		}
-		return domain.Metadata{}, ProvisionError{Category: LocalSaveFailed}
+		return domain.Metadata{}, s.provisionSaveError(
+			ctx, projectID, previous, conn.EnvName, LocalSaveFailed,
+		)
 	}
 	storedConnection := conn
 	storedConnection.Password = ""
 	if err := s.store.Save(ctx, projectID, StoredConnection{
 		Connection: storedConnection, PasswordSealed: sealed,
 	}); err != nil {
-		if failed, remote := s.compensate(ctx, projectID, previous, conn.EnvName); failed {
-			return domain.Metadata{}, ProvisionError{Category: CompensationFailed, Remote: remote}
-		}
-		return domain.Metadata{}, ProvisionError{Category: LocalSaveFailed}
+		return domain.Metadata{}, s.provisionSaveError(
+			ctx, projectID, previous, conn.EnvName, LocalSaveFailed,
+		)
 	}
-	if err := s.env.SetSecret(ctx, projectID, conn.EnvName, conn.URL()); err != nil {
-		if failed, remote := s.compensate(ctx, projectID, previous, conn.EnvName); failed {
-			return domain.Metadata{}, ProvisionError{Category: CompensationFailed, Remote: remote}
-		}
-		return domain.Metadata{}, ProvisionError{Category: EnvironmentWriteFailed}
+	previousManaged := previous.exists && previous.connection.Connection.Managed
+	if err := s.writeProvisionEnvironment(ctx, projectID, conn, result, previousManaged); err != nil {
+		return domain.Metadata{}, s.provisionSaveError(
+			ctx, projectID, previous, conn.EnvName, EnvironmentWriteFailed,
+		)
 	}
 	return conn.Meta(), nil
+}
+
+func (s *Service) provisionSaveError(
+	ctx context.Context, projectID string, previous provisionSnapshot, envName string,
+	category ProvisionFailure,
+) error {
+	if failed, remote := s.compensate(ctx, projectID, previous, envName); failed {
+		return ProvisionError{Category: CompensationFailed, Remote: remote}
+	}
+	return ProvisionError{Category: category}
 }
 
 func (s *Service) beginProvision(projectID string) bool {
@@ -140,36 +157,6 @@ func (s *Service) previousManagedPassword(old StoredConnection, exists bool) (st
 		return "", false, fmt.Errorf("decrypt previous managed password: %w", err)
 	}
 	return string(password), true, nil
-}
-
-func (s *Service) compensate(
-	ctx context.Context, projectID string, previous provisionSnapshot, envName string,
-) (bool, bool) {
-	compensationCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), compensationTimeout)
-	defer cancel()
-	failed := false
-	remoteFailed := false
-	if previous.exists {
-		if err := s.store.Save(compensationCtx, projectID, previous.connection); err != nil {
-			failed = true
-		}
-	} else if err := s.store.Delete(compensationCtx, projectID); err != nil {
-		failed = true
-	}
-	if previous.hadEnv {
-		if err := s.env.SetSecret(compensationCtx, projectID, envName, previous.oldEnv); err != nil {
-			failed = true
-		}
-	} else if err := s.env.DeleteSecret(compensationCtx, projectID, envName); err != nil {
-		failed = true
-	}
-	if previous.restore {
-		if err := s.provisioner.Restore(compensationCtx, projectID, previous.oldPassword); err != nil {
-			failed = true
-			remoteFailed = true
-		}
-	}
-	return failed, remoteFailed
 }
 
 func safeProvisionError(err error) error {

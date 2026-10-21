@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,5 +64,18 @@ func TestPutRequiresProjectOwnershipAndValidValues(t *testing.T) {
 		context.Background(), "alice", "p1", "PATH", "secret", true,
 	); !errors.Is(err, domain.ErrReserved) {
 		t.Fatalf("reserved name save error = %v", err)
+	}
+}
+
+func TestSetSecretAllowsBoundedPEMSizeWithoutChangingUserPutLimit(t *testing.T) {
+	store := &memoryStore{items: map[string][]StoredVariable{}}
+	service := NewService(store, identityCipher{}, owners{"p1": "alice"}, time.Now)
+	largePEM := "-----BEGIN CERTIFICATE-----\n" + strings.Repeat("x", 12*1024) + "\n-----END CERTIFICATE-----"
+	if err := service.SetSecret(context.Background(), "p1", "DATABASE_SSL_CA", largePEM); err != nil {
+		t.Fatalf("server-managed PEM secret rejected: %v", err)
+	}
+	_, err := service.Put(context.Background(), "alice", "p1", "TOKEN", largePEM, true)
+	if !errors.Is(err, domain.ErrInvalidValue) {
+		t.Fatalf("user variable exceeded its 4 KiB limit: %v", err)
 	}
 }

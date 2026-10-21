@@ -45,20 +45,6 @@ func TestReadMetadataDoesNotReturnPassword(t *testing.T) {
 	}
 }
 
-func TestManualFlowHasNoProvisionerByDefault(t *testing.T) {
-	service, store, _, input := savedConnection(t)
-	if configured, err := service.SharedConfigured(context.Background()); err != nil || configured {
-		t.Fatal("shared PostgreSQL must be unavailable without a provisioner")
-	}
-	stored := store.records["project-a"]
-	if stored.Connection.Managed {
-		t.Fatal("manual save unexpectedly marked the connection managed")
-	}
-	if got := input.Meta().Managed; got {
-		t.Fatal("manual connection metadata unexpectedly reports managed")
-	}
-}
-
 func savedConnection(t *testing.T) (*Service, *memoryStore, *memoryEnvironment, domain.Connection) {
 	t.Helper()
 	store := memoryStore{records: map[string]StoredConnection{}}
@@ -69,13 +55,11 @@ func savedConnection(t *testing.T) (*Service, *memoryStore, *memoryEnvironment, 
 		Kind: domain.Postgres, Host: "db.local", Port: 5432, Database: "records",
 		User: "db-user", Password: strings.Join([]string{"s:", "@/?", "#%"}, ""), TLS: true,
 	}
-	metadata, err := service.Save(context.Background(), "user-a", "project-a", input)
-	if err != nil {
-		t.Fatal(err)
+	input.EnvName = domain.DefaultEnvName(input.Kind)
+	store.records["project-a"] = StoredConnection{
+		Connection: input, PasswordSealed: "sealed:" + input.Password,
 	}
-	if metadata.EnvName != "DATABASE_URL" || !metadata.Configured {
-		t.Fatalf("unexpected metadata: %#v", metadata)
-	}
+	env.values["project-a:DATABASE_URL"] = input.URL()
 	return service, &store, &env, input
 }
 
