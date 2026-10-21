@@ -24,11 +24,11 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
   its ID to `projects/env/VariablesSection.svelte` and `DatabaseSection.svelte`.
   Settings has no Env tab or project picker. `DatabaseSection` reads the
   project DB API's `sharedPostgres` flag to disable Shared when unavailable;
-  this includes the server's `POSTGRES_ADMIN_URL` fallback. No saved
-  connection means SQLite; managed means Shared; manual means Custom under
-  the disclosure. SQLite detaches through `/api/projects/:id/db/sqlite`, which
-  removes only `DATABASE_URL` and the local connection; it never calls a remote
-  cleanup. Keep the confirmation text clear that shared data stays in place.
+  this includes the server's `POSTGRES_ADMIN_URL` fallback. The only choices
+  are SQLite and Shared. Old custom connections show as read-only legacy data;
+  switching detaches only local metadata and managed Env values, never remote
+  schemas, roles or data. Shared SSL values use `DATABASE_SSL_CA`,
+  `DATABASE_SSL_CERT` and `DATABASE_SSL_KEY`; the app does not write files.
   Responses never reveal saved secrets. `env-logic.test.ts` uses Vitest;
   `make frontend-verify` runs `npm test` locally and in Fast CI.
 - **Admin Settings.** Session `/api/auth/me` includes `role`. Hide the shared
@@ -44,4 +44,7 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
 - **Diff view.** `changes/ChangedFile.svelte` + `DiffView.svelte` + `logic/diff-editor.ts` (merge code loaded when a diff opens). `@codemirror/merge` ships hard-coded red and green, so `diffTheme` in `editor-theme.ts` replaces them with the status roles and adds an edge bar so the lines are marked without colour. `ChangesTab` reads again on every new step and on the files stream (`logic/changes-store.ts`, newest read wins), starts Split when its box is 720px wide or more and lets the person pick.
 - **Sidebar task pins.** `SidebarTaskRow.svelte` keeps the native pin button beside, not inside, the task link; use a stable “Pin task” label and `aria-pressed`. Only the sidebar exposes pinning, and the store patches the server response so cross-project pins appear immediately.
 - **Composer attachments.** `DataTransfer.files` is readable in drop/paste handlers, not while dragging over; only use drag-over to show the highlight. Revoke every `URL.createObjectURL` when a thumbnail is removed, replaced or the composer is destroyed. Shared home/task composition stays in `components/ComposerBox.svelte` and `logic/attachments.ts`.
+- **UI cleanup is reuse-only.** Search for existing feature and shared
+  components, then use daisyUI patterns before writing markup. Avoid scoped CSS
+  and arbitrary size utilities; keep the established controls, sizes and theme.
 

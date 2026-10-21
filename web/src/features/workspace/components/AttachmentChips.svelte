@@ -55,13 +55,13 @@
           alt=""
         />
       {:else}
-        <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-base-100 text-base-content/70">
+        <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-base-100 text-[var(--brand-text-secondary)]">
           <Icon name={attachmentKind(attachment.file) === 'video' ? 'video' : 'file-text'} class="size-5" />
         </span>
       {/if}
       <span class="min-w-0 flex-1">
         <span class="block max-w-44 truncate text-xs font-medium">{attachment.file.name}</span>
-        <span class="block text-xs text-base-content/70 [overflow-wrap:anywhere]">
+        <span class="block text-xs text-[var(--brand-text-secondary)] [overflow-wrap:anywhere]">
           {formatFileSize(attachment.file.size)}
           {#if attachment.path !== undefined} · Uploaded{/if}
           {#if attachment.uploadError !== undefined}<span class="text-error"> · Upload failed</span>{/if}
@@ -71,7 +71,7 @@
       {#if attachment.uploadError !== undefined}<Icon name="alert-triangle" class="size-4 shrink-0 text-error" />{/if}
       <button
         type="button"
-        class="btn btn-ghost btn-xs btn-circle size-8 min-h-8 p-0"
+        class="btn btn-ghost btn-circle btn-xs"
         disabled={busy}
         aria-label="Remove {attachment.file.name}"
         data-attachment-remove={attachment.id}

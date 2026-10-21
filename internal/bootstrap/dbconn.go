@@ -92,6 +92,12 @@ func (p callTimeProvisioner) current(ctx context.Context) (*dbconnprovision.Prov
 			return nil, fmt.Errorf("build shared database connection: %w", err)
 		}
 	}
+	if saved {
+		material := dbconnprovision.TLSMaterial{
+			CACert: settings.CACert, ClientCert: settings.ClientCert, ClientKey: settings.ClientKey,
+		}
+		return dbconnprovision.New(adminURL, p.ownPort, material), nil
+	}
 	return dbconnprovision.New(adminURL, p.ownPort), nil
 }
 

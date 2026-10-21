@@ -114,7 +114,7 @@ func (s *Service) SetSecret(ctx context.Context, projectID, name, value string) 
 	if err := domain.ValidateName(name); err != nil {
 		return fmt.Errorf("validate variable name: %w", err)
 	}
-	if err := domain.ValidateValue(value); err != nil {
+	if err := domain.ValidateSecretValue(value); err != nil {
 		return fmt.Errorf("validate variable value: %w", err)
 	}
 	sealed, err := s.cipher.Encrypt([]byte(value))

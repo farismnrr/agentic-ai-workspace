@@ -47,45 +47,6 @@ func (s *Service) Get(ctx context.Context, userID, projectID string) (domain.Met
 	return stored.Connection.Meta(), nil
 }
 
-func (s *Service) Save(ctx context.Context, userID, projectID string, conn domain.Connection) (domain.Metadata, error) {
-	if err := s.checkOwner(ctx, userID, projectID); err != nil {
-		return domain.Metadata{}, err
-	}
-	if !s.beginProvision(projectID) {
-		return domain.Metadata{}, ProvisionError{Category: ProvisionInProgress}
-	}
-	defer s.endProvision(projectID)
-	return s.saveConnection(ctx, projectID, conn)
-}
-
-func (s *Service) saveConnection(
-	ctx context.Context, projectID string, conn domain.Connection,
-) (domain.Metadata, error) {
-	if conn.EnvName == "" {
-		conn.EnvName = domain.DefaultEnvName(conn.Kind)
-	}
-	if err := conn.Validate(); err != nil {
-		return domain.Metadata{}, fmt.Errorf("validate database connection: %w", err)
-	}
-	sealed, err := s.cipher.Encrypt([]byte(conn.Password))
-	if err != nil {
-		return domain.Metadata{}, fmt.Errorf("seal database password: %w", err)
-	}
-	old, exists, err := s.previousConnection(ctx, projectID)
-	if err != nil {
-		return domain.Metadata{}, err
-	}
-	if err := s.persistConnection(ctx, projectID, conn, sealed, old, exists); err != nil {
-		return domain.Metadata{}, err
-	}
-	if exists && old.Connection.EnvName != conn.EnvName {
-		if err := s.env.DeleteSecret(ctx, projectID, old.Connection.EnvName); err != nil {
-			return domain.Metadata{}, fmt.Errorf("remove previous database environment variable: %w", err)
-		}
-	}
-	return conn.Meta(), nil
-}
-
 func (s *Service) previousConnection(ctx context.Context, projectID string) (StoredConnection, bool, error) {
 	old, err := s.store.Get(ctx, projectID)
 	if errors.Is(err, ErrNotFound) {
@@ -95,28 +56,6 @@ func (s *Service) previousConnection(ctx context.Context, projectID string) (Sto
 		return StoredConnection{}, false, fmt.Errorf("load previous database connection: %w", err)
 	}
 	return old, true, nil
-}
-
-func (s *Service) persistConnection(
-	ctx context.Context, projectID string, conn domain.Connection, sealed string, old StoredConnection, exists bool,
-) error {
-	stored := StoredConnection{Connection: conn, PasswordSealed: sealed}
-	if err := s.store.Save(ctx, projectID, stored); err != nil {
-		return fmt.Errorf("save database connection: %w", err)
-	}
-	if err := s.env.SetSecret(ctx, projectID, conn.EnvName, conn.URL()); err != nil {
-		s.rollbackConnection(ctx, projectID, old, exists)
-		return fmt.Errorf("save database environment variable: %w", err)
-	}
-	return nil
-}
-
-func (s *Service) rollbackConnection(ctx context.Context, projectID string, old StoredConnection, exists bool) {
-	if exists {
-		_ = s.store.Save(ctx, projectID, old)
-		return
-	}
-	_ = s.store.Delete(ctx, projectID)
 }
 
 func (s *Service) Delete(ctx context.Context, userID, projectID string) error {

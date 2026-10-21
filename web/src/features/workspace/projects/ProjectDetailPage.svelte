@@ -61,7 +61,7 @@
       {/each}
     </div>
     <div class="mt-4">
-      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'env'}{#key projectId}<div class="space-y-8"><VariablesSection {projectId} revision={variableRevision} /><DatabaseSection {projectId} onenvchange={refreshVariables} /></div>{/key}{:else}<AboutTab {project} />{/if}
+      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'env'}{#key projectId}<VariablesSection {projectId} revision={variableRevision} /><DatabaseSection {projectId} onenvchange={refreshVariables} />{/key}{:else}<AboutTab {project} />{/if}
     </div>
   {/if}
 </AppShell>

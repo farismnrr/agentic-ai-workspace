@@ -10,11 +10,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egress"
 )
 
-func connect(ctx context.Context, adminURL, ownPort string) (session, error) {
-	cfg, err := pgx.ParseConfig(adminURL)
-	if err != nil {
-		return nil, fmt.Errorf("parse admin connection: %w", err)
-	}
+func connect(ctx context.Context, cfg *pgx.ConnConfig, ownPort string) (session, error) {
 	cfg.DialFunc = egress.Dialer(egress.Policy{Rule: egress.PrivateAllowed, OwnPort: ownPort}).DialContext
 	conn, err := pgx.ConnectConfig(ctx, cfg)
 	if err != nil {

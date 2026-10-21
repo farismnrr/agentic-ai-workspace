@@ -144,7 +144,7 @@
       {placeholder}
       disabled={disabled || busy}
       class="field-sizing-content max-h-52 min-h-14 w-full resize-none bg-transparent
-        px-4 pb-1 pt-3.5 text-[15px] focus:outline-none"
+        px-4 pb-1 pt-3.5 text-sm focus:outline-none"
     ></textarea>
     {#if attachments.length > 0}
       <AttachmentChips {attachments} {busy} onremove={remove} />

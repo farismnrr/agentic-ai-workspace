@@ -7,7 +7,6 @@
       name="description"
       content="Tell Masih Awam what you need. A small AI team does the work, shows every step, and proves it works before you accept it."
     />
-    <meta name="theme-color" content="#f6f3eb" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Masih Awam — Work you can trust" />
     <meta
@@ -25,28 +24,12 @@
       <div
         role="status"
         aria-atomic="true"
-        style="display:grid;min-height:100dvh;place-items:center;background:#f6f3eb;color:#151517"
+        style="display:grid;min-height:100dvh;place-items:center;color-scheme:light;background:var(--color-base-200,Canvas);color:var(--color-base-content,CanvasText)"
       >
-        <div
-          style="display:flex;flex-direction:column;align-items:center;gap:12px;font:14px/1.5 system-ui,sans-serif"
-        >
-          <svg width="48" height="48" viewBox="0 0 64 64" aria-hidden="true">
-            <rect width="64" height="64" rx="16.64" fill="#657c1a" />
-            <g
-              transform="translate(9.6,21.56) scale(0.357) translate(2,-29.5)"
-              fill="none"
-              stroke="#fffdf7"
-              stroke-width="11"
-              stroke-linecap="round"
-            >
-              <ellipse cx="18" cy="56" rx="14.5" ry="21" />
-              <path d="M88,40 V77.5 M88,58 C88,46 94,40 102,40 C110,40 116,46 116,58 V77.5" />
-            </g>
-            <g transform="translate(9.6,21.56) scale(0.357) translate(2,-29.5)" fill="#fffdf7">
-              <circle cx="49" cy="76.5" r="6.5" /><circle cx="67" cy="76.5" r="6.5" />
-            </g>
-          </svg>
-          <span style="color:#605e58">Memuat...</span>
+        <!-- Theme variables take over when the stylesheet loads. -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;font:14px/1.5 system-ui,sans-serif">
+          <span class="loading loading-spinner loading-md" aria-hidden="true"></span>
+          <span style="color:var(--brand-text-secondary,GrayText)">Memuat...</span>
         </div>
       </div>
     </div>

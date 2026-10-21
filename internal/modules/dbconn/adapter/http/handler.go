@@ -77,15 +77,7 @@ func provisionStatus(failure application.ProvisionError) int {
 }
 
 func (h *Handler) put(c fiber.Ctx) error {
-	var body connectionBody
-	if err := c.Bind().JSON(&body); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(httpserver.Failure("invalid_body"))
-	}
-	item, err := h.service.Save(c.Context(), httpserver.UserID(c), c.Params("id"), body.connection())
-	if err != nil {
-		return fail(c, err)
-	}
-	return c.JSON(item)
+	return c.Status(http.StatusGone).JSON(httpserver.Failure("manual_connection_removed"))
 }
 
 func (h *Handler) remove(c fiber.Ctx) error {

@@ -1,67 +1,65 @@
 # ok gw mau revisi pelan pelan, ga usah over engineering ya
 
 Task: f2515af4f54b16129c324566b53f5145
-Status: working
-Updated: 2026-10-21T05:54:09Z
+Status: queued
+Updated: 2026-10-21T07:55:59Z
 
 Reference material; confirm applicability before reusing.
 
-**Scope:** medium. It touches one upload route, raw file serving, the shared composer and the prompt text. No new service, port or dependency. The stack stays Go Fiber v3, Svelte, daisyUI and `masihawam-light`.
+Note: the "team's PRD" in my brief describes the file-attachments job, not this one. I planned only the database SSL and UI cleanup job from my assignment. I read no repo files and changed nothing. I used AGENTS.md rules as given and the Researcher's audit.
 
-I did not re-read the repo. I used the Researcher's file:line facts. I changed no files and ran no commands.
-
+**Scope:** medium. Backend changes are one settings migration, PEM validation and an in-memory TLS config. The frontend work is a reuse-only cleanup. No new component, service, port or dependency.
 **Out of scope:**
-- The agent understanding video (no frame extraction or transcription). The UI and docs say so plainly.
-- Sending images or PDFs to the model as native content blocks. Files go by path, as photos do today.
-- A per-project storage quota, resumable uploads, and Office files or archives.
-- The loading-screen and pin PRD at the top of the brief. That is a different job.
+- SSL fields for MySQL or MongoDB, because those project forms are removed.
+- Writing cert files into project folders.
+- Deleting saved legacy connections or any data in external databases.
+- A new theme, a new shared component, or a sticky SaveBar on the Database tab.
 
 **Done when:**
-1. In the home or task composer, you can add photos, text files, PDFs and videos with the paper-clip, by drag-and-drop, or by pasting an image. Photos show thumbnails. Other files show a chip with name, size and a remove button. Sending works with files and no text.
-2. A file over its limit (25 MB, or 100 MB for video) or of a disallowed type or content is refused with a plain message. A fake extension (for example an `.exe` renamed to `.pdf`) is refused. Another user cannot reach the files.
-3. A video attached to a task plays in the Files tab, and you can seek in it. `make verify` passes, and the docs say the agent cannot watch video.
+1. In Settings → Database (admin only), you can paste a CA certificate, client certificate and client key and save. Reopening the tab shows only "set" flags and Remove buttons, never the PEM text. A bad PEM or a mismatched cert/key pair is refused with a plain message. A test connection works with `verify-full`.
+2. A project's database section offers only SQLite or Shared (plus schema check and detach). No manual connection form or TLS switch remains. An old custom connection shows as "Custom (legacy)", read-only, with a "Switch to SQLite / Shared" action.
+3. `make verify` passes. `git diff ce2dfa4 --stat -- web/` shows no leftover `text-[..px]`, hex colors, scoped `<style>` blocks or hand-built buttons, fields or alerts in changed files.
 
 **Todo:**
-1. **Developer: generic upload endpoint.**
-   - Allow these types, checked against the file's content and not its extension:
-     - Photos: PNG, JPEG, WebP, GIF, SVG, with the existing SVG check.
-     - PDF.
-     - Text: `.txt .md .csv .json .log`. It must be valid UTF-8 with no NUL bytes.
-     - Video: MP4, WebM, MOV.
-   - Set the limit per type (25 MB, video 100 MB) with a route-specific body limit, not a global one.
-   - The Developer checks the Fiber v3 docs first, as AGENTS.md requires, and streams large uploads to disk.
-   - Save files in `uploads/` with safe names and no overwriting, keeping the existing auth and ownership checks. Old `assets/` files keep working.
-   - Verify: Go tests cover each type, a wrong-content file, an oversize file, an empty file, name collisions, an unsafe name and a request from another user.
-2. **Developer: video playback.**
-   - Serve video from `raw.go` with `Range` support (206 responses), streamed and not read into memory. Keep `nosniff` and private caching.
-   - Add an inline video player and a text preview to the Files tab.
-   - Verify: a test for a range request, and a 100 MB MP4 plays and seeks in the browser.
-3. **Developer: multi-file picker with chips and thumbnails.**
-   - Extend the paper-clip in `ComposerBox.svelte` and `attachments.ts` to accept many files and the new types.
-   - Add thumbnails for photos and chips for other files. Check the type and size in the browser before uploading.
-   - Allow sending with empty text.
-   - Verify: pick mixed files, remove one, send, and the task starts with the right files.
-4. **Developer: drag-and-drop and paste.**
-   - Dropping files on the composer highlights it. Pasting an image from the clipboard adds it as a file.
-   - Verify: drag a PDF and paste a screenshot in both the home and task composers.
-5. **Developer: upload errors, and what the agent is told.**
-   - Show per-file upload status and a plain error under the composer.
-   - Add per-type hints to the prompt. Photos get a note to convert non-PNG to PNG before `view_image`. PDFs get `pdftotext`. Text files are read directly. Videos are marked as stored, and the agent cannot watch them.
-   - Verify: a forced failure keeps the message and chips, and a task with one photo and one PDF reads both.
-6. **Developer: docs and agent memory.**
-   - Update `docs/using-the-app.md` (attaching, limits, the video note) and `docs/system-design.md` if it lists endpoints.
-   - Update `agents/memory-backend.md` and `agents/memory-frontend.md`.
-   - Verify: `scripts/check-guardrails.sh` passes, and no doc line is over 45 words.
+1. **Developer: SSL material saved in Settings.**
+   - Add a migration with three sealed columns (CA, client cert, client key). Store them with secretbox, and cap each value at about 16 KB.
+   - Validate that cert blocks parse and the cert/key pair matches.
+   - GET returns `caSet`, `clientCertSet` and `clientKeySet` only. An empty field on save keeps the saved value. An explicit remove flag clears it.
+   - Verify: Go tests for save, keep, remove, bad PEM, mismatched pair, and a GET that never contains PEM text.
+2. **Developer: provisioner connects with that TLS.**
+   - Build the pgx `tls.Config` in memory (RootCAs, Certificates, ServerName=host).
+   - `verify-full` checks the hostname. `verify-ca` checks the chain only, using `VerifyConnection` with `InsecureSkipVerify`. No files are written.
+   - Keep the `POSTGRES_ADMIN_URL` env fallback working.
+   - Verify: tests for the config in each mode, and the fallback still passes.
+3. **Developer: shared DB gives projects the SSL values.** This is a default you can change.
+   - `DATABASE_URL` carries `sslmode=<mode>`.
+   - When a CA or client cert is set, add sealed project Env values `DATABASE_SSL_CA`, `DATABASE_SSL_CERT` and `DATABASE_SSL_KEY` holding the PEM. The docs explain how an app uses them.
+   - Verify: a test that a project on the shared DB gets the expected env, and a project without certs gets none.
+4. **Designer: Settings → Database tab rebuilt with existing parts.**
+   - Use `SettingsSection` and `FormField`, with the daisyUI select and textarea styles.
+   - Add the three PEM fields, each with a "set" badge and a Remove button.
+   - Keep the save feedback beside the form.
+   - Verify: a screenshot compared with the Models and Team tabs, and the type check passes.
+5. **Designer: the project database section is only SQLite or Shared.**
+   - Remove the manual forms from `DatabaseFields` and `DatabaseSection`.
+   - Show a legacy connection read-only. "Switch" detaches it and leaves external data untouched.
+   - Move `VariablesSection` and `DatabaseSection` onto `SettingsSection` and `FormField`.
+   - Verify: a screenshot of the project page, a test for the legacy switch, and no dead imports.
+6. **Designer: sweep the leftover inconsistencies.**
+   - Pin button in `SidebarTaskRow`: `btn btn-ghost btn-circle btn-xs`, no scoped CSS.
+   - `text-[11px]` becomes `text-xs`.
+   - Add `SkeletonList` to `SidebarPinned`.
+   - `AttachmentNotices` errors become `alert alert-error alert-soft`.
+   - `AttachmentChips` remove button becomes `btn btn-ghost btn-circle btn-xs`.
+   - `ComposerBox`: replace `text-[15px]` with existing control sizes, and check the drop overlay uses daisyUI classes.
+   - `web/index.html` first paint matches `LoadingScreen`, using a daisyUI spinner and the minimum documented literal values.
+   - Sweep every file in `git diff ce2dfa4 --stat -- web/`.
+   - Verify: grep finds no arbitrary sizes or colors and no scoped styles, then run `make verify`.
 
-Security and QA run after step 6, as in the team plan. They check disguised files, SVG, cross-user access and keyboard use of the attach and remove controls.
+   This step is a sweep of one kind of fix across many files. Split it per file group if it gets large.
 
-**Defaults I took (change any of them):**
-- **Partial failure:** upload everything first. If any file fails, do not send the task. Keep the text and chips, mark the failed file, and don't re-upload files that already succeeded when retrying.
-- **Aggregate cap:** a limit of 10 files per message and no storage quota. There is a soft warning when a message totals over 100 MB.
-- **Allowed types:** the lists in step 1.
-- **SVG:** stays allowed with the existing check. It is served as a download or in an `<img>`, never inline as a document.
-- **Folder:** all new uploads go to `uploads/`.
-- **Photos for the agent:** by path through `view_image`. No change to the model adapters.
-- **Empty text with files:** allowed. The prompt then says "See the attached files".
+Docs go with each step as a part of it: `docs/` for the Settings fields and how an app reads `DATABASE_SSL_*`, plus `agents/memory-*.md` and `docs/design-system.md` if a rule changes. Security and QA run after step 6 and check the sealed storage, the no-PEM-in-GET rule and admin-only access.
 
-**Open questions:** none block the work.
+**Open questions:** none block the work. These defaults need your OK:
+- Legacy connections are kept and read-only, never deleted.
+- The project app gets the PEM through `DATABASE_SSL_*` Env values, not files.

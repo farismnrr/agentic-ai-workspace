@@ -32,22 +32,30 @@ func (h *SharedSettingsHandler) Mount(auth, sameOrigin fiber.Handler, access ...
 }
 
 type sharedSettingsBody struct {
-	Host     string `json:"host"`
-	Database string `json:"database"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	SSLMode  string `json:"sslMode"`
-	Port     int    `json:"port"`
+	Host             string `json:"host"`
+	Database         string `json:"database"`
+	User             string `json:"user"`
+	Password         string `json:"password"`
+	SSLMode          string `json:"sslMode"`
+	CACert           string `json:"caCert"`
+	ClientCert       string `json:"clientCert"`
+	ClientKey        string `json:"clientKey"`
+	RemoveCACert     bool   `json:"removeCaCert"`
+	RemoveClientCert bool   `json:"removeClientCert"`
+	Port             int    `json:"port"`
 }
 
 type sharedSettingsResponse struct {
-	Host        string `json:"host"`
-	Database    string `json:"database"`
-	User        string `json:"user"`
-	SSLMode     string `json:"sslMode"`
-	Port        int    `json:"port"`
-	PasswordSet bool   `json:"passwordSet"`
-	Configured  bool   `json:"configured"`
+	Host          string `json:"host"`
+	Database      string `json:"database"`
+	User          string `json:"user"`
+	SSLMode       string `json:"sslMode"`
+	Port          int    `json:"port"`
+	PasswordSet   bool   `json:"passwordSet"`
+	Configured    bool   `json:"configured"`
+	CACertSet     bool   `json:"caSet"`
+	ClientCertSet bool   `json:"clientCertSet"`
+	ClientKeySet  bool   `json:"clientKeySet"`
 }
 
 func (h *SharedSettingsHandler) get(c fiber.Ctx) error {
@@ -67,11 +75,13 @@ func (h *SharedSettingsHandler) put(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&body); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(httpserver.Failure("invalid_body"))
 	}
-	view, err := h.service.Save(c.Context(), domain.SharedSettings{
+	view, err := h.service.SaveWithRemovals(c.Context(), domain.SharedSettings{
 		Host: body.Host, Port: body.Port, Database: body.Database, User: body.User,
 		Password: body.Password, SSLMode: body.SSLMode,
-	})
-	if errors.Is(err, domain.ErrInvalidSharedSettings) || errors.Is(err, application.ErrSharedPasswordRequired) {
+		CACert: body.CACert, ClientCert: body.ClientCert, ClientKey: body.ClientKey,
+	}, body.RemoveCACert, body.RemoveClientCert)
+	if errors.Is(err, domain.ErrInvalidSharedSettings) || errors.Is(err, domain.ErrInvalidPEM) ||
+		errors.Is(err, application.ErrSharedPasswordRequired) {
 		return c.Status(http.StatusBadRequest).JSON(httpserver.Failure("invalid_settings"))
 	}
 	if err != nil {
@@ -85,5 +95,7 @@ func sharedResponse(view application.SharedSettingsView) sharedSettingsResponse 
 		Host: view.Host, Port: view.Port, Database: view.Database,
 		User: view.User, SSLMode: view.SSLMode,
 		PasswordSet: view.PasswordSet, Configured: view.Configured,
+		CACertSet: view.CACertSet, ClientCertSet: view.ClientCertSet,
+		ClientKeySet: view.ClientKeySet,
 	}
 }

@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	MaxVariables = 50
-	MaxValueSize = 4096
-	MaxNameSize  = 64
+	MaxVariables       = 50
+	MaxValueSize       = 4096
+	MaxSecretValueSize = 16 * 1024
+	MaxNameSize        = 64
 )
 
 var (
@@ -50,6 +51,23 @@ func ValidateValue(value string) error {
 	}
 
 	return nil
+}
+
+// ValidateSecretValue allows bounded server-managed secrets such as PEM material.
+func ValidateSecretValue(value string) error {
+	if len(value) > MaxSecretValueSize || hasForbiddenSecretControl(value) {
+		return ErrInvalidValue
+	}
+	return nil
+}
+
+func hasForbiddenSecretControl(value string) bool {
+	for _, char := range value {
+		if char != '\t' && char != '\n' && char != '\r' && unicode.IsControl(char) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasForbiddenControl(value string) bool {

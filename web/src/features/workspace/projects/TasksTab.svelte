@@ -33,7 +33,7 @@
 <div role="tablist" class="flex flex-wrap gap-2" aria-label="Filter tasks">
   {#each Object.keys(groups) as key (key)}
     <button role="tab" aria-selected={filter === key} class="btn btn-sm min-h-9 rounded-full {filter === key ? 'btn-primary' : 'btn-outline border-[var(--brand-border)]'}" onclick={() => (filter = key as Filter)}>
-      {labels[key as Filter]} <span class="opacity-70">{counts[key]}</span>
+      {labels[key as Filter]} <span class="text-base-content/70">{counts[key]}</span>
     </button>
   {/each}
 </div>

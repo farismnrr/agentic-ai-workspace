@@ -68,7 +68,7 @@
   </SettingsSection>
   <SaveBar {saving} {message} {failed} onsave={save} />
 {:else if failed}
-  <p class="text-error" role="alert">{message}</p>
+  <div class="alert alert-error alert-soft" role="alert">{message}</div>
 {:else}
-  <span class="loading loading-spinner loading-sm" aria-label="Loading"></span>
+  <div role="status"><span class="loading loading-spinner loading-sm" aria-label="Loading"></span></div>
 {/if}

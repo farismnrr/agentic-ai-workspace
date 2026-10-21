@@ -1,115 +1,10 @@
 # ok gw mau revisi pelan pelan, ga usah over engineering ya
 
 Task: f2515af4f54b16129c324566b53f5145
-Status: working
-Updated: 2026-10-21T05:54:09Z
+Status: queued
+Updated: 2026-10-21T07:55:59Z
 
 Reference material; confirm applicability before reusing.
-
-## Summary
-
-The reusable brand mark is already a shared Svelte component, `LogoMark.svelte`. The task store and migration runner show where the pin timestamp must flow.
-
-Repository facts below are from files read; recommendations are marked as suggestions. No files were changed and no project commands or tests were run.
-
-## Design references — Designer/Developer
-
-- **Loading announcement:** WAI-ARIA defines `role="status"` as a polite live region; WAI recommends `aria-atomic="true"` when the full message should be announced. Keep “Memuat...” available as text, with the mark decorative. Sources: [WAI-ARIA status role](https://www.w3.org/TR/wai-aria/#status), [WAI technique ARIA22](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA22.html).
-- **Spinner vs skeleton:** A spinner suits the session gate, where the whole app is waiting. For projects and task lists, daisyUI’s `skeleton` is a placeholder for component-shaped content; use rows with dimensions close to the content they replace. Sources: [daisyUI Skeleton](https://daisyui.com/components/skeleton/), [daisyUI Loading](https://daisyui.com/components/loading/).
-- **Avoiding layout shift:** The repo currently shows `EmptyState` when the projects array is empty ([`ProjectsPage.svelte`](/workspace/web/src/features/workspace/projects/ProjectsPage.svelte:28)) and shows an empty task state when a project has no tasks ([`TasksTab.svelte`](/workspace/web/src/features/workspace/projects/TasksTab.svelte:39)). Show skeletons until the initial fetch settles, then choose between rows and a true empty state. **Suggestion:** match skeleton row count and height to the eventual list to reduce page movement.
-- **Toggle beside a link:** The sidebar task row is currently a single anchor ([`SidebarRecent.svelte`](/workspace/web/src/features/workspace/shell/SidebarRecent.svelte:21)). Put a native `<button>` as a sibling control inside the list item, outside the anchor; do not nest it in the link. Use a stable accessible name such as “Pin task” / “Unpin task”; `aria-pressed` is suitable if the name stays stable and it is presented as a toggle. [MDN: `aria-pressed`](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-pressed). **Suggestion:** stop the button’s click from reaching any row-level navigation handler if the implementation uses one.
-- **Reduced motion:** MDN documents `prefers-reduced-motion: reduce` for reducing or removing nonessential motion. Disable the loader animation under this preference; consider disabling skeleton shimmer while keeping static placeholders visible. [MDN: `prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion).
-- **Brand asset:** Reuse [`LogoMark.svelte`](/workspace/web/src/shared/ui/LogoMark.svelte:9); it is an inline SVG using semantic `primary` and `primary-content` classes, and is already imported by [`BrandLink.svelte`](/workspace/web/src/shared/ui/BrandLink.svelte:2).
-
-## Technical references — Developer
-
-- **Migration runner:** [`migrate.go`](/workspace/internal/platform/database/migrate.go:19) documents migrations as append-only and verifies applied-file checksums. It sorts embedded migration filenames, then applies each unapplied migration and journal record inside a transaction ([lines 35–53]( /workspace/internal/platform/database/migrate.go:35), [115–149]( /workspace/internal/platform/database/migrate.go:115)). Add a new numbered file; don’t edit an applied migration.
-- **SQLite column:** SQLite allows `ALTER TABLE ... ADD COLUMN pinned_at INTEGER` as a nullable column. A newly added column is `NULL` for existing rows; SQLite disallows adding `NOT NULL` without a non-NULL default, and disallows expression defaults such as `CURRENT_TIMESTAMP`. [SQLite `ALTER TABLE`](https://sqlite.org/lang_altertable.html#altertabaddcol).
-- **Time scan:** Current task scans read integer Unix seconds for `created_at` and `updated_at`, then use `time.Unix` ([`scan.go`](/workspace/internal/modules/task/adapter/sqlite/scan.go:33)). **Suggestion:** scan nullable `pinned_at` into `sql.NullInt64`; when `Valid`, convert with `time.Unix(value, 0)` and assign a `*time.Time` or equivalent nullable domain representation. Keep the added column in sync with `taskColumns` ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:19)) and scan destination order.
-- **Pin operation semantics:** Current `Find` can scope by both task ID and user ID, returning `domain.ErrNotFound` for no match ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:77)). **Suggestion:** make PUT set `pinned_at` only when currently `NULL` (so repeated pin does not reorder), and DELETE set it to `NULL`; scope both writes by task ID and user ID. This gives idempotent behavior and avoids disclosing another user’s task. `PinnedAt` must travel through the domain task ([`domain/task.go`](/workspace/internal/modules/task/domain/task.go:67)), SQL selection/scanning, and list response.
-
-## Quality checks — QA/Reviewer
-
-- Verify signed-in owner can pin and unpin; unknown IDs and another user’s task return 404 and do not change state.
-- Repeat PUT and DELETE calls; confirm they succeed consistently, keep the expected state, and repeated PUT does not unexpectedly change pin order.
-- Use Tab and Enter/Space to operate the pin button. Confirm focus is visible and the accessible name and pressed state match pin status.
-- Click the pin button and confirm the task route does not open; separately verify the row link still opens the task.
-- Delay or throttle the initial projects/tasks requests. Confirm skeletons show until the first fetch settles, including on fetch error, and “no projects” / “no tasks” does not flash before the response.
-
-## Not found
-
-No existing migration 048, `pinned_at` field, pin endpoint, or pin button exists in the checked files.
-
-## Suggestions
-
-Keep the loading status readable without animation, reserve list space with skeleton rows, and use `LogoMark.svelte` for consistent branding. Use a nullable Unix-time column and user-scoped, repeat-safe updates for pin state.
-
----
-
-## Report document
-
-The workspace already lets a person attach **photos** in the task composer. The files are saved in the project and passed to the agent by path.  
-General file attachments, direct image/PDF content in user messages, video playback, and video understanding are not implemented in this flow.
-
-### What exists today
-
-- **Composer:** The home composer and task follow-up composer share `ComposerBox.svelte`. It accepts PNG, JPEG, WebP, GIF, and SVG through a file picker. It shows filename chips with remove buttons; it does not show image thumbnails or support drag-and-drop or paste. [ComposerBox.svelte](/workspace/web/src/features/workspace/components/ComposerBox.svelte:72)
-- **Sending:** The composer requires text to send. After Send, files upload one at a time; the prompt then includes their project paths. The Send button shows a spinner while this happens. A later upload or task-send failure can leave earlier uploaded files in the project. [attachments.ts](/workspace/web/src/features/workspace/logic/attachments.ts:14) · [Composer.svelte](/workspace/web/src/features/workspace/home/Composer.svelte:25) · [TaskScreen.svelte](/workspace/web/src/features/workspace/task/TaskScreen.svelte:49)
-- **Project documents:** Long text messages are saved as server-maintained project documents. The task’s Documents panel lists these documents; it is not a general-purpose user file upload. [inputdocument.go](/workspace/internal/modules/task/application/inputdocument.go:10) · [ProjectDocuments.svelte](/workspace/web/src/features/workspace/task/panel/ProjectDocuments.svelte:50) · [AGENTS.md](/workspace/AGENTS.md)
-- **File APIs and previews:** The project Files API lists, reads, edits, and deletes files. Its multipart upload endpoint is specifically for pictures in `assets/`. The Files tab previews PDF and raster images; other file types are offered as downloads. [handler.go](/workspace/internal/modules/coding/adapter/http/handler.go:24) · [BinaryFile.svelte](/workspace/web/src/features/workspace/files/BinaryFile.svelte:11)
-- **Storage and ownership:** Project folders live under `DATA_DIR/projects/<project-id>`. Upload requires authentication and same-origin checks, then opens the project for the signed-in owner. Workspace reads are confined to that folder. Files remain project files, rather than attachments owned by an individual task. [folders.go](/workspace/internal/modules/project/adapter/folder/folders.go:21) · [handler.go](/workspace/internal/modules/coding/adapter/http/handler.go:24) · [files.go](/workspace/internal/modules/coding/adapter/http/assets.go:63) · [root.go](/workspace/internal/modules/coding/adapter/fs/root.go:16)
-- **Upload limits and checks:** Each picture is limited to 10 MiB; Fiber’s global request body limit is 11 MiB. The server detects image type from content, derives the saved extension from that type, sanitizes the filename to a short ASCII name, and refuses to overwrite an existing file. SVG receives a simple content check. I found no aggregate upload-count or storage quota on this route. [workspace.go](/workspace/internal/modules/coding/domain/workspace.go:11) · [routes.go](/workspace/internal/platform/httpserver/routes.go:5) · [assets.go](/workspace/internal/modules/coding/adapter/http/assets.go:21)
-- **Serving:** The raw file endpoint sets `Content-Type` from an extension allowlist, `Content-Disposition`, `nosniff`, and private no-store caching. It serves PDFs and common raster images inline; unknown extensions, including video, are downloads. It reads up to 50 MiB into memory and sends the full file; the handler has no explicit Range support. [raw.go](/workspace/internal/modules/coding/adapter/http/raw.go:20) · [raw.go](/workspace/internal/modules/coding/adapter/http/raw.go:41) · [raw.go](/workspace/internal/modules/coding/adapter/http/raw.go:51)
-
-### How files reach agents and models
-
-- **Agent workspace:** The project folder is mounted at `/workspace` inside task containers. Uploaded pictures are therefore available as project files to the task’s tools and command-line programs. [mount.go](/workspace/internal/platform/sandbox/mount.go:33) · [sandbox.go](/workspace/internal/platform/sandbox/sandbox.go:41)
-- **Normal model loop:** User messages are text blocks. Image bytes are currently attached to tool-result blocks for screenshots; the loop reloads only recent task screenshots for model requests. [transcript.go](/workspace/internal/modules/task/domain/transcript.go:17) · [shots.go](/workspace/internal/modules/task/application/shots.go:23)
-- **Image viewing:** The agent has a `view_image` tool for project PNGs up to 4 MiB. It rejects other image types, with guidance to convert them to PNG first. That provides a route for inspecting an uploaded image through a tool call, but the composer does not send the image as a user-message image block. [tools.go](/workspace/internal/modules/coding/domain/tools.go:126) · [agenttools_view.go](/workspace/internal/bootstrap/agenttools_view.go:28)
-- **PDF and text:** The built-in team’s Documents role has document tools such as `pdftotext` and LibreOffice. This is file reading/conversion through sandbox tools, not a PDF block sent by the composer. [leadrules.go](/workspace/internal/modules/task/application/leadrules.go:172)
-- **CLI agents:** The app passes their prompt on standard input; the project is available in their workspace. The app does not construct image or PDF content blocks for them. Any native file handling beyond that is the vendor CLI’s own behavior. [cli.go](/workspace/internal/modules/task/application/cli.go:47) · [taskcli.go](/workspace/internal/bootstrap/taskcli.go:74)
-- **Configured model capabilities:** The app supports Anthropic and OpenAI-compatible provider clients, but its model catalog stores model names and context/thinking details, not image/PDF capability flags. The exact vision-capable models connected to a particular user were therefore **not established from the repository**. [agentmodels.go](/workspace/internal/bootstrap/agentmodels.go:61) · [model.go](/workspace/internal/modules/provider/domain/model.go:19)
-- **Official API options:** Anthropic’s Messages API accepts images as base64, URL, or Files API ID; its current docs list JPEG, PNG, GIF, and WebP, with a 10 MB direct-API image limit. Its PDF API supports base64, URL, or file ID, up to 32 MB per request and up to 600 pages (100 for context windows under 1M); Anthropic says all active models support PDFs. The app does not currently encode these user files as such blocks. [Anthropic vision](https://platform.claude.com/docs/en/build-with-claude/vision) · [Anthropic PDF support](https://platform.claude.com/docs/en/build-with-claude/pdf-support)
-- **OpenAI API options:** OpenAI’s current docs describe image input as URL, base64 data URL, or file ID. Responses API file inputs support PDF and many text/document formats, with a 50 MB total file-input request limit; PDF page images require a vision-capable model. This app’s OpenAI-compatible adapter currently encodes screenshot images in Chat Completions format and has no PDF/file input encoding. [OpenAI images and vision](https://developers.openai.com/api/docs/guides/images-vision) · [OpenAI file inputs](https://developers.openai.com/api/docs/guides/file-inputs)
-- **Video:** The reviewed API guides do not provide a direct video block for this app’s model request path. Anthropic’s guidance describes analyzing video by breaking it into frames. Treat video understanding as requiring frame extraction and possibly audio transcription unless a chosen vendor CLI handles it natively; that CLI behavior was not tested. [Anthropic prompting guidance](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-templates-and-variables) · [OpenAI Responses overview](https://developers.openai.com/api/reference/responses/overview)
-
-### Official guidance and design notes
-
-- OWASP recommends an allowlist of necessary file types, content checks beyond the client-supplied MIME type, safe filenames, size limits, authorization, and storage controls. It cautions that file-signature checks alone are not sufficient. [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
-- Fiber v3 applies `BodyLimit` to multipart forms. Its current guidance calls for file-size and type validation; its streaming recipe is relevant if the app accepts large videos. The repository currently buffers each accepted picture in memory under its 11 MiB request cap. [Fiber v3 file uploads](https://docs.gofiber.io/blog/fiber-v3-file-uploads/) · [Fiber stream request body](https://docs.gofiber.io/recipes/stream-request-body/)
-- For browser playback of large media, HTTP byte ranges let players request partial content and seek. The current endpoint reads and sends the full file and does not explicitly implement ranges. Browsers also vary in supported video codecs. [MDN Range requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests) · [MDN video element](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video)
-- The current attachment UX has a labelled attach control and keyboard-operable remove buttons. For expanded uploads, keep file names and remove controls accessible, announce upload progress/results, and give clear, actionable errors. WAI recommends concise error messages that explain how to resolve the problem. [WAI form notifications](https://www.w3.org/WAI/tutorials/forms/notifications/)
-
-### Smallest sensible approach — inference
-
-Keep uploads in each user-owned project folder and build on the existing composer and authenticated upload route. Extend accepted file types and limits deliberately, preserving content validation, safe names, collision handling, and private file serving. Pass stored file paths to the agent for text/PDF tool reading; if uploaded photos must be seen directly by the model, add user-image blocks to the existing provider adapters. Treat video understanding as separate work involving sampled frames and possibly a transcript.
-
-This fits the existing single Go binary and single-port design. Keep new code within the 200-line file limit and run the repository guardrails when implementation begins. Per-file limits do not cap total project storage; the existing 2 GiB workspace check is tied to task command execution, not upload acceptance. [AGENTS.md](/workspace/AGENTS.md) · [quota.go](/workspace/internal/modules/coding/adapter/runner/quota.go:11)
-
-### Quality checks for QA
-
-- Check supported formats, incorrect file contents, disguised extensions, empty files, filename traversal characters, collisions, Unicode names, and size boundaries.
-- Check multiple files, slow or failed uploads, partial upload failure, and task-send failure; confirm the user can recover and understands whether any files were retained.
-- Check that one user cannot upload, list, preview, or download another user’s project files.
-- Check response `Content-Type`, `Content-Disposition`, `nosniff`, and private caching; verify PDF/image previews and video download or playback behavior.
-- Check keyboard access to attach/remove, accessible file names, and announced progress and errors.
-- For model understanding, verify that the task can identify and read attached text/PDF and correctly inspect uploaded images; if video understanding is in scope, test representative clips and confirm what audio/frame processing occurs.
-
-### Not found
-
-- No generic text, PDF, or video upload from the task composer.
-- No drag-and-drop, paste, thumbnail preview, per-file upload progress, or aggregate upload limit.
-- No direct user-file image/PDF blocks in the model request pipeline.
-- No exact vision/PDF capability map for the user’s configured models.
-- No video preview, range-serving handler, or application-owned video-to-frames/transcription pipeline.
-
-### Suggestions
-
-The person should decide the maximum per-file size and total project storage limit, and whether video is only stored/previewed or also understood by the agent. If photos should be understood directly in the task conversation, decide whether to send them to the connected model API or rely on the existing image-viewing tool path.
-
-No files were changed. I ran read-only repository searches and web lookups; I did not run the app, commands, or tests.
-
----
 
 ## Report document
 
@@ -144,3 +39,127 @@ Official references support bounded streaming, content checks, and file-backed R
 Preserve the existing auth/ownership route and safe-name protections while adding uploads. Decide how to enforce the 25 MB and 100 MB route limits for both known- and unknown-length requests before coding. Use file-backed Range serving, XHR for visible upload progress, and explicit cleanup for thumbnail object URLs.
 
 No files were changed. I read repository files and project notes and searched official documentation; I ran no app commands or tests.
+
+---
+
+The repository has working components and patterns for most of the audited UI, but some screens duplicate or diverge from them.  
+Database SSL settings offer mode selectors, but no certificate or server-name inputs; project connections only have a TLS on/off switch.
+
+## A. Prioritized UI fix list
+
+1. **Loading and first paint.** [web/index.html](/workspace/web/index.html:24) duplicates the logo and loading screen with literal colors and inline styles. After hydration, [LoadingScreen.svelte](/workspace/web/src/shared/ui/LoadingScreen.svelte:5) uses the theme and [App.svelte](/workspace/web/src/app/App.svelte:48) gates access to it. Align the fallback with that screen; its pulsing logo is scoped custom animation, while daisyUI already provides `loading loading-spinner`. [SkeletonList.svelte](/workspace/web/src/shared/ui/SkeletonList.svelte:12) already uses daisyUI skeletons, and [SidebarRecent.svelte](/workspace/web/src/features/workspace/shell/SidebarRecent.svelte:14) and [SidebarProjects.svelte](/workspace/web/src/features/workspace/shell/SidebarProjects.svelte:16) reuse it. No new loading component is needed.
+
+2. **Pinned sidebar rows.** [SidebarTaskRow.svelte](/workspace/web/src/features/workspace/shell/SidebarTaskRow.svelte:36) serves both Pinned and Recent, so the row markup is already shared. The pin control adds a scoped hover/opacity rule and separate coarse-pointer sizing at lines 53–76; prefer a standard daisyUI ghost circular button with a consistent visible target. Its `text-[11px]` project label at line 47 is smaller than sibling `text-xs` metadata in [SidebarProjects.svelte](/workspace/web/src/features/workspace/shell/SidebarProjects.svelte:29). [SidebarPinned.svelte](/workspace/web/src/features/workspace/shell/SidebarPinned.svelte:13) waits for loading to finish but has no placeholder, unlike Recent and Projects. [Sidebar.svelte](/workspace/web/src/features/workspace/shell/Sidebar.svelte:33) only composes these sections; no replacement is needed there.
+
+3. **Attachments and file preview.** [ComposerBox.svelte](/workspace/web/src/features/workspace/components/ComposerBox.svelte:118) uses daisyUI buttons, select, and spinner. Its custom composer surface, drop overlay, and `text-[15px]` textarea at lines 120–147 differ from neighboring standard control sizes; check those against the current theme and composer siblings. [AttachmentChips.svelte](/workspace/web/src/features/workspace/components/AttachmentChips.svelte:45) is a legitimate workspace-specific reusable component: it combines thumbnails, file metadata, status, and removal. Its `size-8 min-h-8` remove button at line 72 is custom sizing; use a standard daisyUI button size if it meets the target. [AttachmentNotices.svelte](/workspace/web/src/features/workspace/components/AttachmentNotices.svelte:11) already uses daisyUI’s warning alert, but builds errors as a plain list; use the matching `alert alert-error alert-soft` pattern. [BinaryFile.svelte](/workspace/web/src/features/workspace/files/BinaryFile.svelte:25) and [FileView.svelte](/workspace/web/src/features/workspace/files/FileView.svelte:51) use daisyUI buttons, badges, alerts, and modal patterns; their preview-specific layout can stay local.
+
+4. **Project Env and Settings Database.** [ProjectDetailPage.svelte](/workspace/web/src/features/workspace/projects/ProjectDetailPage.svelte:64) groups Env sections with `space-y-8`. [VariablesSection.svelte](/workspace/web/src/features/workspace/projects/env/VariablesSection.svelte:118) hand-builds fields and save feedback; [DatabaseSection.svelte](/workspace/web/src/features/workspace/projects/env/DatabaseSection.svelte:128) has a heading, description, and divider layout similar to the existing settings [SettingsSection.svelte](/workspace/web/src/features/workspace/settings/parts/SettingsSection.svelte:15). [DatabaseFields.svelte](/workspace/web/src/features/workspace/projects/env/DatabaseFields.svelte:16) hand-builds labelled controls; the existing workspace [FormField.svelte](/workspace/web/src/features/workspace/components/FormField.svelte:19) is available for label, hint, and error consistency.
+
+   [DatabaseTab.svelte](/workspace/web/src/features/workspace/settings/DatabaseTab.svelte:53) is the clearest settings mismatch: it uses a larger `text-lg` heading, `text-sm` description, default-size inputs, and inline save feedback at lines 53–70, while Models and Team use `SettingsSection` and the smaller shared heading pattern. Reuse `SettingsSection` and `FormField` here; keep save feedback beside the form because this is an immediate-save tab. [TeamTab.svelte](/workspace/web/src/features/workspace/settings/TeamTab.svelte:69) shows the existing sticky `SaveBar`, but it is for deferred changes and need not be forced onto Database.
+
+5. **Role gating.** [settings-nav.ts](/workspace/web/src/features/workspace/settings/settings-nav.ts:41) filters the Database tab for non-admins; [SettingsNav.svelte](/workspace/web/src/features/workspace/settings/SettingsNav.svelte:15) renders the remaining links. [App.svelte](/workspace/web/src/app/App.svelte:26) also gates direct admin-tab navigation. This is consistent behavior, not a missing control. The nav’s custom link treatment resembles sidebar rows; no new UI primitive is indicated.
+
+**Icon additions:** [icon-names.ts](/workspace/web/src/shared/ui/icon-names.ts:54) adds `pin`, `pin-filled`, and `video`; [Icon.svelte](/workspace/web/src/shared/ui/Icon.svelte:62) defines all three. They follow the existing inline SVG approach, and the pin row and file preview use them. No icon change is indicated by this audit.
+
+**What belongs in `shared/ui`:** Nothing new is clearly needed. The existing workspace components already cover the project-specific reuse, and daisyUI supplies generic buttons, alerts, loading indicators, badges, and modals. Promote a generic control only if multiple features need behavior beyond daisyUI.
+
+## B. Database SSL findings and smallest sensible design
+
+**What the code does today**
+
+- **Settings → Database:** [DatabaseTab.svelte](/workspace/web/src/features/workspace/settings/DatabaseTab.svelte:5) offers six modes: `disable`, `allow`, `prefer`, `require`, `verify-ca`, and `verify-full`. The API input and response contain host, port, database, user, password, and `sslMode`, but no CA, client certificate/key, or server-name fields ([database-api.ts](/workspace/web/src/features/workspace/settings/database-api.ts:3), [shared_settings.go](/workspace/internal/modules/dbconn/adapter/http/shared_settings.go:34)).
+- Saved passwords are encrypted through `secretbox`; GET returns a `passwordSet` flag rather than the password ([application/shared_settings.go](/workspace/internal/modules/dbconn/application/shared_settings.go:69), [sqlite/shared_settings.go](/workspace/internal/modules/dbconn/adapter/sqlite/shared_settings.go:34)). The admin connection URL includes `sslmode` only ([bootstrap/dbconn.go](/workspace/internal/bootstrap/dbconn.go:98)); the provisioner parses it with `pgx.ParseConfig` ([provision.go](/workspace/internal/modules/dbconn/adapter/provision/provision.go:88)).
+- **Trust behavior:** There is no app-provided CA. With no `sslrootcert`, pgx uses Go’s default system trust roots for verification; `verify-full` also checks the hostname, while `require` encrypts without verifying the peer. The selected mode is still meaningful: `verify-ca` and `verify-full` can work when the server chain is trusted by system roots; a custom CA is needed when it is not. [pgx config behavior](https://github.com/jackc/pgx/blob/master/pgconn/config.go), [PostgreSQL SSL modes](https://supabase.com/docs/guides/platform/ssl-enforcement).
+- **Project custom connections:** [DatabaseFields.svelte](/workspace/web/src/features/workspace/projects/env/DatabaseFields.svelte:37) exposes only “Use TLS.” [connection.go](/workspace/internal/modules/dbconn/domain/connection.go:45) stores a boolean; PostgreSQL URLs map it to `sslmode=require`, and MySQL/Mongo URLs map it to `tls=true` at lines 106–132. Migration 044 stores only `password_sealed` and `tls`; migration 045 adds only `managed` ([044](/workspace/internal/platform/database/migrations/044_project_db_connections.sql:1), [045](/workspace/internal/platform/database/migrations/045_project_db_connection_managed.sql:1)).
+- **Test-connection probe:** PostgreSQL parses the generated URL and pings through pgx ([probe/postgres.go](/workspace/internal/modules/dbconn/adapter/probe/postgres.go:15)); MySQL sets driver TLS to `"true"` ([probe/mysql.go](/workspace/internal/modules/dbconn/adapter/probe/mysql.go:16)); MongoDB connects using the generated URI ([probe/mongodb.go](/workspace/internal/modules/dbconn/adapter/probe/mongodb.go:25)). None receives custom certificate or server-name input. The project connection GET returns metadata, not the password ([domain/connection.go](/workspace/internal/modules/dbconn/domain/connection.go:58)).
+
+**Official guidance**
+
+- pgx accepts `sslrootcert`, `sslcert`, and `sslkey` connection options, or can use a `tls.Config`; its docs warn that connection strings can trigger local file reads, so externally supplied values need an allowlist. [pgx pgconn docs](https://pkg.go.dev/github.com/jackc/pgx/v5/pgconn).
+- The MySQL driver supports custom TLS config through `mysql.RegisterTLSConfig`; its docs caution against `skip-verify` and plaintext fallback. [go-sql-driver/mysql](https://github.com/go-sql-driver/mysql).
+- MongoDB’s Go driver accepts a `tls.Config` with CA roots and optional client certificate/key through `SetTLSConfig`. [MongoDB Go TLS guide](https://www.mongodb.com/docs/drivers/go/current/security/tls/).
+- Provider requirements vary. Neon requires TLS and supports `verify-full`; Supabase documents downloading its CA for `verify-full`; RDS requires its CA in the trust store or connection parameters for verified modes; DigitalOcean Standard clusters provide a CA, while Advanced clusters use system roots. [Neon](https://github.com/neondatabase/website/blob/main/content/docs/security/security-overview.md), [Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres), [RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/PostgreSQL.Concepts.General.SSL.html), [DigitalOcean](https://docs.digitalocean.com/products/databases/postgresql/how-to/connect/).
+
+**Smallest sensible design — recommendation**
+
+Add an optional CA PEM input to the shared PostgreSQL settings and to manual PostgreSQL connections. Seal it using the existing secretbox pattern, cap the pasted PEM size, validate that it contains parseable certificate blocks, and return only a `caSet` flag from GET. Build the trust pool from the PEM in memory for pgx and the connection probe. Keep hostname verification enabled for `verify-full`. Do not put PEM text into a URL: PostgreSQL’s `sslrootcert` value is a **file path**, so a project `DATABASE_URL` can carry `sslmode` and `sslrootcert=/path/to/CA.pem` only if the certificate is materialized at that path. The project Env mechanism currently stores values as environment variables, so materializing a file needs a design decision.
+
+Client certificates and keys are optional mutual-TLS features, distinct from trusting a server CA. If included, store them sealed, never return their contents, and validate certificate/key pairs before saving. A conservative per-value PEM size cap is a design choice, not a limit established by the reviewed sources.
+
+**Not found:** Any CA, client certificate/key, or explicit server-name input in the UI, API, domain model, or migrations. A project-runtime mechanism to turn a stored CA PEM into a readable file is also not present in the reviewed path.
+
+**Suggestions / open decisions:** Decide whether certificate inputs apply to shared PostgreSQL only or also manual PostgreSQL, MySQL, and MongoDB. Decide whether to support optional client certificate/key now, and how a project app receives a custom CA file. For PostgreSQL modes, `require` means encryption without peer verification; `verify-ca` checks a trusted chain; `verify-full` also checks hostname. `allow` and `prefer` can fall back to plaintext.
+
+I read the requested repository files, relevant project notes, and official driver/provider documentation. No files were changed; I did not run project commands, the app, or tests.
+
+---
+
+The repository already has sealed shared database settings, an admin-only settings API, and reusable form components.  
+Current pgx v5 exposes TLS settings on its parsed config; its default fallbacks need review when applying a custom TLS config.
+
+## Technical references
+
+- **Current stack and code path:** The repository uses Go 1.27.2 and pgx v5.11.0 ([`go.mod`](/workspace/go.mod:1)). The provisioner parses `POSTGRES_ADMIN_URL` through `pgx.ParseConfig` in [`provision.go`](/workspace/internal/modules/dbconn/adapter/provision/provision.go:88). Bootstrap prefers saved settings and otherwise uses the `POSTGRES_ADMIN_URL` fallback in [`dbconn.go`](/workspace/internal/bootstrap/dbconn.go:83). Keep that fallback path intact.
+- **Applying TLS and handling modes:** pgx’s `pgconn.Config` has `TLSConfig` and `Fallbacks`; the docs say these fields are interdependent and advise changing them together. `prefer` and `allow` use fallbacks. `prefer` tries TLS before plaintext; `allow` tries plaintext before TLS. When replacing `TLSConfig`, also set or clear each fallback’s TLS config deliberately, so a parsed plaintext fallback does not survive an unintended mode change. `disable` means no TLS. [pgconn v5.11.0 source](https://github.com/jackc/pgx/blob/v5.11.0/pgconn/config.go) · [pgconn package docs](https://pkg.go.dev/github.com/jackc/pgx/v5/pgconn)
+- **Root certificates and hostname checks:** The pgconn secure connection guide describes `verify-full` as validating the server certificate and matching its hostname. Without an explicit `sslrootcert`, pgx uses its default root behavior, which can include system roots; a custom CA pool should be used when the server’s CA is not trusted there. Set `ServerName` to the parsed connection host for hostname verification. Do not put PEM contents in `sslrootcert`: pgx treats that option as a filesystem path. [pgconn secure connection guide](https://pkg.go.dev/github.com/jackc/pgx/v5/pgconn#hdr-Connecting_Securely) · [pgx config source](https://github.com/jackc/pgx/blob/v5.11.0/pgconn/config.go)
+- **`verify-ca` pattern:** Use a custom `tls.Config` with `InsecureSkipVerify: true` only when a `VerifyConnection` callback performs the omitted verification. In that callback, parse the peer leaf certificate, then call `leaf.Verify` with `x509.VerifyOptions{Roots: roots, Intermediates: ..., KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}}` and leave `DNSName` empty. This checks the chain without hostname matching. For `verify-full`, use ordinary Go TLS verification with `RootCAs` and `ServerName`; do not use the chain-only callback. Go documents the callback and the risks of skipping built-in checks. [Go `tls.Config`](https://pkg.go.dev/crypto/tls#Config) · [Go `x509.VerifyOptions`](https://pkg.go.dev/crypto/x509#VerifyOptions)
+- **PEM validation:** For a CA, iterate `pem.Decode` blocks, require certificate blocks, call `x509.ParseCertificate` on each, and ensure `CertPool.AppendCertsFromPEM` succeeds; it returns a boolean, so check it rather than treating no parsed certs as success. For a client certificate/key pair, `tls.X509KeyPair` parses both and rejects a mismatched pair. Reject encrypted key blocks; Go documents legacy RFC 1423 PEM encryption as insecure, and `tls.X509KeyPair` does not take a password. Its supported signer types depend on the Go version; the current docs list RSA, ECDSA, and Ed25519, with newer algorithm support also documented. [Go PEM package](https://pkg.go.dev/encoding/pem) · [Go `x509`](https://pkg.go.dev/crypto/x509) · [Go `tls.X509KeyPair`](https://pkg.go.dev/crypto/tls#X509KeyPair)
+- **Repository boundaries:** Migration 046 created the singleton `shared_database_settings` table; migration 048 is the latest migration, so the requested schema change belongs after it ([046](/workspace/internal/platform/database/migrations/046_shared_database_settings.sql:1), [048](/workspace/internal/platform/database/migrations/048_task_pinned_at.sql:1)). The settings store reads and writes the row in [`sqlite/shared_settings.go`](/workspace/internal/modules/dbconn/adapter/sqlite/shared_settings.go:19). The application service owns settings and sealing in [`application/shared_settings.go`](/workspace/internal/modules/dbconn/application/shared_settings.go:27); HTTP request and response shapes are in [`adapter/http/shared_settings.go`](/workspace/internal/modules/dbconn/adapter/http/shared_settings.go:34).
+- **Sealing project Env values:** `service_shared.go` snapshots project Env values, seals the generated database URL through `SetSecret`, and uses compensation to restore prior values if saving fails ([`service_shared.go`](/workspace/internal/modules/dbconn/application/service_shared.go:52), [`service_shared.go`](/workspace/internal/modules/dbconn/application/service_shared.go:75)). The Env service seals every `SetSecret` value and decrypts values only for trusted injection ([`env/application/service.go`](/workspace/internal/modules/env/application/service.go:112)). The provisioner’s `sharedAdminURL` currently carries `sslmode` in the URL ([`dbconn.go`](/workspace/internal/bootstrap/dbconn.go:98)); project connection URLs also encode PostgreSQL TLS mode in [`domain/connection.go`](/workspace/internal/modules/dbconn/domain/connection.go:106). Avoid logging raw URLs or PEM-bearing values.
+
+## Design references
+
+- [`SettingsSection.svelte`](/workspace/web/src/features/workspace/settings/parts/SettingsSection.svelte:15) provides the settings section heading, description, action slot, and divided content area. [`FormField.svelte`](/workspace/web/src/features/workspace/components/FormField.svelte:19) provides a label, optional marker, hint/error association, and a snippet for the field control.
+- [`DatabaseTab.svelte`](/workspace/web/src/features/workspace/settings/DatabaseTab.svelte:53) currently hand-builds its form. For controls, existing settings use daisyUI classes such as `select select-sm` ([`ContextWindows.svelte`](/workspace/web/src/features/workspace/settings/ContextWindows.svelte:49)) and `textarea` ([`PersonaTab.svelte`](/workspace/web/src/features/workspace/settings/PersonaTab.svelte:57)). Copy these patterns for select and PEM textareas.
+- For secret “set” state and removal affordances, [`DatabaseTab.svelte`](/workspace/web/src/features/workspace/settings/DatabaseTab.svelte:65) keeps only a `passwordSet` flag and leaves a blank password field to preserve the saved value. [`ProviderRow.svelte`](/workspace/web/src/features/workspace/settings/ProviderRow.svelte:50) uses a compact daisyUI remove button; [`GitHubIntegration.svelte`](/workspace/web/src/features/workspace/settings/GitHubIntegration.svelte:58) shows connected state and a disconnect action. [`ModelsTab.svelte`](/workspace/web/src/features/workspace/settings/ModelsTab.svelte:126) uses `ConfirmModal` for removal. The repository does not currently show the exact combined PEM “set” badge plus Remove pattern described in the assignment; those pieces can be composed from existing patterns.
+- The settings endpoint is mounted with account-role and admin-only middleware in [`bootstrap/dbconn.go`](/workspace/internal/bootstrap/dbconn.go:40), and the middleware rejects non-admins in [`bootstrap/admin.go`](/workspace/internal/bootstrap/admin.go:22). The HTTP handler returns only `configured` to non-admins ([`shared_settings.go`](/workspace/internal/modules/dbconn/adapter/http/shared_settings.go:53)).
+
+## Quality checks for QA, Reviewer, and Security
+
+- Test save, keep-on-empty, explicit remove, invalid certificate PEM, invalid key PEM, mismatched cert/key, encrypted key rejection, and the per-field size limit. Assert GET returns only set flags and never contains PEM. The existing API already omits the saved password and returns `passwordSet` ([`shared_settings_test.go`](/workspace/internal/modules/dbconn/adapter/http/shared_settings_test.go:50)).
+- Exercise TLS config for every supported mode and fallback order. With a test certificate whose chain is trusted but hostname is wrong, `verify-ca` should connect and `verify-full` should fail. Also test an untrusted chain fails in both modes.
+- Check errors and logs for PEM, connection passwords, and any private-key or password text. The pgconn parser notes that parse errors may not always safely redact malformed connection strings; expose a plain generic error to the user rather than the raw parser error. [pgx config source](https://github.com/jackc/pgx/blob/v5.11.0/pgconn/config.go)
+- Check unauthenticated access, non-admin GET/PUT, and admin GET/PUT. Confirm GET never returns certificate contents and that project SSL Env values are sealed by `SetSecret`.
+- For legacy project connections, verify they remain read-only and that switching/detaching removes only app-managed connection metadata and Env values. Confirm external database data is untouched and no migration issues a `DROP`.
+
+## Not found
+
+- `web_search` returned “No results. Try other words” for six relevant queries. I used known official Go and pgx documentation addresses directly; no pages reported publication or update dates for the specific API details cited here.
+- No existing shared UI pattern combines a PEM “set” badge with a Remove action.
+- No PEM-specific validation or `DATABASE_SSL_*` project Env handling exists in the current code paths described above.
+
+## Suggestions
+
+- In implementation, treat parsed pgx TLS settings and all fallback configs as one unit. Test the final effective configs for each mode, especially `prefer` and `allow`.
+- Keep TLS construction in memory; keep PEM out of connection strings, responses, logs, and errors. Keep public-facing validation messages generic while retaining only safe error categories.
+- The search tool failure is a research limitation. The official pages above were fetched directly, but any unresolved detail about pgx’s exact root-certificate defaults should be checked against the pinned v5.11.0 source during implementation.
+
+No files were changed. I read the project notes and repository files, attempted six web searches, and fetched official pgx and Go documentation pages. I ran no app commands or tests.
+
+---
+
+The **most likely cause is the site container can’t see the binary at `bin/`**. The project directory is mounted into the site sandbox at `/workspace`, but `start_site` runs in that separate container. The repo’s site configuration excludes `bin/` from the container build context, and `.gitignore` also excludes it. An ignored build output can exist on the host while being absent from the mounted site workspace. A prior project investigation documented this same failure mode. [Site runtime notes](/workspace/project-notes/tasks/20c2ef530617785d0cefb7b799dc5729/research/512.md:14)
+
+### Evidence
+
+- `make run` verifies, builds the binary to `bin/agentic-ai-workspace` with `CGO_ENABLED=0`, then runs it locally with `PORT=8081`. [`Makefile`](/workspace/Makefile:32)
+- `make clean` removes `bin/`. The directory is git-ignored, and `.dockerignore` excludes it. [`.gitignore`](/workspace/.gitignore:6) [`.dockerignore`](/workspace/.dockerignore:1)
+- Sites run a shell command in a sandbox container. The site runtime sets `PORT`, `SITE_PORT`, `HOST=127.0.0.1`, and `BASE_PATH`; `sandbox-entry.sh` exposes the site port through a Unix socket. [Site runtime](/workspace/internal/modules/site/adapter/runtime/runtime.go:85) [Site entry script](/workspace/sandbox/sandbox-entry.sh:14)
+- The prior investigation found that the site workspace mount uses the project directory directly and does not apply the ignore files. Its recommendation was to build under `local-build/` and start that path. [Prior investigation](/workspace/project-notes/tasks/20c2ef530617785d0cefb7b799dc5729/research/512.md:20)
+
+**Command for DevOps:** from the project root, build into the workspace path that the site can access, then use that path in `start_site`:
+
+```sh
+mkdir -p local-build
+CGO_ENABLED=0 go build -trimpath -o ./local-build/agentic-ai-workspace ./cmd/workspace
+```
+
+Start command: `./local-build/agentic-ai-workspace`, port `8081`. `local-build/` is also ignored by `.gitignore` and excluded from `.dockerignore`, but the site workspace mount itself does not apply those exclusions, as confirmed in the prior investigation. For starting the normal local app, use `make run` from the repository root instead.
+
+### SSL and binary-format check
+
+The Makefile’s build explicitly sets `CGO_ENABLED=0`. The SSL changes add Go TLS configuration and certificate parsing; the inspected imports show no `import "C"` or `os/user` in those changes. The current tracked `go.mod` and `go.sum` show no dependency diff from `d1a9bf8`. That makes a missing dynamic ELF interpreter from the Makefile build an unlikely explanation. **This does not establish how the specific failing binary was built**, since I did not inspect it or run it.
+
+**Not found:** repo evidence tying the start command to a changed working directory, a `.site` configuration, or a `dist/` output path. The prior notes also say the site sandbox is Debian-based with Go installed, but that Sites has no documented glibc compatibility guarantee.
+
+**Suggestions:** Use the `local-build/` path for this site-based run. If it still fails, DevOps should inspect the binary and its path from inside the site container; that would distinguish mount visibility from an executable-format issue. No files were changed, and I ran no app commands or tests.

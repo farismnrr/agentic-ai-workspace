@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/domain"
 )
 
 // DetachSQLite removes the project connection and generated DATABASE_URL only.
@@ -28,10 +26,31 @@ func (s *Service) DetachSQLite(ctx context.Context, userID, projectID string) er
 		}
 	}
 	if exists && stored.Connection.Managed {
-		if err := s.env.DeleteSecret(ctx, projectID, domain.DefaultEnvName(domain.Postgres)); err != nil {
+		return s.removeManagedEnvironment(ctx, projectID, stored)
+	}
+	return nil
+}
+
+func (s *Service) removeManagedEnvironment(ctx context.Context, projectID string, stored StoredConnection) error {
+	values, err := s.env.Values(ctx, projectID)
+	if err != nil {
+		_ = s.store.Save(ctx, projectID, stored)
+		return fmt.Errorf("read database environment variables: %w", err)
+	}
+	for _, name := range managedEnvNames() {
+		if err := s.env.DeleteSecret(ctx, projectID, name); err != nil {
 			_ = s.store.Save(ctx, projectID, stored)
+			restoreManagedEnvironment(ctx, s.env, projectID, values)
 			return fmt.Errorf("remove database environment variable: %w", err)
 		}
 	}
 	return nil
+}
+
+func restoreManagedEnvironment(ctx context.Context, env Environment, projectID string, values map[string]string) {
+	for _, name := range managedEnvNames() {
+		if value, exists := values[name]; exists {
+			_ = env.SetSecret(ctx, projectID, name, value)
+		}
+	}
 }

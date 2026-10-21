@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EnvVariable } from './env-api';
-import { databaseDefaults, databaseTestErrorMessage, formatUpdatedAt, normalizeVariableName, sharedProvisionErrorMessage, variableErrorMessage, variableValue } from './env-logic';
+import { databaseTestErrorMessage, formatUpdatedAt, normalizeVariableName, sharedProvisionErrorMessage, variableErrorMessage, variableValue } from './env-logic';
 import { ApiError } from '../../../../shared/api/http';
 
 describe('environment settings logic', () => {
@@ -13,12 +13,6 @@ describe('environment settings logic', () => {
     const visible: EnvVariable = { name: 'MODE', isSecret: false, updatedAt: '', value: 'test' };
     expect(variableValue(secret)).toBe('••••••');
     expect(variableValue(visible)).toBe('test');
-  });
-
-  it('uses the expected port and environment name for each database type', () => {
-    expect(databaseDefaults.postgres).toEqual({ port: 5432, envName: 'DATABASE_URL' });
-    expect(databaseDefaults.mysql).toEqual({ port: 3306, envName: 'DATABASE_URL' });
-    expect(databaseDefaults.mongodb).toEqual({ port: 27017, envName: 'MONGODB_URL' });
   });
 
   it('formats valid dates and handles invalid dates', () => {
@@ -40,9 +34,6 @@ describe('environment settings logic', () => {
     expect(sharedProvisionErrorMessage('insufficient_privileges')).toContain('permission');
     expect(sharedProvisionErrorMessage('provision_failed')).toContain('Try again');
     expect(sharedProvisionErrorMessage('provision_in_progress')).toContain('already being created');
-    expect(sharedProvisionErrorMessage('manual_connection_exists')).toBe(
-      'A manual connection exists. Delete it first, then create the shared schema.',
-    );
     expect(sharedProvisionErrorMessage('unknown')).toContain('Try again');
     expect(sharedProvisionErrorMessage('env_name_in_use')).toBe(
       'An environment variable named DATABASE_URL already exists. Delete or rename it in Variables first.',
@@ -53,6 +44,6 @@ describe('environment settings logic', () => {
 
   it('shows a friendly database test rate limit message', () => {
     expect(databaseTestErrorMessage('rate_limited')).toBe('Too many attempts. Wait a minute and try again.');
-    expect(databaseTestErrorMessage('other')).toContain('Could not test');
+    expect(databaseTestErrorMessage('other')).toContain('Could not check the shared database');
   });
 });

@@ -15,7 +15,9 @@
 {/if}
 <p class="mt-2 text-sm text-base-content/70" role="status" aria-atomic="true">{status}</p>
 {#if errors.length > 0}
-  <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-error" role="alert">
-    {#each errors as message, index (index)}<li>{message}</li>{/each}
-  </ul>
+  <div class="alert alert-error alert-soft mt-2 text-sm" role="alert">
+    <ul class="list-inside list-disc space-y-1">
+      {#each errors as message, index (index)}<li>{message}</li>{/each}
+    </ul>
+  </div>
 {/if}

@@ -7,10 +7,8 @@ export interface EnvVariable {
   value?: string;
 }
 
-export type DatabaseType = 'postgres' | 'mysql' | 'mongodb';
-
 export interface DatabaseConnection {
-  type: DatabaseType;
+  type: 'postgres' | 'mysql' | 'mongodb';
   host: string;
   port: number;
   database: string;
@@ -20,10 +18,6 @@ export interface DatabaseConnection {
   configured: boolean;
   managed: boolean;
   sharedPostgres?: boolean;
-}
-
-export interface DatabaseInput extends Omit<DatabaseConnection, 'configured' | 'managed' | 'sharedPostgres'> {
-  password: string;
 }
 
 export interface TestResult {
@@ -41,16 +35,8 @@ export const deleteVariable = (id: string, name: string): Promise<undefined> =>
   request('DELETE', `${projectPath(id)}/env/${encodeURIComponent(name)}`);
 
 export const getDatabase = (id: string): Promise<DatabaseConnection> => request('GET', `${projectPath(id)}/db`);
-export const saveDatabase = (id: string, item: DatabaseInput): Promise<DatabaseConnection> =>
-  request('PUT', `${projectPath(id)}/db`, item);
-export const deleteDatabase = (id: string): Promise<undefined> => request('DELETE', `${projectPath(id)}/db`);
 export const detachSQLiteDatabase = (id: string): Promise<undefined> => request('DELETE', `${projectPath(id)}/db/sqlite`);
-export const sharedDatabaseConfigured = async (): Promise<boolean> => {
-  const settings = await request<{ configured: boolean }>('GET', '/api/settings/database');
-  return settings.configured;
-};
-export const testDatabase = (id: string, item?: DatabaseInput): Promise<TestResult> =>
-  request('POST', `${projectPath(id)}/db/test`, item);
+export const testDatabase = (id: string): Promise<TestResult> => request('POST', `${projectPath(id)}/db/test`);
 
 export const provisionSharedDatabase = (id: string): Promise<DatabaseConnection> =>
   request('POST', `${projectPath(id)}/db/shared`);
