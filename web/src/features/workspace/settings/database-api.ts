@@ -1,6 +1,16 @@
 import { request } from '../../../shared/api/http';
 
 export type SSLMode = 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
+export type TLSChoice = 'none' | 'ca' | 'full';
+
+export function tlsChoiceFromSettings(mode: SSLMode, clientCertSet: boolean): TLSChoice {
+  if (mode === 'disable') return 'none';
+  return clientCertSet ? 'full' : 'ca';
+}
+
+export function sslModeForTLSChoice(choice: TLSChoice): SSLMode {
+  return choice === 'none' ? 'disable' : 'verify-full';
+}
 
 export interface SharedDatabaseSettings {
   host: string;
