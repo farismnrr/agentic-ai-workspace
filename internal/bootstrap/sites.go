@@ -84,7 +84,7 @@ func newAgentAndSites(
 		return nil, nil, nil, nil, err
 	}
 
-	tools.tunnel = tunnels
+	tools.tunnel, tools.plans.tunnel = tunnels, tunnels
 
 	sites, siteMount, err := newSites(db, cfg, tools, folders, projects, hub, sess, auth, sameOrigin)
 	if err != nil {

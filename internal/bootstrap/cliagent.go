@@ -34,6 +34,7 @@ type projectEnv interface {
 // doing a task with it. The programs run in the toolbox image, each person with a folder of their own.
 type plans struct {
 	env     projectEnv
+	tunnel  codingrunner.DBTunnel
 	service *cliagentapp.Service
 	engine  *codingrunner.Engine
 	folders *folder.Folders

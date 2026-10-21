@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -25,9 +26,14 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest) (
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("prepare program home: %w", err)
 	}
 
-	docker, spec, release, err := p.engine.Lease(ctx, dir, p.hosts[req.Program]...)
+	// The program's own hosts, plus the project's database as one exact host:port when it has one.
+	hosts, database := p.withDatabase(ctx, req)
+	docker, spec, release, err := p.engine.Lease(ctx, dir, hosts...)
 	if err != nil {
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("start program: %w", err)
+	}
+	if spec.Egress != "" {
+		spec.Tunnel = database
 	}
 	spec.WorkspaceReadOnly = req.Limited && !mayChange(req.Tools)
 	stop, err := p.prepareBridge(ctx, req, &spec)
@@ -76,5 +82,15 @@ func (p *plans) environment(
 	if err != nil {
 		return nil, errProjectEnvironmentUnavailable
 	}
-	return codingrunner.MergeProjectEnvironment(spec.Env, values), nil
+	return codingrunner.MergeProjectEnvironment(spec.Env, codingrunner.UseTunnel(&spec, spec.Tunnel, values)), nil
+}
+
+// withDatabase adds the project's database, when it may be reached, to the hosts the program's proxy allows.
+func (p *plans) withDatabase(ctx context.Context, req taskapp.CLIRequest) (hosts []string, database string) {
+	hosts = slices.Clone(p.hosts[req.Program])
+	if database = codingrunner.TunnelTarget(ctx, p.tunnel, req.ProjectID); database != "" {
+		hosts = append(hosts, database)
+	}
+
+	return hosts, database
 }
