@@ -1,8 +1,8 @@
 <script lang="ts">
   import Icon from '../../../../shared/ui/Icon.svelte';
 
-  interface Props { busy: boolean; testing: boolean; configured: boolean; ontest: () => void; onsave: () => void; ondelete: () => void }
-  const { busy, testing, configured, ontest, onsave, ondelete }: Props = $props();
+  interface Props { busy: boolean; testing: boolean; configured: boolean; shared?: boolean; ontest: () => void; onsave: () => void; ondelete: () => void }
+  const { busy, testing, configured, shared = false, ontest, onsave, ondelete }: Props = $props();
 </script>
 
 <div class="flex flex-wrap gap-2">
@@ -10,6 +10,6 @@
     {#if testing}<span class="loading loading-spinner loading-xs" aria-hidden="true"></span>{:else}<Icon name="activity" class="size-4" />{/if}
     Test connection
   </button>
-  <button class="btn btn-primary btn-sm rounded-lg min-h-11" type="button" onclick={onsave} disabled={busy}>Save</button>
+  {#if !shared}<button class="btn btn-primary btn-sm rounded-lg min-h-11" type="button" onclick={onsave} disabled={busy}>Save</button>{/if}
   {#if configured}<button class="btn btn-ghost btn-sm min-h-11 text-error" type="button" onclick={ondelete} disabled={busy}>Delete</button>{/if}
 </div>

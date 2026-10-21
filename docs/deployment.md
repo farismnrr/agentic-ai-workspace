@@ -195,6 +195,44 @@ The Researcher and Media roles look things up on the web from the app itself, no
 - Keep SearXNG private. Its limiter may block the app when many searches arrive; relax it for the app's address.
 - The app refuses internal addresses on every web request, so a page cannot point it at your network. Your own `SEARXNG_URL` is the one address it is asked to reach.
 
+### Shared PostgreSQL
+
+`POSTGRES_ADMIN_URL` is optional. It enables **Use shared Postgres (schema
+created automatically)** in a project's Env tab. Include a database name in
+the URL path; provisioning cannot select the server's default database. The
+app uses this server-wide URL only to create or reconcile one schema and login
+role per project. The admin URL stays in the process environment and is never
+saved with project settings.
+
+Use a **dedicated database** for this feature. Provisioning revokes `PUBLIC`
+privileges on the `public` schema, which affects every user of that database.
+The admin account needs permission to create roles and schemas. Managed services
+such as Supabase or RDS may restrict these permissions.
+
+Set `sslmode=require` or a stronger mode in `POSTGRES_ADMIN_URL` so the saved
+project connection also requires TLS. Keep PostgreSQL DDL statement logging
+(`log_statement=ddl` or `all`) and `pg_stat_statements` disabled for this
+dedicated database: role passwords can appear in `CREATE ROLE` and `ALTER ROLE`
+statements. PostgreSQL keeps the `TEMPORARY` privilege on the database for
+`PUBLIC`; the project role's grants are reconciled separately.
+
+The address must be reachable from the app server. With Docker, use
+`host.docker.internal` for a database on the Docker host. For a database on
+another private or LAN machine, use its LAN address and allow connections from
+the app host. Provisioning allows private addresses and has a 10-second timeout.
+
+Removing a project's database connection does not drop its schema, role or
+data. To reconnect to the existing schema, choose **Use shared Postgres (schema
+created automatically)** and click **Create my schema**. For a connected
+project, **Reconnect and reset password** reuses the schema and role and sets a
+new role password. The app's own storage remains SQLite. Projects without a
+selected external database keep using their own project files as before.
+If a manual database connection is still saved, delete it before creating the
+shared schema.
+
+Compose users can uncomment `POSTGRES_ADMIN_URL` in `compose.dev.yaml` or
+`compose.latest.yaml`, then set the value in `.env` beside the compose file.
+
 ### Other
 
 | Variable | What it does | Default |

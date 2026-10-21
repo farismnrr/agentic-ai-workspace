@@ -2,37 +2,31 @@
 
 Task: 20c2ef530617785d0cefb7b799dc5729
 Status: working
-Updated: 2026-10-21T01:00:12Z
+Updated: 2026-10-21T02:25:54Z
 
 Reference material; confirm applicability before reusing.
 
-- [done] Researcher: map Env settings screen and how SearXNG is connected
+- [done] Research, requirements and PRD (Env tab + external DB)
   
-- [done] Requirements: ask the person about Env tab and external DB
+- [done] Env tab + external DB built and checked
   
-- [done] Planner: write the PRD and get the person's yes
+- [failed] DevOps: push to GitHub blocked (proxy 403), commit 5f5f9c7 is local
+  Person will push from their own machine
+- [done] Planner: PRD for auto-schema (approved)
   
-- [done] Researcher: build references (Go drivers, egress, secrets)
+- [done] Researcher: build references for the schema provisioning
   
-- [done] Developer: Env store and API (migration, sealed values)
+- [done] Developer: config POSTGRES_ADMIN_URL, Provisioner port, managed flag (migration 045)
   
-- [done] Developer: inject Env into sandbox runs
+- [done] Developer: pgx provisioning adapter + tests
   
-- [done] Developer: PrivateAllowed egress rule
+- [done] Developer: ProvisionShared service, compensation, route
   
-- [done] Developer: database connection store and test API
-  
-- [done] Developer: Env tab UI
+- [done] Developer: Env tab Database choice (shared Postgres vs manual)
   
 - [done] Developer: docs, agent notes, full verify
   
-- [failed] DevOps: start the app
-  Stuck: `make run PORT=8081` failed during frontend verification with Node’s heap out of memory. I retried on port 8082 with a 1.5 GB Node heap; `start_site` tim…
-- [done] Security: check the code
+- [done] Security, QA, Reviewer checks
   
-- [done] QA: walk the Env tab and API
-  
-- [done] Reviewer: design review
-  
-- [done] DevOps: commit, push, redeploy
+- [done] DevOps: start app, commit and push
   

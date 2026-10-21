@@ -19,11 +19,12 @@ func (s *Store) Get(ctx context.Context, projectID string) (application.StoredCo
 	var record application.StoredConnection
 	var kind string
 	var tlsFlag int
+	var managedFlag int
 	err := s.db.QueryRowContext(ctx, `SELECT type, host, port, database_name, user_name,
-		password_sealed, tls, env_name FROM project_db_connections WHERE project_id = ?`,
+		password_sealed, tls, env_name, managed FROM project_db_connections WHERE project_id = ?`,
 		projectID).Scan(&kind, &record.Connection.Host, &record.Connection.Port,
 		&record.Connection.Database, &record.Connection.User, &record.PasswordSealed, &tlsFlag,
-		&record.Connection.EnvName)
+		&record.Connection.EnvName, &managedFlag)
 	if errors.Is(err, sql.ErrNoRows) {
 		return record, domain.ErrMissing
 	}
@@ -32,19 +33,21 @@ func (s *Store) Get(ctx context.Context, projectID string) (application.StoredCo
 	}
 	record.Connection.Kind = domain.Kind(kind)
 	record.Connection.TLS = tlsFlag != 0
+	record.Connection.Managed = managedFlag != 0
 	return record, nil
 }
 
 func (s *Store) Save(ctx context.Context, projectID string, record application.StoredConnection) error {
 	conn := record.Connection
 	_, err := s.db.ExecContext(ctx, `INSERT INTO project_db_connections
-		(project_id, type, host, port, database_name, user_name, password_sealed, tls, env_name, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		(project_id, type, host, port, database_name, user_name, password_sealed, tls, env_name, managed, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(project_id) DO UPDATE SET type=excluded.type, host=excluded.host, port=excluded.port,
 		database_name=excluded.database_name, user_name=excluded.user_name,
 		password_sealed=excluded.password_sealed, tls=excluded.tls, env_name=excluded.env_name,
+		managed=excluded.managed,
 		updated_at=excluded.updated_at`, projectID, conn.Kind, conn.Host, conn.Port, conn.Database,
-		conn.User, record.PasswordSealed, conn.TLS, conn.EnvName, time.Now().Unix())
+		conn.User, record.PasswordSealed, conn.TLS, conn.EnvName, conn.Managed, time.Now().Unix())
 	if err != nil {
 		return fmt.Errorf("save project database connection: %w", err)
 	}

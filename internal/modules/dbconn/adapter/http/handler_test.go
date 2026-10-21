@@ -75,6 +75,73 @@ func TestDeleteMissingConnectionReturnsNotFound(t *testing.T) {
 	}
 }
 
+func TestGetIncludesManagedAndSharedPostgresFlags(t *testing.T) {
+	store := &testStore{records: map[string]application.StoredConnection{}}
+	service := application.NewService(store, testCipher{}, testOwner{}, testEnvironment{}, failedProbe{})
+	app := fiber.New()
+	continueRequest := func(c fiber.Ctx) error { return c.Next() }
+	NewHandler(service).Mount(httpserver.RequireSession(testSessions{}), continueRequest, continueRequest)(app)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/projects/p1/db", nil)
+	req.AddCookie(&http.Cookie{
+		Name: httpserver.SessionCookieName, Value: "session", Secure: true, HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	})
+	response, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", response.StatusCode)
+	}
+	if got := string(body); !strings.Contains(got, `"managed":false`) ||
+		!strings.Contains(got, `"sharedPostgres":false`) {
+		t.Fatalf("GET response missing capability flags: %s", got)
+	}
+}
+
+func TestSharedProvisionRouteReturnsMetadataOnly(t *testing.T) {
+	store := &testStore{records: map[string]application.StoredConnection{}}
+	service := application.NewService(
+		store, testCipher{}, testOwner{}, testEnvironment{}, failedProbe{}, routeProvisioner{},
+	)
+	app := fiber.New()
+	continueRequest := func(c fiber.Ctx) error { return c.Next() }
+	NewHandler(service).Mount(httpserver.RequireSession(testSessions{}), continueRequest, continueRequest)(app)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/api/projects/p1/db/shared", nil)
+	req.AddCookie(&http.Cookie{
+		Name: httpserver.SessionCookieName, Value: "session", Secure: true, HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	})
+	response, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || !strings.Contains(string(body), `"managed":true`) ||
+		strings.Contains(string(body), testDatabasePassword) || strings.Contains(string(body), "postgres://") {
+		t.Fatalf("unexpected shared provision response: status=%d body=%s", response.StatusCode, body)
+	}
+}
+
+type routeProvisioner struct{}
+
+func (routeProvisioner) Configured() bool { return true }
+func (routeProvisioner) Provision(context.Context, string) (application.ProvisionResult, error) {
+	return application.ProvisionResult{
+		Host: "db.local", Port: 5432, Database: "records", Role: "project", Password: testDatabasePassword,
+	}, nil
+}
+func (routeProvisioner) Restore(context.Context, string, string) error { return nil }
+
 type testStore struct {
 	records map[string]application.StoredConnection
 }
@@ -113,6 +180,9 @@ type testEnvironment struct{}
 
 func (testEnvironment) SetSecret(context.Context, string, string, string) error { return nil }
 func (testEnvironment) DeleteSecret(context.Context, string, string) error      { return nil }
+func (testEnvironment) Values(context.Context, string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
 
 type failedProbe struct{}
 

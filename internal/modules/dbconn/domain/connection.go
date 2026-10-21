@@ -52,6 +52,7 @@ type Connection struct {
 	EnvName  string
 	Port     int
 	TLS      bool
+	Managed  bool
 }
 
 // Metadata is the safe subset returned by read APIs.
@@ -64,6 +65,7 @@ type Metadata struct {
 	Port       int    `json:"port"`
 	TLS        bool   `json:"tls"`
 	Configured bool   `json:"configured"`
+	Managed    bool   `json:"managed"`
 }
 
 func (c Connection) Validate() error {
@@ -133,7 +135,7 @@ func connectionQuery(kind Kind, tls bool) url.Values {
 func (c Connection) Meta() Metadata {
 	return Metadata{
 		Kind: c.Kind, Host: c.Host, Port: c.Port, Database: c.Database,
-		User: c.User, TLS: c.TLS, EnvName: c.EnvName, Configured: true,
+		User: c.User, TLS: c.TLS, EnvName: c.EnvName, Configured: true, Managed: c.Managed,
 	}
 }
 

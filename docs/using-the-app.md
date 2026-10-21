@@ -96,6 +96,13 @@ project. The app builds and encrypts the connection string, then exposes it to
 that project's runs as `DATABASE_URL` or the name you choose. MongoDB defaults
 to `MONGODB_URL`.
 
+If the server has shared PostgreSQL configured, choose **Use shared
+PostgreSQL** to create a project schema and login automatically. Otherwise, or
+for MySQL and MongoDB, choose **Manual connection** and enter the connection
+details yourself. The app's own storage stays on SQLite. Projects with no
+external database selected keep their existing project files and receive no
+database connection variable.
+
 When TLS is on for PostgreSQL, the connection uses `sslmode=require`; it does
 not verify the PostgreSQL server certificate.
 
@@ -107,6 +114,19 @@ Tests are limited to five per minute per signed-in person.
 When the app runs in Docker, `localhost` means the app container. For a database
 on the Docker host, try `host.docker.internal`; for another computer, use its
 LAN IP and make sure the database accepts connections from the app host.
+
+The server administrator configures the shared PostgreSQL address with
+`POSTGRES_ADMIN_URL`; it is not shown in project settings. It must include a
+database name in its URL path. Use a dedicated database because enabling shared
+PostgreSQL revokes `PUBLIC` access to the `public` schema for that whole
+database. The admin account must be allowed to create roles and schemas; some
+managed services limit those privileges.
+
+Choose **Use shared Postgres (schema created automatically)** to create a
+private schema and login for this project. Click **Create my schema** to set it
+up. When connected, **Reconnect and reset password** reuses the schema and
+role, and sets a new role password. Removing a shared connection keeps its
+schema, role and data.
 
 The agent receives the connection string as an environment variable, but its
 sandbox cannot connect directly to the database. The test checks access from
@@ -144,7 +164,7 @@ Two settings shape how a model works:
 
 | Setting | What it does |
 | --- | --- |
-| Effort | How hard the AI thinks before answering. Higher is slower and costs more. **Auto** lets the lead pick a level for each teammate's job. A level you set yourself, on the default or on a role, always wins. Without a team, Auto leaves it to the model. |
+| Effort | Controls how much thought the AI uses. Higher levels take longer and cost more. **Auto** lets the lead choose for each teammate. Your explicit default or role choice wins. Without a team, Auto uses the model default. |
 | Context window | How much the model keeps in mind at once. Near the limit, the AI summarizes its notes and keeps going. |
 
 The context window comes from what the provider reports, else 200K, or 1M for names ending in `[1m]`.
@@ -164,7 +184,7 @@ Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay
 - **Each person signs in on their own.** Plans are never shared between people.
 - **Not signed in?** A task stops with a note telling you to sign in, and Continue works afterwards.
 - **Today** a task on your plan works in one project, one step at a time. There is no Undo and no per-step approval yet.
-- **Teams:** the lead and every teammate can use your plan, set under **Settings → Agent team**. The lead only looks at files; the team's server hands out the jobs, asks you questions and keeps the plan, so a plan lead works like any other model.
+- **Teams:** the lead and teammates can use your plan, set under **Settings → Agent team**. The lead only looks at files. The server assigns jobs, asks questions and keeps the plan, so a plan lead works like any other model.
 
 ## Agent team
 
@@ -186,7 +206,7 @@ The lead sizes your request first and tells you:
 | Medium | Anything new, such as a page or a script, or three or more files. The Planner asks you a few questions and writes a short PRD, then the Developer builds and QA checks. |
 | Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Designer shapes anything you will see. A Reviewer looks it over. |
 
-Research always comes first on a medium or large task, and again after the PRD for the stack and the look. Facts about the real world matter most: a business, a market, a style or a technology. The Researcher looks it up on the web and writes short notes with sources.
+Research comes first on medium or large tasks, then again after the PRD for the stack and visual design. The Researcher checks real-world facts about a business, market, style or technology, then writes short notes with sources.
 When a teammate gets stuck, it says so instead of struggling alone. The Orchestrator asks the Researcher how it is done properly, then sends the job again with the answer.
 Only the DevOps teammate starts your app, and always in Sites, so you can open it from any computer. Nobody gives you a 127.0.0.1 or localhost address.
 
@@ -246,7 +266,7 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Designer | Sets the visual direction, writes `DESIGN.md` and builds the interface. It has built-in skills (design brief, frontend design, UI polish) and a library of craft rules, style families and page templates, and picks what fits the job |
 | Researcher | Reads the project and looks things up on the web. It writes notes with sources before the PRD, the design or the build. It cannot change files |
 | Media | Finds pictures you may use and edits them: resize, crop, convert, remove a background. Every picture it saves has its licence and credit written in `assets/CREDITS.md`, never on the page. It lists pictures that need no credit first |
-| Documents | Writes PowerPoint decks, Word documents and PDF files. It turns each page into a picture and looks at it before it reports. It opens as a site under Sites, with every page and a Download button. The files are in `documents/`, and the Files tab also shows PDFs |
+| Documents | Creates PowerPoint, Word and PDF files, then previews each page. The result opens under Sites with a Download button. Files stay in `documents/`; the Files tab can also preview PDFs. |
 | Business Analyst | Turns your request, and what the Researcher found, into requirements before the PRD |
 | Architect | Designs the change, and checks the final code against the design, SOLID and Clean Architecture before the task is done. It cannot change files |
 | Developer | Writes the code. A new app is built with Nuxt, SQLite and the latest stable versions, with its own register and login forms when it needs accounts |

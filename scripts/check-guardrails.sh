@@ -19,6 +19,7 @@ file_violations="$(
     ! -path './.git/*' \
     ! -path './web/node_modules/*' \
     ! -path './data/*' \
+    ! -path './project-notes/*' \
     ! -path './internal/platform/webassets/dist/*' \
     ! -path './docs/*' \
     ! -path './agents/*' \

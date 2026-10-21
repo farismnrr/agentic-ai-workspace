@@ -13,18 +13,65 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 )
 
-const connectionTestTimeout = 10 * time.Second
+const (
+	connectionTestTimeout  = 10 * time.Second
+	sharedProvisionTimeout = 30 * time.Second
+)
 
 type Handler struct{ service *application.Service }
 
 func NewHandler(service *application.Service) *Handler { return &Handler{service: service} }
 
-func (h *Handler) Mount(auth, sameOrigin, testLimit fiber.Handler) httpserver.Mount {
+func (h *Handler) Mount(auth, sameOrigin, testLimit fiber.Handler, sharedLimits ...fiber.Handler) httpserver.Mount {
 	return func(app *fiber.App) {
+		sharedLimit := testLimit
+		if len(sharedLimits) > 0 {
+			sharedLimit = sharedLimits[0]
+		}
 		app.Get("/api/projects/:id/db", auth, h.get)
 		app.Put("/api/projects/:id/db", auth, sameOrigin, h.put)
 		app.Delete("/api/projects/:id/db", auth, sameOrigin, h.remove)
 		app.Post("/api/projects/:id/db/test", auth, sameOrigin, testLimit, h.test)
+		app.Post("/api/projects/:id/db/shared", auth, sameOrigin, sharedLimit, h.provisionShared)
+	}
+}
+
+func (h *Handler) provisionShared(c fiber.Ctx) error {
+	ctx, cancel := context.WithTimeout(c.Context(), sharedProvisionTimeout)
+	defer cancel()
+	item, err := h.service.ProvisionShared(ctx, httpserver.UserID(c), c.Params("id"))
+	if err == nil {
+		return c.JSON(item)
+	}
+	var failure application.ProvisionError
+	if errors.As(err, &failure) {
+		return c.Status(provisionStatus(failure)).JSON(httpserver.Failure(string(failure.Category)))
+	}
+	return fail(c, err)
+}
+
+func provisionStatus(failure application.ProvisionError) int {
+	switch failure.Category {
+	case application.ProvisionInProgress, application.ManualConnectionExists, application.EnvironmentNameInUse:
+		return http.StatusConflict
+	case application.AdminNotConfigured, application.AdminURLInvalid:
+		return http.StatusServiceUnavailable
+	case application.AdminRejected, application.InsufficientPrivileges:
+		return http.StatusBadGateway
+	case application.ProvisionFailed:
+		if failure.Remote {
+			return http.StatusBadGateway
+		}
+		return http.StatusInternalServerError
+	case application.CompensationFailed:
+		if failure.Remote {
+			return http.StatusBadGateway
+		}
+		return http.StatusInternalServerError
+	case application.LocalSaveFailed, application.EnvironmentWriteFailed:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
 	}
 }
 
@@ -33,7 +80,12 @@ func (h *Handler) get(c fiber.Ctx) error {
 	if err != nil {
 		return fail(c, err)
 	}
-	return c.JSON(item)
+	return c.JSON(connectionResponse{Metadata: item, SharedPostgres: h.service.SharedConfigured()})
+}
+
+type connectionResponse struct {
+	domain.Metadata
+	SharedPostgres bool `json:"sharedPostgres"`
 }
 
 func (h *Handler) put(c fiber.Ctx) error {
@@ -126,6 +178,10 @@ func failureMessage(category domain.FailureCategory) string {
 }
 
 func fail(c fiber.Ctx, err error) error {
+	var provisionFailure application.ProvisionError
+	if errors.As(err, &provisionFailure) && provisionFailure.Category == application.ProvisionInProgress {
+		return c.Status(http.StatusConflict).JSON(httpserver.Failure(string(provisionFailure.Category)))
+	}
 	if errors.Is(err, domain.ErrMissing) {
 		return c.Status(http.StatusNotFound).JSON(httpserver.Failure("not_found"))
 	}

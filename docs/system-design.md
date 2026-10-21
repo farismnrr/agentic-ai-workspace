@@ -52,7 +52,11 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **Platform code** holds technical details only, never business rules.
 - **A feature creates only the layers it needs.** Empty folders do not help.
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.
-  `modules/dbconn` stores one external database connection and tests it.
+  `modules/dbconn` stores one external database connection, tests it, and can
+  provision a shared PostgreSQL schema and login role through an application
+  port and a pgx adapter. `bootstrap` wires the adapter from `POSTGRES_ADMIN_URL`.
+  Migration 045 adds the connection's `managed` flag; removing a connection
+  never drops remote database objects.
 
 ### Frontend
 
@@ -96,9 +100,10 @@ Tasks, commands and web apps run in one throwaway Docker container per run.
 - **Docker socket:** whoever controls it controls the host. Docker rootless mode is the recommended mitigation.
 
 The server's `platform/egress` checks outgoing addresses when it dials them.
-`PrivateAllowed` is used only for an owner's database connection test: it allows
-public, private and loopback addresses, but blocks link-local, special ranges
-and the server's own port. Sandbox containers remain network-disabled.
+`PrivateAllowed` is used for an owner's database connection test and shared
+PostgreSQL provisioning: it allows public, private and loopback addresses, but
+blocks link-local, special ranges and the server's own port. Sandbox containers
+remain network-disabled.
 
 Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 

@@ -10,7 +10,12 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/domain"
 )
 
-var errProjectMissing = errors.New("project missing")
+var (
+	errProjectMissing     = errors.New("project missing")
+	errStorageFailure     = errors.New("storage failure with generated-2")
+	errEnvironmentFailure = errors.New("environment failure with generated-2")
+	errSnapshotFailure    = errors.New("snapshot failure with secret")
+)
 
 func TestSavedConnectionIsOwnerScoped(t *testing.T) {
 	service, store, env, input := savedConnection(t)
@@ -37,6 +42,20 @@ func TestReadMetadataDoesNotReturnPassword(t *testing.T) {
 	}
 	if strings.Contains(string(encoded), input.Password) || strings.Contains(string(encoded), input.URL()) {
 		t.Fatal("connection response contains a secret")
+	}
+}
+
+func TestManualFlowHasNoProvisionerByDefault(t *testing.T) {
+	service, store, _, input := savedConnection(t)
+	if service.SharedConfigured() {
+		t.Fatal("shared PostgreSQL must be unavailable without a provisioner")
+	}
+	stored := store.records["project-a"]
+	if stored.Connection.Managed {
+		t.Fatal("manual save unexpectedly marked the connection managed")
+	}
+	if got := input.Meta().Managed; got {
+		t.Fatal("manual connection metadata unexpectedly reports managed")
 	}
 }
 
@@ -75,7 +94,10 @@ type testCipher struct{}
 func (testCipher) Encrypt(value []byte) (string, error) { return "sealed:" + string(value), nil }
 func (testCipher) Decrypt(value string) ([]byte, error) { return []byte(value[len("sealed:"):]), nil }
 
-type memoryStore struct{ records map[string]StoredConnection }
+type memoryStore struct {
+	records  map[string]StoredConnection
+	failSave bool
+}
 
 func (m *memoryStore) Get(_ context.Context, projectID string) (StoredConnection, error) {
 	item, ok := m.records[projectID]
@@ -86,6 +108,10 @@ func (m *memoryStore) Get(_ context.Context, projectID string) (StoredConnection
 }
 
 func (m *memoryStore) Save(_ context.Context, projectID string, item StoredConnection) error {
+	if m.failSave {
+		m.failSave = false
+		return errStorageFailure
+	}
 	m.records[projectID] = item
 	return nil
 }
@@ -95,16 +121,37 @@ func (m *memoryStore) Delete(_ context.Context, projectID string) error {
 	return nil
 }
 
-type memoryEnvironment struct{ values map[string]string }
+type memoryEnvironment struct {
+	values     map[string]string
+	failSet    bool
+	failValues bool
+}
 
 func (m *memoryEnvironment) SetSecret(_ context.Context, projectID, name, value string) error {
 	m.values[projectID+":"+name] = value
+	if m.failSet {
+		return errEnvironmentFailure
+	}
 	return nil
 }
 
 func (m *memoryEnvironment) DeleteSecret(_ context.Context, projectID, name string) error {
 	delete(m.values, projectID+":"+name)
 	return nil
+}
+
+func (m *memoryEnvironment) Values(_ context.Context, projectID string) (map[string]string, error) {
+	if m.failValues {
+		return nil, errSnapshotFailure
+	}
+	values := make(map[string]string)
+	prefix := projectID + ":"
+	for key, value := range m.values {
+		if strings.HasPrefix(key, prefix) {
+			values[strings.TrimPrefix(key, prefix)] = value
+		}
+	}
+	return values, nil
 }
 
 type healthyProbe struct{}

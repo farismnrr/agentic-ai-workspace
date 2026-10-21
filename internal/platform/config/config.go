@@ -46,19 +46,20 @@ type Config struct {
 	SandboxDataVolume string
 	Port              string
 	// SearxngURL is the address of a SearXNG server for web search; empty turns web search off.
-	SearxngURL      string
-	CORSOrigins     []string
-	AllowedOrigins  []string
-	SandboxEgress   []string
-	ClaudeEgress    []string
-	ChatGPTEgress   []string
-	AgentWorkers    int
-	MaxSandboxes    int
-	SiteMaxPerUser  int
-	SiteMaxTotal    int
-	SandboxMemoryMB int
-	SandboxCPUs     int
-	CookieSecure    bool
+	SearxngURL       string
+	PostgresAdminURL string
+	CORSOrigins      []string
+	AllowedOrigins   []string
+	SandboxEgress    []string
+	ClaudeEgress     []string
+	ChatGPTEgress    []string
+	AgentWorkers     int
+	MaxSandboxes     int
+	SiteMaxPerUser   int
+	SiteMaxTotal     int
+	SandboxMemoryMB  int
+	SandboxCPUs      int
+	CookieSecure     bool
 }
 
 // GitHub is the GitHub App people connect their account through. Empty means the feature is off.
@@ -103,6 +104,7 @@ func Load() Config {
 		SiteMaxPerUser:    atoi(getenv("SITE_MAX_PER_USER", strconv.Itoa(defaultSitesPerUser)), defaultSitesPerUser),
 		SiteMaxTotal:      atoi(getenv("SITE_MAX_TOTAL", strconv.Itoa(defaultSitesTotal)), defaultSitesTotal),
 		SearxngURL:        strings.TrimRight(strings.TrimSpace(os.Getenv("SEARXNG_URL")), "/"),
+		PostgresAdminURL:  strings.TrimSpace(os.Getenv("POSTGRES_ADMIN_URL")),
 		SandboxImage:      getenv("SANDBOX_IMAGE", defaultSandboxImage),
 		SandboxRuntime:    strings.TrimSpace(os.Getenv("SANDBOX_RUNTIME")),
 		SandboxDataVolume: strings.TrimSpace(os.Getenv("SANDBOX_DATA_VOLUME")),

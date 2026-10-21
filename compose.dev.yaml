@@ -37,6 +37,8 @@ services:
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
       SANDBOX_EGRESS_HOSTS: ${SANDBOX_EGRESS_HOSTS:-}
       SEARXNG_URL: ${SEARXNG_URL:-}
+      # Optional server-wide admin connection for project schema provisioning.
+      # POSTGRES_ADMIN_URL: ${POSTGRES_ADMIN_URL:-}
       SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}
       SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-2048}
       SANDBOX_CPUS: ${SANDBOX_CPUS:-1}

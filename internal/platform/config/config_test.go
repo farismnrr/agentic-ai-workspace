@@ -68,3 +68,12 @@ func TestTheConnectorAddressIsSeparateFromTheAppAddress(t *testing.T) {
 		t.Fatalf("sign-in on the connector address must be allowed and its cookie secure: %+v", cfg)
 	}
 }
+
+func TestPostgresAdminURLIsLoadedWithoutNormalization(t *testing.T) {
+	t.Setenv("POSTGRES_ADMIN_URL", " postgres://admin@db.example:5432/workspace?sslmode=require ")
+	want := "postgres://admin@db.example:5432/workspace?sslmode=require"
+	got := Load().PostgresAdminURL
+	if got != want {
+		t.Fatalf("admin URL was not trimmed safely: %q", got)
+	}
+}

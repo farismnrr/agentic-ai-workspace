@@ -18,9 +18,11 @@ export interface DatabaseConnection {
   tls: boolean;
   envName: string;
   configured: boolean;
+  managed: boolean;
+  sharedPostgres?: boolean;
 }
 
-export interface DatabaseInput extends Omit<DatabaseConnection, 'configured'> {
+export interface DatabaseInput extends Omit<DatabaseConnection, 'configured' | 'managed' | 'sharedPostgres'> {
   password: string;
 }
 
@@ -44,3 +46,6 @@ export const saveDatabase = (id: string, item: DatabaseInput): Promise<DatabaseC
 export const deleteDatabase = (id: string): Promise<undefined> => request('DELETE', `${projectPath(id)}/db`);
 export const testDatabase = (id: string, item?: DatabaseInput): Promise<TestResult> =>
   request('POST', `${projectPath(id)}/db/test`, item);
+
+export const provisionSharedDatabase = (id: string): Promise<DatabaseConnection> =>
+  request('POST', `${projectPath(id)}/db/shared`);
