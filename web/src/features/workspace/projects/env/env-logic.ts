@@ -25,22 +25,24 @@ export function variableErrorMessage(error: unknown): string {
   }
 }
 
-const sharedProvisionMessages: Record<string, string> = {
+const databaseProvisionMessages: Record<string, string> = {
   rate_limited: 'Too many attempts. Wait a minute and try again.',
-  env_name_in_use: 'An environment variable named DATABASE_URL already exists. Delete or rename it in Variables first.',
-  admin_url_invalid: 'The server shared database address is invalid. Contact your workspace administrator.',
-  admin_not_configured: 'Shared Postgres is not configured. Contact your workspace administrator.',
+  env_name_in_use: 'A database address already exists in Variables. Rename it before choosing this database.',
+  kind_not_configured: 'This database is not set up yet. Ask an admin to add it in Settings.',
+  admin_url_invalid: 'The shared database address is invalid. Contact your workspace administrator.',
+  admin_not_configured: 'The shared database is not configured. Contact your workspace administrator.',
   admin_rejected: 'The shared database administrator login was rejected. Contact your workspace administrator.',
-  insufficient_privileges: 'The shared database account does not have permission to create your schema.',
-  provision_failed: 'Could not create your database schema. Try again.',
-  provision_in_progress: 'Your schema is already being created. Wait a moment and try again.',
+  insufficient_privileges: 'The shared database account does not have permission to create a project database.',
+  provision_failed: 'Could not prepare this database. Try again.',
+  provision_in_progress: 'This database is already being prepared. Wait a moment and try again.',
   compensation_failed: 'The save failed and the previous database setup could not be fully restored. Contact your workspace administrator.',
+  manual_connection_exists: 'Remove the custom connection before choosing a managed database.',
 };
 
-export function sharedProvisionErrorMessage(code: string | undefined): string {
+export function databaseProvisionErrorMessage(code: string | undefined): string {
   return code === undefined
-    ? 'Could not create your database schema. Try again.'
-    : sharedProvisionMessages[code] ?? 'Could not create your database schema. Try again.';
+    ? 'Could not prepare this database. Try again.'
+    : databaseProvisionMessages[code] ?? 'Could not prepare this database. Try again.';
 }
 
 export function databaseTestErrorMessage(code: string | undefined): string {

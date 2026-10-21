@@ -17,7 +17,7 @@ type Service struct {
 	owner        ProjectOwner
 	env          Environment
 	probe        Prober
-	provisioner  Provisioner
+	provisioners Provisioners
 	provisioning map[string]bool
 	provisionMu  sync.Mutex
 }
@@ -28,9 +28,24 @@ func NewService(
 ) *Service {
 	service := &Service{store: store, cipher: cipher, owner: owner, env: env, probe: probe}
 	if len(provisioners) > 0 {
-		service.provisioner = provisioners[0]
+		service.provisioners = singleProvisioner{provisioner: provisioners[0]}
 	}
 	return service
+}
+
+func NewServiceWithProvisioners(
+	store Store, cipher Cipher, owner ProjectOwner, env Environment, probe Prober, provisioners Provisioners,
+) *Service {
+	return &Service{store: store, cipher: cipher, owner: owner, env: env, probe: probe, provisioners: provisioners}
+}
+
+type singleProvisioner struct{ provisioner Provisioner }
+
+func (p singleProvisioner) For(kind domain.Kind) Provisioner {
+	if kind != domain.Postgres {
+		return nil
+	}
+	return p.provisioner
 }
 
 func (s *Service) Get(ctx context.Context, userID, projectID string) (domain.Metadata, error) {
@@ -39,12 +54,39 @@ func (s *Service) Get(ctx context.Context, userID, projectID string) (domain.Met
 	}
 	stored, err := s.store.Get(ctx, projectID)
 	if errors.Is(err, ErrNotFound) {
-		return domain.Metadata{}, nil
+		return domain.Metadata{Choice: "sqlite"}, nil
 	}
 	if err != nil {
 		return domain.Metadata{}, fmt.Errorf("load database connection: %w", err)
 	}
-	return stored.Connection.Meta(), nil
+	metadata := stored.Connection.Meta()
+	if stored.Connection.Managed {
+		metadata.Choice = string(stored.Connection.Kind)
+	} else {
+		metadata.Choice = "custom"
+		metadata.ReadOnly = true
+	}
+	return metadata, nil
+}
+
+// ProvisioningKind reports availability without exposing server settings.
+func (s *Service) ProvisioningKind(ctx context.Context, kind domain.Kind) (bool, error) {
+	provisioner := s.provisioner(kind)
+	if provisioner == nil {
+		return false, nil
+	}
+	configured, err := provisioner.Configured(ctx)
+	if err != nil {
+		return false, fmt.Errorf("check %s database configuration: %w", kind, err)
+	}
+	return configured, nil
+}
+
+func (s *Service) provisioner(kind domain.Kind) Provisioner {
+	if s == nil || s.provisioners == nil {
+		return nil
+	}
+	return s.provisioners.For(kind)
 }
 
 func (s *Service) previousConnection(ctx context.Context, projectID string) (StoredConnection, bool, error) {

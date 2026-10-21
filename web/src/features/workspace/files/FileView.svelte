@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
+  import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import CodeEditor from '../components/CodeEditor.svelte';
   import BinaryFile from './BinaryFile.svelte';
   import ConfirmModal from '../components/ConfirmModal.svelte';
@@ -54,7 +55,7 @@
       <button type="button" class="btn btn-ghost btn-xs @2xl:hidden" onclick={onback} aria-label="Back to files"><Icon name="arrow-left" class="size-4" /></button>
       <code class="min-w-0 flex-1 truncate text-xs">{$shown.path}</code>
       {#if dirty}<span class="badge badge-warning badge-sm">Unsaved</span>{:else if $shown.file !== undefined}<span class="badge badge-ghost badge-sm">Saved</span>{/if}
-      {#if editable}<button type="button" class="btn btn-primary btn-xs rounded-lg" disabled={!dirty || $shown.saving} onclick={() => void view.save()}>{$shown.saving ? 'Saving…' : 'Save'}</button>{/if}
+      {#if editable}<button type="button" class="btn btn-primary btn-xs" disabled={!dirty || $shown.saving} onclick={() => void view.save()}>{$shown.saving ? 'Saving…' : 'Save'}</button>{/if}
       <button type="button" class="btn btn-ghost btn-xs text-error" aria-label="Delete file" onclick={() => { confirming = true; }}><Icon name="trash" class="size-4" /></button>
     </header>
     {#if $shown.diverged}
@@ -80,7 +81,7 @@
       </div>
     {/if}
   {:else}
-    <p class="m-6 text-sm text-[var(--brand-text-secondary)]">Pick a file to read or edit it. Changes by the AI appear here as they happen.</p>
+    <EmptyState compact icon="file-text" title="Choose a file" body="Pick a file to read or edit it. Changes by the AI appear here as they happen." />
   {/if}
 </section>
 

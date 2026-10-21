@@ -112,31 +112,34 @@ Other projects do not receive them.
 
 ### External database
 
-The Env tab's **Database** section starts with **SQLite (default)**. This uses
-the project's own SQLite file. **Shared database** provisions a PostgreSQL
-schema and login from the database details saved under **Settings → Database**.
-The connection appears in this project's Env as `DATABASE_URL`, with its
-selected TLS setting. A saved public CA certificate appears as
-`DATABASE_SSL_CA`; the project app never receives the administrator's client
-certificate or private key. Mutual TLS client certificates for project apps
-are not supported. Apps that need their own client certificate must set their
-own Env values. The app does not write certificate files.
+The Env tab's **Database** section starts with **SQLite (default)**. It uses
+the project's own SQLite file. Choose PostgreSQL, MySQL or MongoDB to create
+an isolated connection from details saved under **Settings → Database**.
+PostgreSQL and MySQL use `DATABASE_URL`; MongoDB uses `MONGODB_URL`.
+When configured, the public CA is provided as `DATABASE_SSL_CA`.
 
-When Settings has no database configured, the shared choice is unavailable.
-Older PostgreSQL, MySQL/MariaDB and MongoDB connections remain visible as
-read-only legacy details. Choose SQLite or Shared to detach one. No password
-is shown, and the external database and its data are left untouched. New custom
-connections are unavailable. MongoDB connections use `MONGODB_URL`.
+Project apps can read `DATABASE_SSL_CA` as PEM text and pass it to their
+database driver's TLS root certificate setting. The app does not write a
+certificate file. It never sends the administrator's client certificate or
+private key to project apps. Apps needing their own client certificate must
+set their own Env values.
+
+Kinds without saved settings are unavailable in the dropdown. Ask an
+administrator to configure them in Settings. Older PostgreSQL, MySQL/MariaDB
+and MongoDB connections remain visible as read-only legacy details. Choose
+SQLite to detach one. No password is shown, and the external database and its
+data are left untouched. New custom connections are unavailable.
 
 Switching from a shared or legacy connection to SQLite asks for confirmation.
-The app removes this project's connection and its managed database Env values;
-the data stays in its database. A shared schema and role stay on the server.
+The app removes this project's connection and managed database Env values;
+the data stays in its database. Schemas, databases and users stay on servers.
 
 Choose one of these three options:
 
 - **No TLS** uses no TLS.
 - **CA certificate only**
-  verifies the server.
+  verifies the server hostname. Servers with self-signed certificates need
+  that CA uploaded. Older Require and Prefer settings are migrated to CA only.
 - **Full (CA + client certificate)**
   also sends a client certificate.
 
@@ -159,28 +162,29 @@ on the Docker host, try `host.docker.internal`; for another computer, use its
 LAN IP and make sure the database accepts connections from the app host.
 
 Only administrators can open **Settings → Database**
-or change the shared PostgreSQL host, port, database,
-user, password, TLS choice and certificates.
+or change PostgreSQL, MySQL and MongoDB host, port,
+database, user, password, TLS choice and certificates.
 Password and certificate contents are write-only.
 Other Settings pages configure each signed-in
 person's own account. The project database API
-reports whether shared PostgreSQL is available, even
-when the server uses `POSTGRES_ADMIN_URL` as its
-fallback.
+reports which kinds are available. PostgreSQL can use
+`POSTGRES_ADMIN_URL` when no settings are saved.
 
-An administrator saves the shared PostgreSQL host,
+An administrator saves each database kind's host,
 port, database, user, password, TLS choice and
 optional certificates under **Settings → Database**.
 Secret contents are write-only.
 If no saved settings exist, the server can use `POSTGRES_ADMIN_URL` instead.
-Use a dedicated database because enabling shared PostgreSQL revokes `PUBLIC`
+Use a dedicated PostgreSQL database because provisioning revokes `PUBLIC`
 access to the `public` schema for that whole database. The admin account must
-be allowed to create roles and schemas; some managed services limit them.
+be allowed to create roles and schemas; some services limit them. MySQL uses
+a separate database and grants project users access only to it. MongoDB uses
+a separate database and a user with `readWrite` access only to it.
 
-Choosing **Shared database** checks the project's schema and creates it when
-missing. **Reconnect and reset password** reuses the schema and role, and sets
-a new role password. Removing a shared connection keeps its schema, role and
-data.
+Choosing a kind provisions a per-project schema or database and login.
+Reconnecting resets that project's generated password. Switching kinds
+replaces the connection and managed Env values; it never drops the previous
+schema, database, user or data.
 
 The agent receives the connection string as an environment variable, but its
 sandbox cannot connect directly to the database. The test checks access from

@@ -29,19 +29,20 @@ func TestSharedSettingsPasswordIsSealedInSQLite(t *testing.T) {
 	store := NewSharedSettingsStore(db)
 	want := application.StoredSharedSettings{
 		Settings: domain.SharedSettings{
+			Kind: "postgres", TLS: "none",
 			Host: "db", Port: 5432, Database: "workspace", User: "admin", SSLMode: "prefer",
 		},
 		PasswordSealed: sealed,
 	}
-	if err := store.Save(context.Background(), want); err != nil {
+	if err := store.Save(context.Background(), "postgres", want); err != nil {
 		t.Fatal(err)
 	}
-	got, getErr := store.Get(context.Background())
+	got, getErr := store.Get(context.Background(), "postgres")
 	if getErr != nil {
 		t.Fatal(getErr)
 	}
 	var persisted string
-	query := `SELECT password_sealed FROM shared_database_settings WHERE id = 1`
+	query := `SELECT password_sealed FROM shared_database_servers WHERE kind = 'postgres'`
 	if queryErr := db.QueryRowContext(context.Background(), query).Scan(&persisted); queryErr != nil {
 		t.Fatal(queryErr)
 	}

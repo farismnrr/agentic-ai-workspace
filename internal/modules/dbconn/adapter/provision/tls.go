@@ -15,6 +15,7 @@ import (
 var (
 	errInvalidCABundle   = errors.New("invalid CA bundle")
 	errMissingServerCert = errors.New("missing server certificate")
+	errInvalidTLSMode    = errors.New("invalid database TLS mode")
 )
 
 func applyTLS(cfg *pgx.ConnConfig, material TLSMaterial, mode string) error {
@@ -40,17 +41,11 @@ func disableTLS(cfg *pgx.ConnConfig) error {
 }
 
 func configuredTLS(cfg *pgx.ConnConfig, material TLSMaterial, mode string) (*tls.Config, error) {
-	roots, err := rootPool(material.CACert)
+	base, err := BuildTLSConfig("full", cfg.Host, material)
 	if err != nil {
 		return nil, err
 	}
-	certificates, err := clientCertificates(material)
-	if err != nil {
-		return nil, err
-	}
-	base := &tls.Config{
-		MinVersion: tls.VersionTLS12, RootCAs: roots, Certificates: certificates, ServerName: cfg.Host,
-	}
+	roots := base.RootCAs
 	if mode == "allow" || mode == "prefer" || mode == "require" {
 		base.InsecureSkipVerify = true
 	}
@@ -59,6 +54,31 @@ func configuredTLS(cfg *pgx.ConnConfig, material TLSMaterial, mode string) (*tls
 		base.VerifyConnection = func(state tls.ConnectionState) error { return verifyChain(state, roots) }
 	}
 	return base, nil
+}
+
+// BuildTLSConfig creates client TLS settings without reading certificate files.
+func BuildTLSConfig(mode, host string, material TLSMaterial) (*tls.Config, error) {
+	if mode == "none" {
+		return nil, nil
+	}
+	if mode != "ca" && mode != "full" {
+		return nil, errInvalidTLSMode
+	}
+	roots, err := rootPool(material.CACert)
+	if err != nil {
+		return nil, err
+	}
+	certificates := []tls.Certificate(nil)
+	if mode == "full" {
+		certificates, err = clientCertificates(material)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12, RootCAs: roots,
+		Certificates: certificates, ServerName: host,
+	}, nil
 }
 
 func clientCertificates(material TLSMaterial) ([]tls.Certificate, error) {

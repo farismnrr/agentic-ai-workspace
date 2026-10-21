@@ -65,3 +65,26 @@ func TestDetachSQLitePreservesHandTypedDatabaseURLWithoutManagedRecord(t *testin
 		t.Fatalf("hand-typed DATABASE_URL changed: %q", got)
 	}
 }
+
+func TestDetachSQLiteRemovesManagedMongoURLAndLeavesSQLURLAlone(t *testing.T) {
+	store := &memoryStore{records: map[string]StoredConnection{"project-a": {
+		Connection: domain.Connection{Kind: domain.MongoDB, EnvName: "MONGODB_URL", Managed: true},
+	}}}
+	env := &memoryEnvironment{values: map[string]string{
+		"project-a:MONGODB_URL": "mongodb://managed", "project-a:DATABASE_URL": "postgres://user-owned",
+		"project-a:DATABASE_SSL_CA": "ca",
+	}}
+	service, _, _, provisioner := provisionService(t, store, env)
+	if err := service.DetachSQLite(context.Background(), "user-a", "project-a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := env.values["project-a:MONGODB_URL"]; exists {
+		t.Fatal("managed MongoDB URL remains after detach")
+	}
+	if env.values["project-a:DATABASE_URL"] != "postgres://user-owned" {
+		t.Fatal("detach removed an unrelated SQL URL")
+	}
+	if provisioner.calls != 0 {
+		t.Fatal("detach called a provisioner")
+	}
+}

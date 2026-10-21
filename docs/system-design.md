@@ -53,17 +53,18 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **A feature creates only the layers it needs.** Empty folders do not help.
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.
   `modules/dbconn` stores one external database connection, tests it, and can
-  provision a shared PostgreSQL schema and login role through an application
-  port and a pgx adapter. Settings store the admin connection encrypted;
-  `POSTGRES_ADMIN_URL` is the fallback when no saved settings exist.
-  Migration 045 adds the connection's `managed` flag. The project Env tab
-  selects SQLite or shared PostgreSQL. Shared project Env receives the public
-  CA as `DATABASE_SSL_CA` and the selected `sslmode` in `DATABASE_URL`.
+  provision isolated PostgreSQL, MySQL and MongoDB resources through
+  per-kind application ports and adapters. Shared settings are keyed by kind;
+  passwords and certificate material are encrypted. `POSTGRES_ADMIN_URL` is
+  the fallback when no saved PostgreSQL settings exist.
+  Migration 045 adds the connection's `managed` flag. Projects choose SQLite,
+  PostgreSQL, MySQL or MongoDB. SQL kinds use `DATABASE_URL`; MongoDB uses
+  `MONGODB_URL`. Managed project Env receives `DATABASE_SSL_CA` when present.
   Administrator client certificates and keys stay in the server provisioner;
   project app mutual TLS is unsupported. Apps needing their own client
-  certificate must set their own Env values. Detaching a managed connection
-  removes its SSL Env values, including stale client cert/key entries, without
-  dropping remote schemas, roles, databases or data.
+  certificate must set their own Env values. MySQL users are scoped to their
+  project's database; MongoDB users receive `readWrite` on theirs. Detaching
+  removes the managed connection and Env values without dropping remote data.
 
 ### Frontend
 
@@ -83,7 +84,7 @@ web/src/
 The binary hosts its own sign-in and an OAuth 2.1 server, so AI apps can connect without any extra service.
 
 - **Accounts:** email and password with a cookie session. Data lives in SQLite, using a pure-Go driver so the binary stays static. Accounts have `admin` or `user` roles; new accounts default to `user`.
-- **Server settings:** only admins can read full shared PostgreSQL settings or save them. Per-user providers, integrations, preferences and project settings remain owner-scoped.
+- **Server settings:** only admins can read full shared database settings or save them. PostgreSQL, MySQL and MongoDB settings are stored separately; other signed-in users see only which kinds are configured. Per-user providers, integrations, preferences and project settings remain owner-scoped.
 - **Spaces:** each space is an endpoint an AI app can call. The first, `coding`, lets it read, search, change and run things in that app's own project.
 - **Isolation:** every call resolves to one person's project. Nobody can reach another person's files, and two apps never share a folder.
 - **Tokens:** stored hashed and tied to one space. A replayed code or refresh token revokes the whole connection.

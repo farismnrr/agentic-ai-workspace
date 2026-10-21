@@ -12,7 +12,7 @@
   const { items }: Props = $props();
 </script>
 
-<div class="overflow-x-auto card border border-[var(--brand-border)] bg-base-100">
+<div class="overflow-x-auto">
   <table class="table">
     <thead>
       <tr><th>Project</th><th class="hidden sm:table-cell">Needs you</th><th class="hidden md:table-cell">Working</th><th class="hidden md:table-cell">Done</th><th class="text-right">Created</th></tr>

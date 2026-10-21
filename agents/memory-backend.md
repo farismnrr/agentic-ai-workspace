@@ -60,24 +60,31 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
   stay in the server provisioner. Mutual TLS for project apps is unsupported;
   an app that needs its own client certificate must set its own Env values.
   Provision/re-provision and detach remove stale managed `DATABASE_SSL_CERT`
-  and `DATABASE_SSL_KEY` values. Detach removes these with `DATABASE_URL` only
-  when a managed connection exists. Manual project DB
+  and `DATABASE_SSL_KEY` values. Detach removes the managed URL for the
+  selected kind (`DATABASE_URL` or `MONGODB_URL`) only when a managed
+  connection exists. Manual project DB
   writes now return `manual_connection_removed`; saved legacy records remain
   visible and detachable. Detach never invokes the provisioner or drops
-  external data. Projects choose SQLite or Shared; the web still calls
-  `/db/test` for a saved connection, so retain the probe adapters and tests.
-  ProvisionShared, Save, Delete and DetachSQLite share one per-project lock;
+  external data. Projects choose SQLite, PostgreSQL, MySQL or MongoDB; the web
+  still calls `/db/test` for a saved connection, so retain the probe adapters
+  and tests. `POST /db/provision` takes an optional `kind`; an empty body means
+  PostgreSQL for old callers. `GET /db` returns `choice` and keeps legacy
+  metadata read-only. `/api/databases/kinds` includes configured flags and an
+  admin flag. SQL kinds use `DATABASE_URL`; MongoDB uses `MONGODB_URL`.
+  MySQL project users are granted only on their generated database. MongoDB
+  users get `readWrite` on their own database, with that database as authSource.
+  Provision, Save, Delete and DetachSQLite share one per-project lock;
   compensation uses an independent 10-second context and reports
   `compensation_failed` if restoration fails.
   The revoke affects the whole database, so deployments must dedicate it.
-  Admin errors collapse to safe categories including `admin_not_configured`,
+  Admin errors collapse to safe categories including `kind_not_configured`,
   `admin_url_invalid`, `admin_rejected`, `insufficient_privileges` and
   `provision_failed`; require a database name in the admin URL path. Never
-  expose driver details. An unmanaged Env `DATABASE_URL` blocks provisioning
-  when no connection record exists (`env_name_in_use`).
-  The service snapshots the old sealed password and Env value before rotating
-  credentials. If local persistence fails, it restores both; it never drops a
-  schema or role when a connection is removed. `PG_ADMIN_TEST_URL` enables the
+  expose driver details. Unmanaged `DATABASE_URL` or `MONGODB_URL` blocks
+  provisioning when no managed connection exists (`env_name_in_use`).
+  The service snapshots all managed Env values and the old sealed password
+  before rotating or switching kinds. If local persistence fails, it restores
+  both; it never drops a schema, database or user. `PG_ADMIN_TEST_URL` enables the
   optional integration test; it skips when unset and must point to a disposable
   dedicated test database. Connection tests are limited to five per user per
   minute; shared provisioning has a separate limit of ten per user per minute.

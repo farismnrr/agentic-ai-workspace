@@ -8,7 +8,8 @@ export interface EnvVariable {
 }
 
 export interface DatabaseConnection {
-  type: 'postgres' | 'mysql' | 'mongodb';
+  choice: 'sqlite' | 'postgres' | 'mysql' | 'mongodb' | 'custom';
+  type: 'postgres' | 'mysql' | 'mongodb' | '';
   host: string;
   port: number;
   database: string;
@@ -17,8 +18,11 @@ export interface DatabaseConnection {
   envName: string;
   configured: boolean;
   managed: boolean;
-  sharedPostgres?: boolean;
+  readOnly: boolean;
 }
+
+export type DatabaseKind = 'postgres' | 'mysql' | 'mongodb';
+export interface DatabaseKindAvailability { kind: DatabaseKind; configured: boolean; admin: boolean }
 
 export interface TestResult {
   ok: boolean;
@@ -35,8 +39,9 @@ export const deleteVariable = (id: string, name: string): Promise<undefined> =>
   request('DELETE', `${projectPath(id)}/env/${encodeURIComponent(name)}`);
 
 export const getDatabase = (id: string): Promise<DatabaseConnection> => request('GET', `${projectPath(id)}/db`);
+export const getDatabaseKinds = (): Promise<DatabaseKindAvailability[]> => request('GET', '/api/databases/kinds');
 export const detachSQLiteDatabase = (id: string): Promise<undefined> => request('DELETE', `${projectPath(id)}/db/sqlite`);
 export const testDatabase = (id: string): Promise<TestResult> => request('POST', `${projectPath(id)}/db/test`);
 
-export const provisionSharedDatabase = (id: string): Promise<DatabaseConnection> =>
-  request('POST', `${projectPath(id)}/db/shared`);
+export const provisionDatabase = (id: string, kind: DatabaseKind): Promise<DatabaseConnection> =>
+  request('POST', `${projectPath(id)}/db/provision`, { kind });

@@ -30,21 +30,21 @@
   const counts = $derived(Object.fromEntries((Object.keys(groups) as Filter[]).map((key) => [key, all.filter(groups[key]).length])));
 </script>
 
-<div role="tablist" class="flex flex-wrap gap-2" aria-label="Filter tasks">
+<div class="join flex-wrap" role="group" aria-label="Filter tasks">
   {#each Object.keys(groups) as key (key)}
-    <button role="tab" aria-selected={filter === key} class="btn btn-sm min-h-9 rounded-full {filter === key ? 'btn-primary' : 'btn-outline border-[var(--brand-border)]'}" onclick={() => (filter = key as Filter)}>
+    <button type="button" aria-pressed={filter === key} class="join-item btn btn-sm {filter === key ? 'btn-primary' : ''}" onclick={() => (filter = key as Filter)}>
       {labels[key as Filter]} <span class="text-base-content/70">{counts[key]}</span>
     </button>
   {/each}
 </div>
-<div class="mt-3 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
+<div class="mt-3">
   {#if !$loaded}
     <SkeletonList rows={4} />
   {:else}
   {#each rows as task (task.id)}<TaskRow {task} />{:else}
     {#if all.length === 0}
       <EmptyState compact icon="check-square" title={projectsCopy.noTasks.title} body={projectsCopy.noTasks.body}>
-        <a class="btn btn-primary btn-sm rounded-lg" href="/app">New task</a>
+        <a class="btn btn-primary btn-sm" href="/app">New task</a>
       </EmptyState>
     {:else}
       <EmptyState compact icon="search" title="Nothing in “{labels[filter]}”" body="Pick another filter to see the rest of this project's tasks." />

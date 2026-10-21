@@ -8,13 +8,18 @@ import (
 )
 
 func managedEnvNames() []string {
-	return []string{"DATABASE_URL", "DATABASE_SSL_CA", "DATABASE_SSL_CERT", "DATABASE_SSL_KEY"}
+	return []string{"DATABASE_URL", "MONGODB_URL", "DATABASE_SSL_CA", "DATABASE_SSL_CERT", "DATABASE_SSL_KEY"}
 }
 
 func (s *Service) writeProvisionEnvironment(
 	ctx context.Context, projectID string, conn domain.Connection, result ProvisionResult,
-	previousManaged bool,
+	previousManaged bool, previousEnvName string,
 ) error {
+	if previousManaged && previousEnvName != "" && previousEnvName != conn.EnvName {
+		if err := s.env.DeleteSecret(ctx, projectID, previousEnvName); err != nil {
+			return fmt.Errorf("remove previous managed database URL: %w", err)
+		}
+	}
 	if err := s.env.SetSecret(ctx, projectID, conn.EnvName, conn.URLWithSSLMode(result.SSLMode)); err != nil {
 		return fmt.Errorf("save shared database URL: %w", err)
 	}
@@ -55,14 +60,15 @@ func (s *Service) writeInitialCAEnvironment(ctx context.Context, projectID, caCe
 }
 
 func (s *Service) compensate(
-	ctx context.Context, projectID string, previous provisionSnapshot, envName string,
+	ctx context.Context, projectID string, previous provisionSnapshot, _ string,
 ) (bool, bool) {
 	compensationCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), compensationTimeout)
 	defer cancel()
-	failed := s.restoreLocalState(compensationCtx, projectID, previous, envName)
+	failed := s.restoreLocalState(compensationCtx, projectID, previous)
 	remoteFailed := false
 	if previous.restore {
-		if err := s.provisioner.Restore(compensationCtx, projectID, previous.oldPassword); err != nil {
+		provisioner := s.provisioner(previous.connection.Connection.Kind)
+		if provisioner == nil || provisioner.Restore(compensationCtx, projectID, previous.oldPassword) != nil {
 			failed, remoteFailed = true, true
 		}
 	}
@@ -70,10 +76,10 @@ func (s *Service) compensate(
 }
 
 func (s *Service) restoreLocalState(
-	ctx context.Context, projectID string, previous provisionSnapshot, envName string,
+	ctx context.Context, projectID string, previous provisionSnapshot,
 ) bool {
 	connectionFailed := s.restoreConnection(ctx, projectID, previous)
-	environmentFailed := s.restoreEnvironment(ctx, projectID, previous, envName)
+	environmentFailed := s.restoreEnvironment(ctx, projectID, previous)
 	return connectionFailed || environmentFailed
 }
 
@@ -88,14 +94,9 @@ func (s *Service) restoreConnection(ctx context.Context, projectID string, previ
 	return false
 }
 
-func (s *Service) restoreEnvironment(
-	ctx context.Context, projectID string, previous provisionSnapshot, envName string,
-) bool {
+func (s *Service) restoreEnvironment(ctx context.Context, projectID string, previous provisionSnapshot) bool {
 	failed := false
 	for _, name := range managedEnvNames() {
-		if name == "DATABASE_URL" {
-			name = envName
-		}
 		if previous.hadEnv[name] {
 			if err := s.env.SetSecret(ctx, projectID, name, previous.oldEnv[name]); err != nil {
 				failed = true

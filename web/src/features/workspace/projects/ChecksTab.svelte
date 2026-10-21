@@ -76,7 +76,7 @@
 {:else if failed}
   <p class="mt-4 text-error" role="alert">We could not load the checks. Please try again in a moment.</p>
 {:else}
-  <div class="mt-4 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
+  <div class="mt-4">
     <ul class="divide-y divide-[var(--brand-border)]">
       {#each checks as check (check.name)}
         <li class="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -91,8 +91,8 @@
         <li><EmptyState compact icon="check-square" title={projectsCopy.checks.empty.title} body="{projectsCopy.checks.empty.body} For example: {projectsCopy.checks.examples.join(', ')}." /></li>
       {/each}
     </ul>
-    <div class="border-t border-[var(--brand-border)] px-4 py-2.5">
-      <button class="link link-hover text-xs font-medium text-primary" type="button" onclick={() => { open(undefined); }}>+ Add a check</button>
+    <div class="border-t border-[var(--brand-border)] py-3">
+      <button class="btn btn-ghost btn-sm" type="button" onclick={() => { open(undefined); }}><Icon name="plus" class="size-4" /> Add a check</button>
     </div>
   </div>
   {#if error !== '' && !formOpen}<p class="mt-3 text-sm text-error" role="alert">{error}</p>{/if}

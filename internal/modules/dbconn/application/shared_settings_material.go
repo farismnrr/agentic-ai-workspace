@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func (s *SharedSettingsService) previous(ctx context.Context) (StoredSharedSettings, error) {
-	stored, err := s.store.Get(ctx)
+func (s *SharedSettingsService) previous(ctx context.Context, kind string) (StoredSharedSettings, error) {
+	stored, err := s.store.Get(ctx, kind)
 	if err != nil {
 		return StoredSharedSettings{}, fmt.Errorf("load previous shared database settings: %w", err)
 	}

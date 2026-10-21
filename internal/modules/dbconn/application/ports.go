@@ -44,6 +44,11 @@ type Provisioner interface {
 	Configured(context.Context) (bool, error)
 }
 
+// Provisioners resolves the provider selected by a project.
+type Provisioners interface {
+	For(domain.Kind) Provisioner
+}
+
 type ProvisionResult struct {
 	Host, Database, Schema, Role, Password string
 	SSLMode, CACert, ClientCert, ClientKey string
@@ -55,6 +60,7 @@ type ProvisionFailure string
 
 const (
 	AdminNotConfigured     ProvisionFailure = "admin_not_configured"
+	KindNotConfigured      ProvisionFailure = "kind_not_configured"
 	AdminRejected          ProvisionFailure = "admin_rejected"
 	InsufficientPrivileges ProvisionFailure = "insufficient_privileges"
 	ManualConnectionExists ProvisionFailure = "manual_connection_exists"

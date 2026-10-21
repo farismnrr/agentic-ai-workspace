@@ -15,25 +15,84 @@ var (
 
 const MaxPEMBytes = 16 * 1024
 
-var SSLModes = [...]string{"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}
+const (
+	postgresPort = 5432
+	mysqlPort    = 3306
+	mongoPort    = 27017
+)
+
+var (
+	SSLModes = [...]string{
+		"disable", "allow", "prefer", "require", "verify-ca", "verify-full",
+	}
+	SharedKinds = [...]string{
+		"postgres", "mysql", "mongodb",
+	}
+	TLSModes = [...]string{"none", "ca", "full"}
+)
+
+func IsSharedKind(kind string) bool { return validSharedKind(kind) }
+
+func DefaultSharedPort(kind string) int {
+	switch kind {
+	case "postgres":
+		return postgresPort
+	case "mysql":
+		return mysqlPort
+	case "mongodb":
+		return mongoPort
+	default:
+		return 0
+	}
+}
 
 // SharedSettings contains the admin connection used to provision project schemas.
 type SharedSettings struct {
-	Host, Database, User, Password, SSLMode string
-	CACert, ClientCert, ClientKey           string
-	Port                                    int
+	Kind, Host, Database, User, Password, SSLMode, TLS string
+	CACert, ClientCert, ClientKey                      string
+	Port                                               int
 }
 
 func (s SharedSettings) Validate() error {
-	if s.Host == "" || s.Database == "" || s.User == "" || s.Port < 1 || s.Port > 65535 {
+	if !validSharedKind(s.Kind) || !validSharedAddress(s) || !validTLSMode(s.TLS) {
 		return ErrInvalidSharedSettings
 	}
-	for _, mode := range SSLModes {
-		if s.SSLMode == mode {
+	if s.Kind != "postgres" {
+		return nil
+	}
+	return validatePostgresSSLMode(s.SSLMode)
+}
+
+func validSharedAddress(settings SharedSettings) bool {
+	return settings.Host != "" && settings.Database != "" && settings.User != "" &&
+		settings.Port >= 1 && settings.Port <= 65535
+}
+
+func validatePostgresSSLMode(sslMode string) error {
+	for _, candidate := range SSLModes {
+		if sslMode == candidate {
 			return nil
 		}
 	}
 	return ErrInvalidSharedSettings
+}
+
+func validSharedKind(kind string) bool {
+	for _, candidate := range SharedKinds {
+		if kind == candidate {
+			return true
+		}
+	}
+	return false
+}
+
+func validTLSMode(mode string) bool {
+	for _, candidate := range TLSModes {
+		if mode == candidate {
+			return true
+		}
+	}
+	return false
 }
 
 // ValidateCertificates checks the optional CA bundle and matching client pair.

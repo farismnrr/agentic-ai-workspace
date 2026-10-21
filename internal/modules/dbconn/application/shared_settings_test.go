@@ -2,15 +2,8 @@ package application
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
-	"math/big"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/domain"
 )
@@ -23,14 +16,14 @@ func TestSharedSettingsSaveSealsAndRoundTripsReservedPassword(t *testing.T) {
 		Host: "db.example", Port: 5432, Database: "workspace", User: "admin",
 		Password: strings.Join([]string{"p@", "ss:/?% ", `"雪`}, ""), SSLMode: "verify-full",
 	}
-	view, err := service.Save(context.Background(), want)
+	view, err := service.Save(context.Background(), "postgres", want)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertSharedSettingsSaved(t, view, store.record, want.Password)
 	got, configured, err := service.AdminSettings(context.Background())
 	assertAdminSettings(t, got, configured, err, want.Password)
-	view, err = service.Get(context.Background())
+	view, err = service.Get(context.Background(), "postgres")
 	assertPasswordFlag(t, view, err)
 }
 
@@ -64,7 +57,7 @@ func assertPasswordFlag(t *testing.T, view SharedSettingsView, err error) {
 func TestSharedSettingsMissingAndPasswordCanBeKept(t *testing.T) {
 	store := &sharedSettingsMemory{missing: true}
 	service := NewSharedSettingsService(store, sharedSettingsCipher{})
-	if _, err := service.Get(context.Background()); err != nil {
+	if _, err := service.Get(context.Background(), "postgres"); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := service.AdminSettings(context.Background()); err != nil {
@@ -74,95 +67,72 @@ func TestSharedSettingsMissingAndPasswordCanBeKept(t *testing.T) {
 		Host: "db", Port: 5432, Database: "db", User: "admin",
 		Password: strings.Join([]string{"sec", "ret"}, ""), SSLMode: "disable",
 	}
-	if _, err := service.Save(context.Background(), input); err != nil {
+	if _, err := service.Save(context.Background(), "postgres", input); err != nil {
 		t.Fatal(err)
 	}
 	input.Password = ""
-	if _, err := service.Save(context.Background(), input); err != nil {
+	if _, err := service.Save(context.Background(), "postgres", input); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestSharedSettingsKeepsAndRemovesSealedCertificates(t *testing.T) {
-	cert, key := settingsTestCertificate(t)
+func TestSharedSettingsAreSavedIndependentlyByKindWithDefaultPorts(t *testing.T) {
 	store := &sharedSettingsMemory{missing: true}
 	service := NewSharedSettingsService(store, sharedSettingsCipher{})
-	input := certificateSettings(cert, key)
-	saveCertificates(t, service, input, false, false)
-	assertCertificatesSealed(t, store.record, cert, key)
-	input.CACert, input.ClientCert, input.ClientKey, input.Password = "", "", "", ""
-	saveCertificates(t, service, input, false, false)
-	assertCertificateFlags(t, service, true)
-	saveCertificates(t, service, input, true, true)
-	assertCertificateFlags(t, service, false)
-}
-
-func certificateSettings(cert, key string) domain.SharedSettings {
-	return domain.SharedSettings{
-		Host: "db", Port: 5432, Database: "db", User: "admin", Password: "secret",
-		SSLMode: "verify-full", CACert: cert, ClientCert: cert, ClientKey: key,
+	for _, test := range []struct {
+		kind string
+		port int
+	}{
+		{kind: "postgres", port: 5432},
+		{kind: "mysql", port: 3306},
+		{kind: "mongodb", port: 27017},
+	} {
+		input := domain.SharedSettings{
+			Host: test.kind + ".example", Database: "workspace", User: "admin",
+			Password: "secret-" + test.kind, TLS: "none",
+		}
+		view, err := service.Save(context.Background(), test.kind, input)
+		if err != nil {
+			t.Fatalf("save %s: %v", test.kind, err)
+		}
+		if view.Kind != test.kind || view.Port != test.port {
+			t.Fatalf("saved %s view = %+v", test.kind, view)
+		}
 	}
-}
-
-func saveCertificates(
-	t *testing.T, service *SharedSettingsService, input domain.SharedSettings, removeCA, removeClient bool,
-) {
-	t.Helper()
-	if _, err := service.SaveWithRemovals(context.Background(), input, removeCA, removeClient); err != nil {
-		t.Fatal(err)
+	for _, kind := range domain.SharedKinds {
+		configured, err := service.Configured(context.Background(), kind)
+		if err != nil || !configured {
+			t.Fatalf("%s configured=%v err=%v", kind, configured, err)
+		}
 	}
-}
-
-func assertCertificatesSealed(t *testing.T, stored StoredSharedSettings, cert, key string) {
-	t.Helper()
-	if stored.CACertSealed == cert || stored.ClientKeySealed == key {
-		t.Fatal("PEM stored unsealed")
-	}
-}
-
-func assertCertificateFlags(t *testing.T, service *SharedSettingsService, wantSet bool) {
-	t.Helper()
-	view, err := service.Get(context.Background())
-	if err != nil || view.CACertSet != wantSet || view.ClientCertSet != wantSet || view.ClientKeySet != wantSet {
-		t.Fatalf("certificate flags = %+v, err=%v", view, err)
-	}
-}
-
-func settingsTestCertificate(t *testing.T) (string, string) {
-	t.Helper()
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal(err)
-	}
-	now := time.Now()
-	template := &x509.Certificate{
-		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "client"},
-		NotBefore: now.Add(-time.Minute), NotAfter: now.Add(time.Hour),
-		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-	}
-	der, err := x509.CreateCertificate(rand.Reader, template, template, &privateKey.PublicKey, privateKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
-	key := x509.MarshalPKCS1PrivateKey(privateKey)
-	return string(cert), string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: key}))
 }
 
 type sharedSettingsMemory struct {
+	records map[string]StoredSharedSettings
 	record  StoredSharedSettings
 	missing bool
 }
 
-func (s *sharedSettingsMemory) Get(context.Context) (StoredSharedSettings, error) {
+func (s *sharedSettingsMemory) Get(_ context.Context, kind string) (StoredSharedSettings, error) {
+	if s.records != nil {
+		record, ok := s.records[kind]
+		if !ok {
+			return StoredSharedSettings{}, ErrSharedSettingsMissing
+		}
+		return record, nil
+	}
 	if s.missing {
 		return StoredSharedSettings{}, ErrSharedSettingsMissing
 	}
 	return s.record, nil
 }
 
-func (s *sharedSettingsMemory) Save(_ context.Context, record StoredSharedSettings) error {
+func (s *sharedSettingsMemory) Save(_ context.Context, kind string, record StoredSharedSettings) error {
 	s.record = record
+	if s.records == nil {
+		s.records = make(map[string]StoredSharedSettings)
+	}
+	s.records[kind] = record
 	s.missing = false
 	return nil
 }

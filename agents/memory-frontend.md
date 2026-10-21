@@ -22,14 +22,12 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
 18. A keyed `{#each ... (item.text)}` over data the server or an agent produces must never key on content that can repeat. Svelte 5 throws `each_key_duplicate` and the whole block stops updating, with no visible error: the Proof tab showed Plan or Changes instead because a task ran the same `gh` command twice (two checks with the same text). Key lists of generated text by position (`as item, index (index)`) or by an id the server made; keep content keys only for fixed sets. To catch it, load a task whose data repeats and watch the page's console for `svelte.dev/e/each_key_duplicate`.
 - **Project Env and databases.** The project detail page owns Env and passes
   its ID to `projects/env/VariablesSection.svelte` and `DatabaseSection.svelte`.
-  Settings has no Env tab or project picker. `DatabaseSection` reads the
-  project DB API's `sharedPostgres` flag to disable Shared when unavailable;
-  this includes the server's `POSTGRES_ADMIN_URL` fallback. The only choices
-  are SQLite and Shared. Old custom connections show as read-only legacy data;
-  switching detaches only local metadata and managed Env values, never remote
-  schemas, roles or data. Shared SSL values use `DATABASE_SSL_CA`,
-  `DATABASE_SSL_CERT` and `DATABASE_SSL_KEY`; the app does not write files.
-  Responses never reveal saved secrets. `env-logic.test.ts` uses Vitest;
+  Settings has no Env tab or project picker. `DatabaseSection` offers SQLite
+  plus configured PostgreSQL, MySQL and MongoDB choices; unconfigured kinds are
+  disabled, and old custom connections stay read-only. Switching detaches only
+  local metadata and managed Env values, never remote databases or data.
+  Projects receive `DATABASE_SSL_CA` when configured, never the client cert or
+  key. Responses never reveal saved secrets. `env-logic.test.ts` uses Vitest;
   `make frontend-verify` runs `npm test` locally and in Fast CI.
 - **Admin Settings.** Session `/api/auth/me` includes `role`. Hide the shared
   Database tab for users and redirect direct SPA visits; backend authorization
@@ -47,4 +45,7 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
 - **UI cleanup is reuse-only.** Search for existing feature and shared
   components, then use daisyUI patterns before writing markup. Avoid scoped CSS
   and arbitrary size utilities; keep the established controls, sizes and theme.
+- **Visual checks need screenshots.** Compare affected workspace pages before
+  and after with `scripts/shots.sh`; inspect every desktop and mobile capture.
+  Source review alone misses overflow, excess surfaces and spacing drift.
 

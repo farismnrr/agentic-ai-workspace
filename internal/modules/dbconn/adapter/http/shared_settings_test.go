@@ -77,7 +77,7 @@ func TestSharedSettingsRejectInvalidPortAndSSLMode(t *testing.T) {
 	admin := func(c fiber.Ctx) error { httpserver.SetRole(c, "admin"); return c.Next() }
 	NewSharedSettingsHandler(service).Mount(httpserver.RequireSession(testSessions{}), continueRequest, admin, admin)(app)
 	for _, body := range []string{
-		`{"host":"db","port":0,"database":"workspace","user":"admin","password":"secret","sslMode":"prefer"}`,
+		`{"host":"db","port":70000,"database":"workspace","user":"admin","password":"secret","sslMode":"prefer"}`,
 		`{"host":"db","port":5432,"database":"workspace","user":"admin","password":"secret","sslMode":"unknown"}`,
 		`{"host":"db","port":5432,"database":"workspace","user":"admin",` +
 			`"password":"secret","sslMode":"prefer","caCert":"bad PEM"}`,
@@ -99,7 +99,7 @@ func TestSharedSettingsRejectInvalidPortAndSSLMode(t *testing.T) {
 
 func TestSharedSettingsNonAdminGetsConfiguredOnlyAndCannotSave(t *testing.T) {
 	store := &sharedSettingsHTTPStore{record: application.StoredSharedSettings{
-		PasswordSealed: "sealed:password", Settings: domain.SharedSettings{Host: "db.example"},
+		PasswordSealed: "sealed:password", Settings: domain.SharedSettings{Kind: "postgres", Host: "db.example"},
 	}}
 	service := application.NewSharedSettingsService(store, testCipher{})
 	app := fiber.New()
@@ -109,23 +109,25 @@ func TestSharedSettingsNonAdminGetsConfiguredOnlyAndCannotSave(t *testing.T) {
 	NewSharedSettingsHandler(service).Mount(
 		httpserver.RequireSession(testSessions{}), continueRequest, user, adminOnly,
 	)(app)
-	get := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/settings/database", nil)
-	get.AddCookie(secureSessionCookie())
-	response, err := app.Test(get)
-	if err != nil {
-		t.Fatal(err)
-	}
-	body, _ := io.ReadAll(response.Body)
-	_ = response.Body.Close()
-	if response.StatusCode != http.StatusOK || string(body) != `{"configured":true}` {
-		t.Fatalf("non-admin GET = %d %s", response.StatusCode, body)
+	for _, path := range []string{"/api/settings/database", "/api/settings/database/postgres"} {
+		get := httptest.NewRequestWithContext(context.Background(), http.MethodGet, path, nil)
+		get.AddCookie(secureSessionCookie())
+		response, err := app.Test(get)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(response.Body)
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusOK || string(body) != `{"configured":true}` {
+			t.Fatalf("non-admin GET %s = %d %s", path, response.StatusCode, body)
+		}
 	}
 	put := httptest.NewRequestWithContext(
 		context.Background(), http.MethodPut, "/api/settings/database", strings.NewReader(`{}`),
 	)
 	put.Header.Set("Content-Type", "application/json")
 	put.AddCookie(secureSessionCookie())
-	response, err = app.Test(put)
+	response, err := app.Test(put)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,14 +148,14 @@ type sharedSettingsHTTPStore struct {
 	record application.StoredSharedSettings
 }
 
-func (s *sharedSettingsHTTPStore) Get(context.Context) (application.StoredSharedSettings, error) {
+func (s *sharedSettingsHTTPStore) Get(_ context.Context, _ string) (application.StoredSharedSettings, error) {
 	if s.record.PasswordSealed == "" {
 		return application.StoredSharedSettings{}, application.ErrSharedSettingsMissing
 	}
 	return s.record, nil
 }
 
-func (s *sharedSettingsHTTPStore) Save(_ context.Context, record application.StoredSharedSettings) error {
+func (s *sharedSettingsHTTPStore) Save(_ context.Context, _ string, record application.StoredSharedSettings) error {
 	s.record = record
 	s.record.Settings.Password = ""
 	return nil

@@ -53,15 +53,15 @@
         <h1 class="text-xl font-semibold tracking-tight">{project.name}</h1>
         {#if project.description !== ''}<p class="text-[var(--brand-text-secondary)]">{project.description}</p>{/if}
       </div>
-      <button class="btn btn-primary btn-sm rounded-lg" type="button" onclick={newTask}><Icon name="plus" class="size-4" /> New task</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick={newTask}><Icon name="plus" class="size-4" /> New task</button>
     </div>
-    <div role="tablist" class="tabs tabs-border mt-6 border-b border-[var(--brand-border)]">
+    <div role="tablist" class="tabs tabs-border mt-6">
       {#each tabs as item (item.id)}
         <button role="tab" class="tab {tab === item.id ? 'tab-active font-medium' : ''}" aria-selected={tab === item.id} onclick={() => (tab = item.id)}>{item.label}</button>
       {/each}
     </div>
     <div class="mt-4">
-      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'env'}{#key projectId}<VariablesSection {projectId} revision={variableRevision} /><DatabaseSection {projectId} onenvchange={refreshVariables} />{/key}{:else}<AboutTab {project} />{/if}
+      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'env'}{#key projectId}<VariablesSection {projectId} revision={variableRevision} /><div class="border-t border-base-300"><DatabaseSection {projectId} onenvchange={refreshVariables} /></div>{/key}{:else}<AboutTab {project} />{/if}
     </div>
   {/if}
 </AppShell>

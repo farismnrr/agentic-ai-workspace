@@ -124,6 +124,9 @@ Every empty list, panel or page uses the shared empty state:
 
 The signed-in app lives under `/app` and uses a compact scale: 14px text, small radii, sans headings, flat rows with hairlines, no card shadows. Only the composer and popups float.
 
+Forms and detail sections reuse `SettingsSection` and `FormField`; lists stay
+flat and use shared empty states instead of nested cards.
+
 - **Pages:** Home, Inbox, Projects, a project, a task, Settings.
 - **Sidebar:** icon rail on desktop, drawer on tablets.
 - **Phones:** below the `md` breakpoint, a bottom bar with Home, Inbox, Projects, Sites and Settings (daisyUI `dock`, with counts). The menu button still opens the sidebar.
