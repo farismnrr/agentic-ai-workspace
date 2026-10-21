@@ -45,7 +45,7 @@ Tasks and commands run inside `platform/sandbox`, which starts one throwaway Doc
 
 **Not covered.** Disk quotas (the watcher polls once a second, so use filesystem quotas for a hard limit); data smuggled out inside requests to an allowed registry (it has no credentials, but a request can still carry bytes); and the host kernel and Docker daemon, which a container always shares with the host. Whoever controls the Docker socket controls the host, so Docker rootless mode is the recommended mitigation.
 
-Web apps the AI starts (`modules/site`) use the same sandbox with a long-lived container, reached through a Unix socket by a `/run/<project-id>/` proxy on the same port. See `docs/sites.md` for the isolation layers. The app's port is exposed as a Unix socket (`socat`, started by `sandbox-entry` when `SITE_PORT` is set) in `DATA_DIR/sites`, mounted at `/run/site`. Sites live in the `sites` table and reset at startup, because containers do not survive a restart.
+Web apps the AI starts (`modules/site`) use the same sandbox with a long-lived container, reached through a Unix socket by a `/run/<project-id>/` proxy on the same port. See `docs/sites.md` for the isolation layers. The app's port is exposed as a Unix socket (`socat`, started by `sandbox-entry` when `SITE_PORT` is set) in `DATA_DIR/sites`, mounted at `/run/site`. Sites live in the `sites` table and reset at startup, because containers do not survive a restart. For a private site the proxy keeps the app's cookies in an in-memory jar (`adapter/http/jar.go`), so a sandboxed page can stay signed in without any browser cookie.
 
 ## The agent loop
 

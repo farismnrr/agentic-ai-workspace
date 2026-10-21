@@ -31,8 +31,10 @@ type Service interface {
 type Handler struct {
 	service Service
 	auth    httpserver.Authenticator
-	// bindIP also ties tickets to the visitor's address. It is only meaningful when the server can see
-	// the real client address (CLIENT_IP_HEADER behind a proxy); otherwise it would vary or be shared.
+	jar     *cookieJar
+	// previewDomain enables per-project hosts. bindIP also ties tickets to the visitor's address; it is only
+	// meaningful when the server can see the real client address (CLIENT_IP_HEADER behind a proxy), otherwise
+	// it would vary or be shared.
 	previewDomain string
 	bindIP        bool
 }
@@ -40,7 +42,7 @@ type Handler struct {
 // NewHandler builds the adapter. auth is only used to recognise the owner on /run, where a
 // missing login is not an error.
 func NewHandler(service Service, auth httpserver.Authenticator, bindIP bool) *Handler {
-	return &Handler{service: service, auth: auth, bindIP: bindIP}
+	return &Handler{service: service, auth: auth, bindIP: bindIP, jar: newCookieJar()}
 }
 
 // WithPreviewDomain enables authenticated app sessions only on per-project preview hosts.

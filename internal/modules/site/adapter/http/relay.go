@@ -21,6 +21,7 @@ const (
 // the preview the AI looks at sends it through the viewer.
 type relayRequest struct {
 	Header   http.Header
+	Jar      *jarSession
 	Socket   string
 	Method   string
 	Path     string
@@ -57,12 +58,18 @@ func relay(ctx context.Context, in relayRequest) (relayAnswer, *relayFailure) {
 	req.Header = forSiteRequest(in.Header, in.Prefix, in.ClientIP, in.Preview)
 	req.Host = "site"
 
+	if cookie := in.Jar.header(in.Path); cookie != "" {
+		req.Header.Set("Cookie", cookie)
+	}
+
 	resp, err := runtime.Client(in.Socket, requestTimeout).Do(req)
 	if err != nil {
 		return relayAnswer{}, &relayFailure{status: http.StatusBadGateway, text: "The app is not answering."}
 	}
 
 	defer func() { _ = resp.Body.Close() }()
+
+	in.Jar.record(in.Path, resp.Header.Values("Set-Cookie"))
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponse+1))
 	if err != nil || len(body) > maxResponse {
