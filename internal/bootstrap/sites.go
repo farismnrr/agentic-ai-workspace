@@ -96,7 +96,7 @@ func newAgentAndSites(
 		return nil, nil, nil, nil, err
 	}
 
-	filesMount := newFiles(projects, tools, hub, auth, sameOrigin)
+	filesMount := newFiles(projects, tools, hub, sess, auth, sameOrigin)
 
 	return tasks, sites, []httpserver.Mount{siteMount, extensionMount, agentMount, filesMount}, stop, nil
 }

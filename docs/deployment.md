@@ -12,6 +12,15 @@ Install, update, back up and configure the app. To learn what it does, read [usi
 
 All three need Docker, because the AI's commands run in short-lived containers. Without Docker the app still works, but checks can't run. The app opens on `http://localhost:8081`.
 
+If a reverse proxy sits in front of the app, allow request bodies up to about
+101 MB for `POST /api/projects/:id/uploads`. Large multipart parts spool to the
+system temporary directory (`TMPDIR`); keep about 100 MB free there during an
+upload. Uploads do not have a per-project storage quota.
+
+The larger request allowance is selected before sign-in checks, based on the
+presence of a Cookie header. A large request can therefore use temporary disk
+space before the app rejects an unsigned or unauthorized request.
+
 Before you start:
 
 ```bash

@@ -19,6 +19,20 @@ Pin a task from its sidebar row to keep it in **Pinned** above Recent.
 Pinned tasks stay there across projects and reloads. Choose the pin button
 again to remove it; the task then returns to Recent.
 
+## Attach files to a task
+
+Use the paper-clip, drag files onto the message box, or paste an image. You can
+attach up to 10 files to one message. Photos show thumbnails; other files show
+their name and size. Remove a file with its button before sending.
+
+Photos (PNG, JPEG, WebP, GIF, SVG), PDF and text files (TXT, Markdown, CSV,
+JSON, LOG) can be up to 25 MB each. Videos (MP4, WebM, MOV) can be up to
+100 MB. The app checks file contents as well as the filename.
+
+Files are saved in the project's `uploads/` folder and appear in the Files tab.
+Videos can play and seek there, but the AI cannot watch or understand them.
+The AI can inspect PNG photos and read PDFs and text files from the project.
+
 ## Your first task
 
 1. Add a model under Settings, AI models (see [Models](#models)).

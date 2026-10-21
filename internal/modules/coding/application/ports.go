@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
@@ -10,6 +11,8 @@ import (
 // Writer changes files inside the workspace. Implementations must refuse to
 // reach outside the workspace root, just like the read side.
 type Writer interface {
+	// Create writes a new file from a stream, refuses overwrite, and removes partial data on error.
+	Create(rel string, src io.Reader) error
 	// WriteFile replaces or creates a file atomically, creating missing folders.
 	WriteFile(rel string, data []byte) error
 	// Remove deletes one file.

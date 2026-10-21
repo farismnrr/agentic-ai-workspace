@@ -61,6 +61,7 @@
     'log-out': 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
     pin: 'M16 3l5 5-4 1-4 4v5l-2 2-2-7-5-5 2-2 5 5 4-4zM7 17l-4 4',
     'pin-filled': 'M16 3l5 5-4 1-4 4v5l-2 2-2-7-5-5 2-2 5 5 4-4z',
+    video: 'M15 10l5-3v10l-5-3M4 6h11v12H4z',
   };
 
   const { name, class: className = 'size-5' }: Props = $props();

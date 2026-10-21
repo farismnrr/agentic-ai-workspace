@@ -95,6 +95,7 @@ linters:
       local-replace-directives: true
       allowed:
         - module: github.com/gofiber/fiber/v3
+        - module: github.com/valyala/fasthttp
         - module: github.com/modelcontextprotocol/go-sdk
         - module: github.com/golang-jwt/jwt/v5
         - module: modernc.org/sqlite

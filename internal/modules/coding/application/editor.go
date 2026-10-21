@@ -1,8 +1,6 @@
 package application
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
@@ -98,57 +96,6 @@ func (e *Editor) Write(raw, content string) (Applied, error) {
 	return Applied{Detail: fmt.Sprintf("wrote %d bytes", len(content)), Change: change}, nil
 }
 
-// Delete removes one file, keeping a backup.
-func (e *Editor) Delete(raw string) (Applied, error) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	rel, current, err := e.load(raw)
-	if err != nil {
-		return Applied{}, err
-	}
-
-	backup, err := e.backup(current)
-	if err != nil {
-		return Applied{}, err
-	}
-
-	if err := e.writer.Remove(rel); err != nil {
-		return Applied{}, fmt.Errorf("delete %s: %w", rel, err)
-	}
-
-	change := domain.Change{Op: domain.OpDelete, Path: rel, Existed: true, BackupID: backup}
-
-	return Applied{Detail: "deleted", Change: change}, nil
-}
-
-// DeleteFolder removes a folder and everything in it. It is for the person's own file browser: unlike a single
-// file, a folder is not backed up, so the page asks first and says it cannot be undone. The tools never call it.
-func (e *Editor) DeleteFolder(raw string) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	rel, err := writablePath(raw)
-	if err != nil {
-		return err
-	}
-
-	entry, err := e.files.Stat(rel)
-	if err != nil {
-		return fmt.Errorf("stat %s: %w", rel, err)
-	}
-
-	if !entry.Dir {
-		return domain.ErrNotDir
-	}
-
-	if err = e.writer.RemoveAll(rel); err != nil {
-		return fmt.Errorf("delete folder %s: %w", rel, err)
-	}
-
-	return nil
-}
-
 // Move renames a file without ever overwriting.
 func (e *Editor) Move(rawFrom, rawTo string) (Applied, error) {
 	e.mu.Lock()
@@ -190,10 +137,4 @@ func writablePath(raw string) (string, error) {
 	}
 
 	return rel, nil
-}
-
-func hashOf(data []byte) string {
-	sum := sha256.Sum256(data)
-
-	return hex.EncodeToString(sum[:])
 }

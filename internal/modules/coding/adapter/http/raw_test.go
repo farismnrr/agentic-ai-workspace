@@ -49,6 +49,11 @@ func TestAFileIsServedAsItIsAndNeverAsAPage(t *testing.T) {
 	app, root := newApp(t)
 	write(t, root, "documents/deck.pptx", "PK-pptx")
 	write(t, root, "documents/a.pdf", "%PDF-1.7")
+	write(t, root, "documents/a.mp4", "mp4")
+	write(t, root, "documents/a.webm", "webm")
+	write(t, root, "documents/a.mov", "mov")
+	write(t, root, "documents/a.svg", "<svg></svg>")
+	write(t, root, "documents/a.txt", "hello")
 	write(t, root, "documents/x.html", "<script>1</script>")
 
 	const pptx = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -57,6 +62,11 @@ func TestAFileIsServedAsItIsAndNeverAsAPage(t *testing.T) {
 		{"documents/deck.pptx", pptx, "attachment"},
 		{"documents/a.pdf", "application/pdf", "inline"},
 		{"documents/a.pdf&download=1", "application/pdf", "attachment"},
+		{"documents/a.mp4", "video/mp4", "inline"},
+		{"documents/a.webm", "video/webm", "inline"},
+		{"documents/a.mov", "video/quicktime", "inline"},
+		{"documents/a.svg", "image/svg+xml", "attachment"},
+		{"documents/a.txt", "text/plain; charset=utf-8", "attachment"},
 		{"documents/x.html", "application/octet-stream", "attachment"},
 	}
 
@@ -70,6 +80,9 @@ func TestAFileIsServedAsItIsAndNeverAsAPage(t *testing.T) {
 
 		if header.Get("X-Content-Type-Options") != "nosniff" || header.Get("Content-Security-Policy") == "" {
 			t.Errorf("%s: missing protective headers: %q", tc.target, header)
+		}
+		if header.Get("Accept-Ranges") != "bytes" {
+			t.Errorf("%s: Accept-Ranges = %q", tc.target, header.Get("Accept-Ranges"))
 		}
 	}
 }

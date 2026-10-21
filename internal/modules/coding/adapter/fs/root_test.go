@@ -2,6 +2,7 @@ package fs_test
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -91,6 +92,30 @@ func TestReadFindsContent(t *testing.T) {
 	file, err := workspace(t).Read("src/util.go")
 	if err != nil || file.Content != "package src\n// hello helper\n" {
 		t.Fatalf("normal read failed: %q %v", file.Content, err)
+	}
+}
+
+func TestOpenReturnsConfinedSeekableFileAndRejectsDirectories(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	root, err := fs.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(t, dir, "clip.mp4", "video")
+	file, size, err := root.Open("clip.mp4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = file.Close() }()
+	if size != 5 {
+		t.Fatalf("size = %d", size)
+	}
+	if _, err := io.ReadAll(file); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := root.Open("."); !errors.Is(err, domain.ErrIsDir) {
+		t.Fatalf("directory open error = %v", err)
 	}
 }
 

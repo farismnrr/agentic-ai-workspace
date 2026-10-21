@@ -52,4 +52,5 @@ export type IconName =
   | 'user'
   | 'log-out'
   | 'pin'
-  | 'pin-filled';
+  | 'pin-filled'
+  | 'video';

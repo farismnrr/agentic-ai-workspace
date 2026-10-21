@@ -2,7 +2,7 @@
   import { onDestroy, untrack } from 'svelte';
   import type { Readable } from 'svelte/store';
   import ComposerBox from '../components/ComposerBox.svelte';
-  import { uploadAssets, withAttachments } from '../logic/attachments';
+  import { uploadAttachments, withAttachments, type Attachment } from '../logic/attachments';
   import { findProject } from '../logic/derive';
   import { describeTaskError } from '../logic/task-errors';
   import { createController } from '../logic/task-actions';
@@ -39,23 +39,39 @@
   const canWrite = $derived($task?.status === 'review' || $task?.status === 'done' || $task?.status === 'failed');
   let view = $state<View>('chat');
   let follow = $state('');
-  let files = $state<File[]>([]);
+  let attachments = $state<Attachment[]>([]);
   let uploadError = $state('');
+  let uploadBusy = $state(false);
+  let uploadProgress = $state('');
   const panelTab = $derived<PanelTab>(view === 'chat' ? 'plan' : view);
 
   const controller = createController(id, thread);
   const error: Readable<string> = controller.error;
 
   async function sendFollowUp(text: string): Promise<void> {
+    if (uploadBusy) return;
+    uploadBusy = true;
     uploadError = '';
+    uploadProgress = attachments.length > 0 ? `Uploading 0 of ${String(attachments.length)}…` : '';
     try {
-      const saved = await uploadAssets(projectId, files);
-      if (await controller.follow(withAttachments(text, saved))) {
+      attachments = await uploadAttachments(projectId, attachments, (completed, total) => {
+        uploadProgress = `Uploading ${String(completed)} of ${String(total)}…`;
+      });
+      if (attachments.some((item) => item.path === undefined)) {
+        uploadProgress = '';
+        return;
+      }
+      if (attachments.length > 0) uploadProgress = `${String(attachments.length)} files uploaded`;
+      const paths = attachments.flatMap((item) => (item.path === undefined ? [] : [item.path]));
+      if (await controller.follow(withAttachments(text, paths))) {
         follow = '';
-        files = [];
+        attachments = [];
       }
     } catch (failure) {
       uploadError = describeTaskError(failure);
+    } finally {
+      uploadBusy = false;
+      if (attachments.every((item) => item.path !== undefined)) uploadProgress = '';
     }
   }
 
@@ -94,8 +110,10 @@
               placeholder={canWrite ? 'Ask for a change or add details…' : 'You can write again once the AI has finished or stopped.'}
               bind:text={follow}
               disabled={!canWrite}
+              busy={uploadBusy}
+              {uploadProgress}
               error={uploadError || $error}
-              bind:files
+              bind:attachments
               attachable
               onsend={(text: string) => void sendFollowUp(text)}
             />

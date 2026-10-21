@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"io"
 	nethttp "net/http"
-	"path"
-	"strings"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -15,7 +13,6 @@ import (
 const (
 	assetsFolder = "assets/"
 	svgSniffSize = 1024 // how much of the start of a file is searched for "<svg"
-	maxNameRunes = 40
 )
 
 // pictureTypes are the kinds of picture a person may add, found by looking at the bytes, never the file name.
@@ -39,25 +36,7 @@ func pictureExt(data []byte) string {
 
 // assetName turns the uploaded name into a short safe file name under assets/, with the extension we found.
 func assetName(given, ext string) string {
-	base := strings.TrimSuffix(path.Base(strings.ReplaceAll(given, "\\", "/")), path.Ext(given))
-
-	var kept strings.Builder
-
-	for _, r := range strings.ToLower(base) {
-		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
-			kept.WriteRune(r)
-		case r == '-' || r == '_' || r == ' ' || r == '.':
-			kept.WriteByte('-')
-		}
-	}
-
-	name := strings.Trim(kept.String(), "-")
-	if name == "" {
-		name = "picture"
-	}
-
-	return assetsFolder + name[:min(len(name), maxNameRunes)] + ext
+	return assetsFolder + domain.SafeBase(given, "picture") + ext
 }
 
 // upload saves one picture the person attached into the project's assets/ folder. It never replaces a file.

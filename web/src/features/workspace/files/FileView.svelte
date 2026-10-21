@@ -17,8 +17,18 @@
   const { view, projectId, onback, ondeleted }: Props = $props();
   // A view never changes for the life of this component: the browser makes a new one per project.
   const shown = untrack(() => view.state);
+  const binaryPreview = $derived(
+    $shown.file?.binary === true ||
+      ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov']
+        .includes($shown.path?.split('.').pop()?.toLowerCase() ?? ''),
+  );
   const dirty = $derived($shown.file !== undefined && $shown.draft !== $shown.file.content);
-  const editable = $derived($shown.file !== undefined && !$shown.file.binary && !$shown.file.truncated);
+  const editable = $derived($shown.file !== undefined && !binaryPreview && !$shown.file.truncated);
+  const deleteWarning = $derived(
+    binaryPreview || $shown.file?.truncated === true
+      ? 'This file is removed permanently and cannot be restored with Undo. Keep a copy if unsure.'
+      : 'It is removed from the project. The AI or you can bring it back with Undo while its change is listed.',
+  );
   let confirming = $state(false);
 
   // On the window, not the section: pressing a button in it (Keep mine) can remove that button and with it the focus.
@@ -61,7 +71,7 @@
     {#if $shown.error !== ''}<div class="alert alert-error alert-soft m-2 text-sm" role="alert">{$shown.error}</div>{/if}
     {#if $shown.loading}
       <div class="grid flex-1 place-items-center"><span class="loading loading-spinner"></span></div>
-    {:else if $shown.file?.binary === true}
+    {:else if binaryPreview}
       <BinaryFile {projectId} path={$shown.path} />
     {:else if $shown.file !== undefined}
       {#if $shown.file.truncated}<p class="mx-3 mt-2 text-xs text-[var(--brand-text-secondary)]">This file is large, so only the start is shown and it cannot be edited here.</p>{/if}
@@ -74,4 +84,4 @@
   {/if}
 </section>
 
-<ConfirmModal open={confirming} title="Delete this file?" body="It is removed from the project. The AI or you can bring it back with Undo only while its change is listed, so keep a copy if unsure." confirmLabel="Delete" cancelLabel="Keep" oncancel={() => { confirming = false; }} onconfirm={() => void remove()} />
+<ConfirmModal open={confirming} title={`Delete ${$shown.path?.split('/').pop() ?? 'this file'}?`} body={deleteWarning} confirmLabel="Delete" cancelLabel="Keep" oncancel={() => { confirming = false; }} onconfirm={() => void remove()} />

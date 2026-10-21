@@ -3,6 +3,7 @@ package application
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -19,6 +20,8 @@ type FileSystem interface {
 	ReadDir(rel string) ([]domain.Entry, error)
 	// ReadFile returns at most max bytes and whether more were available.
 	ReadFile(rel string, max int64) (data []byte, truncated bool, err error)
+	// Open returns a confined, seekable file and its size; directories are refused.
+	Open(rel string) (io.ReadSeekCloser, int64, error)
 	// Walk visits files under rel; returning ErrSkipDir from visit skips a directory.
 	Walk(rel string, visit func(entry domain.Entry) error) error
 }

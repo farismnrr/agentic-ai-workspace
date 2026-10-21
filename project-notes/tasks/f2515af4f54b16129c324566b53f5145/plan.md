@@ -2,21 +2,19 @@
 
 Task: f2515af4f54b16129c324566b53f5145
 Status: working
-Updated: 2026-10-21T04:18:56Z
+Updated: 2026-10-21T05:54:09Z
 
 Reference material; confirm applicability before reusing.
 
-- [done] Researcher, Planner, PRD approval, build references
+- [done] Researcher, Planner, PRD approval, build references, Architect design
   
-- [done] Developer: loading screen + skeletons
+- [done] Developer: upload endpoint, video playback, composer picker/thumbnails, drag-drop/paste, prompt hints, docs
   
-- [done] Developer: pin backend
-  
-- [done] Developer: Pinned group + pin button, docs, full verify
-  
-- [done] Security and QA checks
+- [done] Security (fix round done) and QA
   
 - [done] DevOps: start app
+  
+- [done] Reviewer: design review of composer and Files tab
   
 - [done] DevOps: commit and push
   
