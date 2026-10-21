@@ -11,9 +11,6 @@ import (
 
 // forward sends the request to the app through its socket and writes the answer back,
 // filtered. The app sees the path without the /run/<name> prefix, and the links of its pages get it back.
-func (h *Handler) forward(c fiber.Ctx, site domain.Site, rest, prefix string) error {
-	return h.forwardPreview(c, site, rest, prefix, false)
-}
 func (h *Handler) forwardPreview(c fiber.Ctx, site domain.Site, rest, prefix string, preview bool) error {
 	out, err := relay(c.Context(), relayRequest{
 		Socket: h.service.Socket(site.ProjectID), Method: c.Method(), Path: rest,

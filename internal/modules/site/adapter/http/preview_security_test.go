@@ -38,7 +38,8 @@ func TestDedicatedPreviewResponseSetsOnlyHostScopedAppCookies(t *testing.T) {
 	if out.Get("Access-Control-Allow-Origin") != "" {
 		t.Fatal("wildcard CORS on auth preview")
 	}
-	if strings.Contains(out.Get("Content-Security-Policy"), "sandbox") || !strings.Contains(out.Get("Content-Security-Policy"), "frame-ancestors 'none'") {
+	if strings.Contains(out.Get("Content-Security-Policy"), "sandbox") ||
+		!strings.Contains(out.Get("Content-Security-Policy"), "frame-ancestors 'none'") {
 		t.Fatalf("wrong preview CSP: %v", out.Get("Content-Security-Policy"))
 	}
 	legacy := forSiteResponse(in, "/run/pukat-app", "/run/pukat-app", false)
@@ -52,7 +53,9 @@ func TestPreviewDomainMustMatchProject(t *testing.T) {
 	if !h.isPreviewHost("pukat-app.preview.example.net", "pukat-app") {
 		t.Fatal("valid project host rejected")
 	}
-	for _, host := range []string{"evil.preview.example.net", "pukat-app.preview.example.net.evil.com", "workspace.example.net"} {
+	for _, host := range []string{
+		"evil.preview.example.net", "pukat-app.preview.example.net.evil.com", "workspace.example.net",
+	} {
 		if h.isPreviewHost(host, "pukat-app") {
 			t.Fatalf("unexpected project host %q", host)
 		}

@@ -33,8 +33,8 @@ type Handler struct {
 	auth    httpserver.Authenticator
 	// bindIP also ties tickets to the visitor's address. It is only meaningful when the server can see
 	// the real client address (CLIENT_IP_HEADER behind a proxy); otherwise it would vary or be shared.
-	bindIP        bool
 	previewDomain string
+	bindIP        bool
 }
 
 // NewHandler builds the adapter. auth is only used to recognise the owner on /run, where a

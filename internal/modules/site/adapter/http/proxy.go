@@ -1,7 +1,6 @@
 package http
 
 import (
-	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 	"net"
 	"net/url"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 )
 
 // serve answers one request under /run/<name>/. Every answer, errors included,
@@ -24,19 +24,9 @@ func (h *Handler) serve(c fiber.Ctx) error {
 		ticket, rest = splitTicket(rest)
 	}
 
-	preview := h.isPreviewHost(c.Hostname(), site.Slug)
+	preview, userID, valid := h.previewAccess(c, site, ticket)
 	if h.previewDomain != "" && strings.HasSuffix(strings.ToLower(c.Hostname()), "."+h.previewDomain) && !preview {
 		return reply(c, fiber.StatusForbidden, "Project hostname mismatch")
-	}
-	userID := h.userID(c)
-	if preview {
-		userID = ""
-	}
-	valid := ticket != "" && h.service.ValidTicket(site.Token, h.holder(c), ticket)
-	if preview && !valid {
-		if stored := c.Cookies(previewAccessCookie); stored != "" {
-			valid = h.service.ValidTicket(site.Token, h.holder(c), stored)
-		}
 	}
 
 	switch site.Decide(domain.Access{UserID: userID, Page: isPage(c) && !preview, Ticket: valid}) {
@@ -74,35 +64,20 @@ func (h *Handler) deliver(c fiber.Ctx, site domain.Site, ticket, rest string, va
 		return reply(c, fiber.StatusForbidden, "Service workers are not allowed here")
 	}
 
-	if preview && c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
-		if origin := c.Get("Origin"); origin != "" && origin != "https://"+c.Hostname() {
-			return reply(c, fiber.StatusForbidden, "Cross-origin request blocked")
-		}
-	}
 	if c.Method() == fiber.MethodOptions && c.Get("Access-Control-Request-Method") != "" {
 		if preview {
 			return reply(c, fiber.StatusForbidden, "Cross-origin preflight blocked")
 		}
 		return preflight(c)
 	}
-
-	segment := ""
-	if site.Visibility == domain.Private {
-		switch {
-		case valid && ticket != "":
-			segment = ticketPrefix + ticket
-		case owner && isPage(c):
-			segment = ticketPrefix + h.service.Ticket(site.Token, h.holder(c))
-		}
+	if err := h.checkPreviewRequest(c, preview); err != nil {
+		return err
 	}
-
+	segment := h.previewSegment(c, site, ticket, valid, owner)
 	if !preview && owner && h.previewDomain != "" && isPage(c) {
-		if site.Visibility == domain.Private && segment == "" {
-			segment = ticketPrefix + h.service.Ticket(site.Token, h.holder(c))
-		}
-		dest := url.URL{Scheme: "https", Host: site.Slug + "." + h.previewDomain, Path: site.BasePath() + segmentPath(segment) + "/" + rest, RawQuery: string(c.Request().URI().QueryString())}
-		return c.Redirect().Status(fiber.StatusFound).To(dest.String())
+		return h.redirectPreview(c, site, segment, rest)
 	}
+
 	if h.needsRedirect(c, site, segment, ticket, valid) {
 		target := url.URL{
 			Path:     site.BasePath() + segmentPath(segment) + "/" + rest,
@@ -114,7 +89,9 @@ func (h *Handler) deliver(c fiber.Ctx, site domain.Site, ticket, rest string, va
 
 	err := h.forwardPreview(c, site, "/"+rest, site.BasePath()+segmentPath(segment), preview)
 	if err == nil && preview && valid && ticket != "" {
-		c.Cookie(&fiber.Cookie{Name: previewAccessCookie, Value: ticket, Path: "/", Secure: true, HTTPOnly: true, SameSite: "Lax"})
+		c.Cookie(&fiber.Cookie{
+			Name: previewAccessCookie, Value: ticket, Path: "/", Secure: true, HTTPOnly: true, SameSite: "Lax",
+		})
 	}
 	return err
 }
@@ -167,3 +144,49 @@ func (h *Handler) isPreviewHost(host, slug string) bool {
 }
 
 const previewAccessCookie = "__Host-workspace_preview_access"
+
+func (h *Handler) previewAccess(c fiber.Ctx, site domain.Site, ticket string) (bool, string, bool) {
+	preview := h.isPreviewHost(c.Hostname(), site.Slug)
+	userID := h.userID(c)
+	if preview {
+		userID = ""
+	}
+	valid := ticket != "" && h.service.ValidTicket(site.Token, h.holder(c), ticket)
+	if preview && !valid {
+		stored := c.Cookies(previewAccessCookie)
+		valid = stored != "" && h.service.ValidTicket(site.Token, h.holder(c), stored)
+	}
+	return preview, userID, valid
+}
+
+func (h *Handler) checkPreviewRequest(c fiber.Ctx, preview bool) error {
+	if preview && c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
+		if origin := c.Get("Origin"); origin != "" && origin != "https://"+c.Hostname() {
+			return reply(c, fiber.StatusForbidden, "Cross-origin request blocked")
+		}
+	}
+
+	return nil
+}
+
+func (h *Handler) previewSegment(c fiber.Ctx, site domain.Site, ticket string, valid, owner bool) string {
+	if site.Visibility != domain.Private {
+		return ""
+	}
+	if valid && ticket != "" {
+		return ticketPrefix + ticket
+	}
+	if owner && isPage(c) {
+		return ticketPrefix + h.service.Ticket(site.Token, h.holder(c))
+	}
+	return ""
+}
+
+func (h *Handler) redirectPreview(c fiber.Ctx, site domain.Site, segment, rest string) error {
+	dest := url.URL{
+		Scheme: "https", Host: site.Slug + "." + h.previewDomain,
+		Path:     site.BasePath() + segmentPath(segment) + "/" + rest,
+		RawQuery: string(c.Request().URI().QueryString()),
+	}
+	return c.Redirect().Status(fiber.StatusFound).To(dest.String())
+}
