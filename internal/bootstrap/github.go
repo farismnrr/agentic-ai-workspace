@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -72,11 +73,15 @@ func (a *agentTools) useGitHub(github *githubapp.Service, projects projectOwners
 		return func(ctx context.Context) (codingrunner.Git, bool) {
 			owner, _, err := projects.Owner(ctx, projectID)
 			if err != nil {
+				log.Printf("github: project %s has no owner to sign in as: %v", projectID, err)
+
 				return codingrunner.Git{}, false
 			}
 
 			cred, err := github.Credentials(ctx, owner)
 			if err != nil {
+				log.Printf("github: commands in project %s run without GitHub: %v", projectID, err)
+
 				return codingrunner.Git{}, false
 			}
 
