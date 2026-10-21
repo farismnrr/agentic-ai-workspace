@@ -247,6 +247,7 @@ Compose users can uncomment `POSTGRES_ADMIN_URL` in `compose.dev.yaml` or
 | Variable | What it does | Default |
 | --- | --- | --- |
 | `DATA_DIR` | Where accounts, settings and projects are stored. | `data` |
+| `SITE_PREVIEW_DOMAIN` | Optional wildcard zone suffix for preview hosts (see [preview-auth.md](./preview-auth.md)). | empty |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_SLUG` | The GitHub App (see [GitHub](#github)). Leave all three empty to turn GitHub off. | empty |
 
 ## GitHub

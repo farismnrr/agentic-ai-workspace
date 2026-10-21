@@ -48,9 +48,9 @@ func scanTask(row scanner) (domain.Task, error) {
 	}
 
 	t.Status, t.Effort = domain.Status(status), domain.Effort(effort)
-	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0), time.Unix(updated, 0)
+	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0).UTC(), time.Unix(updated, 0).UTC()
 	if pinned.Valid {
-		at := time.Unix(pinned.Int64, 0)
+		at := time.Unix(pinned.Int64, 0).UTC()
 		t.PinnedAt = &at
 	}
 
