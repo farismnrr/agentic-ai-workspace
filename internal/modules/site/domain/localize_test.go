@@ -95,3 +95,13 @@ func TestLinkKeepsTheAddressAnAppAlreadyPut(t *testing.T) {
 		}
 	}
 }
+
+func TestShimMakesRequestsAskForNoCredentials(t *testing.T) {
+	got := localize("text/html", "<head></head>")
+
+	for _, want := range []string{`credentials==="include"`, `credentials:"same-origin"`, `"withCredentials"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the shim must turn off credentials, missing %s", want)
+		}
+	}
+}
