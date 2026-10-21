@@ -10,7 +10,7 @@ func TestTunnelTargetAcceptsOnlyAHostAndAPort(t *testing.T) {
 		"db.internal:5432": "db.internal", "DB.Internal:5432": "db.internal", "10.0.0.5:3306": "10.0.0.5",
 	}
 	for in, host := range good {
-		if got, _, ok := tunnelTarget(Spec{Tunnel: in}); !ok || got != host {
+		if got, _, ok := tunnelTarget(in); !ok || got != host {
 			t.Errorf("%q: host %q ok %v, want %q", in, got, ok, host)
 		}
 	}
@@ -19,9 +19,22 @@ func TestTunnelTargetAcceptsOnlyAHostAndAPort(t *testing.T) {
 	for _, in := range []string{
 		"", "db", "db:0", "db:65536", "db:x", ":5432", "db,fork:5432", "db:5432,fork", "a b:5432", "[::1]:5432", "-x:5432",
 	} {
-		if _, _, ok := tunnelTarget(Spec{Tunnel: in}); ok {
+		if _, _, ok := tunnelTarget(in); ok {
 			t.Errorf("%q must be refused", in)
 		}
+	}
+}
+
+func TestTunnelTargetsKeepOrderAndTheFirstOwnerOfAPort(t *testing.T) {
+	spec := Spec{Tunnels: []string{"Localhost:5432", "localhost:20128", "other:5432", "bad host:1", "localhost:20128"}}
+
+	if got := tunnelTargets(spec); !slices.Equal(got, []string{"localhost:5432", "localhost:20128"}) {
+		t.Errorf("targets: %v", got)
+	}
+
+	// Two targets on one name need one hosts entry.
+	if got := tunnelHosts(spec); !slices.Equal(got, []string{"localhost:127.0.0.1"}) {
+		t.Errorf("hosts: %v", got)
 	}
 }
 
@@ -33,23 +46,26 @@ func TestTunnelNamesResolveToTheLocalDoorOnly(t *testing.T) {
 		"db.internal:5432,": nil,
 	}
 	for in, want := range cases {
-		if got := tunnelHosts(Spec{Tunnel: in}); !slices.Equal(got, want) {
+		if got := tunnelHosts(Spec{Tunnels: []string{in}}); !slices.Equal(got, want) {
 			t.Errorf("%q: %v, want %v", in, got, want)
 		}
 	}
 
-	if got := containerEnv(Spec{Tunnel: "db.internal:5432"}); !slices.Equal(got, []string{"DB_TUNNEL=db.internal:5432"}) {
+	if got := containerEnv(Spec{Tunnels: []string{"db.internal:5432", "localhost:20128"}}); !slices.Equal(
+		got, []string{"TUNNEL_TARGETS=db.internal:5432 localhost:20128"}) {
 		t.Errorf("env: %v", got)
 	}
 
-	if got := containerEnv(Spec{Env: []string{"DB_TUNNEL=evil:1", "A=1"}}); !slices.Equal(got, []string{"A=1"}) {
+	if got := containerEnv(Spec{Env: []string{"TUNNEL_TARGETS=evil:1", "A=1"}}); !slices.Equal(got, []string{"A=1"}) {
 		t.Errorf("a value set from outside must not open a door: %v", got)
 	}
 }
 
-func TestATunnelKeepsTheContainerWithoutANetwork(t *testing.T) {
+func TestTunnelsKeepTheContainerWithoutANetwork(t *testing.T) {
 	d := &Docker{}
-	spec := Spec{Workspace: "/w", Egress: "/e", Tunnel: "db.internal:5432", Env: []string{"A=1"}, Argv: []string{"true"}}
+	spec := Spec{
+		Workspace: "/w", Egress: "/e", Tunnels: []string{"db.internal:5432"}, Env: []string{"A=1"}, Argv: []string{"true"},
+	}
 	opts := d.createOptions(spec, nil)
 
 	// Docker writes no /etc/hosts when the network flag is set, so it is off here; the mode still isolates.
@@ -58,14 +74,14 @@ func TestATunnelKeepsTheContainerWithoutANetwork(t *testing.T) {
 	}
 
 	if plain := d.createOptions(Spec{Workspace: "/w", Argv: []string{"true"}}, nil); !plain.Config.NetworkDisabled {
-		t.Error("without a database the network flag stays on")
+		t.Error("without a target the network flag stays on")
 	}
 
 	if !slices.Equal(opts.HostConfig.ExtraHosts, []string{"db.internal:127.0.0.1"}) {
 		t.Errorf("hosts: %v", opts.HostConfig.ExtraHosts)
 	}
 
-	if !slices.Contains(opts.Config.Env, "DB_TUNNEL=db.internal:5432") || !slices.Contains(opts.Config.Env, "A=1") {
+	if !slices.Contains(opts.Config.Env, "TUNNEL_TARGETS=db.internal:5432") || !slices.Contains(opts.Config.Env, "A=1") {
 		t.Errorf("env: %v", opts.Config.Env)
 	}
 

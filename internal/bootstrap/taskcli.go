@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	cliagentdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/domain"
+	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/clistream"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
@@ -34,7 +35,8 @@ func (p *plans) Ready(ctx context.Context, userID, program string) (bool, error)
 func (p *plans) Run(
 	ctx context.Context, req taskapp.CLIRequest, emit func(taskapp.CLIEvent),
 ) (taskapp.CLIResult, error) {
-	docker, spec, release, err := p.prepareRun(ctx, req)
+	granted := codingrunner.GrantedFor(ctx, p.reach, req.ProjectID)
+	docker, spec, release, err := p.prepareRun(ctx, req, granted)
 	if err != nil {
 		return taskapp.CLIResult{}, err
 	}
@@ -43,7 +45,7 @@ func (p *plans) Run(
 	models := p.service.Models(ctx, req.UserID, cliagentdomain.Runtime(req.Program))
 	window := p.chosenWindow(ctx, req)
 	spec.Stdin, spec.Argv = strings.NewReader(req.Prompt), programArgv(req, models, window)
-	spec.Env, err = p.environment(ctx, req, spec, window)
+	spec.Env, err = p.environment(ctx, req, spec, window, granted)
 	if err != nil {
 		return taskapp.CLIResult{}, err
 	}

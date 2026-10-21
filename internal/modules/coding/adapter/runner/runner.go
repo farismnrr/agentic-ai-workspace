@@ -19,7 +19,7 @@ type Runner struct {
 	slot      chan struct{}
 	git       GitSource
 	env       ProjectEnv
-	tunnel    DBTunnel
+	reach     Reach
 	projectID string
 	dir       string
 	quota     int64
@@ -105,10 +105,10 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 
 	git, hasGit := r.credentials(ctx)
 
-	hosts, tunnel := r.egressHosts(ctx, hasGit)
+	hosts, granted := r.egressHosts(ctx, hasGit)
 	r.engine.prepare(ctx, r.dir, &spec, docker, hosts...)
-	projectValues = UseTunnel(&spec, tunnel, projectValues)
-	baseEnv := environment(spec)
+	projectValues, granting := granted.Apply(&spec, projectValues)
+	baseEnv := append(environment(spec), granting...)
 
 	if hasGit && spec.Egress != "" {
 		baseEnv = append(baseEnv, gitEnvironment(git)...)

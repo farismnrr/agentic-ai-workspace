@@ -12,30 +12,25 @@ import (
 
 var errProjectEnvironmentUnavailable = errors.New("project environment unavailable")
 
-// WithDBTunnel lets a project's site reach the one database its connection was made from.
-func (r *Runtime) WithDBTunnel(tunnel codingrunner.DBTunnel) *Runtime {
-	r.tunnel = tunnel
+// WithReach lets a project's site reach what the server granted it, such as its database and model gateway.
+func (r *Runtime) WithReach(reach codingrunner.Reach) *Runtime {
+	r.reach = reach
 
 	return r
 }
 
 // siteSpec describes the container for a site: the shared sandbox, the app's port, the project's
-// values, and the project's database when it has one.
+// values, and what the project was granted to reach.
 func (r *Runtime) siteSpec(
 	ctx context.Context, docker *sandbox.Docker, project, dir string, start application.StartSpec,
 ) (sandbox.Spec, error) {
 	port := strconv.Itoa(start.Port)
-	tunnel := codingrunner.TunnelTarget(ctx, r.tunnel, start.ProjectID)
-
-	var hosts []string
-	if tunnel != "" {
-		hosts = []string{tunnel}
-	}
+	granted := codingrunner.GrantedFor(ctx, r.reach, start.ProjectID)
 
 	spec := r.engine.SiteSpec(ctx, project, docker, []string{"bash", "-c", start.Command},
-		[]string{"SITE_PORT=" + port, "PORT=" + port, "HOST=127.0.0.1", "BASE_PATH=" + start.BasePath}, hosts...)
+		[]string{"SITE_PORT=" + port, "PORT=" + port, "HOST=127.0.0.1", "BASE_PATH=" + start.BasePath}, granted.Targets...)
 
-	if err := r.projectEnvironment(ctx, start.ProjectID, &spec, tunnel); err != nil {
+	if err := r.projectEnvironment(ctx, start.ProjectID, &spec, granted); err != nil {
 		return sandbox.Spec{}, err
 	}
 
@@ -44,7 +39,9 @@ func (r *Runtime) siteSpec(
 	return spec, nil
 }
 
-func (r *Runtime) projectEnvironment(ctx context.Context, projectID string, spec *sandbox.Spec, tunnel string) error {
+func (r *Runtime) projectEnvironment(
+	ctx context.Context, projectID string, spec *sandbox.Spec, granted codingrunner.Granted,
+) error {
 	var values map[string]string
 
 	if r.env != nil {
@@ -54,8 +51,8 @@ func (r *Runtime) projectEnvironment(ctx context.Context, projectID string, spec
 		}
 	}
 
-	values = codingrunner.UseTunnel(spec, tunnel, values)
-	spec.Env = codingrunner.MergeProjectEnvironment(spec.Env, values)
+	values, granting := granted.Apply(spec, values)
+	spec.Env = codingrunner.MergeProjectEnvironment(append(spec.Env, granting...), values)
 
 	return nil
 }

@@ -13,7 +13,7 @@ import (
 
 var errProjectEnvironmentUnavailable = errors.New("project environment unavailable")
 
-func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest) (
+func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted codingrunner.Granted) (
 	*sandbox.Docker, sandbox.Spec, func(), error,
 ) {
 	dir, err := p.folders.Dir(req.ProjectID)
@@ -26,15 +26,11 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest) (
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("prepare program home: %w", err)
 	}
 
-	// The program's own hosts, plus the project's database as one exact host:port when it has one.
-	hosts, database := p.withDatabase(ctx, req)
-	docker, spec, release, err := p.engine.Lease(ctx, dir, hosts...)
+	docker, spec, release, err := p.engine.Lease(ctx, dir, programHosts(p.hosts[req.Program], granted)...)
 	if err != nil {
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("start program: %w", err)
 	}
-	if spec.Egress != "" {
-		spec.Tunnel = database
-	}
+	granted.Open(&spec)
 	spec.WorkspaceReadOnly = req.Limited && !mayChange(req.Tools)
 	stop, err := p.prepareBridge(ctx, req, &spec)
 	if err != nil {
@@ -43,6 +39,11 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest) (
 	}
 	spec.Home = home
 	return docker, spec, combineRelease(stop, release), nil
+}
+
+// programHosts is the program's own hosts plus what the project was granted as exact host:port targets.
+func programHosts(own []string, granted codingrunner.Granted) []string {
+	return append(slices.Clone(own), granted.Targets...)
 }
 
 func combineRelease(stop, release func()) func() {
@@ -69,28 +70,19 @@ func (p *plans) prepareBridge(
 }
 
 func (p *plans) environment(
-	ctx context.Context, req taskapp.CLIRequest, spec sandbox.Spec, window int64,
+	ctx context.Context, req taskapp.CLIRequest, spec sandbox.Spec, window int64, granted codingrunner.Granted,
 ) ([]string, error) {
+	var values map[string]string
+	if p.env != nil {
+		var err error
+		if values, err = p.env.Values(ctx, req.ProjectID); err != nil {
+			return nil, errProjectEnvironmentUnavailable
+		}
+	}
+	values, granting := granted.Apply(&spec, values)
 	entries := append(windowEnv(req.Program, window), "HOME="+sandbox.Home,
 		"CODEX_HOME="+sandbox.Home+"/.codex", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
 		"DISABLE_AUTOUPDATER=1", fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))
-	spec.Env = codingrunner.Environment(spec, append(entries, guardEnv(req)...)...)
-	if p.env == nil {
-		return spec.Env, nil
-	}
-	values, err := p.env.Values(ctx, req.ProjectID)
-	if err != nil {
-		return nil, errProjectEnvironmentUnavailable
-	}
-	return codingrunner.MergeProjectEnvironment(spec.Env, codingrunner.UseTunnel(&spec, spec.Tunnel, values)), nil
-}
-
-// withDatabase adds the project's database, when it may be reached, to the hosts the program's proxy allows.
-func (p *plans) withDatabase(ctx context.Context, req taskapp.CLIRequest) (hosts []string, database string) {
-	hosts = slices.Clone(p.hosts[req.Program])
-	if database = codingrunner.TunnelTarget(ctx, p.tunnel, req.ProjectID); database != "" {
-		hosts = append(hosts, database)
-	}
-
-	return hosts, database
+	spec.Env = codingrunner.Environment(spec, append(append(entries, granting...), guardEnv(req)...)...)
+	return codingrunner.MergeProjectEnvironment(spec.Env, values), nil
 }

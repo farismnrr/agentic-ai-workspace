@@ -120,9 +120,10 @@ PostgreSQL provisioning: it allows public, private and loopback addresses, but
 blocks link-local, special ranges and the server's own port. Sandbox containers
 remain network-disabled.
 
-The egress proxy also tunnels one exact `host:port` per run: the database an
-admin saved in Settings, for a project whose connection was created from it.
-The sandbox opens that port on its own loopback and the proxy dials the target
+The egress proxy also tunnels exact `host:port` targets per run: the database an
+admin saved in Settings, for a project whose connection was created from it, and
+the model gateway on this computer that the project's owner chose.
+The sandbox opens each port on its own loopback and the proxy dials the target
 with `PrivateAllowed`, never the server's own port.
 
 Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).

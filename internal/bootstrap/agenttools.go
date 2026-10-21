@@ -39,7 +39,7 @@ type agentTools struct {
 	github     *githubapp.Service
 	plans      *plans
 	git        func(projectID string) codingrunner.GitSource
-	tunnel     codingrunner.DBTunnel
+	reach      codingrunner.Reach
 	public     string
 	mu         sync.Mutex
 }
@@ -85,8 +85,8 @@ func (a *agentTools) services(projectID string) (codingmcp.Services, error) {
 	if a.git != nil {
 		run.WithGit(a.git(projectID))
 	}
-	if a.tunnel != nil {
-		run.WithDBTunnel(a.tunnel)
+	if a.reach != nil {
+		run.WithReach(a.reach)
 	}
 
 	services := codingmcp.Services{
