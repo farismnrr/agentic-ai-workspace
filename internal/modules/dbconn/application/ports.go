@@ -41,7 +41,7 @@ type Prober interface {
 type Provisioner interface {
 	Provision(context.Context, string) (ProvisionResult, error)
 	Restore(context.Context, string, string) error
-	Configured() bool
+	Configured(context.Context) (bool, error)
 }
 
 type ProvisionResult struct {

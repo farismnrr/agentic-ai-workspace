@@ -47,7 +47,7 @@ func TestReadMetadataDoesNotReturnPassword(t *testing.T) {
 
 func TestManualFlowHasNoProvisionerByDefault(t *testing.T) {
 	service, store, _, input := savedConnection(t)
-	if service.SharedConfigured() {
+	if configured, err := service.SharedConfigured(context.Background()); err != nil || configured {
 		t.Fatal("shared PostgreSQL must be unavailable without a provisioner")
 	}
 	stored := store.records["project-a"]

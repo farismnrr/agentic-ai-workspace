@@ -16,7 +16,9 @@ func (s *Service) ProvisionShared(ctx context.Context, userID, projectID string)
 	if err := s.checkOwner(ctx, userID, projectID); err != nil {
 		return domain.Metadata{}, err
 	}
-	if s.provisioner == nil || !s.provisioner.Configured() {
+	if configured, err := s.SharedConfigured(ctx); err != nil {
+		return domain.Metadata{}, fmt.Errorf("check shared database configuration: %w", err)
+	} else if !configured {
 		return domain.Metadata{}, ProvisionError{Category: AdminNotConfigured}
 	}
 	if !s.beginProvision(projectID) {
@@ -179,6 +181,13 @@ func safeProvisionError(err error) error {
 }
 
 // SharedConfigured reports whether shared PostgreSQL provisioning is available.
-func (s *Service) SharedConfigured() bool {
-	return s != nil && s.provisioner != nil && s.provisioner.Configured()
+func (s *Service) SharedConfigured(ctx context.Context) (bool, error) {
+	if s == nil || s.provisioner == nil {
+		return false, nil
+	}
+	configured, err := s.provisioner.Configured(ctx)
+	if err != nil {
+		return false, fmt.Errorf("check provisioner configuration: %w", err)
+	}
+	return configured, nil
 }

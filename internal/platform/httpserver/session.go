@@ -8,6 +8,8 @@ import (
 
 type userKey struct{}
 
+type roleKey struct{}
+
 // Authenticator resolves a browser session cookie to a user id.
 type Authenticator interface {
 	UserID(ctx context.Context, sessionToken string) (string, error)
@@ -39,6 +41,15 @@ func UserID(c fiber.Ctx) string {
 	id, _ := fiber.ValueFromContext[string](c, userKey{})
 
 	return id
+}
+
+// SetRole stores the authenticated account role for route adapters that tailor a response.
+func SetRole(c fiber.Ctx, role string) { fiber.StoreInContext(c, roleKey{}, role) }
+
+// Role returns the role stored by an authorization middleware.
+func Role(c fiber.Ctx) string {
+	role, _ := fiber.ValueFromContext[string](c, roleKey{})
+	return role
 }
 
 // crossSite follows web.dev's resource isolation policy: a request the browser labels

@@ -1,5 +1,5 @@
 import type { DatabaseType, EnvVariable } from './env-api';
-import { ApiError } from '../../../shared/api/http';
+import { ApiError } from '../../../../shared/api/http';
 
 export const databaseDefaults: Record<DatabaseType, { port: number; envName: string }> = {
   postgres: { port: 5432, envName: 'DATABASE_URL' },

@@ -31,6 +31,7 @@ func (h *Handler) Mount(auth, sameOrigin, testLimit fiber.Handler, sharedLimits 
 		app.Get("/api/projects/:id/db", auth, h.get)
 		app.Put("/api/projects/:id/db", auth, sameOrigin, h.put)
 		app.Delete("/api/projects/:id/db", auth, sameOrigin, h.remove)
+		app.Delete("/api/projects/:id/db/sqlite", auth, sameOrigin, h.detachSQLite)
 		app.Post("/api/projects/:id/db/test", auth, sameOrigin, testLimit, h.test)
 		app.Post("/api/projects/:id/db/shared", auth, sameOrigin, sharedLimit, h.provisionShared)
 	}
@@ -75,19 +76,6 @@ func provisionStatus(failure application.ProvisionError) int {
 	}
 }
 
-func (h *Handler) get(c fiber.Ctx) error {
-	item, err := h.service.Get(c.Context(), httpserver.UserID(c), c.Params("id"))
-	if err != nil {
-		return fail(c, err)
-	}
-	return c.JSON(connectionResponse{Metadata: item, SharedPostgres: h.service.SharedConfigured()})
-}
-
-type connectionResponse struct {
-	domain.Metadata
-	SharedPostgres bool `json:"sharedPostgres"`
-}
-
 func (h *Handler) put(c fiber.Ctx) error {
 	var body connectionBody
 	if err := c.Bind().JSON(&body); err != nil {
@@ -102,6 +90,13 @@ func (h *Handler) put(c fiber.Ctx) error {
 
 func (h *Handler) remove(c fiber.Ctx) error {
 	if err := h.service.Delete(c.Context(), httpserver.UserID(c), c.Params("id")); err != nil {
+		return fail(c, err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *Handler) detachSQLite(c fiber.Ctx) error {
+	if err := h.service.DetachSQLite(c.Context(), httpserver.UserID(c), c.Params("id")); err != nil {
 		return fail(c, err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)

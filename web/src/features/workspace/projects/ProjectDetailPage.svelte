@@ -9,12 +9,14 @@
   import FileBrowser from '../files/FileBrowser.svelte';
   import ChecksTab from './ChecksTab.svelte';
   import TasksTab from './TasksTab.svelte';
+  import VariablesSection from './env/VariablesSection.svelte';
+  import DatabaseSection from './env/DatabaseSection.svelte';
 
   interface Props {
     projectId: string;
   }
 
-  type Tab = 'tasks' | 'files' | 'checks' | 'about';
+  type Tab = 'tasks' | 'files' | 'checks' | 'env' | 'about';
 
   const { projectId }: Props = $props();
   const project = $derived(findProject($projects, projectId));
@@ -22,9 +24,15 @@
     { id: 'tasks', label: 'Tasks' },
     { id: 'files', label: 'Files' },
     { id: 'checks', label: 'Checks' },
+    { id: 'env', label: 'Env' },
     { id: 'about', label: 'About' },
   ];
   let tab = $state<Tab>('tasks');
+  let variableRevision = $state(0);
+
+  function refreshVariables(): void {
+    variableRevision += 1;
+  }
 
   function newTask(): void {
     chosenProject.set(projectId);
@@ -53,7 +61,7 @@
       {/each}
     </div>
     <div class="mt-4">
-      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else}<AboutTab {project} />{/if}
+      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'env'}{#key projectId}<div class="space-y-8"><VariablesSection {projectId} revision={variableRevision} /><DatabaseSection {projectId} onenvchange={refreshVariables} /></div>{/key}{:else}<AboutTab {project} />{/if}
     </div>
   {/if}
 </AppShell>

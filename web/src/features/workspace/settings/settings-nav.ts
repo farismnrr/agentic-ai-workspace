@@ -26,6 +26,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   { label: 'Preferences', items: [{ id: 'notifications', label: 'Notifications', icon: 'bell' }] },
+  { label: 'Workspace', items: [{ id: 'database', label: 'Database', icon: 'box' }] },
   {
     label: 'Account',
     items: [
@@ -33,7 +34,12 @@ export const navGroups: NavGroup[] = [
       { id: 'account', label: 'Account', icon: 'user' },
     ],
   },
-  { label: 'Project', items: [{ id: 'env', label: 'Env', icon: 'key' }] },
 ];
 
 export const currentLabel = (tab: SettingsTab): string => navGroups.flatMap((group) => group.items).find((item) => item.id === tab)?.label ?? 'Settings';
+
+export const isAdminSettingsTab = (tab: SettingsTab): boolean => tab === 'database';
+
+export const visibleNavGroups = (admin: boolean): NavGroup[] => navGroups
+  .map((group) => ({ ...group, items: group.items.filter((item) => admin || !isAdminSettingsTab(item.id)) }))
+  .filter((group) => group.items.length > 0);

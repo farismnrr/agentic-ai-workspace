@@ -46,6 +46,7 @@ type userPayload struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
 type credentials struct {
@@ -139,5 +140,5 @@ func (h *Handler) fail(c fiber.Ctx, err error) error {
 }
 
 func toPayload(user domain.User) userPayload {
-	return userPayload{ID: user.ID, Name: user.Name, Email: user.Email}
+	return userPayload{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}
 }

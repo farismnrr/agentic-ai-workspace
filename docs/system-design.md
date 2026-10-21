@@ -54,9 +54,12 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.
   `modules/dbconn` stores one external database connection, tests it, and can
   provision a shared PostgreSQL schema and login role through an application
-  port and a pgx adapter. `bootstrap` wires the adapter from `POSTGRES_ADMIN_URL`.
-  Migration 045 adds the connection's `managed` flag; removing a connection
-  never drops remote database objects.
+  port and a pgx adapter. Settings store the admin connection encrypted;
+  `POSTGRES_ADMIN_URL` is the fallback when no saved settings exist.
+  Migration 045 adds the connection's `managed` flag. The project Env tab
+  selects SQLite, shared PostgreSQL, or an advanced custom connection.
+  Detaching removes the local connection and `DATABASE_URL` only; it never
+  drops remote schemas, roles, databases or data.
 
 ### Frontend
 
@@ -75,7 +78,8 @@ web/src/
 
 The binary hosts its own sign-in and an OAuth 2.1 server, so AI apps can connect without any extra service.
 
-- **Accounts:** email and password with a cookie session. Data lives in SQLite, using a pure-Go driver so the binary stays static.
+- **Accounts:** email and password with a cookie session. Data lives in SQLite, using a pure-Go driver so the binary stays static. Accounts have `admin` or `user` roles; new accounts default to `user`.
+- **Server settings:** only admins can read full shared PostgreSQL settings or save them. Per-user providers, integrations, preferences and project settings remain owner-scoped.
 - **Spaces:** each space is an endpoint an AI app can call. The first, `coding`, lets it read, search, change and run things in that app's own project.
 - **Isolation:** every call resolves to one person's project. Nobody can reach another person's files, and two apps never share a folder.
 - **Tokens:** stored hashed and tied to one space. A replayed code or refresh token revokes the whole connection.

@@ -166,7 +166,7 @@ var errSecretProvisionFailure = errors.New("failed for postgres://admin:admin-se
 
 type errorProvisioner struct{ err error }
 
-func (errorProvisioner) Configured() bool { return true }
+func (errorProvisioner) Configured(context.Context) (bool, error) { return true, nil }
 func (p errorProvisioner) Provision(context.Context, string) (application.ProvisionResult, error) {
 	return application.ProvisionResult{}, p.err
 }

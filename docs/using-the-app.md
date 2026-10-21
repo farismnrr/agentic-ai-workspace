@@ -73,8 +73,8 @@ About Proof:
 
 ## Project environment
 
-Open **Settings → Env** to manage environment variables for a project. Each
-project has its own list; variables are added only to runs in that project.
+Open a project and choose its **Env** tab to manage environment variables.
+Each project has its own list; variables are added only to runs in that project.
 Other projects do not receive them.
 
 - Names use uppercase letters, numbers and underscores. Values are limited to
@@ -91,17 +91,21 @@ Other projects do not receive them.
 
 ### External database
 
-The Env tab can save one PostgreSQL, MySQL/MariaDB or MongoDB connection for a
-project. The app builds and encrypts the connection string, then exposes it to
-that project's runs as `DATABASE_URL` or the name you choose. MongoDB defaults
-to `MONGODB_URL`.
+The Env tab's **Database** section starts with **SQLite (default)**. This uses
+the project's own SQLite file. **Shared database** provisions a PostgreSQL
+schema and login from the database details saved under **Settings → Database**.
+The connection appears in this project's Env as `DATABASE_URL`.
 
-If the server has shared PostgreSQL configured, choose **Use shared
-PostgreSQL** to create a project schema and login automatically. Otherwise, or
-for MySQL and MongoDB, choose **Manual connection** and enter the connection
-details yourself. The app's own storage stays on SQLite. Projects with no
-external database selected keep their existing project files and receive no
-database connection variable.
+When Settings has no database configured, the shared choice is unavailable.
+Custom PostgreSQL, MySQL/MariaDB and MongoDB connections remain under
+**Advanced: custom connection**. The app builds and encrypts each connection
+string, then exposes it as `DATABASE_URL` or the chosen variable name.
+MongoDB defaults to `MONGODB_URL`.
+
+Switching from a shared or custom connection to SQLite asks for confirmation.
+The app removes this project's connection and `DATABASE_URL`; the data stays
+in its database. A shared schema and role stay on the server. Custom
+environment variables with other names are left alone.
 
 When TLS is on for PostgreSQL, the connection uses `sslmode=require`; it does
 not verify the PostgreSQL server certificate.
@@ -115,18 +119,23 @@ When the app runs in Docker, `localhost` means the app container. For a database
 on the Docker host, try `host.docker.internal`; for another computer, use its
 LAN IP and make sure the database accepts connections from the app host.
 
-The server administrator configures the shared PostgreSQL address with
-`POSTGRES_ADMIN_URL`; it is not shown in project settings. It must include a
-database name in its URL path. Use a dedicated database because enabling shared
-PostgreSQL revokes `PUBLIC` access to the `public` schema for that whole
-database. The admin account must be allowed to create roles and schemas; some
-managed services limit those privileges.
+Only administrators can open **Settings → Database** or change the shared
+PostgreSQL host, port, database, user, password and SSL mode. The password is
+write-only. Other Settings pages configure each signed-in person's own account.
+The project database API reports whether shared PostgreSQL is available, even
+when the server uses `POSTGRES_ADMIN_URL` as its fallback.
 
-Choose **Use shared Postgres (schema created automatically)** to create a
-private schema and login for this project. Click **Create my schema** to set it
-up. When connected, **Reconnect and reset password** reuses the schema and
-role, and sets a new role password. Removing a shared connection keeps its
-schema, role and data.
+An administrator saves the shared PostgreSQL host, port, database, user,
+password and SSL mode under **Settings → Database**. The password is write-only.
+If no saved settings exist, the server can use `POSTGRES_ADMIN_URL` instead.
+Use a dedicated database because enabling shared PostgreSQL revokes `PUBLIC`
+access to the `public` schema for that whole database. The admin account must
+be allowed to create roles and schemas; some managed services limit them.
+
+Choosing **Shared database** checks the project's schema and creates it when
+missing. **Reconnect and reset password** reuses the schema and role, and sets
+a new role password. Removing a shared connection keeps its schema, role and
+data.
 
 The agent receives the connection string as an environment variable, but its
 sandbox cannot connect directly to the database. The test checks access from

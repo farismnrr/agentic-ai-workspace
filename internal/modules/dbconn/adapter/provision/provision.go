@@ -48,10 +48,14 @@ func New(adminURL, ownPort string) *Provisioner {
 	return &Provisioner{adminURL: strings.TrimSpace(adminURL), ownPort: ownPort, connect: connect}
 }
 
-func (p *Provisioner) Configured() bool { return p != nil && p.adminURL != "" }
+func (p *Provisioner) Configured(context.Context) (bool, error) {
+	return p.configured(), nil
+}
+
+func (p *Provisioner) configured() bool { return p != nil && p.adminURL != "" }
 
 func (p *Provisioner) Provision(ctx context.Context, projectID string) (application.ProvisionResult, error) {
-	if !p.Configured() {
+	if !p.configured() {
 		return application.ProvisionResult{}, provisionError(application.AdminNotConfigured)
 	}
 	cfg, err := parseAdminURL(p.adminURL)
@@ -68,7 +72,7 @@ func (p *Provisioner) Provision(ctx context.Context, projectID string) (applicat
 }
 
 func (p *Provisioner) Restore(ctx context.Context, projectID, password string) error {
-	if !p.Configured() {
+	if !p.configured() {
 		return provisionError(application.AdminNotConfigured)
 	}
 	cfg, err := parseAdminURL(p.adminURL)

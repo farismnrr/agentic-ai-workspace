@@ -1,17 +1,19 @@
 <script lang="ts">
   import type { SettingsTab } from '../../../app/router';
   import Icon from '../../../shared/ui/Icon.svelte';
-  import { navGroups } from './settings-nav';
+  import { visibleNavGroups } from './settings-nav';
 
   interface Props {
     tab: SettingsTab;
+    admin: boolean;
   }
 
-  const { tab }: Props = $props();
+  const { tab, admin }: Props = $props();
+  const groups = $derived(visibleNavGroups(admin));
 </script>
 
 <nav aria-label="Settings sections" class="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
-  {#each navGroups as group (group.label)}
+  {#each groups as group (group.label)}
     <p class="hidden px-2 pb-1 pt-3 text-xs text-[var(--brand-text-tertiary)] first:pt-0 md:block">{group.label}</p>
     {#each group.items as item (item.id)}
       <a

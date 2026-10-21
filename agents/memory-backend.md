@@ -17,6 +17,7 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
 13. 9router docs (README "Supported Providers"): a model id is `alias/model` (`cc/claude-opus-4-7`, `cx/gpt-5.5`, `kr/claude-sonnet-4.5`); groups are OAuth/subscription (Claude Code cc, Codex cx, GitHub, Cursor, Antigravity), Free (Kiro kr, OpenCode Free, Vertex), 40+ API-key providers (OpenRouter, GLM, Kimi, ...), custom OpenAI/Anthropic-compatible endpoints, and user-made combos (plain names, no slash). `/v1/models` reports `owned_by` per model (the alias); the friendly names (`display.name`, e.g. "OpenAI Codex") live only in 9router's source/dashboard API (`/api/providers`, 401 without a dashboard login), so we group by `owned_by` (`model_catalog.owner`, falling back to the id prefix). By the person's choice only three providers get a name, kept as copy in `web/.../content/models.ts` `gatewayProviderNames` (cx OpenAI Codex, cc Claude Code, oc OpenCode Free); every other alias shows raw, and the person declined naming more (too much to maintain), so do not grow that table without being asked. Models are never listed in code, for these three or any other: they come from the gateway and change. Only gateways are grouped: OpenAI labels everything `system`. OpenCode Free (`oc`, no auth) is missing from `/v1/models` on 9router 0.5.99: the fix that exposes no-auth providers (commit a8f63f4, 2026-10-15) is newer, so it appears after 9router is updated (our sync picks it up by itself), and even then its models can answer 403 `FreeTierError` (free tier only inside OpenCode). In zsh a loop variable named `path` clobbers `PATH`.
 14. Jenkins (local, `jenkins` + `jenkins-docker` dind, job `agentic-ai-workspace` is an inline "Pipeline script", so a pushed `Jenkinsfile` changes nothing until the job config is updated). The Jenkins container has only git/curl/make/docker: Node and Go run in containers mounting `$WORKSPACE` at the same path (dind shares `/var/jenkins_home`); ports published by dind are reached at host `docker`, not 127.0.0.1. Credentials must sit in the System store, not the user store. The build version is `main.version` via `-ldflags` (Makefile `VERSION`, Dockerfile `ARG VERSION`), served as `X-App-Version` and in `/api/health`; `scripts/deploy-binary.sh` hot-swaps a folder-mounted binary (a single-file bind mount would keep the old inode).
 15. Agent teams (`modules/agentteam` + `task/application/delegate.go`) must stay right-sized: the lead sizes a request first and small work never goes to teammates; teammates never talk to each other (the lead relays context and a shared plan); no cap on the number of jobs, only on idle ones in a row (`MaxIdleJobs`). Do not add peer chat, parallel code-writing teammates or extra roles to look thorough; the research behind this is in `agents/implementation-notes.md`, "The agent team".
+- **Account roles and host settings.** `account/domain.User.Role` is `admin` or `user`; migration 047 defaults old accounts to `user` and promotes the configured owner email. Registration applies `ADMIN_EMAIL` (default `farismunir2@gmail.com`). Keep host-wide writes behind backend admin middleware; user-owned provider and integration records stay owner-scoped. Shared DB availability comes from the provisioner with request context, including the `POSTGRES_ADMIN_URL` fallback.
 - **Saved roles go stale.** Anything a built-in role needs to work (access groups, its playbook) must be applied on read, not only when the person saves: `Team.WithBuiltIns` overlays access and skill. A prompt-only rule is not enough for behavior that must happen (the Planner asking), so keep it in the embedded skill and check it with a real task.
 - **Vendored skills.** Skill files copied from other projects (Designer) stay byte-identical with their `LICENSE` beside them and a line in `skills/designer/NOTICE.md`; check the licence before adding one. Many catalogue entries (Open Design `design-review`, `ui-skills`) are only pointers to another repo with no workflow in them, so read the file before choosing it. Fetch with `curl`: WebFetch only summarizes.
 - **Anything from the web is untrusted.** Web text only reaches roles that cannot write or run (`withoutWebWhenItCanChange`), and downloads are limited to pictures a licensed search just offered. Do not add a tool that lets a role fetch an arbitrary address and then act on it.
@@ -38,7 +39,9 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
   `egress.PrivateAllowed` at dial time (Mongo checks every resolved address),
   block the server's own port, and are limited to 5/user/minute with a 10 s
   deadline. They run in the app process; sandbox containers stay offline.
-  Shared PostgreSQL uses `POSTGRES_ADMIN_URL` only in process configuration.
+  Shared PostgreSQL settings live in `shared_database_settings`, encrypted
+  with `platform/secretbox`; `bootstrap/dbconn.go` resolves saved settings at
+  provision time and falls back to `POSTGRES_ADMIN_URL` only when none exist.
   `modules/dbconn/adapter/provision` derives schema and role `p_<hash24>` from
   the first 24 hex characters of SHA-256(project ID), and uses `pgx.Identifier`
   for every identifier. In one admin transaction it creates/reconciles the
@@ -46,9 +49,14 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
   on schema `public`, grants the project role database `CONNECT`, then sets
   `search_path`. PostgreSQL keeps database `TEMPORARY` for `PUBLIC`; do not
   describe the effective database rights as CONNECT-only.
-  ProvisionShared refuses to replace a saved manual connection. ProvisionShared,
-  Save and Delete share one per-project lock; compensation uses an independent
-  10-second context and reports `compensation_failed` if restoration fails.
+  ProvisionShared refuses to replace a saved manual connection. The project
+  UI confirms custom-to-shared first, then calls `DELETE /db/sqlite` before
+  provisioning. That endpoint's `DetachSQLite` removes the connection and
+  `DATABASE_URL` only, even when a custom connection used another Env name.
+  It never invokes the provisioner, so remote schemas, roles and data remain.
+  ProvisionShared, Save, Delete and DetachSQLite share one per-project lock;
+  compensation uses an independent 10-second context and reports
+  `compensation_failed` if restoration fails.
   The revoke affects the whole database, so deployments must dedicate it.
   Admin errors collapse to safe categories including `admin_not_configured`,
   `admin_url_invalid`, `admin_rejected`, `insufficient_privileges` and

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
 	envhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/env/adapter/http"
 	envsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/env/adapter/sqlite"
 	envapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/env/application"
@@ -28,17 +29,18 @@ func newEnvMount(
 }
 
 func newProjectSettings(
-	db *sql.DB, cfg config.Config, projects *projectapp.Service, auth, sameOrigin fiber.Handler,
+	db *sql.DB, cfg config.Config, projects *projectapp.Service, account *accountapp.Service,
+	auth, sameOrigin fiber.Handler,
 ) (*envapp.Service, []httpserver.Mount, error) {
 	env, envMount, err := newEnvMount(db, cfg, projects, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
-	dbMount, err := newDBConnMount(db, cfg, projects, env, auth, sameOrigin)
+	dbMount, err := newDBConnMount(db, cfg, projects, env, account, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
-	return env, []httpserver.Mount{envMount, dbMount}, nil
+	return env, append([]httpserver.Mount{envMount}, dbMount...), nil
 }
 
 var _ envapp.ProjectOwner = (*projectapp.Service)(nil)

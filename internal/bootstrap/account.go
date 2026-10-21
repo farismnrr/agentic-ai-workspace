@@ -19,7 +19,7 @@ func newAccount(
 	db *sql.DB, cfg config.Config, sameOrigin fiber.Handler, limits accounthttp.Limits,
 ) (*accountapp.Service, httpserver.Mount) {
 	store := accountsqlite.NewStore(db)
-	service := accountapp.NewService(store, store, argon2.Hasher{}, opaque.Generator{}, time.Now)
+	service := accountapp.NewService(store, store, argon2.Hasher{}, opaque.Generator{}, time.Now, cfg.AdminEmail)
 
 	return service, accounthttp.NewHandler(service, cfg.CookieSecure).Mount(sameOrigin, limits)
 }

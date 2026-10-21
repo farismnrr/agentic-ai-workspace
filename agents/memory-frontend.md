@@ -20,11 +20,20 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
 16. A native `<details class="dropdown">` never closes by itself: `shell/UserMenu.svelte` adds outside-click and Escape handling and reads `details.open` directly (the bound state lags one tick behind the `toggle` event). New popups copy the palette/user-menu surface (see the design system) instead of daisyUI defaults with `shadow-lg`.
 17. Inside the workspace (`app-ui`) text gets a fixed pixel line height (22px for 14px text), inherited by everything. A single-letter tile smaller than that (the 16px sidebar project tile) then has a grid row taller than itself, and `place-items-center` centres the letter in the row, not the tile, so it sits low. `ProjectTile` is `leading-none` for that reason; give any new tile or badge that holds one glyph `leading-none` too. To check centring, screenshot the element at a high `deviceScaleFactor` and measure the letter's ink gaps against the tile (sub-pixel offsets of ~0.5px are Chrome rounding the baseline; try a font size that leaves an even gap, which is why the 16px tile uses 10px, not 9px).
 18. A keyed `{#each ... (item.text)}` over data the server or an agent produces must never key on content that can repeat. Svelte 5 throws `each_key_duplicate` and the whole block stops updating, with no visible error: the Proof tab showed Plan or Changes instead because a task ran the same `gh` command twice (two checks with the same text). Key lists of generated text by position (`as item, index (index)`) or by an id the server made; keep content keys only for fixed sets. To catch it, load a task whose data repeats and watch the page's console for `svelte.dev/e/each_key_duplicate`.
-- **Project Env settings.** `settings-nav.ts`, `router.ts` and `SettingsPage.svelte`
-  expose the Env tab. `EnvTab.svelte` keeps project variable management and the
-  database form in local `settings/env/` components; responses never reveal a
-  saved secret. `env-logic.test.ts` uses Vitest; `make frontend-verify` must run
-  `npm test` so local verification and Fast CI execute the suite.
+- **Project Env and databases.** The project detail page owns Env and passes
+  its ID to `projects/env/VariablesSection.svelte` and `DatabaseSection.svelte`.
+  Settings has no Env tab or project picker. `DatabaseSection` reads the
+  project DB API's `sharedPostgres` flag to disable Shared when unavailable;
+  this includes the server's `POSTGRES_ADMIN_URL` fallback. No saved
+  connection means SQLite; managed means Shared; manual means Custom under
+  the disclosure. SQLite detaches through `/api/projects/:id/db/sqlite`, which
+  removes only `DATABASE_URL` and the local connection; it never calls a remote
+  cleanup. Keep the confirmation text clear that shared data stays in place.
+  Responses never reveal saved secrets. `env-logic.test.ts` uses Vitest;
+  `make frontend-verify` runs `npm test` locally and in Fast CI.
+- **Admin Settings.** Session `/api/auth/me` includes `role`. Hide the shared
+  Database tab for users and redirect direct SPA visits; backend authorization
+  remains authoritative. Other Settings tabs edit the signed-in person's data.
 - **Question form.** A question event is a form (`questionsOf` turns old single questions into one). Answers go up as `string[][]`; a typed reply replaces the pick of a single question and is added to a multi one. Child fields get their state through a `draft` prop and an `onchange` callback, not `bind:` on an array item (the strict lint forbids the `!` that needs).
 - **Agent text is markdown.** What an agent writes (chat bubbles, the PRD) goes through `DocText`: `logic/markdown.ts` reads headings, lists (with indent), tables, code fences, rules and quotes into blocks, `logic/markdown-inline.ts` reads `code`, **bold**, *italic* and links, and `InlineText` shows the spans as elements. Never `{@html}` for model output; only http(s) links become links. A plain `<p>{text}</p>` collapses newlines and shows the asterisks, which is what the chat did before. The ESLint rule `no-confusing-void-expression` rejects `{@render}` inside a snippet call chain, so use a small component (`InlineText`) instead of a snippet.
 - **Black-box before saying done.** `make e2e-thread` (script `scripts/e2e-thread.sh`, server side `TestServeThreadForABrowser`) runs the whole app with a scripted model that starts a page, takes two real screenshots and runs a check, then drives the thread in Playwright and saves screenshots. Look at them. It found what unit tests and my own first fix missed: the agent's final text lives in the result card (`ResultCard`), not in a chat bubble, so any place that shows agent text must use `DocText`. It needs Docker, the sandbox image and `npm i -g playwright`; CI does not run it.

@@ -19,19 +19,20 @@ type Session struct {
 
 // Service holds the account use cases.
 type Service struct {
-	users    UserStore
-	sessions SessionStore
-	hasher   PasswordHasher
-	tokens   Tokens
-	now      func() time.Time
-	erasers  []Eraser
+	users      UserStore
+	sessions   SessionStore
+	hasher     PasswordHasher
+	tokens     Tokens
+	now        func() time.Time
+	adminEmail string
+	erasers    []Eraser
 }
 
 // NewService wires the account use cases.
 func NewService(
-	users UserStore, sessions SessionStore, hasher PasswordHasher, tokens Tokens, now func() time.Time,
+	users UserStore, sessions SessionStore, hasher PasswordHasher, tokens Tokens, now func() time.Time, adminEmail string,
 ) *Service {
-	return &Service{users: users, sessions: sessions, hasher: hasher, tokens: tokens, now: now}
+	return &Service{users: users, sessions: sessions, hasher: hasher, tokens: tokens, now: now, adminEmail: adminEmail}
 }
 
 // Register creates an account and signs it in.
@@ -71,7 +72,11 @@ func (s *Service) create(ctx context.Context, name, email, password string) (dom
 		return domain.User{}, fmt.Errorf("new user id: %w", err)
 	}
 
-	user := domain.User{ID: id, Name: name, Email: email, CreatedAt: s.now()}
+	role := domain.RoleUser
+	if email == s.adminEmail {
+		role = domain.RoleAdmin
+	}
+	user := domain.User{ID: id, Name: name, Email: email, Role: role, CreatedAt: s.now()}
 	if err := s.users.Create(ctx, user, hash); err != nil {
 		return domain.User{}, fmt.Errorf("create user: %w", err)
 	}
