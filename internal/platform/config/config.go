@@ -39,6 +39,7 @@ var (
 type Config struct {
 	GitHub            GitHub
 	PublicURL         string
+	SitePreviewDomain string
 	ConnectorURL      string
 	DataDir           string
 	ClientIPHeader    string
@@ -47,22 +48,21 @@ type Config struct {
 	SandboxDataVolume string
 	Port              string
 	// SearxngURL is the address of a SearXNG server for web search; empty turns web search off.
-	SearxngURL        string
-	PostgresAdminURL  string
-	AdminEmail        string
-	CORSOrigins       []string
-	AllowedOrigins    []string
-	SandboxEgress     []string
-	ClaudeEgress      []string
-	ChatGPTEgress     []string
-	AgentWorkers      int
-	MaxSandboxes      int
-	SiteMaxPerUser    int
-	SiteMaxTotal      int
-	SitePreviewDomain string
-	SandboxMemoryMB   int
-	SandboxCPUs       int
-	CookieSecure      bool
+	SearxngURL       string
+	PostgresAdminURL string
+	AdminEmail       string
+	CORSOrigins      []string
+	AllowedOrigins   []string
+	SandboxEgress    []string
+	ClaudeEgress     []string
+	ChatGPTEgress    []string
+	AgentWorkers     int
+	MaxSandboxes     int
+	SiteMaxPerUser   int
+	SiteMaxTotal     int
+	SandboxMemoryMB  int
+	SandboxCPUs      int
+	CookieSecure     bool
 }
 
 // GitHub is the GitHub App people connect their account through. Empty means the feature is off.

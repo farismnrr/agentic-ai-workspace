@@ -72,5 +72,7 @@ func relay(ctx context.Context, in relayRequest) (relayAnswer, *relayFailure) {
 	kind, encoding := resp.Header.Get("Content-Type"), resp.Header.Get("Content-Encoding")
 	body = domain.Localize(kind, encoding, in.Base, in.Prefix, body)
 
-	return relayAnswer{Status: resp.StatusCode, Header: forSiteResponse(resp.Header, in.Base, in.Prefix, in.Preview), Body: body}, nil
+	return relayAnswer{
+		Status: resp.StatusCode, Header: forSiteResponse(resp.Header, in.Base, in.Prefix, in.Preview), Body: body,
+	}, nil
 }

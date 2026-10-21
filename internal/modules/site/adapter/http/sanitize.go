@@ -121,7 +121,8 @@ func forSiteRequest(in http.Header, prefix, clientIP string, preview bool) http.
 			continue
 		}
 		name, _, ok := strings.Cut(part, "=")
-		if !ok || strings.EqualFold(name, "workspace_session") || strings.EqualFold(name, "session") || strings.EqualFold(name, previewAccessCookie) {
+		if !ok || strings.EqualFold(name, "workspace_session") || strings.EqualFold(name, "session") ||
+			strings.EqualFold(name, previewAccessCookie) {
 			continue
 		}
 		cookies = append(cookies, part)
@@ -147,7 +148,8 @@ func forSiteResponse(in http.Header, base, prefix string, preview bool) http.Hea
 	out.Del("Access-Control-Allow-Origin")
 	for _, cookie := range in.Values("Set-Cookie") {
 		lower := strings.ToLower(cookie)
-		if strings.Contains(lower, "domain=") || strings.HasPrefix(lower, "workspace_session=") || strings.HasPrefix(lower, "session=") || strings.HasPrefix(lower, strings.ToLower(previewAccessCookie)+"=") {
+		if strings.Contains(lower, "domain=") || strings.HasPrefix(lower, "workspace_session=") ||
+			strings.HasPrefix(lower, "session=") || strings.HasPrefix(lower, strings.ToLower(previewAccessCookie)+"=") {
 			continue
 		}
 		out.Add("Set-Cookie", cookie)
