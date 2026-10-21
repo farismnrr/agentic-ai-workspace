@@ -1,7 +1,7 @@
 # Authenticated site previews (opt-in)
 
 The standard `/run/<site>` preview remains opaque-origin, cookie-free and sandboxed.
-A private app can still keep a login there: the server holds the app's cookies (see `sites.md`).
+An app can still keep a login there, private or public: the server holds the app's cookies (see `sites.md`).
 It is still **not** suitable for file uploads, `localStorage`, or anything that needs a real browser origin.
 
 For full-stack projects, an operator can configure `SITE_PREVIEW_DOMAIN` to a
