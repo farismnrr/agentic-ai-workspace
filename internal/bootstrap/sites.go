@@ -65,7 +65,7 @@ func newSites(
 
 	projects.OnArchive(service.StopProject)
 
-	return service, sitehttp.NewHandler(service, sess, cfg.ClientIPHeader != "").Mount(auth, sameOrigin), nil
+	return service, sitehttp.NewHandler(service, sess, cfg.ClientIPHeader != "").WithPreviewDomain(cfg.SitePreviewDomain).Mount(auth, sameOrigin), nil
 }
 
 // newAgentAndSites wires the two features that need each other: the agent starts sites through

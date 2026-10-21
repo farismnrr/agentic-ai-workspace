@@ -3,6 +3,7 @@ package http
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -32,13 +33,21 @@ type Handler struct {
 	auth    httpserver.Authenticator
 	// bindIP also ties tickets to the visitor's address. It is only meaningful when the server can see
 	// the real client address (CLIENT_IP_HEADER behind a proxy); otherwise it would vary or be shared.
-	bindIP bool
+	bindIP        bool
+	previewDomain string
 }
 
 // NewHandler builds the adapter. auth is only used to recognise the owner on /run, where a
 // missing login is not an error.
 func NewHandler(service Service, auth httpserver.Authenticator, bindIP bool) *Handler {
 	return &Handler{service: service, auth: auth, bindIP: bindIP}
+}
+
+// WithPreviewDomain enables authenticated app sessions only on per-project preview hosts.
+// Wildcard DNS/TLS must route <site>.<domain> to this server.
+func (h *Handler) WithPreviewDomain(domain string) *Handler {
+	h.previewDomain = strings.ToLower(strings.Trim(strings.TrimSpace(domain), "."))
+	return h
 }
 
 // Mount registers the routes. /run is outside the session and same-origin rules on purpose:
