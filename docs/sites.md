@@ -38,6 +38,7 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - Those cookies live in server memory only. They are per app and per browser, and the browser never receives them.
 - A private app knows your browser by its ticket. A public app gives each browser a pass: a cookie for that app's address, and a header the page adds to its own requests.
 - A public app's pass is never sent to the app, and a request without a valid pass keeps no login.
+- A pass works for 4 hours. Whoever holds it, in the cookie or the page, uses that browser's login. Don't share a page's source or your cookies.
 - They are lost when Workspace restarts or the app is started again, so you sign in again.
 
 ## Screenshots
@@ -57,7 +58,7 @@ A site shares the domain with the main app. These protections are always on:
 2. Endpoints that need your session refuse cross-site requests (`Sec-Fetch-Site: cross-site`), except plain navigations.
 3. The proxy never forwards your session cookie or `Authorization` header.
    - It also drops `Set-Cookie`, `Clear-Site-Data`, `Service-Worker-Allowed` and similar headers from the app's responses.
-   - The app's own cookies are kept on the server for a private site, per app and visitor, and never sent to the browser.
+   - The app's own cookies are kept on the server, per app and visitor, and never sent to the browser.
 4. The proxy talks only to the app's Unix socket. The container has no network, so the address can't point anywhere else.
 5. Unknown or stopped addresses return 404. A private site returns 403 to anyone without your login or a valid ticket.
 
