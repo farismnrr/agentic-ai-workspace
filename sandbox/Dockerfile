@@ -177,8 +177,10 @@ RUN chmod 0755 /usr/local/bin/sandbox-entry /usr/local/bin/removebg /usr/local/b
     && chmod 0755 /usr/local/bin/docpython \
     && printf '#!/bin/sh\nexec /opt/docs/bin/python /usr/local/share/docsite/docsite.py "$@"\n' > /usr/local/bin/docsite \
     && chmod 0755 /usr/local/bin/docsite \
-    && ln -s bun /usr/local/bin/bunx
+    && ln -s bun /usr/local/bin/bunx \
+    && printf 'export PATH=/usr/local/go/bin:/opt/cargo/bin:/opt/java/openjdk/bin:/opt/maven/bin:$PATH\n' > /etc/profile.d/toolchains.sh
 
+# A login shell (a vendor's coding program runs commands with one) resets PATH, so /etc/profile.d/toolchains.sh puts the toolchains back.
 # Read-only toolchains stay put; downloads and build output go to /cache, which the server mounts per person.
 ENV RUSTUP_HOME=/opt/rustup \
     JAVA_HOME=/opt/java/openjdk \
