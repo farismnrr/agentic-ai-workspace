@@ -59,6 +59,26 @@ func (r *Root) ReadFile(rel string, max int64) ([]byte, bool, error) {
 	return data, false, nil
 }
 
+// Open returns a seekable file confined to the workspace and its size.
+func (r *Root) Open(rel string) (io.ReadSeekCloser, int64, error) {
+	file, err := r.root.Open(rel)
+	if err != nil {
+		return nil, 0, translate(err)
+	}
+
+	info, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return nil, 0, translate(err)
+	}
+	if info.IsDir() {
+		_ = file.Close()
+		return nil, 0, domain.ErrIsDir
+	}
+
+	return file, info.Size(), nil
+}
+
 func (r *Root) readCapped(rel string, limit int64) ([]byte, error) {
 	file, err := r.fsys.Open(rel)
 	if err != nil {

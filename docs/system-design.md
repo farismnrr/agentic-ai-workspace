@@ -86,6 +86,12 @@ The binary hosts its own sign-in and an OAuth 2.1 server, so AI apps can connect
 
 Each tool has a switch the person controls in Settings. A call must pass the switch, then the token's scope, and is always logged. Edits save the old content first, which is what Undo restores.
 
+Project files use owner-scoped `/api/projects/:id/files` routes. The upload
+endpoint, `POST /api/projects/:id/uploads`, accepts one multipart file per
+request and stores it under `uploads/`. The authenticated request hook raises
+Fiber's body limit for this endpoint only. Raw files use confined, ranged
+serving. Uploads have no per-project storage quota.
+
 ## The sandbox
 
 Tasks, commands and web apps run in one throwaway Docker container per run.

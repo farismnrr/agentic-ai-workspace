@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
-
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
 // fileType is how a file is served: its media type, and whether a browser may show it in the page. Anything not
@@ -19,6 +17,15 @@ type fileType struct {
 
 var fileTypes = map[string]fileType{
 	".pdf":  {"application/pdf", true},
+	".mp4":  {"video/mp4", true},
+	".webm": {"video/webm", true},
+	".mov":  {"video/quicktime", true},
+	".svg":  {"image/svg+xml", false},
+	".txt":  {"text/plain; charset=utf-8", false},
+	".md":   {"text/plain; charset=utf-8", false},
+	".csv":  {"text/plain; charset=utf-8", false},
+	".json": {"text/plain; charset=utf-8", false},
+	".log":  {"text/plain; charset=utf-8", false},
 	".png":  {"image/png", true},
 	".jpg":  {"image/jpeg", true},
 	".jpeg": {"image/jpeg", true},
@@ -38,11 +45,10 @@ func (h *Handler) raw(c fiber.Ctx) error {
 		return fail(c, err)
 	}
 
-	file, err := workspace.Reader.ReadRaw(c.Query("path"), domain.MaxDownloadBytes)
+	file, err := workspace.Reader.OpenRaw(c.Query("path"))
 	if err != nil {
 		return fail(c, err)
 	}
-
 	kind, known := fileTypes[strings.ToLower(path.Ext(file.Path))]
 	if !known {
 		kind = fileType{media: "application/octet-stream"}
@@ -66,5 +72,5 @@ func (h *Handler) raw(c fiber.Ctx) error {
 
 	c.Set("Cache-Control", "private, no-store")
 
-	return c.Send(file.Data)
+	return sendRaw(c, file)
 }

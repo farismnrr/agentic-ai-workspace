@@ -57,9 +57,12 @@ func changed(project, path string, applied application.Applied, err error) (chan
 		return changeOutput{}, report{}, fmt.Errorf("change %s: %w", path, err)
 	}
 
-	undo, err := applied.Change.Encode()
-	if err != nil {
-		return changeOutput{}, report{}, fmt.Errorf("record change: %w", err)
+	var undo []byte
+	if applied.Change.Op != "" {
+		undo, err = applied.Change.Encode()
+		if err != nil {
+			return changeOutput{}, report{}, fmt.Errorf("record change: %w", err)
+		}
 	}
 
 	done := report{detail: applied.Detail, undo: undo, project: project}

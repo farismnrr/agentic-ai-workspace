@@ -2,190 +2,9 @@
 
 Task: f2515af4f54b16129c324566b53f5145
 Status: working
-Updated: 2026-10-21T04:18:56Z
+Updated: 2026-10-21T05:54:09Z
 
 Reference material; confirm applicability before reusing.
-
-**Summary:** Env variables and database connections are stored per project, but their UI is in Settings, where Env offers a project picker.  
-The shared PostgreSQL flow already checks for and creates a missing project schema; there is no per-project SQLite-versus-Settings-DB choice.
-
-## Env: where it lives and why it appears in Settings
-
-- The Env API is mounted at `/api/projects/:id/env` in [`handler.go`](/workspace/internal/modules/env/adapter/http/handler.go:20). The `env` module owns validation and use cases in `application/service.go` and `domain/variable.go`; SQLite storage of sealed values is in [`store.go`](/workspace/internal/modules/env/adapter/sqlite/store.go:13). Migration 043 creates `project_env_vars`.
-- The UI is [`EnvTab.svelte`](/workspace/web/src/features/workspace/settings/EnvTab.svelte:1), with variable forms in `settings/env/VariablesSection.svelte` and database forms in `settings/env/DatabaseSection.svelte`. It selects a project from the shared projects list and passes that project ID to both sections ([`EnvTab.svelte`](/workspace/web/src/features/workspace/settings/EnvTab.svelte:14)).
-- The code shows that Env is a Settings tab, while its data and API are project-scoped. **Inference:** it is in Settings because it was grouped with configuration screens; I found no explicit rationale in the code or project notes. The current Projects detail page has Tasks, Files, Checks and About tabs ([`ProjectDetailPage.svelte`](/workspace/web/src/features/workspace/projects/ProjectDetailPage.svelte:17)).
-- Checks and commands receive only the selected project’s variables through `runner.WithProjectEnv` and the CLI environment assembly; project sites use `Runtime.WithProjectEnv` ([`runner/project_env.go`](/workspace/internal/modules/coding/adapter/runner/project_env.go:10), [`taskcli_env.go`](/workspace/internal/bootstrap/taskcli_env.go:65), [`runtime/project_env.go`](/workspace/internal/modules/site/adapter/runtime/project_env.go:12)). Existing memory says sandbox containers remain offline ([`agents/implementation-notes.md`](/workspace/agents/implementation-notes.md:128)).
-
-## Database connections and existing shared PostgreSQL support
-
-- Project DB endpoints are in [`dbconn/adapter/http/handler.go`](/workspace/internal/modules/dbconn/adapter/http/handler.go:25). Project connection records and sealed passwords are stored by `dbconn/adapter/sqlite/store.go`; migration 044 creates `project_db_connections`, and migration 045 adds its `managed` flag. The connection form and shared-Postgres action are in `settings/env/DatabaseSection.svelte`.
-- `POSTGRES_ADMIN_URL` is process configuration, loaded in [`config.go`](/workspace/internal/platform/config/config.go:107) and wired into `dbconn` in `internal/bootstrap/dbconn.go`. It is not a per-project Settings field.
-- Commit **5f5f9c7** added Env storage/API/UI and manual PostgreSQL, MySQL and MongoDB connection settings and tests. Commit **ce2dfa4** added managed shared-Postgres provisioning, including schema and role creation/reconciliation, plus its Settings UI flow and migration 045. The prior task requirements explicitly scoped out database-per-project choice ([`requirements.md`](/workspace/project-notes/tasks/20c2ef530617785d0cefb7b799dc5729/requirements.md)).
-- **Schema check exists:** `applySchema` checks `pg_namespace`; it creates a missing schema and verifies ownership when it already exists ([`provision/apply.go`](/workspace/internal/modules/dbconn/adapter/provision/apply.go:78)). This happens during `ProvisionShared`, which also saves the managed connection and writes `DATABASE_URL` to that project’s Env ([`service_shared.go`](/workspace/internal/modules/dbconn/application/service_shared.go:14), [`service_shared.go`](/workspace/internal/modules/dbconn/application/service_shared.go:73)).
-- **Per-project database choice does not exist:** there is no project setting that chooses SQLite or the shared Settings database. Current DB UI configures a project’s manual connection or provisions shared PostgreSQL. I found no separate schema-exists check triggered by a project choice.
-
-## Projects page, reuse and risks
-
-- [`ProjectDetailPage.svelte`](/workspace/web/src/features/workspace/projects/ProjectDetailPage.svelte:21) already defines the project tabs and passes `projectId` to Checks and Tasks. [`AboutTab.svelte`](/workspace/web/src/features/workspace/projects/AboutTab.svelte:14) shows the existing pattern for project-scoped editing and saving. `ProjectsPage.svelte` is the project list; [`workspace-store.ts`](/workspace/web/src/features/workspace/logic/workspace-store.ts) supplies the shared projects list used by the detail page and Env tab.
-- Existing pieces that appear reusable: Env’s `VariablesSection` and `env-api.ts` accept a project ID; `DatabaseSection` and the `dbconn` endpoints already manage project-scoped connections; `ProjectDetailPage` already has a tab structure. **Inference:** moving the Env UI into Projects can reuse these pieces, though loading and save behavior should be checked for the project-detail lifecycle.
-- A database choice is a new state and behavior. The current shared provisioning action provisions a connection and writes `DATABASE_URL`; the reviewed code does not provide the requested SQLite/default selection behavior. Clarify what “keep default SQLite” means for project code that may already have a managed or manual connection.
-- Existing variable values are stored against project IDs, and shared provisioning stores both a DB connection record and a `DATABASE_URL` Env value. A change should preserve those values and define how switching choices affects an existing connection or URL. Existing shared database objects are intentionally not dropped on connection removal ([`service_shared.go`](/workspace/internal/modules/dbconn/application/service_shared.go:14); [`agents/implementation-notes.md`](/workspace/agents/implementation-notes.md:167)).
-- Any source change must respect the 200-line file limit and Go/frontend complexity limits ([`AGENTS.md`](/workspace/AGENTS.md): “Size and complexity limits”). User-visible behavior changes require the relevant docs update; existing descriptions are in [`docs/using-the-app.md`](/workspace/docs/using-the-app.md:119) and architecture notes in [`docs/system-design.md`](/workspace/docs/system-design.md:57). Agent memory also describes the existing Env and DB behavior ([`agents/memory-frontend.md`](/workspace/agents/memory-frontend.md:20), [`agents/memory-backend.md`](/workspace/agents/memory-backend.md:30)).
-
-## Not found
-
-- No explicit recorded reason for placing project-scoped Env under Settings.
-- No current project-level SQLite-versus-shared-database selector.
-- No project-choice-triggered schema check; schema check and creation currently happen inside shared provisioning.
-
-## Suggestions
-
-- The requested placement is consistent with the existing project detail tabs and project-ID-based APIs.
-- Keep shared DB configuration in process Settings, and use the existing provisioning path when a project selects it; confirm the desired behavior when switching a project that already has a manual or managed DB connection.
-- No web search, project commands or tests were run. No files were changed.
-
----
-
-## Summary
-
-The repository already has a `dbconn` module that seals project passwords and provisions shared PostgreSQL schemas.
-Official guidance supports building connection config from validated fields, quoting SQL identifiers, and handling Fiber v3 bind errors explicitly.
-
-## Technical references
-
-- **Build the connection config:** pgx v5’s `pgx.ParseConfig` accepts PostgreSQL URI or keyword/value syntax, then exposes a config that can be modified. PostgreSQL requires percent encoding for special characters in URI parts; constructing a URL with `url.UserPassword` and `url.Values` avoids hand-escaping the password. For separately supplied fields, use `pgx.ConnConfig` fields or a keyword/value encoder rather than string concatenation. Sources: [pgx config](https://pkg.go.dev/github.com/jackc/pgx/v5), [pgconn parsing notes](https://pkg.go.dev/github.com/jackc/pgx/v5/pgconn), [PostgreSQL connection URIs](https://www.postgresql.org/docs/17/libpq-connect.html).
-
-- **Validate SSL mode:** PostgreSQL documents `disable`, `allow`, `prefer`, `require`, `verify-ca`, and `verify-full`; `verify-full` checks both certificate trust and hostname and is recommended for security-sensitive use. Select from an allowlist rather than accepting arbitrary values. Source: [PostgreSQL SSL support](https://www.postgresql.org/docs/current/libpq-ssl.html).
-
-- **Create and quote schemas:** PostgreSQL supports `CREATE SCHEMA IF NOT EXISTS`, but that clause alone does not verify the existing schema’s owner. Quote dynamic identifiers; pgx provides `pgx.Identifier{...}.Sanitize()`. The current provisioner already checks existence and owner and uses `pgx.Identifier` for schema, role, and database names. Sources: [CREATE SCHEMA](https://www.postgresql.org/docs/17/sql-createschema.html), [identifier syntax](https://www.postgresql.org/docs/current/sql-syntax-lexical.html), [pgx Identifier](https://pkg.go.dev/github.com/jackc/pgx/v5#Identifier).
-
-- **Fiber v3 endpoint pattern:** The existing handler uses `c.Bind().JSON`, returns a deliberate 400 for malformed input, and registers GET separately from PUT. Fiber docs note that bind/validation errors are returned as-is; a handler should map client input errors to 4xx rather than letting them become 500s. `c.Context()` is Fiber’s fasthttp context; the docs say it returns a standard context previously set with `SetContext`, otherwise `context.Background()`. Follow neighboring handlers and their established context handling. Sources: [Fiber Bind](https://docs.gofiber.io/api/bind/), [Fiber Ctx](https://docs.gofiber.io/api/ctx/).
-
-- **Repository patterns to copy:** `internal/modules/dbconn/adapter/sqlite/store.go` stores project connection secrets sealed through `platform/secretbox`; migrations 044–045 establish the connection table and managed flag. `internal/modules/dbconn/adapter/http/handler.go` has the project GET/PUT shape and explicit safe error responses. `internal/bootstrap/dbconn.go` wires the provisioner. Existing Settings tabs live under `web/src/features/workspace/settings/`; the new global config should follow their API and tab composition patterns. The existing project DB GET returns `domain.Metadata`, not the password.
-
-## Quality checks
-
-- Verify Settings GET and PUT responses never include the password, including after saving and on validation or storage errors. Check logs and error bodies for the password and full connection URL; pgconn cautions that parse-error redaction is best effort.
-- Exercise passwords containing URI-reserved characters, spaces, quotes, percent signs, and Unicode. Confirm the resulting pgx config preserves the exact password, host, port, database, user, and SSL mode.
-- Reject unknown SSL modes. Test the accepted values and expected TLS behavior, including certificate/hostname verification when `verify-full` is selected.
-- Try hostile schema names and project identifiers containing quotes, semicolons, comments, and punctuation. Confirm dynamic identifiers use `pgx.Identifier` and cannot escape their identifier.
-- For existing and missing schemas, verify provisioning preserves the existing ownership check and creates only when absent. For SQLite detach, verify only the project connection and `DATABASE_URL` are removed; no `DROP SCHEMA`, `DROP ROLE`, or other destructive SQL is issued.
-- Test saved Settings config used without restart, `POSTGRES_ADMIN_URL` fallback when no config is saved, and behavior when neither source is configured.
-
-## Not found
-
-- I did not find a current official pgx function that encodes arbitrary keyword/value fields into a connection string; direct config-field assignment or URL construction with standard URL encoders avoids relying on a hand-built string.
-- No project Settings tab in the supplied notes establishes a precise pattern for secret redaction in a server-wide settings endpoint; the project-scoped `dbconn` pattern is the closest repository precedent.
-
-## Suggestions
-
-Use the existing `dbconn` metadata/secretbox and handler conventions, but define a response DTO that omits the password entirely. Keep the shared config as a separate application boundary and construct its pgx config from validated fields at call time. QA should specifically verify identifier quoting and detach behavior against emitted SQL.
-
-No files were changed and no project commands or tests were run.
-
----
-
-## Summary
-
-The reported 104 bytes is the end offset of the last pointer-containing field, not the sum of all pointer words.
-
-`Service`’s optimal order puts `adminEmail` and `erasers` last, with `adminEmail` last.
-
-## Findings
-
-In [`service.go`](/workspace/internal/modules/account/application/service.go:21), the fields are `erasers []Eraser`, four interfaces (`users`, `sessions`, `hasher`, `tokens`), `now func() time.Time`, and `adminEmail string`.
-
-The analyzer computes a type’s pointer-data length separately from its total size. In the current upstream source, interfaces count as **two pointer words**; slices, function values, and strings each count as **one pointer word**. The slice’s length and capacity words and the string’s length word contribute to total size, but not to pointer-data length. A pointer-free field contributes zero. For a struct, the analyzer tracks the end offset of each pointer-containing field and returns the last such end offset. That is why the diagnostic says “leading bytes.” [Analyzer source](https://github.com/golang/tools/blob/master/go/analysis/passes/fieldalignment/fieldalignment.go) · [Package documentation](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment)
-
-The analyzer’s suggested order sorts by alignment first, then puts pointer-containing fields before pointer-free fields. Among pointer-containing fields it places those with fewer trailing non-pointer bytes first, then larger fields first. For this `Service`, that yields:
-
-```go
-type Service struct {
-    users      UserStore
-    sessions   SessionStore
-    hasher     PasswordHasher
-    tokens     Tokens
-    now        func() time.Time
-    adminEmail string
-    erasers    []Eraser
-}
-```
-
-The four interfaces tie: each is two words total and two pointer words. `now` is one word total and one pointer word. `adminEmail` is two words total but only its first word is pointer data, so it has one trailing non-pointer word. `erasers` is three words total and one pointer word, so it has two trailing non-pointer words. The analyzer puts the interface fields first, then `now`, then `adminEmail`, then the slice. [Analyzer ordering and size calculations](https://github.com/golang/tools/blob/master/go/analysis/passes/fieldalignment/fieldalignment.go)
-
-That order **can satisfy the pointer-data check**: it leaves the slice’s one pointer word at the earliest possible ending position, while moving its length and capacity words after it. Putting both the string and slice last is not sufficient by itself; the order between them matters for the analyzer’s optimal value. This conclusion uses the current upstream ordering logic; the exact diagnostic depends on the analyzer version in the repository’s lint toolchain.
-
-## Not found
-
-The repository’s configured golangci-lint version was not established from the files read, so I can’t confirm that its bundled analyzer has precisely the same ordering logic as current upstream. The observed diagnostic itself is recorded in the archived plan, but its complete original text is truncated there.
-
-## Suggestions
-
-Place `erasers` last and `adminEmail` immediately before it, after the interface/function fields. The previous attempt placing the slice first would keep its pointer at a later offset because the slice’s three-word size advances the struct before subsequent pointer-containing fields.
-
-No files were changed and no project commands or tests were run.
-
----
-
-## Summary
-
-The app shell starts with no visible loader in `index.html`. After Svelte mounts, `App.svelte` shows the global spinner while it waits for the session on protected or guest-only routes.
-
-Tasks already belong to a user and project. There is no pin field, pin endpoint, or pin control today; the sidebar shows up to nine recently updated tasks.
-
-## Loading trace
-
-**Observed:** [`index.html`](/workspace/web/index.html:23) contains only the empty `#app` mount point. [`main.ts`](/workspace/web/src/main.ts:16) mounts the Svelte app. Session state starts as `loading` and `loadSession()` requests `/api/auth/me`; any failure sets it to `anonymous` ([`session.ts`](/workspace/web/src/shared/session/session.ts:11), [`session.ts`](/workspace/web/src/shared/session/session.ts:15)).
-
-In [`App.svelte`](/workspace/web/src/app/App.svelte:47), the global spinner appears while a protected route awaits sign-in, a guest-only route awaits the session result, or an admin-only Settings route is redirecting. The `<main>` has `aria-busy="true"`, but the spinner itself has no text or status role. The source uses `grid ... place-items-center`, so it specifies a centered spinner. **I did not run the app in a browser** to confirm why it appears top-left in the reported view.
-
-The router resolves routes synchronously and swaps page components directly; it has no navigation-wide loading state ([`router.ts`](/workspace/web/src/app/router.ts:73), [`router.ts`](/workspace/web/src/app/router.ts:88)). On a protected route after sign-in, navigation does not show the global spinner because the session is already signed in.
-
-**Spinner/loading locations found:**
-
-- **App/session gate:** [`App.svelte`](/workspace/web/src/app/App.svelte:47).
-- **Task first load:** [`TaskScreen.svelte`](/workspace/web/src/features/workspace/task/TaskScreen.svelte:68) shows a spinner until `createThread()` receives the task; it displays a missing-task message if the stream closes before one arrives ([`thread.ts`](/workspace/web/src/features/workspace/logic/thread.ts:58)).
-- **Project checks:** [`ChecksTab.svelte`](/workspace/web/src/features/workspace/projects/ChecksTab.svelte:74).
-- **Project Env variables:** [`VariablesSection.svelte`](/workspace/web/src/features/workspace/projects/env/VariablesSection.svelte:89).
-- **Settings data:** [`ActivityTab.svelte`](/workspace/web/src/features/workspace/settings/ActivityTab.svelte:53), [`ConnectedAppsTab.svelte`](/workspace/web/src/features/workspace/settings/ConnectedAppsTab.svelte:47), [`GitHubIntegration.svelte`](/workspace/web/src/features/workspace/settings/GitHubIntegration.svelte:59), [`ModelsTab.svelte`](/workspace/web/src/features/workspace/settings/ModelsTab.svelte:87), [`PersonaTab.svelte`](/workspace/web/src/features/workspace/settings/PersonaTab.svelte:66), [`SpacesTab.svelte`](/workspace/web/src/features/workspace/settings/SpacesTab.svelte:28), [`TeamTab.svelte`](/workspace/web/src/features/workspace/settings/TeamTab.svelte:73), [`UsageTab.svelte`](/workspace/web/src/features/workspace/settings/UsageTab.svelte:31), and [`DatabaseTab.svelte`](/workspace/web/src/features/workspace/settings/DatabaseTab.svelte:58).
-- **Other in-progress work:** [`FileView.svelte`](/workspace/web/src/features/workspace/files/FileView.svelte:62), [`ChangesTab.svelte`](/workspace/web/src/features/workspace/task/panel/ChangesTab.svelte:59), and [`ProjectDocuments.svelte`](/workspace/web/src/features/workspace/task/panel/ProjectDocuments.svelte:51) and [line 63](/workspace/web/src/features/workspace/task/panel/ProjectDocuments.svelte:63). Button-level spinners appear in [`ComposerBox.svelte`](/workspace/web/src/features/workspace/components/ComposerBox.svelte:98), [`CheckModal.svelte`](/workspace/web/src/features/workspace/projects/CheckModal.svelte:84), [`DatabaseActions.svelte`](/workspace/web/src/features/workspace/projects/env/DatabaseActions.svelte:9), [`DatabaseSection.svelte`](/workspace/web/src/features/workspace/projects/env/DatabaseSection.svelte:155), and [`SubscriptionDialog.svelte`](/workspace/web/src/features/workspace/settings/SubscriptionDialog.svelte:87).
-- **Progress text/dots:** [`RepoPicker.svelte`](/workspace/web/src/features/workspace/projects/RepoPicker.svelte:37) shows loading text; [`TaskThread.svelte`](/workspace/web/src/features/workspace/task/thread/TaskThread.svelte:87) shows “Waiting to start” or “Working on it” with dots. These are task-work states, not page-load loaders.
-
-**Workspace data behavior:** `AppShell` starts a store watcher on mount ([`AppShell.svelte`](/workspace/web/src/features/workspace/shell/AppShell.svelte:34)). The watcher fetches projects, tasks, sites and extensions asynchronously ([`workspace-store.ts`](/workspace/web/src/features/workspace/logic/workspace-store.ts:19)). Most workspace pages render from initially empty stores without a loading placeholder; for example, the project list can show its empty state before that request completes ([`ProjectsPage.svelte`](/workspace/web/src/features/workspace/projects/ProjectsPage.svelte:28)). **Inference:** this can look like a briefly empty page on a slow first request.
-
-Go serves `index.html` for SPA paths with `no-cache`; hashed assets get immutable caching. Missing `/assets/*` remain 404 ([`spa.go`](/workspace/internal/platform/httpserver/spa.go:16), [`spa.go`](/workspace/internal/platform/httpserver/spa.go:50)). The server has no loading-screen behavior; the loader is frontend-rendered.
-
-## Task pin trace
-
-- **Domain:** [`domain/task.go`](/workspace/internal/modules/task/domain/task.go:67) defines `Task` with `ID`, `ProjectID`, `UserID`, status and task data, but no pinned field.
-- **Storage:** SQLite creates the `tasks` table in migration [`008_tasks.sql`](/workspace/internal/platform/database/migrations/008_tasks.sql:1). Later migrations add task columns; current selected columns and scanning have no pin field ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:19), [`scan.go`](/workspace/internal/modules/task/adapter/sqlite/scan.go:33)). `List` filters by `user_id`, optionally by project, and orders by newest activity ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:92)).
-- **API:** authenticated `GET /api/tasks` is registered in [`handler.go`](/workspace/internal/modules/task/adapter/http/handler.go:29). It passes the authenticated user and optional project filter to the service ([`tasks.go`](/workspace/internal/modules/task/adapter/http/tasks.go:65)). The JSON payload contains no pin field ([`tasks.go`](/workspace/internal/modules/task/adapter/http/tasks.go:13)). There is no pin/unpin endpoint.
-- **Frontend task list/store:** [`tasks-api.ts`](/workspace/web/src/features/workspace/logic/tasks-api.ts:26) loads the task list. The `Task` type has no pin field ([`task-types.ts`](/workspace/web/src/features/workspace/logic/task-types.ts:95)). `workspace-store.ts` refreshes that list and shares it with screens and the sidebar ([`workspace-store.ts`](/workspace/web/src/features/workspace/logic/workspace-store.ts:20)).
-- **Sidebar today:** [`Sidebar.svelte`](/workspace/web/src/features/workspace/shell/Sidebar.svelte:32) includes Recent and Projects sections. [`SidebarRecent.svelte`](/workspace/web/src/features/workspace/shell/SidebarRecent.svelte:8) takes the first nine tasks from the newest-first store and groups them by day. Each task is a whole-link row with status dot, title and relative time ([`SidebarRecent.svelte`](/workspace/web/src/features/workspace/shell/SidebarRecent.svelte:19)). Projects separately show up to eight projects and a “needs you” count ([`SidebarProjects.svelte`](/workspace/web/src/features/workspace/shell/SidebarProjects.svelte:14)).
-- **Task row/menu:** [`TaskRow.svelte`](/workspace/web/src/features/workspace/projects/TaskRow.svelte:15) renders a project task as one full-width link with status, title, summary, badge and time. Neither that row nor the sidebar recent row has a menu or pin button. **Inference:** the existing rows are possible places for a pin control, but the sidebar row’s whole-link structure would need a separate control that does not accidentally activate navigation.
-
-**Pin scope and smallest data change — inference:** Tasks are already stored with both `user_id` and `project_id`, and normal listing is scoped to the signed-in user. A pin should therefore be per user and per task. If a task remains owned by exactly one user as it is today, a `pinned` boolean column on `tasks` is the smallest storage change; a timestamp is only needed if pin ordering or pin time matters. The change would also need to carry the field through domain, SQLite scan/list, API payload, frontend type/store, and an authenticated state-changing endpoint. The repository’s 200-line source-file limit and feature import boundaries apply ([`AGENTS.md`](/workspace/AGENTS.md), “Size and complexity limits” and “Folder structure”).
-
-## Design references
-
-- WAI-ARIA says `aria-busy` can mark a region that is being updated; WAI’s status-message technique recommends `role="status"` for messages that need announcement without moving focus. The current app gate uses `aria-busy` but has no status text/role. [WAI-ARIA 1.2](https://www.w3.org/TR/wai-aria/), [WCAG technique ARIA22](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA22.html).
-- daisyUI offers both a `loading` spinner (`loading-spinner`) and animated `skeleton` placeholders for component-shaped loading states. [Loading](https://daisyui.com/components/loading/), [Skeleton](https://daisyui.com/components/skeleton/).
-- MDN documents `prefers-reduced-motion: reduce` for reducing or removing nonessential animation. [`app.css` currently limits its page entrance animation to `no-preference`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion); the daisyUI loading animation’s reduced-motion behavior was not verified here.
-
-## Not found
-
-- No loading UI in the HTML shell or Go SPA handler.
-- No global route-transition loader.
-- No task pin state, endpoint, sidebar pin list, or task-row menu.
-- The source specifies a centered global spinner; the reported top-left placement was not reproduced in a browser.
-
-## Suggestions
-
-A loading design can address two distinct waits: session resolution before the workspace appears, and task/project data loading after the shell appears. The current local spinner patterns can be reused; daisyUI skeletons are available for layout-shaped placeholders.
-
-For pinning, keep ownership tied to the current task owner and expose pin state through the existing task list API so the sidebar can render pinned items from the shared store. Confirm whether pinned tasks should replace or supplement the existing nine recent tasks. No code was changed and no project commands or tests were run.
-
----
 
 ## Summary
 
@@ -224,3 +43,104 @@ No existing migration 048, `pinned_at` field, pin endpoint, or pin button exists
 ## Suggestions
 
 Keep the loading status readable without animation, reserve list space with skeleton rows, and use `LogoMark.svelte` for consistent branding. Use a nullable Unix-time column and user-scoped, repeat-safe updates for pin state.
+
+---
+
+## Report document
+
+The workspace already lets a person attach **photos** in the task composer. The files are saved in the project and passed to the agent by path.  
+General file attachments, direct image/PDF content in user messages, video playback, and video understanding are not implemented in this flow.
+
+### What exists today
+
+- **Composer:** The home composer and task follow-up composer share `ComposerBox.svelte`. It accepts PNG, JPEG, WebP, GIF, and SVG through a file picker. It shows filename chips with remove buttons; it does not show image thumbnails or support drag-and-drop or paste. [ComposerBox.svelte](/workspace/web/src/features/workspace/components/ComposerBox.svelte:72)
+- **Sending:** The composer requires text to send. After Send, files upload one at a time; the prompt then includes their project paths. The Send button shows a spinner while this happens. A later upload or task-send failure can leave earlier uploaded files in the project. [attachments.ts](/workspace/web/src/features/workspace/logic/attachments.ts:14) · [Composer.svelte](/workspace/web/src/features/workspace/home/Composer.svelte:25) · [TaskScreen.svelte](/workspace/web/src/features/workspace/task/TaskScreen.svelte:49)
+- **Project documents:** Long text messages are saved as server-maintained project documents. The task’s Documents panel lists these documents; it is not a general-purpose user file upload. [inputdocument.go](/workspace/internal/modules/task/application/inputdocument.go:10) · [ProjectDocuments.svelte](/workspace/web/src/features/workspace/task/panel/ProjectDocuments.svelte:50) · [AGENTS.md](/workspace/AGENTS.md)
+- **File APIs and previews:** The project Files API lists, reads, edits, and deletes files. Its multipart upload endpoint is specifically for pictures in `assets/`. The Files tab previews PDF and raster images; other file types are offered as downloads. [handler.go](/workspace/internal/modules/coding/adapter/http/handler.go:24) · [BinaryFile.svelte](/workspace/web/src/features/workspace/files/BinaryFile.svelte:11)
+- **Storage and ownership:** Project folders live under `DATA_DIR/projects/<project-id>`. Upload requires authentication and same-origin checks, then opens the project for the signed-in owner. Workspace reads are confined to that folder. Files remain project files, rather than attachments owned by an individual task. [folders.go](/workspace/internal/modules/project/adapter/folder/folders.go:21) · [handler.go](/workspace/internal/modules/coding/adapter/http/handler.go:24) · [files.go](/workspace/internal/modules/coding/adapter/http/assets.go:63) · [root.go](/workspace/internal/modules/coding/adapter/fs/root.go:16)
+- **Upload limits and checks:** Each picture is limited to 10 MiB; Fiber’s global request body limit is 11 MiB. The server detects image type from content, derives the saved extension from that type, sanitizes the filename to a short ASCII name, and refuses to overwrite an existing file. SVG receives a simple content check. I found no aggregate upload-count or storage quota on this route. [workspace.go](/workspace/internal/modules/coding/domain/workspace.go:11) · [routes.go](/workspace/internal/platform/httpserver/routes.go:5) · [assets.go](/workspace/internal/modules/coding/adapter/http/assets.go:21)
+- **Serving:** The raw file endpoint sets `Content-Type` from an extension allowlist, `Content-Disposition`, `nosniff`, and private no-store caching. It serves PDFs and common raster images inline; unknown extensions, including video, are downloads. It reads up to 50 MiB into memory and sends the full file; the handler has no explicit Range support. [raw.go](/workspace/internal/modules/coding/adapter/http/raw.go:20) · [raw.go](/workspace/internal/modules/coding/adapter/http/raw.go:41) · [raw.go](/workspace/internal/modules/coding/adapter/http/raw.go:51)
+
+### How files reach agents and models
+
+- **Agent workspace:** The project folder is mounted at `/workspace` inside task containers. Uploaded pictures are therefore available as project files to the task’s tools and command-line programs. [mount.go](/workspace/internal/platform/sandbox/mount.go:33) · [sandbox.go](/workspace/internal/platform/sandbox/sandbox.go:41)
+- **Normal model loop:** User messages are text blocks. Image bytes are currently attached to tool-result blocks for screenshots; the loop reloads only recent task screenshots for model requests. [transcript.go](/workspace/internal/modules/task/domain/transcript.go:17) · [shots.go](/workspace/internal/modules/task/application/shots.go:23)
+- **Image viewing:** The agent has a `view_image` tool for project PNGs up to 4 MiB. It rejects other image types, with guidance to convert them to PNG first. That provides a route for inspecting an uploaded image through a tool call, but the composer does not send the image as a user-message image block. [tools.go](/workspace/internal/modules/coding/domain/tools.go:126) · [agenttools_view.go](/workspace/internal/bootstrap/agenttools_view.go:28)
+- **PDF and text:** The built-in team’s Documents role has document tools such as `pdftotext` and LibreOffice. This is file reading/conversion through sandbox tools, not a PDF block sent by the composer. [leadrules.go](/workspace/internal/modules/task/application/leadrules.go:172)
+- **CLI agents:** The app passes their prompt on standard input; the project is available in their workspace. The app does not construct image or PDF content blocks for them. Any native file handling beyond that is the vendor CLI’s own behavior. [cli.go](/workspace/internal/modules/task/application/cli.go:47) · [taskcli.go](/workspace/internal/bootstrap/taskcli.go:74)
+- **Configured model capabilities:** The app supports Anthropic and OpenAI-compatible provider clients, but its model catalog stores model names and context/thinking details, not image/PDF capability flags. The exact vision-capable models connected to a particular user were therefore **not established from the repository**. [agentmodels.go](/workspace/internal/bootstrap/agentmodels.go:61) · [model.go](/workspace/internal/modules/provider/domain/model.go:19)
+- **Official API options:** Anthropic’s Messages API accepts images as base64, URL, or Files API ID; its current docs list JPEG, PNG, GIF, and WebP, with a 10 MB direct-API image limit. Its PDF API supports base64, URL, or file ID, up to 32 MB per request and up to 600 pages (100 for context windows under 1M); Anthropic says all active models support PDFs. The app does not currently encode these user files as such blocks. [Anthropic vision](https://platform.claude.com/docs/en/build-with-claude/vision) · [Anthropic PDF support](https://platform.claude.com/docs/en/build-with-claude/pdf-support)
+- **OpenAI API options:** OpenAI’s current docs describe image input as URL, base64 data URL, or file ID. Responses API file inputs support PDF and many text/document formats, with a 50 MB total file-input request limit; PDF page images require a vision-capable model. This app’s OpenAI-compatible adapter currently encodes screenshot images in Chat Completions format and has no PDF/file input encoding. [OpenAI images and vision](https://developers.openai.com/api/docs/guides/images-vision) · [OpenAI file inputs](https://developers.openai.com/api/docs/guides/file-inputs)
+- **Video:** The reviewed API guides do not provide a direct video block for this app’s model request path. Anthropic’s guidance describes analyzing video by breaking it into frames. Treat video understanding as requiring frame extraction and possibly audio transcription unless a chosen vendor CLI handles it natively; that CLI behavior was not tested. [Anthropic prompting guidance](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prompt-templates-and-variables) · [OpenAI Responses overview](https://developers.openai.com/api/reference/responses/overview)
+
+### Official guidance and design notes
+
+- OWASP recommends an allowlist of necessary file types, content checks beyond the client-supplied MIME type, safe filenames, size limits, authorization, and storage controls. It cautions that file-signature checks alone are not sufficient. [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
+- Fiber v3 applies `BodyLimit` to multipart forms. Its current guidance calls for file-size and type validation; its streaming recipe is relevant if the app accepts large videos. The repository currently buffers each accepted picture in memory under its 11 MiB request cap. [Fiber v3 file uploads](https://docs.gofiber.io/blog/fiber-v3-file-uploads/) · [Fiber stream request body](https://docs.gofiber.io/recipes/stream-request-body/)
+- For browser playback of large media, HTTP byte ranges let players request partial content and seek. The current endpoint reads and sends the full file and does not explicitly implement ranges. Browsers also vary in supported video codecs. [MDN Range requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests) · [MDN video element](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video)
+- The current attachment UX has a labelled attach control and keyboard-operable remove buttons. For expanded uploads, keep file names and remove controls accessible, announce upload progress/results, and give clear, actionable errors. WAI recommends concise error messages that explain how to resolve the problem. [WAI form notifications](https://www.w3.org/WAI/tutorials/forms/notifications/)
+
+### Smallest sensible approach — inference
+
+Keep uploads in each user-owned project folder and build on the existing composer and authenticated upload route. Extend accepted file types and limits deliberately, preserving content validation, safe names, collision handling, and private file serving. Pass stored file paths to the agent for text/PDF tool reading; if uploaded photos must be seen directly by the model, add user-image blocks to the existing provider adapters. Treat video understanding as separate work involving sampled frames and possibly a transcript.
+
+This fits the existing single Go binary and single-port design. Keep new code within the 200-line file limit and run the repository guardrails when implementation begins. Per-file limits do not cap total project storage; the existing 2 GiB workspace check is tied to task command execution, not upload acceptance. [AGENTS.md](/workspace/AGENTS.md) · [quota.go](/workspace/internal/modules/coding/adapter/runner/quota.go:11)
+
+### Quality checks for QA
+
+- Check supported formats, incorrect file contents, disguised extensions, empty files, filename traversal characters, collisions, Unicode names, and size boundaries.
+- Check multiple files, slow or failed uploads, partial upload failure, and task-send failure; confirm the user can recover and understands whether any files were retained.
+- Check that one user cannot upload, list, preview, or download another user’s project files.
+- Check response `Content-Type`, `Content-Disposition`, `nosniff`, and private caching; verify PDF/image previews and video download or playback behavior.
+- Check keyboard access to attach/remove, accessible file names, and announced progress and errors.
+- For model understanding, verify that the task can identify and read attached text/PDF and correctly inspect uploaded images; if video understanding is in scope, test representative clips and confirm what audio/frame processing occurs.
+
+### Not found
+
+- No generic text, PDF, or video upload from the task composer.
+- No drag-and-drop, paste, thumbnail preview, per-file upload progress, or aggregate upload limit.
+- No direct user-file image/PDF blocks in the model request pipeline.
+- No exact vision/PDF capability map for the user’s configured models.
+- No video preview, range-serving handler, or application-owned video-to-frames/transcription pipeline.
+
+### Suggestions
+
+The person should decide the maximum per-file size and total project storage limit, and whether video is only stored/previewed or also understood by the agent. If photos should be understood directly in the task conversation, decide whether to send them to the connected model API or rely on the existing image-viewing tool path.
+
+No files were changed. I ran read-only repository searches and web lookups; I did not run the app, commands, or tests.
+
+---
+
+## Report document
+
+Fiber 3.5.0 is installed. Uploads currently use a global 11 MiB request limit, read accepted pictures into memory, and serve raw files without Range support.  
+Official references support bounded streaming, content checks, and file-backed Range responses; Fiber’s documented per-route limit example checks `Content-Length`, which alone does not cap unknown-length streams.
+
+### Technical references
+
+- **Repo today:** [`go.mod`](/workspace/go.mod:7) pins Fiber v3.5.0. [`server.go`](/workspace/internal/platform/httpserver/server.go:25) sets one app-wide `BodyLimit`; [`routes.go`](/workspace/internal/platform/httpserver/routes.go:3) defines it as 11 MiB. The authenticated, same-origin asset route is registered in [`handler.go`](/workspace/internal/modules/coding/adapter/http/handler.go:24). [`assets.go`](/workspace/internal/modules/coding/adapter/http/assets.go:64) uses `FormFile`, reads the file into memory, and writes under `assets/`. [`raw.go`](/workspace/internal/modules/coding/adapter/http/raw.go:24) reads file data before returning it with `c.Send`; there is no current video MIME type or Range handling.
+- **Fiber upload and limits:** The Fiber v3 upload guide documents `FormFile` and multipart parsing. Its example for different route limits checks `Content-Length` in middleware before `c.Next()`; it does not establish a native per-route `BodyLimit` setting. The repo’s global 11 MiB cap would reject larger requests before that route handler runs. For unknown-length/chunked bodies, a header-only check is insufficient; the exact safe route-only limit mechanism is **not established by these docs**. Fiber’s streaming recipe enables `app.Server().StreamRequestBody` and reads `c.RequestCtx().RequestBodyStream()` in chunks. Streaming is server configuration, not a per-route setting. [Fiber uploads and body limits](https://docs.gofiber.io/blog/fiber-v3-file-uploads/) · [Fiber stream request body](https://docs.gofiber.io/recipes/stream-request-body/)
+- **Content checks:** Go’s `http.DetectContentType` examines at most the first 512 bytes and returns `application/octet-stream` when it cannot identify a type. It is suitable for some formats but not enough to identify every requested video format. Use explicit signatures/structure checks: PDF begins `%PDF`; EBML begins with element ID `1A45DFA3`, with WebM requiring its document type as well; ISO BMFF files have an `ftyp` box, and QuickTime’s registered brand is `qt  `. An `ftyp` prefix alone does not distinguish MP4 from MOV. Text still needs valid UTF-8 and no NUL; signature checks do not prove a file is benign or well-formed. [Go `DetectContentType`](https://go.dev/src/net/http/sniff.go) · [PDF format notes](https://www.loc.gov/preservation/digital/formats/fdd/fdd000030) · [RFC 8794, EBML](https://www.rfc-editor.org/rfc/rfc8794.html) · [MP4 registration authority: brands](https://mp4ra.org/registered-types/brands)
+- **Disk writes and naming:** Fiber’s multipart API returns `*multipart.FileHeader`; its docs show saving files, but the example’s filename handling should not be copied as a storage policy. The existing [`assetName`]( /workspace/internal/modules/coding/adapter/http/assets.go:40) sanitizes names, and `Editor.WriteAsset` currently refuses overwrites. For a direct disk path, Go `os.OpenFile` with `O_CREATE|O_EXCL|O_WRONLY` atomically refuses an existing destination. Keep paths rooted in the owner-checked project directory; do not rely on client filenames. [Fiber upload guide](https://docs.gofiber.io/blog/fiber-v3-file-uploads/) · [Go `os.OpenFile`](https://pkg.go.dev/os#OpenFile)
+- **Range serving:** Go `http.ServeContent` handles byte ranges using an `io.ReadSeeker`; `*os.File` implements that interface. Fiber v3 `c.SendFile` can serve a file with `ByteRange: true`; its docs state that it returns 206 for a single valid byte range and 416 for an unsatisfiable range. Multiple ranges are served as a full response. This is a file-backed option that avoids reading the whole video into memory. [Go `ServeContent`](https://pkg.go.dev/net/http#ServeContent) · [Fiber `SendFile`](https://docs.gofiber.io/api/ctx/#sendfile) · [MDN Range requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests)
+- **Browser upload progress:** MDN documents upload progress on `XMLHttpRequest.upload` events; its File API guide says Fetch upload progress is not supported there. Use XHR if per-file byte progress is required. [MDN XHR upload](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/upload) · [MDN File API upload example](https://developer.mozilla.org/en-US/docs/Web/API/File_API/Using_files_from_web_applications)
+- **Picker, paste, drop, thumbnails:** `DataTransfer.files` is readable in a `drop` handler and in a `paste` handler through `clipboardData.files`; during drag-over it is not readable. Create thumbnail URLs with `URL.createObjectURL(file)` and revoke each URL when the thumbnail is removed or replaced. [MDN `DataTransfer.files`](https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/files) · [MDN File API object URLs](https://developer.mozilla.org/en-US/docs/Web/API/File_API/Using_files_from_web_applications) · [MDN paste event](https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event)
+- **Security guidance:** OWASP recommends allowlisting required formats, content validation beyond the submitted MIME type, generated safe filenames, size limits, authorization, CSRF protection, and defense in depth. It specifically lists double extensions and overwrite attempts among relevant threats. [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
+
+### Design references and quality checks
+
+- **Repo baseline:** [`ComposerBox.svelte`](/workspace/web/src/features/workspace/components/ComposerBox.svelte:68) already has a labelled attach control, filename chips, remove buttons, and an error message with `role="alert"`. It has no drag/drop or paste handling or thumbnails. Keep file names visible, use keyboard-operable picker and remove controls, and announce progress/status changes without moving focus. WAI’s `role="status"` technique provides a polite live announcement. [WAI ARIA22](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA22.html)
+- **Composer UX:** Show a clear drop-active state on the composer, photo thumbnails, and compact chips for other files with name and size. Keep per-file progress and errors visible, with a remove/retry action. Avoid motion that is necessary to understand upload state; honor reduced-motion preferences. Current shared UI and design semantics are governed by [`docs/design-system.md`](/workspace/docs/design-system.md).
+- **Security/QA checklist for this scope:** test correct and mismatched content, double extensions and polyglot files, SVG script payloads under the existing SVG rule, empty files, per-type size boundaries and oversize streams, unsafe/path-traversal names, collisions, symlinks in `uploads/`, and cross-user upload/read access. Verify served `Content-Type`, `X-Content-Type-Options: nosniff`, `Content-Disposition`, and private caching. Test valid, unsatisfiable, malformed, and multiple Range requests. ZIP bombs are out of scope because archives are not accepted. OWASP’s broader guidance supports the allowlist, generated-name, size, authorization, and serving checks cited above.
+
+### Not found
+
+- Fiber documentation reviewed does not show a native per-route `BodyLimit`; its route example uses `Content-Length`, and the streaming recipe enables streaming on the server.
+- No confirmed implementation detail was found for a route-only streaming cap that also handles chunked requests. This needs a Developer/Architect decision before implementation.
+- No format-sniffing guarantee from `DetectContentType` was found for distinguishing MP4 from MOV; `ftyp` brands need additional inspection.
+
+### Suggestions
+
+Preserve the existing auth/ownership route and safe-name protections while adding uploads. Decide how to enforce the 25 MB and 100 MB route limits for both known- and unknown-length requests before coding. Use file-backed Range serving, XHR for visible upload progress, and explicit cleanup for thumbnail object URLs.
+
+No files were changed. I read repository files and project notes and searched official documentation; I ran no app commands or tests.

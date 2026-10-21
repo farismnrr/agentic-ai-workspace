@@ -2,53 +2,66 @@
 
 Task: f2515af4f54b16129c324566b53f5145
 Status: working
-Updated: 2026-10-21T04:18:56Z
+Updated: 2026-10-21T05:54:09Z
 
 Reference material; confirm applicability before reusing.
 
-**Scope:** medium. It is one new loading screen, skeleton placeholders on existing pages, and one small pin feature. The pin feature is a nullable column, two endpoints and a sidebar group. There is no new service or port, and the stack stays Go Fiber v3, Svelte and daisyUI with the `masihawam-light` theme.
+**Scope:** medium. It touches one upload route, raw file serving, the shared composer and the prompt text. No new service, port or dependency. The stack stays Go Fiber v3, Svelte, daisyUI and `masihawam-light`.
+
+I did not re-read the repo. I used the Researcher's file:line facts. I changed no files and ran no commands.
 
 **Out of scope:**
-- Pin controls in task lists, project pages or the task screen. The sidebar is the only place to pin or unpin.
-- Drag-to-reorder pins, pin limits, folders, or sharing pins between users.
-- A route-change loader, or changing the existing small spinners inside tabs and buttons.
-- A dark theme or any new design.
+- The agent understanding video (no frame extraction or transcription). The UI and docs say so plainly.
+- Sending images or PDFs to the model as native content blocks. Files go by path, as photos do today.
+- A per-project storage quota, resumable uploads, and Office files or archives.
+- The loading-screen and pin PRD at the top of the brief. That is a different job.
 
 **Done when:**
-1. A first open or reload shows a centered full-screen Masih Awam mark with "Memuat..." (`role="status"`) before the app appears. The animation stops under `prefers-reduced-motion`. Projects and task lists show daisyUI skeletons, not an empty state, until their data arrives.
-2. In the sidebar, a pin button on a task row moves that task into a "Pinned" group above Recent, without opening the task. A pinned task from another project ("sensio", "pukat") appears in the same group. The pin survives a reload and is only visible to the user who pinned it.
-3. `make verify` passes, and `docs/using-the-app.md` and the agent memory files are updated.
+1. In the home or task composer, you can add photos, text files, PDFs and videos with the paper-clip, by drag-and-drop, or by pasting an image. Photos show thumbnails. Other files show a chip with name, size and a remove button. Sending works with files and no text.
+2. A file over its limit (25 MB, or 100 MB for video) or of a disallowed type or content is refused with a plain message. A fake extension (for example an `.exe` renamed to `.pdf`) is refused. Another user cannot reach the files.
+3. A video attached to a task plays in the Files tab, and you can seek in it. `make verify` passes, and the docs say the agent cannot watch video.
 
 **Todo:**
-1. **Developer: full-screen loading screen.**
-   - Add one `LoadingScreen` component in `web/src/shared/ui` using the theme's roles. It has the brand mark, "Memuat...", a gentle animation and `role="status"`.
-   - Use it for the `App.svelte` session gate, in place of the bare spinner.
-   - Put a tiny static version inside `#app` in `index.html`, so the first paint is not blank. Svelte replaces it on mount.
-   - Verify: a hard reload shows it centered, and the screen reader text is "Memuat...". With reduced motion on, nothing moves. `svelte-check` and ESLint are clean.
-2. **Developer: skeletons while workspace data loads.**
-   - Add a `loaded` flag to `workspace-store.ts` that turns true after the first projects and tasks fetch settles, including on error.
-   - Show daisyUI `skeleton` rows in `ProjectsPage`, the sidebar Recent and Projects lists, and the project Tasks tab until then.
-   - Verify: with the network throttled, the pages show skeletons and never flash "no projects yet". Empty states still appear for a truly empty account.
-3. **Developer: pin backend.**
-   - Add migration `048` with a nullable `pinned_at` on `tasks`, and add `PinnedAt` to the task domain, SQLite select and scan, and the `GET /api/tasks` payload.
-   - Add authenticated `PUT` and `DELETE /api/tasks/:id/pin`, limited to the signed-in user's own tasks. Another user's task or an unknown id returns 404.
-   - Verify: Go tests cover pin, unpin, idempotent repeats, ownership (404 for someone else's task), and the field in the list payload. `make verify` is green.
-4. **Developer: Pinned group and pin button in the sidebar.**
-   - Add `pinnedAt` to `task-types.ts` and a `pinTask`/`unpinTask` call in `tasks-api.ts`, then refresh the store.
-   - Add a `SidebarPinned` group above Recent, with the most recently pinned first.
-   - Add a pin button on each sidebar task row. It is a separate control from the link and has an `aria-label`.
-   - Decision: a pinned task appears only in Pinned, not also in Recent. Recent still shows its first nine unpinned tasks, and the group is hidden when there are no pins.
-   - Verify: in the browser, pin tasks from two projects, and they appear in Pinned. Clicking the pin does not navigate. Unpin returns the task to Recent, and the state survives a reload.
-5. **Developer: docs and agent memory.**
-   - Update `docs/using-the-app.md` (loading screen, pinning) and the matching lessons in `agents/memory-frontend.md` and `agents/memory-backend.md`. Add the pin endpoint to `docs/system-design.md` if it lists endpoints.
+1. **Developer: generic upload endpoint.**
+   - Allow these types, checked against the file's content and not its extension:
+     - Photos: PNG, JPEG, WebP, GIF, SVG, with the existing SVG check.
+     - PDF.
+     - Text: `.txt .md .csv .json .log`. It must be valid UTF-8 with no NUL bytes.
+     - Video: MP4, WebM, MOV.
+   - Set the limit per type (25 MB, video 100 MB) with a route-specific body limit, not a global one.
+   - The Developer checks the Fiber v3 docs first, as AGENTS.md requires, and streams large uploads to disk.
+   - Save files in `uploads/` with safe names and no overwriting, keeping the existing auth and ownership checks. Old `assets/` files keep working.
+   - Verify: Go tests cover each type, a wrong-content file, an oversize file, an empty file, name collisions, an unsafe name and a request from another user.
+2. **Developer: video playback.**
+   - Serve video from `raw.go` with `Range` support (206 responses), streamed and not read into memory. Keep `nosniff` and private caching.
+   - Add an inline video player and a text preview to the Files tab.
+   - Verify: a test for a range request, and a 100 MB MP4 plays and seeks in the browser.
+3. **Developer: multi-file picker with chips and thumbnails.**
+   - Extend the paper-clip in `ComposerBox.svelte` and `attachments.ts` to accept many files and the new types.
+   - Add thumbnails for photos and chips for other files. Check the type and size in the browser before uploading.
+   - Allow sending with empty text.
+   - Verify: pick mixed files, remove one, send, and the task starts with the right files.
+4. **Developer: drag-and-drop and paste.**
+   - Dropping files on the composer highlights it. Pasting an image from the clipboard adds it as a file.
+   - Verify: drag a PDF and paste a screenshot in both the home and task composers.
+5. **Developer: upload errors, and what the agent is told.**
+   - Show per-file upload status and a plain error under the composer.
+   - Add per-type hints to the prompt. Photos get a note to convert non-PNG to PNG before `view_image`. PDFs get `pdftotext`. Text files are read directly. Videos are marked as stored, and the agent cannot watch them.
+   - Verify: a forced failure keeps the message and chips, and a task with one photo and one PDF reads both.
+6. **Developer: docs and agent memory.**
+   - Update `docs/using-the-app.md` (attaching, limits, the video note) and `docs/system-design.md` if it lists endpoints.
+   - Update `agents/memory-backend.md` and `agents/memory-frontend.md`.
    - Verify: `scripts/check-guardrails.sh` passes, and no doc line is over 45 words.
-6. **QA: walk the flows.**
-   - Check a cold load, a slow network, reduced motion, pin and unpin across two projects, and a second user who cannot see or change the first user's pins.
-   - Verify: a short pass/fail list. Security checks that the pin endpoints reject other users' tasks.
 
-**Open questions:** none block the work. I took these defaults, which you can change:
-- Pinned tasks sit only in Pinned.
-- The newest pin is listed first.
-- The "Memuat..." text is in Indonesian, as you wrote it.
+Security and QA run after step 6, as in the team plan. They check disguised files, SVG, cross-user access and keyboard use of the attach and remove controls.
 
-I changed no files and ran no commands. This comes from the Researcher's notes and the brief.
+**Defaults I took (change any of them):**
+- **Partial failure:** upload everything first. If any file fails, do not send the task. Keep the text and chips, mark the failed file, and don't re-upload files that already succeeded when retrying.
+- **Aggregate cap:** a limit of 10 files per message and no storage quota. There is a soft warning when a message totals over 100 MB.
+- **Allowed types:** the lists in step 1.
+- **SVG:** stays allowed with the existing check. It is served as a download or in an `<img>`, never inline as a document.
+- **Folder:** all new uploads go to `uploads/`.
+- **Photos for the agent:** by path through `view_image`. No change to the model adapters.
+- **Empty text with files:** allowed. The prompt then says "See the attached files".
+
+**Open questions:** none block the work.

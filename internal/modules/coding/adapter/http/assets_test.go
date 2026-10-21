@@ -68,8 +68,8 @@ func newApp(t *testing.T) (*fiber.App, string) {
 		Editor: application.NewEditor(files, files, backups, &ids{}),
 	}
 	pass := func(c fiber.Ctx) error { return c.Next() }
-	app := fiber.New()
-	codinghttp.NewHandler(owner{workspace: workspace}, quiet{}).Mount(pass, pass)(app)
+	app := fiber.New(fiber.Config{BodyLimit: int(domain.MaxVideoBytes + (1 << 20))})
+	codinghttp.NewHandler(owner{workspace: workspace}, quiet{}).Mount(pass, pass, nil)(app)
 
 	return app, root
 }
@@ -145,12 +145,16 @@ func TestOnlyPicturesAreAccepted(t *testing.T) {
 
 func TestAnotherPersonsProjectIsNotFound(t *testing.T) {
 	t.Parallel()
-
-	app := fiber.New()
-	pass := func(c fiber.Ctx) error { return c.Next() }
-	codinghttp.NewHandler(owner{stranger: true}, quiet{}).Mount(pass, pass)(app)
+	app := strangerApp()
 
 	if got := upload(t, app, "a.png", png); got != fiber.StatusNotFound {
 		t.Fatalf("upload to another person's project = %d", got)
 	}
+}
+
+func strangerApp() *fiber.App {
+	app := fiber.New()
+	pass := func(c fiber.Ctx) error { return c.Next() }
+	codinghttp.NewHandler(owner{stranger: true}, quiet{}).Mount(pass, pass, nil)(app)
+	return app
 }

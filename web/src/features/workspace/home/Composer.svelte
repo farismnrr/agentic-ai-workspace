@@ -4,15 +4,16 @@
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
   import { describeTaskError } from '../logic/task-errors';
-  import { uploadAssets, withAttachments } from '../logic/attachments';
+  import { uploadAttachments, withAttachments, type Attachment } from '../logic/attachments';
   import { createTask } from '../logic/tasks-api';
   import { chosenProject, projects, refresh } from '../logic/workspace-store';
 
   let text = $state('');
   let project = $state('');
-  let files = $state<File[]>([]);
+  let attachments = $state<Attachment[]>([]);
   let busy = $state(false);
   let error = $state('');
+  let uploadProgress = $state('');
 
   // Preselect only when there is no real choice to make: the project the person came from, or the only one.
   $effect(() => {
@@ -25,18 +26,28 @@
   async function send(prompt: string, chosen: string): Promise<void> {
     busy = true;
     error = '';
+    uploadProgress = attachments.length > 0 ? `Uploading 0 of ${String(attachments.length)}…` : '';
     try {
       // The model and effort come from Settings: the lead's own, else the person's default.
-      const saved = await uploadAssets(chosen, files);
-      const task = await createTask({ projectId: chosen, prompt: withAttachments(prompt, saved) });
+      attachments = await uploadAttachments(chosen, attachments, (completed, total) => {
+        uploadProgress = `Uploading ${String(completed)} of ${String(total)}…`;
+      });
+      if (attachments.some((item) => item.path === undefined)) {
+        uploadProgress = '';
+        return;
+      }
+      if (attachments.length > 0) uploadProgress = `${String(attachments.length)} files uploaded`;
+      const paths = attachments.flatMap((item) => (item.path === undefined ? [] : [item.path]));
+      const task = await createTask({ projectId: chosen, prompt: withAttachments(prompt, paths) });
       text = '';
-      files = [];
+      attachments = [];
       await refresh();
       navigate(`/app/projects/${task.projectId}/tasks/${task.id}`);
     } catch (failure) {
       error = describeTaskError(failure);
     } finally {
       busy = false;
+      if (attachments.every((item) => item.path !== undefined)) uploadProgress = '';
     }
   }
 </script>
@@ -51,10 +62,11 @@
     placeholder="Ask a question or tell me what you need…"
     bind:text
     bind:project
-    bind:files
+    bind:attachments
     attachable
     projects={$projects}
     {busy}
+    {uploadProgress}
     {error}
     onsend={send}
   />

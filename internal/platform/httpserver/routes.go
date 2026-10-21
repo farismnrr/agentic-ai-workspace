@@ -2,7 +2,8 @@ package httpserver
 
 import "github.com/gofiber/fiber/v3"
 
-// bodyLimit leaves room for a 10 MiB picture upload (coding's MaxAssetBytes) plus its multipart framing.
+// bodyLimit keeps ordinary API request bodies small. Authenticated uploads get
+// a larger, route-specific limit from HeaderReceived.
 const bodyLimit = 11 << 20
 
 type healthPayload struct {

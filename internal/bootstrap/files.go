@@ -18,10 +18,10 @@ import (
 // newFiles mounts the person's own view of a project's files: the tree, a file, saving an edit and the stream
 // that says when they changed.
 func newFiles(
-	projects *projectapp.Service, tools *agentTools, hub *taskapp.Hub, auth, sameOrigin fiber.Handler,
+	projects *projectapp.Service, tools *agentTools, hub *taskapp.Hub, sess sessions, auth, sameOrigin fiber.Handler,
 ) httpserver.Mount {
 	return codinghttp.NewHandler(ownWorkspaces{projects: projects, tools: tools}, hubChanges{hub: hub}).
-		Mount(auth, sameOrigin)
+		Mount(auth, sameOrigin, sess)
 }
 
 // ownWorkspaces opens the files of a project the person owns, with the same confined view the agent has.
