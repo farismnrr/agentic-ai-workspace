@@ -3,9 +3,10 @@
   import { navigate } from '../../../app/router';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { projectsCopy } from '../content/projects-copy';
-  import { projects } from '../logic/workspace-store';
+  import { loaded, projects } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import ProjectsTable from './ProjectsTable.svelte';
+  import SkeletonList from '../../../shared/ui/SkeletonList.svelte';
 
   let query = $state('');
   const visible = $derived($projects.filter((project) => project.name.toLowerCase().includes(query.trim().toLowerCase())));
@@ -25,7 +26,11 @@
     </div>
   </div>
 
-  {#if $projects.length === 0}
+  {#if !$loaded}
+    <div class="mt-6 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
+      <SkeletonList variant="project" rows={5} />
+    </div>
+  {:else if $projects.length === 0}
     <EmptyState class="mt-6" bordered icon="folder" title={projectsCopy.empty.title} body={projectsCopy.empty.body} />
   {:else if visible.length === 0}
     <EmptyState class="mt-6" bordered icon="search" title="No project matches “{query}”" body="Try a different name, or clear the search." />

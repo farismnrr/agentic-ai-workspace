@@ -13,4 +13,5 @@ if ('IntersectionObserver' in window) {
   document.documentElement.classList.add('js-reveal');
 }
 
+target.replaceChildren();
 mount(App, { target });

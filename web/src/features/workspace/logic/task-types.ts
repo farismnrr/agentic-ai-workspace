@@ -116,6 +116,8 @@ export interface Task {
   contextWindow: number;
   createdAt: string;
   updatedAt: string;
+  /** ISO timestamp when this task was pinned; null when it is not pinned. */
+  pinnedAt: string | null;
 }
 
 export interface Project {

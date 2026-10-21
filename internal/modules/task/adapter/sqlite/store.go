@@ -18,7 +18,7 @@ const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
 	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, ` +
-	`plan_first, follow_settings`
+	`plan_first, follow_settings, pinned_at`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -87,6 +87,27 @@ func (s *Store) Find(ctx context.Context, userID, id string) (domain.Task, error
 	}
 
 	return task, err
+}
+
+// Pin keeps the original pin time on repeated calls and hides tasks the person does not own.
+func (s *Store) Pin(ctx context.Context, userID, id string, at time.Time) (domain.Task, error) {
+	if _, err := s.db.ExecContext(ctx,
+		`UPDATE tasks SET pinned_at = COALESCE(pinned_at, ?) WHERE id = ? AND user_id = ?`,
+		at.Unix(), id, userID); err != nil {
+		return domain.Task{}, fmt.Errorf("pin task: %w", err)
+	}
+
+	return s.Find(ctx, userID, id)
+}
+
+// Unpin clears a pin and hides tasks the person does not own.
+func (s *Store) Unpin(ctx context.Context, userID, id string) (domain.Task, error) {
+	const query = `UPDATE tasks SET pinned_at = NULL WHERE id = ? AND user_id = ?`
+	if _, err := s.db.ExecContext(ctx, query, id, userID); err != nil {
+		return domain.Task{}, fmt.Errorf("unpin task: %w", err)
+	}
+
+	return s.Find(ctx, userID, id)
 }
 
 // List returns a person's tasks, newest activity first.

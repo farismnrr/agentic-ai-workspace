@@ -2,7 +2,8 @@
   import { route } from '../../../app/router';
   import ProjectTile from '../components/ProjectTile.svelte';
   import { needsYouCount } from '../logic/derive';
-  import { projects, tasks } from '../logic/workspace-store';
+  import { loaded, projects, tasks } from '../logic/workspace-store';
+  import SkeletonList from '../../../shared/ui/SkeletonList.svelte';
 
   const active = $derived('projectId' in $route ? $route.projectId : undefined);
 </script>
@@ -12,6 +13,9 @@
     Projects <span class="transition-transform group-open:rotate-90" aria-hidden="true">›</span>
   </summary>
   <ul class="flex flex-col">
+    {#if !$loaded}
+      <li><SkeletonList variant="sidebar" rows={4} /></li>
+    {:else}
     {#each $projects.slice(0, 8) as project (project.id)}
       {@const waiting = needsYouCount($tasks, project.id)}
       <li>
@@ -28,5 +32,6 @@
     {:else}
       <li class="px-2 py-1 text-xs text-[var(--brand-text-tertiary)]">No projects yet</li>
     {/each}
+    {/if}
   </ul>
 </details>

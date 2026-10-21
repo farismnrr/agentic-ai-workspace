@@ -19,6 +19,7 @@
   import { guestOnly, loginUrl, requiresSession } from './guard';
   import { goTo, interceptLinkClick, navigate, route, syncFromLocation } from './router';
   import { isAdminSettingsTab } from '../features/workspace/settings/settings-nav';
+  import LoadingScreen from '../shared/ui/LoadingScreen.svelte';
 
   const gated = $derived(requiresSession($route));
   const guest = $derived(guestOnly($route));
@@ -45,7 +46,7 @@
 <svelte:window onclick={interceptLinkClick} onpopstate={syncFromLocation} />
 
 {#if (gated && $session.status !== 'signed-in') || (guest && $session.status !== 'anonymous') || adminDenied}
-  <main class="grid min-h-dvh place-items-center" aria-busy="true"><span class="loading loading-spinner"></span></main>
+  <main aria-busy="true"><LoadingScreen /></main>
 {:else if $route.name === 'login'}
   <LoginPage />
 {:else if $route.name === 'register'}

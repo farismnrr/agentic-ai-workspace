@@ -61,6 +61,36 @@ func (m *memory) Find(_ context.Context, userID, id string) (domain.Task, error)
 	return task, nil
 }
 
+func (m *memory) Pin(_ context.Context, userID, id string, at time.Time) (domain.Task, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, ok := m.tasks[id]
+	if !ok || task.UserID != userID {
+		return domain.Task{}, domain.ErrNotFound
+	}
+	if task.PinnedAt == nil {
+		task.PinnedAt = &at
+		m.tasks[id] = task
+	}
+
+	return task, nil
+}
+
+func (m *memory) Unpin(_ context.Context, userID, id string) (domain.Task, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, ok := m.tasks[id]
+	if !ok || task.UserID != userID {
+		return domain.Task{}, domain.ErrNotFound
+	}
+	task.PinnedAt = nil
+	m.tasks[id] = task
+
+	return task, nil
+}
+
 func (m *memory) List(_ context.Context, userID, _ string, _ int) ([]domain.Task, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

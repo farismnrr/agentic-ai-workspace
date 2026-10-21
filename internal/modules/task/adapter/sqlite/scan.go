@@ -36,18 +36,23 @@ func scanTask(row scanner) (domain.Task, error) {
 		status, plan     string
 		effort           string
 		proof            sql.NullString
+		pinned           sql.NullInt64
 		created, updated int64
 	)
 
 	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
 		&plan, &proof, &created, &updated, &t.Source, &t.ContextUsed, &t.ContextWindow, &effort, &t.Team, &t.PRD, &t.Research,
-		&t.PlanFirst, &t.FollowSettings)
+		&t.PlanFirst, &t.FollowSettings, &pinned)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}
 
 	t.Status, t.Effort = domain.Status(status), domain.Effort(effort)
 	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0), time.Unix(updated, 0)
+	if pinned.Valid {
+		at := time.Unix(pinned.Int64, 0)
+		t.PinnedAt = &at
+	}
 
 	if err := json.Unmarshal([]byte(plan), &t.Plan); err != nil {
 		return domain.Task{}, fmt.Errorf("decode plan: %w", err)

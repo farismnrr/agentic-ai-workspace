@@ -21,7 +21,35 @@
     <title>Masih Awam — Work you can trust</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div
+        role="status"
+        aria-atomic="true"
+        style="display:grid;min-height:100dvh;place-items:center;background:#f6f3eb;color:#151517"
+      >
+        <div
+          style="display:flex;flex-direction:column;align-items:center;gap:12px;font:14px/1.5 system-ui,sans-serif"
+        >
+          <svg width="48" height="48" viewBox="0 0 64 64" aria-hidden="true">
+            <rect width="64" height="64" rx="16.64" fill="#657c1a" />
+            <g
+              transform="translate(9.6,21.56) scale(0.357) translate(2,-29.5)"
+              fill="none"
+              stroke="#fffdf7"
+              stroke-width="11"
+              stroke-linecap="round"
+            >
+              <ellipse cx="18" cy="56" rx="14.5" ry="21" />
+              <path d="M88,40 V77.5 M88,58 C88,46 94,40 102,40 C110,40 116,46 116,58 V77.5" />
+            </g>
+            <g transform="translate(9.6,21.56) scale(0.357) translate(2,-29.5)" fill="#fffdf7">
+              <circle cx="49" cy="76.5" r="6.5" /><circle cx="67" cy="76.5" r="6.5" />
+            </g>
+          </svg>
+          <span style="color:#605e58">Memuat...</span>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

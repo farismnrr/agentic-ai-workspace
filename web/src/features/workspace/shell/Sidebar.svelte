@@ -7,6 +7,7 @@
   import NavItem from './NavItem.svelte';
   import { paletteOpen, sidebarCollapsed } from './shell-state';
   import SidebarProjects from './SidebarProjects.svelte';
+  import SidebarPinned from './SidebarPinned.svelte';
   import SidebarRecent from './SidebarRecent.svelte';
   import SidebarSites from './SidebarSites.svelte';
   import UserMenu from './UserMenu.svelte';
@@ -31,6 +32,7 @@
   <NavItem href="/app/extensions" icon="puzzle" label="Extensions" {collapsed} active={name === 'extensions'} />
   <div class="min-h-0 flex-1 overflow-y-auto {collapsed ? 'lg:hidden' : ''}">
     <SidebarSites />
+    <SidebarPinned />
     <SidebarRecent />
     <SidebarProjects />
   </div>

@@ -2,7 +2,7 @@
 
 Task: f2515af4f54b16129c324566b53f5145
 Status: working
-Updated: 2026-10-21T03:37:31Z
+Updated: 2026-10-21T04:18:56Z
 
 Reference material; confirm applicability before reusing.
 
@@ -124,3 +124,103 @@ The repository’s configured golangci-lint version was not established from the
 Place `erasers` last and `adminEmail` immediately before it, after the interface/function fields. The previous attempt placing the slice first would keep its pointer at a later offset because the slice’s three-word size advances the struct before subsequent pointer-containing fields.
 
 No files were changed and no project commands or tests were run.
+
+---
+
+## Summary
+
+The app shell starts with no visible loader in `index.html`. After Svelte mounts, `App.svelte` shows the global spinner while it waits for the session on protected or guest-only routes.
+
+Tasks already belong to a user and project. There is no pin field, pin endpoint, or pin control today; the sidebar shows up to nine recently updated tasks.
+
+## Loading trace
+
+**Observed:** [`index.html`](/workspace/web/index.html:23) contains only the empty `#app` mount point. [`main.ts`](/workspace/web/src/main.ts:16) mounts the Svelte app. Session state starts as `loading` and `loadSession()` requests `/api/auth/me`; any failure sets it to `anonymous` ([`session.ts`](/workspace/web/src/shared/session/session.ts:11), [`session.ts`](/workspace/web/src/shared/session/session.ts:15)).
+
+In [`App.svelte`](/workspace/web/src/app/App.svelte:47), the global spinner appears while a protected route awaits sign-in, a guest-only route awaits the session result, or an admin-only Settings route is redirecting. The `<main>` has `aria-busy="true"`, but the spinner itself has no text or status role. The source uses `grid ... place-items-center`, so it specifies a centered spinner. **I did not run the app in a browser** to confirm why it appears top-left in the reported view.
+
+The router resolves routes synchronously and swaps page components directly; it has no navigation-wide loading state ([`router.ts`](/workspace/web/src/app/router.ts:73), [`router.ts`](/workspace/web/src/app/router.ts:88)). On a protected route after sign-in, navigation does not show the global spinner because the session is already signed in.
+
+**Spinner/loading locations found:**
+
+- **App/session gate:** [`App.svelte`](/workspace/web/src/app/App.svelte:47).
+- **Task first load:** [`TaskScreen.svelte`](/workspace/web/src/features/workspace/task/TaskScreen.svelte:68) shows a spinner until `createThread()` receives the task; it displays a missing-task message if the stream closes before one arrives ([`thread.ts`](/workspace/web/src/features/workspace/logic/thread.ts:58)).
+- **Project checks:** [`ChecksTab.svelte`](/workspace/web/src/features/workspace/projects/ChecksTab.svelte:74).
+- **Project Env variables:** [`VariablesSection.svelte`](/workspace/web/src/features/workspace/projects/env/VariablesSection.svelte:89).
+- **Settings data:** [`ActivityTab.svelte`](/workspace/web/src/features/workspace/settings/ActivityTab.svelte:53), [`ConnectedAppsTab.svelte`](/workspace/web/src/features/workspace/settings/ConnectedAppsTab.svelte:47), [`GitHubIntegration.svelte`](/workspace/web/src/features/workspace/settings/GitHubIntegration.svelte:59), [`ModelsTab.svelte`](/workspace/web/src/features/workspace/settings/ModelsTab.svelte:87), [`PersonaTab.svelte`](/workspace/web/src/features/workspace/settings/PersonaTab.svelte:66), [`SpacesTab.svelte`](/workspace/web/src/features/workspace/settings/SpacesTab.svelte:28), [`TeamTab.svelte`](/workspace/web/src/features/workspace/settings/TeamTab.svelte:73), [`UsageTab.svelte`](/workspace/web/src/features/workspace/settings/UsageTab.svelte:31), and [`DatabaseTab.svelte`](/workspace/web/src/features/workspace/settings/DatabaseTab.svelte:58).
+- **Other in-progress work:** [`FileView.svelte`](/workspace/web/src/features/workspace/files/FileView.svelte:62), [`ChangesTab.svelte`](/workspace/web/src/features/workspace/task/panel/ChangesTab.svelte:59), and [`ProjectDocuments.svelte`](/workspace/web/src/features/workspace/task/panel/ProjectDocuments.svelte:51) and [line 63](/workspace/web/src/features/workspace/task/panel/ProjectDocuments.svelte:63). Button-level spinners appear in [`ComposerBox.svelte`](/workspace/web/src/features/workspace/components/ComposerBox.svelte:98), [`CheckModal.svelte`](/workspace/web/src/features/workspace/projects/CheckModal.svelte:84), [`DatabaseActions.svelte`](/workspace/web/src/features/workspace/projects/env/DatabaseActions.svelte:9), [`DatabaseSection.svelte`](/workspace/web/src/features/workspace/projects/env/DatabaseSection.svelte:155), and [`SubscriptionDialog.svelte`](/workspace/web/src/features/workspace/settings/SubscriptionDialog.svelte:87).
+- **Progress text/dots:** [`RepoPicker.svelte`](/workspace/web/src/features/workspace/projects/RepoPicker.svelte:37) shows loading text; [`TaskThread.svelte`](/workspace/web/src/features/workspace/task/thread/TaskThread.svelte:87) shows “Waiting to start” or “Working on it” with dots. These are task-work states, not page-load loaders.
+
+**Workspace data behavior:** `AppShell` starts a store watcher on mount ([`AppShell.svelte`](/workspace/web/src/features/workspace/shell/AppShell.svelte:34)). The watcher fetches projects, tasks, sites and extensions asynchronously ([`workspace-store.ts`](/workspace/web/src/features/workspace/logic/workspace-store.ts:19)). Most workspace pages render from initially empty stores without a loading placeholder; for example, the project list can show its empty state before that request completes ([`ProjectsPage.svelte`](/workspace/web/src/features/workspace/projects/ProjectsPage.svelte:28)). **Inference:** this can look like a briefly empty page on a slow first request.
+
+Go serves `index.html` for SPA paths with `no-cache`; hashed assets get immutable caching. Missing `/assets/*` remain 404 ([`spa.go`](/workspace/internal/platform/httpserver/spa.go:16), [`spa.go`](/workspace/internal/platform/httpserver/spa.go:50)). The server has no loading-screen behavior; the loader is frontend-rendered.
+
+## Task pin trace
+
+- **Domain:** [`domain/task.go`](/workspace/internal/modules/task/domain/task.go:67) defines `Task` with `ID`, `ProjectID`, `UserID`, status and task data, but no pinned field.
+- **Storage:** SQLite creates the `tasks` table in migration [`008_tasks.sql`](/workspace/internal/platform/database/migrations/008_tasks.sql:1). Later migrations add task columns; current selected columns and scanning have no pin field ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:19), [`scan.go`](/workspace/internal/modules/task/adapter/sqlite/scan.go:33)). `List` filters by `user_id`, optionally by project, and orders by newest activity ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:92)).
+- **API:** authenticated `GET /api/tasks` is registered in [`handler.go`](/workspace/internal/modules/task/adapter/http/handler.go:29). It passes the authenticated user and optional project filter to the service ([`tasks.go`](/workspace/internal/modules/task/adapter/http/tasks.go:65)). The JSON payload contains no pin field ([`tasks.go`](/workspace/internal/modules/task/adapter/http/tasks.go:13)). There is no pin/unpin endpoint.
+- **Frontend task list/store:** [`tasks-api.ts`](/workspace/web/src/features/workspace/logic/tasks-api.ts:26) loads the task list. The `Task` type has no pin field ([`task-types.ts`](/workspace/web/src/features/workspace/logic/task-types.ts:95)). `workspace-store.ts` refreshes that list and shares it with screens and the sidebar ([`workspace-store.ts`](/workspace/web/src/features/workspace/logic/workspace-store.ts:20)).
+- **Sidebar today:** [`Sidebar.svelte`](/workspace/web/src/features/workspace/shell/Sidebar.svelte:32) includes Recent and Projects sections. [`SidebarRecent.svelte`](/workspace/web/src/features/workspace/shell/SidebarRecent.svelte:8) takes the first nine tasks from the newest-first store and groups them by day. Each task is a whole-link row with status dot, title and relative time ([`SidebarRecent.svelte`](/workspace/web/src/features/workspace/shell/SidebarRecent.svelte:19)). Projects separately show up to eight projects and a “needs you” count ([`SidebarProjects.svelte`](/workspace/web/src/features/workspace/shell/SidebarProjects.svelte:14)).
+- **Task row/menu:** [`TaskRow.svelte`](/workspace/web/src/features/workspace/projects/TaskRow.svelte:15) renders a project task as one full-width link with status, title, summary, badge and time. Neither that row nor the sidebar recent row has a menu or pin button. **Inference:** the existing rows are possible places for a pin control, but the sidebar row’s whole-link structure would need a separate control that does not accidentally activate navigation.
+
+**Pin scope and smallest data change — inference:** Tasks are already stored with both `user_id` and `project_id`, and normal listing is scoped to the signed-in user. A pin should therefore be per user and per task. If a task remains owned by exactly one user as it is today, a `pinned` boolean column on `tasks` is the smallest storage change; a timestamp is only needed if pin ordering or pin time matters. The change would also need to carry the field through domain, SQLite scan/list, API payload, frontend type/store, and an authenticated state-changing endpoint. The repository’s 200-line source-file limit and feature import boundaries apply ([`AGENTS.md`](/workspace/AGENTS.md), “Size and complexity limits” and “Folder structure”).
+
+## Design references
+
+- WAI-ARIA says `aria-busy` can mark a region that is being updated; WAI’s status-message technique recommends `role="status"` for messages that need announcement without moving focus. The current app gate uses `aria-busy` but has no status text/role. [WAI-ARIA 1.2](https://www.w3.org/TR/wai-aria/), [WCAG technique ARIA22](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA22.html).
+- daisyUI offers both a `loading` spinner (`loading-spinner`) and animated `skeleton` placeholders for component-shaped loading states. [Loading](https://daisyui.com/components/loading/), [Skeleton](https://daisyui.com/components/skeleton/).
+- MDN documents `prefers-reduced-motion: reduce` for reducing or removing nonessential animation. [`app.css` currently limits its page entrance animation to `no-preference`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion); the daisyUI loading animation’s reduced-motion behavior was not verified here.
+
+## Not found
+
+- No loading UI in the HTML shell or Go SPA handler.
+- No global route-transition loader.
+- No task pin state, endpoint, sidebar pin list, or task-row menu.
+- The source specifies a centered global spinner; the reported top-left placement was not reproduced in a browser.
+
+## Suggestions
+
+A loading design can address two distinct waits: session resolution before the workspace appears, and task/project data loading after the shell appears. The current local spinner patterns can be reused; daisyUI skeletons are available for layout-shaped placeholders.
+
+For pinning, keep ownership tied to the current task owner and expose pin state through the existing task list API so the sidebar can render pinned items from the shared store. Confirm whether pinned tasks should replace or supplement the existing nine recent tasks. No code was changed and no project commands or tests were run.
+
+---
+
+## Summary
+
+The reusable brand mark is already a shared Svelte component, `LogoMark.svelte`. The task store and migration runner show where the pin timestamp must flow.
+
+Repository facts below are from files read; recommendations are marked as suggestions. No files were changed and no project commands or tests were run.
+
+## Design references — Designer/Developer
+
+- **Loading announcement:** WAI-ARIA defines `role="status"` as a polite live region; WAI recommends `aria-atomic="true"` when the full message should be announced. Keep “Memuat...” available as text, with the mark decorative. Sources: [WAI-ARIA status role](https://www.w3.org/TR/wai-aria/#status), [WAI technique ARIA22](https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA22.html).
+- **Spinner vs skeleton:** A spinner suits the session gate, where the whole app is waiting. For projects and task lists, daisyUI’s `skeleton` is a placeholder for component-shaped content; use rows with dimensions close to the content they replace. Sources: [daisyUI Skeleton](https://daisyui.com/components/skeleton/), [daisyUI Loading](https://daisyui.com/components/loading/).
+- **Avoiding layout shift:** The repo currently shows `EmptyState` when the projects array is empty ([`ProjectsPage.svelte`](/workspace/web/src/features/workspace/projects/ProjectsPage.svelte:28)) and shows an empty task state when a project has no tasks ([`TasksTab.svelte`](/workspace/web/src/features/workspace/projects/TasksTab.svelte:39)). Show skeletons until the initial fetch settles, then choose between rows and a true empty state. **Suggestion:** match skeleton row count and height to the eventual list to reduce page movement.
+- **Toggle beside a link:** The sidebar task row is currently a single anchor ([`SidebarRecent.svelte`](/workspace/web/src/features/workspace/shell/SidebarRecent.svelte:21)). Put a native `<button>` as a sibling control inside the list item, outside the anchor; do not nest it in the link. Use a stable accessible name such as “Pin task” / “Unpin task”; `aria-pressed` is suitable if the name stays stable and it is presented as a toggle. [MDN: `aria-pressed`](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-pressed). **Suggestion:** stop the button’s click from reaching any row-level navigation handler if the implementation uses one.
+- **Reduced motion:** MDN documents `prefers-reduced-motion: reduce` for reducing or removing nonessential motion. Disable the loader animation under this preference; consider disabling skeleton shimmer while keeping static placeholders visible. [MDN: `prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/%40media/prefers-reduced-motion).
+- **Brand asset:** Reuse [`LogoMark.svelte`](/workspace/web/src/shared/ui/LogoMark.svelte:9); it is an inline SVG using semantic `primary` and `primary-content` classes, and is already imported by [`BrandLink.svelte`](/workspace/web/src/shared/ui/BrandLink.svelte:2).
+
+## Technical references — Developer
+
+- **Migration runner:** [`migrate.go`](/workspace/internal/platform/database/migrate.go:19) documents migrations as append-only and verifies applied-file checksums. It sorts embedded migration filenames, then applies each unapplied migration and journal record inside a transaction ([lines 35–53]( /workspace/internal/platform/database/migrate.go:35), [115–149]( /workspace/internal/platform/database/migrate.go:115)). Add a new numbered file; don’t edit an applied migration.
+- **SQLite column:** SQLite allows `ALTER TABLE ... ADD COLUMN pinned_at INTEGER` as a nullable column. A newly added column is `NULL` for existing rows; SQLite disallows adding `NOT NULL` without a non-NULL default, and disallows expression defaults such as `CURRENT_TIMESTAMP`. [SQLite `ALTER TABLE`](https://sqlite.org/lang_altertable.html#altertabaddcol).
+- **Time scan:** Current task scans read integer Unix seconds for `created_at` and `updated_at`, then use `time.Unix` ([`scan.go`](/workspace/internal/modules/task/adapter/sqlite/scan.go:33)). **Suggestion:** scan nullable `pinned_at` into `sql.NullInt64`; when `Valid`, convert with `time.Unix(value, 0)` and assign a `*time.Time` or equivalent nullable domain representation. Keep the added column in sync with `taskColumns` ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:19)) and scan destination order.
+- **Pin operation semantics:** Current `Find` can scope by both task ID and user ID, returning `domain.ErrNotFound` for no match ([`store.go`](/workspace/internal/modules/task/adapter/sqlite/store.go:77)). **Suggestion:** make PUT set `pinned_at` only when currently `NULL` (so repeated pin does not reorder), and DELETE set it to `NULL`; scope both writes by task ID and user ID. This gives idempotent behavior and avoids disclosing another user’s task. `PinnedAt` must travel through the domain task ([`domain/task.go`](/workspace/internal/modules/task/domain/task.go:67)), SQL selection/scanning, and list response.
+
+## Quality checks — QA/Reviewer
+
+- Verify signed-in owner can pin and unpin; unknown IDs and another user’s task return 404 and do not change state.
+- Repeat PUT and DELETE calls; confirm they succeed consistently, keep the expected state, and repeated PUT does not unexpectedly change pin order.
+- Use Tab and Enter/Space to operate the pin button. Confirm focus is visible and the accessible name and pressed state match pin status.
+- Click the pin button and confirm the task route does not open; separately verify the row link still opens the task.
+- Delay or throttle the initial projects/tasks requests. Confirm skeletons show until the first fetch settles, including on fetch error, and “no projects” / “no tasks” does not flash before the response.
+
+## Not found
+
+No existing migration 048, `pinned_at` field, pin endpoint, or pin button exists in the checked files.
+
+## Suggestions
+
+Keep the loading status readable without animation, reserve list space with skeleton rows, and use `LogoMark.svelte` for consistent branding. Use a nullable Unix-time column and user-scoped, repeat-safe updates for pin state.
