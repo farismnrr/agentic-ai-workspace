@@ -24,9 +24,10 @@
     proven: boolean;
     onretry?: (() => void) | undefined;
     onproof?: (() => void) | undefined;
+    readOnly?: boolean;
   }
 
-  const { event, taskId, projectId, actions, proven, onretry, onproof }: Props = $props();
+  const { event, taskId, projectId, actions, proven, onretry, onproof, readOnly = false }: Props = $props();
 </script>
 
 {#if event.kind === 'request'}
@@ -39,11 +40,11 @@
 {:else if event.kind !== 'action'}
   <div class="ml-9">
     {#if event.kind === 'question'}
-      <QuestionCard questions={questionsOf(event)} answered={event.answered} agent={event.agent} onanswer={(answers: string[][]) => { actions.choose(event.id, answers); }} />
+      <QuestionCard questions={questionsOf(event)} answered={event.answered} agent={event.agent} {readOnly} onanswer={(answers: string[][]) => { actions.choose(event.id, answers); }} />
     {:else if event.kind === 'approval'}
-      <ApprovalCard text={event.text} action={event.action} risk={event.risk} resolved={event.resolved} agent={event.agent} onanswer={(allow: boolean) => { actions.allow(event.id, allow); }} />
+      <ApprovalCard text={event.text} action={event.action} risk={event.risk} resolved={event.resolved} agent={event.agent} {readOnly} onanswer={(allow: boolean) => { actions.allow(event.id, allow); }} />
     {:else if event.kind === 'error'}
-      <ResultCard kind="error" text={event.text} hint={event.hint} {onretry} />
+      <ResultCard kind="error" text={event.text} hint={event.hint} onretry={readOnly ? undefined : onretry} />
     {:else if event.kind === 'prd' || event.kind === 'research'}
       <PrdCard text={event.text} document={event.technical} agent={event.agent} />
     {:else if event.kind === 'plan'}

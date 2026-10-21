@@ -81,6 +81,28 @@ func TestCancelStopsARunningTaskAndDropsAQueuedOne(t *testing.T) {
 	}
 }
 
+func TestWaitContextGivesUpWhenRequestContextEnds(t *testing.T) {
+	t.Parallel()
+
+	started := make(chan struct{})
+	scheduler := application.NewScheduler(func(ctx context.Context, _ string) {
+		close(started)
+		<-ctx.Done()
+		// Simulate a task that ignores cancellation and never returns.
+		select {}
+	})
+	scheduler.Start(context.Background(), 1)
+	scheduler.Enqueue("task", "project")
+	<-started
+	scheduler.Cancel("task")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if scheduler.WaitContext(ctx, "task") {
+		t.Fatal("WaitContext should report that it stopped waiting early")
+	}
+}
+
 func TestAContinuationQueuedWhileThePreviousRunSettlesIsNotLost(t *testing.T) {
 	t.Parallel()
 	started, finish, continued := make(chan struct{}), make(chan struct{}), make(chan struct{})

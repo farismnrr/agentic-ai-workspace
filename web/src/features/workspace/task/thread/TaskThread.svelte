@@ -16,9 +16,10 @@
     onretry: () => void;
     /** Opens the Proof tab, from the "see the Proof tab" line of a finished task. */
     onproof: () => void;
+    readOnly?: boolean;
   }
 
-  const { task, events, draft, actions, onretry, onproof }: Props = $props();
+  const { task, events, draft, actions, onretry, onproof, readOnly = false }: Props = $props();
   const allBlocks = $derived(toBlocks(events));
   const working = $derived(['queued', 'planning', 'working'].includes(task.status));
 
@@ -78,9 +79,9 @@
     {#each blocks as block (block.kind === 'actions' ? block.id : block.event.id)}
       <li>
         {#if block.kind === 'actions'}
-          <div class="ml-9"><ActionGroup items={block.items} onundo={actions.undo} /></div>
+          <div class="ml-9"><ActionGroup items={block.items} onundo={actions.undo} {readOnly} /></div>
         {:else}
-          <EventItem event={block.event} taskId={task.id} projectId={task.projectId} {actions} proven={task.proof?.proven ?? false} {onretry} {onproof} />
+          <EventItem event={block.event} taskId={task.id} projectId={task.projectId} {actions} proven={task.proof?.proven ?? false} {onretry} {onproof} {readOnly} />
         {/if}
       </li>
     {/each}

@@ -25,6 +25,25 @@ export interface UsageRow {
 
 export const loadTasks = (): Promise<Task[]> => request<Task[]>('GET', '/api/tasks');
 
+export const loadArchivedTasks = (): Promise<Task[]> => request<Task[]>('GET', '/api/tasks/archived');
+
+export type TaskBatchAction = 'archive' | 'restore' | 'delete';
+
+export interface TaskBatchResult {
+  id: string;
+  ok: boolean;
+  error?: string;
+}
+
+export async function changeTasks(action: TaskBatchAction, ids: string[]): Promise<TaskBatchResult[]> {
+  const results: TaskBatchResult[] = [];
+  for (let start = 0; start < ids.length; start += 1000) {
+    const chunk = ids.slice(start, start + 1000);
+    results.push(...await request<TaskBatchResult[]>('POST', `/api/tasks/${action}`, { ids: chunk }));
+  }
+  return results;
+}
+
 export const loadTask = (id: string): Promise<Task> => request<Task>('GET', base(id));
 
 export const pinTask = (id: string): Promise<Task> => request<Task>('PUT', `${base(id)}/pin`);

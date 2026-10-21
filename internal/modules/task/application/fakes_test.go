@@ -83,9 +83,13 @@ func (f *fakeTools) Undo(_ context.Context, _ string, blob []byte) error {
 
 type fakeDispatcher struct {
 	enqueued []string
+	canceled []string
 	cancel   application.CancelState
 }
 
 func (f *fakeDispatcher) Enqueue(taskID, _ string) { f.enqueued = append(f.enqueued, taskID) }
 
-func (f *fakeDispatcher) Cancel(string) application.CancelState { return f.cancel }
+func (f *fakeDispatcher) Cancel(id string) application.CancelState {
+	f.canceled = append(f.canceled, id)
+	return f.cancel
+}

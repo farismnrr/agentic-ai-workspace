@@ -9,7 +9,7 @@ import (
 
 // DeleteProject stops anything still running in a project and removes its tasks.
 func (s *Service) DeleteProject(ctx context.Context, userID, projectID string) error {
-	tasks, err := s.deps.Tasks.List(ctx, userID, projectID, unlimited)
+	tasks, err := s.deps.Tasks.All(ctx, userID, projectID, unlimited)
 	if err != nil {
 		return fmt.Errorf("list tasks: %w", err)
 	}
@@ -38,15 +38,25 @@ func (s *Service) stopAndForget(ctx context.Context, tasks []domain.Task) {
 
 // DeleteAll stops anything still running and removes all of a person's tasks.
 func (s *Service) DeleteAll(ctx context.Context, userID string) error {
-	tasks, err := s.deps.Tasks.List(ctx, userID, "", listLimit)
+	tasks, err := s.deps.Tasks.All(ctx, userID, "", unlimited)
 	if err != nil {
 		return fmt.Errorf("list tasks: %w", err)
 	}
 
-	s.stopAndForget(ctx, tasks)
+	projects := map[string]struct{}{}
+	for _, task := range tasks {
+		if task.Status.Running() {
+			s.stopTask(ctx, task)
+		}
+		s.removeTaskFiles(ctx, task)
+		projects[task.ProjectID] = struct{}{}
+	}
 
 	if err := s.deps.Tasks.DeleteAll(ctx, userID); err != nil {
 		return fmt.Errorf("delete tasks: %w", err)
+	}
+	for projectID := range projects {
+		s.rebuildNotes(ctx, userID, projectID)
 	}
 
 	return nil
@@ -54,7 +64,7 @@ func (s *Service) DeleteAll(ctx context.Context, userID string) error {
 
 // Everything lists all of a person's tasks with no cap, for exporting.
 func (s *Service) Everything(ctx context.Context, userID string) ([]domain.Task, error) {
-	tasks, err := s.deps.Tasks.List(ctx, userID, "", unlimited)
+	tasks, err := s.deps.Tasks.All(ctx, userID, "", unlimited)
 	if err != nil {
 		return nil, fmt.Errorf("list tasks: %w", err)
 	}

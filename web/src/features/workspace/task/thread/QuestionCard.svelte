@@ -12,9 +12,10 @@
     /** The teammate asking, when it is not the lead. */
     agent?: string | undefined;
     onanswer: (answers: string[][]) => void;
+    readOnly?: boolean;
   }
 
-  const { questions, answered, agent, onanswer }: Props = $props();
+  const { questions, answered, agent, onanswer, readOnly = false }: Props = $props();
   const formId = $props.id();
   // The questions of an event never change, so the drafts start from them once.
   let drafts = $state(untrack(() => emptyDrafts(questions)));
@@ -34,11 +35,13 @@
   {#if answered !== undefined}
     <p class="mt-3 text-sm font-medium">You answered: {answered}</p>
   {:else}
-    <form class="mt-3 flex flex-col gap-4" onsubmit={submit}>
-      {#each questions as question, index (index)}
-        <QuestionField {question} name={`${formId}-${String(index)}`} single={questions.length === 1} draft={drafts[index] ?? blankDraft} onchange={(next: Draft) => { drafts[index] = next; }} />
-      {/each}
-      <button class="btn btn-primary btn-sm self-start rounded-lg" type="submit" disabled={!isComplete(questions, drafts)}>Send answers</button>
-    </form>
+    {#if readOnly}<p class="mt-3 text-sm">This task is archived, so answers are read-only.</p>{:else}
+      <form class="mt-3 flex flex-col gap-4" onsubmit={submit}>
+        {#each questions as question, index (index)}
+          <QuestionField {question} name={`${formId}-${String(index)}`} single={questions.length === 1} draft={drafts[index] ?? blankDraft} onchange={(next: Draft) => { drafts[index] = next; }} />
+        {/each}
+        <button class="btn btn-primary btn-sm self-start rounded-lg" type="submit" disabled={!isComplete(questions, drafts)}>Send answers</button>
+      </form>
+    {/if}
   {/if}
 </section>

@@ -4,7 +4,10 @@ import (
 	"context"
 	"slices"
 	"sync"
+	"time"
 )
+
+const schedulerWaitTimeout = 30 * time.Second
 
 // CancelState says what Cancel found.
 type CancelState int
@@ -98,6 +101,36 @@ func (s *Scheduler) Cancel(taskID string) CancelState {
 	}
 
 	return CancelNone
+}
+
+// Wait blocks until a running task has returned from its worker.
+func (s *Scheduler) Wait(taskID string) {
+	s.WaitContext(context.Background(), taskID)
+}
+
+// WaitContext waits for a running task until it finishes, ctx ends, or the
+// scheduler wait limit expires. It returns false when it stops waiting early.
+func (s *Scheduler) WaitContext(ctx context.Context, taskID string) bool {
+	waitCtx, cancel := context.WithTimeout(ctx, schedulerWaitTimeout)
+	defer cancel()
+	stop := context.AfterFunc(waitCtx, func() {
+		s.mu.Lock()
+		s.cond.Broadcast()
+		s.mu.Unlock()
+	})
+	defer stop()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for {
+		if _, running := s.running[taskID]; !running {
+			return true
+		}
+		if err := waitCtx.Err(); err != nil {
+			return false
+		}
+		s.cond.Wait()
+	}
 }
 
 // Stop cancels running tasks and waits for the workers to finish.

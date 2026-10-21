@@ -19,6 +19,24 @@ Pin a task from its sidebar row to keep it in **Pinned** above Recent.
 Pinned tasks stay there across projects and reloads. Choose the pin button
 again to remove it; the task then returns to Recent.
 
+## Archive and delete tasks
+
+Use **Archive** on a task page, in Tasks, or in a project's Tasks tab to hide
+work you no longer need in active lists. Archived tasks leave Recent, Pinned,
+Tasks and needs-you counts, and appear in **Archive** in the sidebar.
+
+Archiving a running task stops it. The task page becomes read-only and offers
+Restore. Restoring returns the task to active lists and keeps its pin.
+
+Select several tasks to archive, restore or delete them together. **Select all
+shown** applies to the rows currently displayed. In Archive, restore tasks to
+use them again or choose **Delete permanently** to remove them for good.
+
+Permanent deletion asks you to confirm the number of tasks. Running tasks are
+stopped first, and the confirmation warns you when that will happen. Deletion
+cannot be undone. It removes task records, screenshots and task documents;
+project-shared files in the Files tab are kept.
+
 ## Attach files to a task
 
 Use the paper-clip, drag files onto the message box, or paste an image. Uploads

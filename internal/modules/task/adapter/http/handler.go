@@ -27,6 +27,10 @@ func NewHandler(service *application.Service, hub *application.Hub, now func() t
 func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 	return func(app *fiber.App) {
 		app.Get("/api/tasks", auth, h.list)
+		app.Get("/api/tasks/archived", auth, h.archived)
+		app.Post("/api/tasks/archive", auth, sameOrigin, h.archive)
+		app.Post("/api/tasks/restore", auth, sameOrigin, h.restore)
+		app.Post("/api/tasks/delete", auth, sameOrigin, h.deleteTasks)
 		app.Post("/api/tasks", auth, sameOrigin, h.create)
 		app.Delete("/api/tasks", auth, sameOrigin, h.deleteAll)
 		app.Get("/api/tasks/:id", auth, h.get)

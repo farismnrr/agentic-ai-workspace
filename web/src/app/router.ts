@@ -11,6 +11,8 @@ export type Route =
   | { name: 'register' }
   | { name: 'consent' }
   | { name: 'home' }
+  | { name: 'tasks' }
+  | { name: 'archive' }
   | { name: 'inbox'; taskId?: string }
   | { name: 'projects' }
   | { name: 'new-project' }
@@ -32,6 +34,8 @@ const staticRoutes: Record<string, Route> = {
   '/register': { name: 'register' },
   '/oauth/consent': { name: 'consent' },
   '/app': { name: 'home' },
+  '/app/tasks': { name: 'tasks' },
+  '/app/archive': { name: 'archive' },
   '/app/inbox': { name: 'inbox' },
   '/app/projects': { name: 'projects' },
   '/app/projects/new': { name: 'new-project' },
