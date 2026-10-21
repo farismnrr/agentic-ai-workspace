@@ -21,9 +21,13 @@ again to remove it; the task then returns to Recent.
 
 ## Attach files to a task
 
-Use the paper-clip, drag files onto the message box, or paste an image. You can
-attach up to 10 files to one message. Photos show thumbnails; other files show
-their name and size. Remove a file with its button before sending.
+Use the paper-clip, drag files onto the message box, or paste an image. Uploads
+start as soon as files are added. Send waits until each upload is ready. If one
+fails, choose Retry or remove it. Photos show a thumbnail after upload; select
+it to open a larger preview. Other files show their name and size.
+
+You can attach up to 10 files to one message. Remove a file with its button
+before sending.
 
 Photos (PNG, JPEG, WebP, GIF, SVG), PDF and text files (TXT, Markdown, CSV,
 JSON, LOG) can be up to 25 MB each. Videos (MP4, WebM, MOV) can be up to

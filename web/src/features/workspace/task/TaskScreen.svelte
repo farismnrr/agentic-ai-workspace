@@ -2,7 +2,7 @@
   import { onDestroy, untrack } from 'svelte';
   import type { Readable } from 'svelte/store';
   import ComposerBox from '../components/ComposerBox.svelte';
-  import { uploadAttachments, withAttachments, type Attachment } from '../logic/attachments';
+  import { attachmentsCanSend, readyPaths, withAttachments, type Attachment } from '../logic/attachments';
   import { findProject } from '../logic/derive';
   import { describeTaskError } from '../logic/task-errors';
   import { createController } from '../logic/task-actions';
@@ -52,17 +52,12 @@
     if (uploadBusy) return;
     uploadBusy = true;
     uploadError = '';
-    uploadProgress = attachments.length > 0 ? `Uploading 0 of ${String(attachments.length)}…` : '';
+    if (!attachmentsCanSend(attachments)) {
+      uploadBusy = false;
+      return;
+    }
     try {
-      attachments = await uploadAttachments(projectId, attachments, (completed, total) => {
-        uploadProgress = `Uploading ${String(completed)} of ${String(total)}…`;
-      });
-      if (attachments.some((item) => item.path === undefined)) {
-        uploadProgress = '';
-        return;
-      }
-      if (attachments.length > 0) uploadProgress = `${String(attachments.length)} files uploaded`;
-      const paths = attachments.flatMap((item) => (item.path === undefined ? [] : [item.path]));
+      const paths = readyPaths(attachments);
       if (await controller.follow(withAttachments(text, paths))) {
         follow = '';
         attachments = [];
@@ -71,7 +66,6 @@
       uploadError = describeTaskError(failure);
     } finally {
       uploadBusy = false;
-      if (attachments.every((item) => item.path !== undefined)) uploadProgress = '';
     }
   }
 
@@ -114,6 +108,7 @@
               {uploadProgress}
               error={uploadError || $error}
               bind:attachments
+              {projectId}
               attachable
               onsend={(text: string) => void sendFollowUp(text)}
             />

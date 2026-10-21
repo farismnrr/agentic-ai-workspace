@@ -1,11 +1,17 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import type { Snippet } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
+  import ComposerControls from './ComposerControls.svelte';
   import AttachmentChips from './AttachmentChips.svelte';
-  import AttachmentNotices from './AttachmentNotices.svelte';
-  import { totalFileSize, validateSelection, type Attachment } from '../logic/attachments';
+  import ComposerNotices from './ComposerNotices.svelte';
+  import {
+    attachmentsCanSend, totalFileSize, updateAttachment,
+    validateSelection, type Attachment,
+  } from '../logic/attachments';
   import type { Project } from '../logic/task-types';
-  import { createAttachmentDropHandlers, pastedImages } from '../logic/attachment-drop';
+  import { createAttachmentUploader } from '../logic/attachment-uploads';
+  import { createAttachmentInputHandlers } from '../logic/attachment-drop';
 
   interface Props {
     id: string;
@@ -17,6 +23,7 @@
     disabled?: boolean | undefined;
     error?: string | undefined;
     attachments?: Attachment[] | undefined;
+    projectId?: string | undefined;
     uploadProgress?: string | undefined;
     attachable?: boolean | undefined;
     tools?: Snippet | undefined;
@@ -33,41 +40,43 @@
     disabled = false,
     error = '',
     attachments = $bindable([]),
+    projectId,
     uploadProgress = '',
     attachable = false,
     tools,
     onsend,
   }: Props = $props();
 
-  const acceptedTypes = [
-    '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.pdf', '.txt', '.md', '.csv', '.json', '.log',
-    '.mp4', '.webm', '.mov', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml',
-    'application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'application/json', 'video/mp4',
-    'video/webm', 'video/quicktime',
-  ].join(',');
   let pickerErrors = $state<string[]>([]);
   let dropActive = $state(false);
-  const needsProject = $derived(projects !== undefined && project === '');
-  const documentThreshold = 12_000;
-  const length = $derived(Array.from(text).length);
-  const totalSize = $derived(totalFileSize(attachments));
-  const failedFiles = $derived(attachments.filter((item) => item.uploadError !== undefined));
-  const alertMessages = $derived([
-    error,
-    ...pickerErrors,
-    ...failedFiles.map((item) => `${item.file.name}: ${item.uploadError ?? 'Upload failed. Press Send to try again.'}`),
-  ].filter((message) => message !== ''));
-  const statusMessage = $derived([
-    uploadProgress,
-    ...(length > documentThreshold ? [`Long text · ${length.toLocaleString()} characters. It will be saved as a project document when you send.`] : []),
-  ].filter((message) => message !== '').join(' '));
-  const canSend = $derived((text.trim() !== '' || attachments.length > 0) && !needsProject && !busy && !disabled);
 
+  const uploader = createAttachmentUploader({
+    onComplete: (id, result) => {
+      attachments = updateAttachment(attachments, id, () => result);
+    },
+    onProjectChange: () => {
+      attachments = attachments.map(({ id: itemId, file }) => ({ id: itemId, file, status: 'loading' }));
+    },
+  });
+  const needsProject = $derived(projects !== undefined && project === '');
+  const totalSize = $derived(totalFileSize(attachments));
+  const canSend = $derived(
+    (text.trim() !== '' || attachments.length > 0)
+      && attachmentsCanSend(attachments) && !needsProject && !busy && !disabled,
+  );
+
+  $effect(() => {
+    uploader.reconcile(projectId, attachments);
+  });
+
+  onDestroy(uploader.dispose);
   function addFiles(list: FileList | File[]): void {
     if (busy || disabled) return;
     pickerErrors = [];
     const selection = validateSelection(Array.from(list), attachments.length);
-    attachments = [...attachments, ...selection.accepted.map((file) => ({ id: crypto.randomUUID(), file }))];
+    attachments = [...attachments, ...selection.accepted.map((file) => ({
+      id: crypto.randomUUID(), file, status: 'loading' as const,
+    }))];
     pickerErrors = selection.errors;
   }
 
@@ -78,13 +87,24 @@
   }
 
   function remove(idToRemove: string): void {
+    uploader.cancel(idToRemove);
     const index = attachments.findIndex((item) => item.id === idToRemove);
     attachments = attachments.filter((item) => item.id !== idToRemove);
     requestAnimationFrame(() => {
       const next = attachments[index] ?? attachments[index - 1];
-      if (next !== undefined) document.querySelector<HTMLButtonElement>(`[data-attachment-remove="${next.id}"]`)?.focus();
+      if (next !== undefined) {
+        document.querySelector<HTMLButtonElement>(`[data-attachment-remove="${next.id}"]`)?.focus();
+      }
       else document.getElementById(id)?.focus();
     });
+  }
+
+  function retry(idToRetry: string): void {
+    const item = attachments.find((attachment) => attachment.id === idToRetry);
+    if (item?.status !== 'failed') return;
+    attachments = updateAttachment(attachments, idToRetry, (attachment) => ({
+      id: attachment.id, file: attachment.file, status: 'loading',
+    }));
   }
 
   function send(): void {
@@ -102,17 +122,11 @@
     send();
   }
 
-  const dropHandlers = createAttachmentDropHandlers(
+  const inputHandlers = createAttachmentInputHandlers(
     (files) => { if (attachable && !disabled && !busy) addFiles(files); },
     (active) => { dropActive = attachable && !disabled && !busy && active; },
     () => attachable && !disabled && !busy,
   );
-
-  function paste(event: ClipboardEvent): void {
-    if (!attachable || disabled || busy || event.clipboardData === null) return;
-    const images = pastedImages(Array.from(event.clipboardData.files));
-    if (images.length > 0) addFiles(images);
-  }
 </script>
 
 <form {onsubmit}>
@@ -125,13 +139,16 @@
       focus-within:border-[var(--brand-border-strong)] {dropActive
         ? 'border-primary outline-2 outline-offset-2 outline-primary'
         : 'border-[var(--brand-border)]'}"
-    ondragenter={dropHandlers.dragenter}
-    ondragover={dropHandlers.dragover}
-    ondragleave={dropHandlers.dragleave}
-    ondrop={dropHandlers.drop}
+    ondragenter={inputHandlers.drop.dragenter}
+    ondragover={inputHandlers.drop.dragover}
+    ondragleave={inputHandlers.drop.dragleave}
+    ondrop={inputHandlers.drop.drop}
   >
     {#if dropActive}
-      <div class="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-3xl bg-base-100/90 text-sm font-medium text-primary">
+      <div
+        class="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-3xl
+          bg-base-100/90 text-sm font-medium text-primary"
+      >
         Drop files here
       </div>
     {/if}
@@ -139,7 +156,7 @@
       {id}
       bind:value={text}
       {onkeydown}
-      onpaste={paste}
+      onpaste={inputHandlers.paste}
       rows="2"
       {placeholder}
       disabled={disabled || busy}
@@ -147,38 +164,17 @@
         px-4 pb-1 pt-3.5 text-sm focus:outline-none"
     ></textarea>
     {#if attachments.length > 0}
-      <AttachmentChips {attachments} {busy} onremove={remove} />
+      <AttachmentChips {attachments} {busy} onremove={remove} onretry={retry} />
     {/if}
     <div class="flex flex-wrap items-center gap-1 px-2 pb-2">
-      {#if attachable}
-        <label class="btn btn-ghost btn-circle btn-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary" title="Attach files">
-          <Icon name="paperclip" class="size-4" />
-          <span class="sr-only">Attach files</span>
-          <input
-            type="file"
-            class="sr-only"
-            accept={acceptedTypes}
-            multiple
-            disabled={disabled || busy}
-            onchange={attach}
-          />
-        </label>
-      {/if}
-      {#if projects !== undefined}
-        <label class="sr-only" for="{id}-project">Project</label>
-        <select
-          id="{id}-project"
-          class="select select-ghost select-sm w-auto rounded-full
-            {needsProject ? 'text-[var(--brand-text-secondary)]' : 'font-medium'}"
-          bind:value={project}
-          disabled={disabled || busy}
-        >
-          <option value="" disabled>Select a project</option>
-          {#each projects as item (item.id)}<option value={item.id}>{item.name}</option>{/each}
-        </select>
-      {/if}
-      {#if tools !== undefined}{@render tools()}{/if}
-      <button class="btn btn-primary btn-circle btn-sm ml-auto" type="submit" aria-label={busy ? 'Sending' : 'Send'} disabled={!canSend}>
+      <ComposerControls {id} {projects} bind:project {attachable} {disabled} {busy} {tools} onattach={attach} />
+      <button
+        class="btn btn-primary btn-circle btn-sm ml-auto"
+        type="submit"
+        aria-label={busy ? 'Sending' : 'Send'}
+        aria-describedby={!attachmentsCanSend(attachments) ? `${id}-attachment-reason` : undefined}
+        disabled={!canSend}
+      >
         {#if busy}
           <span class="loading loading-spinner loading-xs"></span>
         {:else}
@@ -192,5 +188,13 @@
       Select a project so I know where to work.
     </p>
   {/if}
-  <AttachmentNotices warning={totalSize > 100 * 1024 * 1024} status={statusMessage} errors={alertMessages} />
+  <ComposerNotices
+    {id}
+    {attachments}
+    {text}
+    {uploadProgress}
+    {error}
+    pickerErrors={pickerErrors}
+    warning={totalSize > 100 * 1024 * 1024}
+  />
 </form>
