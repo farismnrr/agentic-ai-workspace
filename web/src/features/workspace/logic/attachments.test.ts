@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  mergeUploadResult,
+  attachmentsCanSend,
+  hasFailedUploads,
+  hasPendingUploads,
+  readyPaths,
+  updateAttachment,
+  uploadAttachment,
   validateFile,
   validateSelection,
   withAttachments,
@@ -10,6 +15,15 @@ import {
 function file(name: string, size = 1, type = ''): File {
   return new File([new Uint8Array(size)], name, { type });
 }
+
+function loading(id = 'one', name = 'one.pdf'): Attachment {
+  return { id, file: file(name), status: 'loading' };
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('attachment rules', () => {
   it('accepts supported extensions with matching, missing, or generic browser MIME', () => {
@@ -36,22 +50,74 @@ describe('attachment rules', () => {
     expect(selection.accepted).toHaveLength(1);
     expect(selection.errors[0]).toContain('up to 10');
   });
+});
 
-  it('merges upload results without losing other file states', () => {
-    const attachments: Attachment[] = [
-      { id: 'first', file: file('first.pdf'), path: 'uploads/first.pdf' },
-      { id: 'second', file: file('second.txt'), uploadError: 'Try again.' },
-    ];
-    const next = mergeUploadResult(attachments, 1, { path: 'uploads/second.txt' });
-    expect(next.map((item) => item.path)).toEqual(['uploads/first.pdf', 'uploads/second.txt']);
-    expect(next[1]?.uploadError).toBeUndefined();
-    expect(next[1]?.id).toBe('second');
+describe('attachment uploads', () => {
+  it('moves a loading item to ready and exposes its path', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ path: 'uploads/one.pdf' })));
+    const ready = await uploadAttachment('project', loading());
+    expect(ready).toMatchObject({ id: 'one', status: 'ready', path: 'uploads/one.pdf' });
+    expect(readyPaths([ready])).toEqual(['uploads/one.pdf']);
   });
 
-  it('ignores an upload result for an attachment that is no longer present', () => {
-    expect(mergeUploadResult([], 0, { path: 'uploads/removed.pdf' })).toEqual([]);
+  it('moves a loading item to failed and supports retrying only that item', async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(Response.json({ error: 'unknown' }, { status: 500 }))
+      .mockResolvedValueOnce(Response.json({ path: 'uploads/one.pdf' }));
+    vi.stubGlobal('fetch', fetch);
+    const failed = await uploadAttachment('project', loading());
+    expect(failed.status).toBe('failed');
+    if (failed.status !== 'failed') throw new Error('Expected failed upload');
+    expect(failed.error).toContain('Upload failed');
+    const ready = await uploadAttachment('project', { ...failed, status: 'loading' });
+    expect(ready.status).toBe('ready');
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('aborts a removed in-flight upload and ignores any late result by id', async () => {
+    let finish: ((response: Response) => void) | undefined;
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+      finish = resolve;
+      init?.signal?.addEventListener('abort', () => { reject(new DOMException('Aborted', 'AbortError')); });
+    })));
+    const controller = new AbortController();
+    const pending = uploadAttachment('project', loading(), controller.signal);
+    controller.abort();
+    finish?.(Response.json({ path: 'uploads/one.pdf' }));
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(updateAttachment([], 'one', (item) => item)).toEqual([]);
+  });
+
+  it('does not upload an already-ready item again', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const ready: Attachment = { ...loading(), status: 'ready', path: 'uploads/one.pdf' };
+    await expect(uploadAttachment('project', ready)).resolves.toBe(ready);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('attachment Send gating', () => {
+  it('reports pending and failed states while text-only content remains unchanged', () => {
+    expect(hasPendingUploads([loading()])).toBe(true);
+    const failed: Attachment = { id: 'two', file: file('two.pdf'), status: 'failed', error: 'Try again.' };
+    expect(hasFailedUploads([failed])).toBe(true);
+    expect(withAttachments('Just text', [])).toBe('Just text');
+  });
+
+  it('allows Send only when every attachment is ready or removed', () => {
+    const pending = loading();
+    const ready: Attachment = { ...pending, status: 'ready', path: 'uploads/one.pdf' };
+    const failed: Attachment = { ...pending, status: 'failed', error: 'Try again.' };
+
+    expect(attachmentsCanSend([pending])).toBe(false);
+    expect(attachmentsCanSend([failed])).toBe(false);
+    expect(attachmentsCanSend([ready])).toBe(true);
+    expect(attachmentsCanSend([pending].filter((item) => item.id !== pending.id))).toBe(true);
+  });
+});
+
+describe('attachment prompts', () => {
   it('uses a useful prompt when the message contains only attachments', () => {
     expect(withAttachments('', ['uploads/report.pdf'])).toBe(
       'See the attached files.\n\nAttached files (already in the project):\n- uploads/report.pdf — read it with pdftotext',

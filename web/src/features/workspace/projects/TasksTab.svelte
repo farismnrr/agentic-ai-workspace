@@ -33,7 +33,7 @@
 <div class="join flex-wrap" role="group" aria-label="Filter tasks">
   {#each Object.keys(groups) as key (key)}
     <button type="button" aria-pressed={filter === key} class="join-item btn btn-sm {filter === key ? 'btn-primary' : ''}" onclick={() => (filter = key as Filter)}>
-      {labels[key as Filter]} <span class="text-base-content/70">{counts[key]}</span>
+      {labels[key as Filter]} <span class={filter === key ? '' : 'text-base-content/70'}>{counts[key]}</span>
     </button>
   {/each}
 </div>

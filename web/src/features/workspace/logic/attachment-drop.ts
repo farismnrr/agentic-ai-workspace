@@ -4,6 +4,12 @@ const pastedImageExtensions: Record<string, string> = {
   'image/webp': 'webp',
   'image/gif': 'gif',
 };
+export const acceptedAttachmentTypes = [
+  '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.pdf', '.txt', '.md', '.csv', '.json', '.log',
+  '.mp4', '.webm', '.mov', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml',
+  'application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'application/json', 'video/mp4',
+  'video/webm', 'video/quicktime',
+].join(',');
 let pastedImageNumber = 0;
 
 export function hasFileDrag(types: readonly string[]): boolean {
@@ -62,6 +68,24 @@ export function createAttachmentDropHandlers(
       depth = 0;
       onActiveChange(false);
       if (enabled()) onFiles(droppedFiles(Array.from(transfer.files)));
+    },
+  };
+}
+
+export function createAttachmentInputHandlers(
+  onFiles: (files: File[]) => void,
+  onActiveChange: (active: boolean) => void,
+  enabled: () => boolean,
+): {
+  drop: ReturnType<typeof createAttachmentDropHandlers>;
+  paste: (event: ClipboardEvent) => void;
+} {
+  return {
+    drop: createAttachmentDropHandlers(onFiles, onActiveChange, enabled),
+    paste(event) {
+      if (!enabled() || event.clipboardData === null) return;
+      const images = pastedImages(Array.from(event.clipboardData.files));
+      if (images.length > 0) onFiles(images);
     },
   };
 }

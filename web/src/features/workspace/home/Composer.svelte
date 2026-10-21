@@ -4,7 +4,7 @@
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
   import { describeTaskError } from '../logic/task-errors';
-  import { uploadAttachments, withAttachments, type Attachment } from '../logic/attachments';
+  import { attachmentsCanSend, readyPaths, withAttachments, type Attachment } from '../logic/attachments';
   import { createTask } from '../logic/tasks-api';
   import { chosenProject, projects, refresh } from '../logic/workspace-store';
 
@@ -26,18 +26,13 @@
   async function send(prompt: string, chosen: string): Promise<void> {
     busy = true;
     error = '';
-    uploadProgress = attachments.length > 0 ? `Uploading 0 of ${String(attachments.length)}…` : '';
+    if (!attachmentsCanSend(attachments)) {
+      busy = false;
+      return;
+    }
     try {
+      const paths = readyPaths(attachments);
       // The model and effort come from Settings: the lead's own, else the person's default.
-      attachments = await uploadAttachments(chosen, attachments, (completed, total) => {
-        uploadProgress = `Uploading ${String(completed)} of ${String(total)}…`;
-      });
-      if (attachments.some((item) => item.path === undefined)) {
-        uploadProgress = '';
-        return;
-      }
-      if (attachments.length > 0) uploadProgress = `${String(attachments.length)} files uploaded`;
-      const paths = attachments.flatMap((item) => (item.path === undefined ? [] : [item.path]));
       const task = await createTask({ projectId: chosen, prompt: withAttachments(prompt, paths) });
       text = '';
       attachments = [];
@@ -47,7 +42,6 @@
       error = describeTaskError(failure);
     } finally {
       busy = false;
-      if (attachments.every((item) => item.path !== undefined)) uploadProgress = '';
     }
   }
 </script>
@@ -63,6 +57,7 @@
     bind:text
     bind:project
     bind:attachments
+    projectId={project}
     attachable
     projects={$projects}
     {busy}

@@ -1,11 +1,14 @@
 import { ApiError, request } from '../../../shared/api/http';
 
-export interface Attachment {
+interface AttachmentBase {
   id: string;
   file: File;
-  path?: string;
-  uploadError?: string;
 }
+
+export type Attachment =
+  | (AttachmentBase & { status: 'loading' })
+  | (AttachmentBase & { status: 'ready'; path: string })
+  | (AttachmentBase & { status: 'failed'; error: string });
 
 interface Saved {
   path: string;
@@ -79,18 +82,13 @@ export function validateSelection(files: File[], currentCount: number): FileVali
   return { accepted, errors };
 }
 
-export function mergeUploadResult(
+export function updateAttachment(
   attachments: Attachment[],
-  index: number,
-  result: { path: string } | { error: string },
+  id: string,
+  update: (attachment: Attachment) => Attachment,
 ): Attachment[] {
-  if (index < 0 || index >= attachments.length) return attachments;
-  return attachments.map((attachment, at) => {
-    if (at !== index) return attachment;
-    return 'path' in result
-      ? { id: attachment.id, file: attachment.file, path: result.path }
-      : { id: attachment.id, file: attachment.file, uploadError: `${result.error} Press Send to try again.` };
-  });
+  if (!attachments.some((attachment) => attachment.id === id)) return attachments;
+  return attachments.map((attachment) => attachment.id === id ? update(attachment) : attachment);
 }
 
 function uploadError(error: unknown): string {
@@ -104,31 +102,39 @@ function uploadError(error: unknown): string {
   return 'Upload failed. Check your connection and try again.';
 }
 
-async function uploadOne(projectId: string, file: File): Promise<Saved> {
+export async function uploadAttachment(
+  projectId: string,
+  attachment: Attachment,
+  signal?: AbortSignal,
+): Promise<Attachment> {
+  if (attachment.status === 'ready') return attachment;
   const form = new FormData();
-  form.append('file', file);
-  return request<Saved>('POST', `/api/projects/${encodeURIComponent(projectId)}/uploads`, form);
+  form.append('file', attachment.file);
+  try {
+    const saved = await request<Saved>(
+      'POST', `/api/projects/${encodeURIComponent(projectId)}/uploads`, form, signal,
+    );
+    return { id: attachment.id, file: attachment.file, status: 'ready', path: saved.path };
+  } catch (error) {
+    if (signal?.aborted === true) throw error;
+    return { id: attachment.id, file: attachment.file, status: 'failed', error: uploadError(error) };
+  }
 }
 
-/** Uploads pending files in order and returns paths/statuses for retry without repeating successes. */
-export async function uploadAttachments(
-  projectId: string,
-  source: Attachment[],
-  onProgress?: (completed: number, total: number) => void,
-): Promise<Attachment[]> {
-  let attachments: Attachment[] = source.map((item) => ({ ...item }));
-  for (let index = 0; index < attachments.length; index += 1) {
-    const item = attachments[index];
-    if (item === undefined || item.path !== undefined) continue;
-    try {
-      const saved = await uploadOne(projectId, item.file);
-      attachments = mergeUploadResult(attachments, index, saved);
-    } catch (error) {
-      attachments = mergeUploadResult(attachments, index, { error: uploadError(error) });
-    }
-    onProgress?.(index + 1, attachments.length);
-  }
-  return attachments;
+export function hasPendingUploads(attachments: Attachment[]): boolean {
+  return attachments.some((attachment) => attachment.status === 'loading');
+}
+
+export function hasFailedUploads(attachments: Attachment[]): boolean {
+  return attachments.some((attachment) => attachment.status === 'failed');
+}
+
+export function attachmentsCanSend(attachments: Attachment[]): boolean {
+  return !hasPendingUploads(attachments) && !hasFailedUploads(attachments);
+}
+
+export function readyPaths(attachments: Attachment[]): string[] {
+  return attachments.flatMap((attachment) => attachment.status === 'ready' ? [attachment.path] : []);
 }
 
 /** Gives the task a useful prompt even when the person only attached files. */
@@ -159,4 +165,13 @@ export function formatFileSize(bytes: number): string {
 
 export function totalFileSize(attachments: Attachment[]): number {
   return attachments.reduce((total, item) => total + item.file.size, 0);
+}
+
+export function composerStatus(text: string, uploadProgress: string): string {
+  const length = Array.from(text).length;
+  const notices = [uploadProgress];
+  if (length > 12_000) {
+    notices.push(`Long text · ${length.toLocaleString()} characters. It will be saved as a project document when you send.`);
+  }
+  return notices.filter((message) => message !== '').join(' ');
 }
