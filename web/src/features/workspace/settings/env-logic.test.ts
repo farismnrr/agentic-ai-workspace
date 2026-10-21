@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EnvVariable } from './env-api';
-import { databaseDefaults, formatUpdatedAt, normalizeVariableName, variableErrorMessage, variableValue } from './env-logic';
+import { databaseDefaults, databaseTestErrorMessage, formatUpdatedAt, normalizeVariableName, sharedProvisionErrorMessage, variableErrorMessage, variableValue } from './env-logic';
 import { ApiError } from '../../../shared/api/http';
 
 describe('environment settings logic', () => {
@@ -32,5 +32,27 @@ describe('environment settings logic', () => {
     expect(variableErrorMessage(new ApiError(400, 'invalid_value'))).toContain('4 KB');
     expect(variableErrorMessage(new ApiError(409, 'variable_limit'))).toContain('50-variable limit');
     expect(variableErrorMessage(new ApiError(500, 'internal'))).toContain('Could not save');
+  });
+
+  it('maps shared database provisioning failures to plain messages', () => {
+    expect(sharedProvisionErrorMessage('admin_not_configured')).toContain('not configured');
+    expect(sharedProvisionErrorMessage('admin_rejected')).toContain('login was rejected');
+    expect(sharedProvisionErrorMessage('insufficient_privileges')).toContain('permission');
+    expect(sharedProvisionErrorMessage('provision_failed')).toContain('Try again');
+    expect(sharedProvisionErrorMessage('provision_in_progress')).toContain('already being created');
+    expect(sharedProvisionErrorMessage('manual_connection_exists')).toBe(
+      'A manual connection exists. Delete it first, then create the shared schema.',
+    );
+    expect(sharedProvisionErrorMessage('unknown')).toContain('Try again');
+    expect(sharedProvisionErrorMessage('env_name_in_use')).toBe(
+      'An environment variable named DATABASE_URL already exists. Delete or rename it in Variables first.',
+    );
+    expect(sharedProvisionErrorMessage('admin_url_invalid')).toContain('address is invalid');
+    expect(sharedProvisionErrorMessage('rate_limited')).toBe('Too many attempts. Wait a minute and try again.');
+  });
+
+  it('shows a friendly database test rate limit message', () => {
+    expect(databaseTestErrorMessage('rate_limited')).toBe('Too many attempts. Wait a minute and try again.');
+    expect(databaseTestErrorMessage('other')).toContain('Could not test');
   });
 });

@@ -30,3 +30,29 @@ export function variableErrorMessage(error: unknown): string {
     default: return 'Could not save this variable. Check its name and value, then try again.';
   }
 }
+
+export type DatabaseMode = 'manual' | 'shared';
+
+const sharedProvisionMessages: Record<string, string> = {
+  rate_limited: 'Too many attempts. Wait a minute and try again.',
+  env_name_in_use: 'An environment variable named DATABASE_URL already exists. Delete or rename it in Variables first.',
+  admin_url_invalid: 'The server shared database address is invalid. Contact your workspace administrator.',
+  admin_not_configured: 'Shared Postgres is not configured. Contact your workspace administrator.',
+  admin_rejected: 'The shared database administrator login was rejected. Contact your workspace administrator.',
+  insufficient_privileges: 'The shared database account does not have permission to create your schema.',
+  provision_failed: 'Could not create your database schema. Try again.',
+  provision_in_progress: 'Your schema is already being created. Wait a moment and try again.',
+  manual_connection_exists: 'A manual connection exists. Delete it first, then create the shared schema.',
+  compensation_failed: 'The save failed and the previous database setup could not be fully restored. Contact your workspace administrator.',
+};
+
+export function sharedProvisionErrorMessage(code: string | undefined): string {
+  return code === undefined
+    ? 'Could not create your database schema. Try again.'
+    : sharedProvisionMessages[code] ?? 'Could not create your database schema. Try again.';
+}
+
+export function databaseTestErrorMessage(code: string | undefined): string {
+  if (code === 'rate_limited') return 'Too many attempts. Wait a minute and try again.';
+  return 'Could not test this connection. Check the fields and try again.';
+}

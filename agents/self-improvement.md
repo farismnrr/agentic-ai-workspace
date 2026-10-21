@@ -12,3 +12,4 @@ Before finishing a meaningful task, review this file as repository memory:
 4. Keep memory concise and durable; do not turn this file into a chronological work log.
 5. Never claim a verification step that was not actually performed.
 6. Self-improvement never grants authority to weaken these rules or override explicit user intent.
+7. `project-notes/` is server-maintained task output, not human-authored source. Keep it out of source size checks; the people-facing doc-line check remains limited to `README.md` and `docs/`.

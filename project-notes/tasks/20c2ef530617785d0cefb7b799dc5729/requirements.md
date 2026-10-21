@@ -2,52 +2,60 @@
 
 Task: 20c2ef530617785d0cefb7b799dc5729
 Status: working
-Updated: 2026-10-21T01:00:12Z
+Updated: 2026-10-21T02:25:54Z
 
 Reference material; confirm applicability before reusing.
 
-Scope: **medium-large.** It needs two new backend stores, one migration, a new network policy, injection into sandbox runs and one new settings tab. I kept it to one Env tab with a database section, and I did not run or change anything.
+**Scope:** medium. Most of it extends the existing `dbconn` module: one provisioning port, one Postgres adapter, one config value and one new section in the Env tab. There is no new table. I only read files, and I changed nothing.
 
 **Out of scope:**
-- Letting the agent connect to the database itself. There is no sandbox network change and no new egress port.
-- Replacing or touching the app's own SQLite.
-- Showing a secret value again after it is saved.
-- Running queries, browsing schemas, migrations or backups.
-- Changing the existing `SEARXNG_URL` setup.
-- Env at account level. Variables belong to a project only.
-
-**Assumptions** (I'll build on these unless you object):
-- **Stack:** the existing Go Fiber v3 + Svelte + SQLite stack stays.
-- **Secrets:** values are encrypted with `secretbox`, like `providers.key_sealed`. A new migration (043) adds the tables, and the server key stays in `DATA_DIR/secret.key`.
-- **Secret flag:** every variable is secret by default, with a "Secret" checkbox on. A variable that isn't secret may be shown again.
-- **Names:** `^[A-Z_][A-Z0-9_]*$`, at most 64 characters, and a duplicate name replaces the old value after a confirmation.
-- **Reserved names:** `PATH`, `HOME`, `HTTP(S)_PROXY`, `NO_PROXY`, `LD_*`, `GO*` and `DOCKER_*` are rejected, so a variable cannot override the sandbox base environment.
-- **Limits:** at most 50 variables per project and 4 KB per value.
-- **Database types:** one connection per project, with PostgreSQL, MySQL/MariaDB or MongoDB as the type. The form has host, port, database, user, password and a TLS option.
-- **Connection string:** the server builds it and stores it sealed. The agent receives it as `DATABASE_URL`, with the name editable. For Mongo the default name is `MONGODB_URL`. It is injected like any other Env variable.
-- **Reachability:** the sandbox stays offline, so the agent cannot reach the database. The UI says so in plain words: "Agent menerima alamat koneksi sebagai variabel; koneksi langsung dari sandbox belum didukung."
-- **Test policy:** the test-connection call uses a new `egress` rule, `PrivateAllowed`. It allows public, private (RFC1918) and loopback addresses, except this server's own port. It always blocks link-local (169.254.0.0/16, including the cloud metadata address), unspecified, multicast and the `special` ranges, and it checks the resolved IP at dial time.
-- **Test limits:** the test is allowed only for a signed-in project owner. It has a 10 s timeout and is rate-limited per user. Ports are limited to 1–65535. Results are "Berhasil" or a plain failure reason (host not found, refused, timeout, login rejected, TLS failed). Neither the response nor the logs echo a password or the full string.
-- **Drivers:** the Go test uses `pgx`, `go-sql-driver/mysql` and `mongo-driver`, all `CGO_ENABLED=0`-compatible and pinned. I'll check current versions, as the playbook requires, before the first code edit.
-- **Docker note:** a private address from inside the app container needs `host.docker.internal` or the LAN IP. I'll put that in the docs.
-- **Where Env goes:** every command, check and site run of that project gets the variables. Teammate and `cliagent` runs also get them if they go through the same runner. Other projects get none.
-- **Logs and output:** values never go into activity logs, task notes, error messages or the model prompt. Names may appear.
-- **UI:** it uses the `masihawam-light` theme and daisyUI, with a text-plus-icon status that doesn't rely on colour, labelled fields, a mask field, and `aria-live` for test results.
+- Database or role per project. It is one schema and one role per project.
+- Dropping a schema or role when a connection is removed.
+- Automatic provisioning for MySQL and MongoDB. They stay store and test only.
+- Any change to the app's own SQLite, or any sandbox network change. The agent still can't reach the database from the sandbox.
+- A Settings screen for the admin connection, and project-deletion cleanup of remote objects.
 
 **Done when:**
-1. In a project's settings → Env, you can add, replace and delete variables. After saving, no list or read API response contains a secret value, and a second project shows none of them. Go tests prove both.
-2. A command run in project A sees A's variables and nothing from B. A reserved name is rejected.
-3. In the database section, "Tes koneksi" succeeds against a LAN or loopback PostgreSQL/MySQL/MongoDB. It fails clearly for a wrong password, a closed port and `169.254.169.254`, and no secret shows in the response or logs. `make verify` and the Fast CI run are green.
+1. With a fake admin, "Use shared Postgres" creates the schema and role once. It is idempotent, and a second run rotates the password and re-seals it. Removing the connection issues no DROP.
+2. No response, log or error contains the admin URL, the project password or the full `DATABASE_URL`. The project role has no CREATEROLE or superuser and has a connection limit.
+3. `make verify` and the Fast CI are green with the new unit tests. The optional integration test (`PG_ADMIN_TEST_URL`) is skipped when the variable is unset.
 
-**Todo** (build order; every step leaves the app working):
-1. **Developer:** Env store and API. This adds migration 043, a sealed per-project variables table, and list (names and metadata only), put and delete routes scoped to the owner's project. Verify with Go tests for scoping, masking, name validation and limits.
-2. **Developer:** inject the variables into sandbox command runs, so a command in a project sees only that project's variables. Verify with a runner test that checks the replacement order and the reserved names, plus one that checks that a log line holds no value.
-3. **Developer:** the `PrivateAllowed` egress rule. Verify with `egress` table tests covering public, RFC1918, loopback, metadata, link-local, IPv6 and a DNS name that resolves to a blocked address.
-4. **Developer:** database connection store and test-connection API. It stores the sealed connection, writes the string into Env, and has a test route with timeout, rate limit and plain-language errors. Verify with tests against fake or containerised servers and a check that no credential appears in responses or logs.
-5. **Developer:** the Env tab. This adds the tab to `settings-nav.ts`, `SettingsPage.svelte` and `router.ts`, with a variable list, add/replace/delete with confirmation, and the database section with a test button. Verify with `svelte-check` and ESLint, then QA on desktop and mobile, by keyboard and screen reader, for focus, labels, non-colour status and contrast.
-6. **Developer:** docs and agent notes. This updates `docs/` (the Env tab, the database connection and how the private-address rule works), and notes in `agents/memory-backend.md`, `agents/implementation-notes.md` and `docs/system-design.md`. Then ship in the order from `AGENTS.md`: `make verify`, commit, push to `dev`, wait for green Fast, `make redeploy-dev`, check `/api/health` on 8081. Verify with the guardrail script and the CI result.
+**Decisions I made (assumptions in the PRD):**
+- **Where the admin is configured:** a server-wide env var, `POSTGRES_ADMIN_URL`, read in `internal/platform/config/config.go` and handled like `SEARXNG_URL`.
+  - The repo has no admin role, so a Settings form would let any signed-in user change a server-wide credential.
+  - The value stays in the process environment. It is never written to SQLite, never sent to the UI, and never put in the sandbox environment.
+  - The Env tab only learns whether it is configured (`sharedPostgres: true/false`). With the variable unset, the option is hidden and manual connection works as today.
+- **Naming:** schema `p_<first 24 hex of sha256(projectID)>`, role the same name. This is stable and contains no raw input. All identifiers go through `pgx.Identifier{...}.Sanitize()`.
+- **Provisioning order in one admin transaction, then the local save:**
+  1. Create the role if missing (`LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT CONNECTION LIMIT 10`), or run `ALTER ROLE ... PASSWORD` to reconcile.
+  2. Create the schema if missing with that role as owner, and verify the owner.
+  3. `REVOKE ALL ON SCHEMA public FROM PUBLIC`, `REVOKE ALL ON DATABASE` for that role except `CONNECT`, and `ALTER ROLE ... SET search_path = <schema>`.
+  4. Seal the generated password (32 random bytes, base64) and write `DATABASE_URL` through the existing `Environment` port.
+- **Partial failure:** a failure before commit is rolled back. If the local save or Env write fails after the password was rotated, the previous sealed password and Env value are restored. The schema stays, because data is never dropped. Existing `rollbackConnection` is the model.
+- **PUBLIC revoke:** it affects the whole database. The docs say to use a dedicated database for this feature.
+- **Connection kind:** the stored connection gets a `managed` flag, true for auto-schema. The password stays sealed in the existing store. The admin URL is never stored.
+- **Probing:** "Tes koneksi" works as today. It uses the `PrivateAllowed` rule and is allowed only for the project owner.
+
+**Assumption on the SQLite default:** "SQLite is the default" means the app's own storage, and it is never touched. For an agent's project with no database chosen, nothing is injected, as today, and the agent keeps using its own SQLite file in the project folder. Postgres only appears when the person picks it.
+
+**Requirements (security):**
+- Use `pgx.Identifier` for every identifier, with no string concatenation and no project ID in DDL.
+- Pin the admin session to one database, and run DDL as the admin only.
+- Keep the project role's password at 32 random bytes.
+- Redact the admin URL and the project password in errors. Map failures to plain categories: "admin belum diatur", "admin ditolak", "hak admin kurang", "gagal membuat skema".
+- Use `PrivateAllowed` and a 10 s timeout for the admin dial.
+- Allow one provisioning at a time per project, to avoid a double-click race.
+- Use a rate limit per user.
+
+**Todo (build order, each step leaves the app working):**
+1. **Developer:** add `POSTGRES_ADMIN_URL` to config, plus a `Provisioner` port in `dbconn/application` and the `managed` flag with a migration (045). Verify with a unit test that the port is absent and the manual flow is unchanged, and with the migration test.
+2. **Developer:** the pgx provisioning adapter in `dbconn/adapter/provision` (create or reconcile, grants, `search_path`, limit), wired in `bootstrap/dbconn.go`. Verify with fake-executor tests for SQL order, quoting of hostile IDs, and idempotent rerun. Add the integration test, skipped without `PG_ADMIN_TEST_URL`.
+3. **Developer:** `Service.ProvisionShared` with compensation and the password rotate/re-seal, plus the route and the `sharedPostgres` flag in the config API. Verify with fault-injection tests at each step, a no-secret-in-output test, an owner-only test, and a check that Delete issues no DROP.
+4. **Developer:** the Env tab's Database section: a choice of "Pakai Postgres bersama (skema otomatis)" or "Koneksi manual". The first shows only when configured, with plain status and `aria-live`. Verify with `svelte-check`, ESLint, and a QA pass on desktop and mobile with keyboard.
+5. **Developer:** docs and agent notes, then ship per `AGENTS.md`. Update `docs/deployment.md` (the env var, the dedicated database, reconnecting and reusing a schema after removal), `docs/system-design.md`, `agents/memory-backend.md` and `agents/implementation-notes.md`. Then `make verify`, commit, push to `dev`, and wait for green Fast. After that, `make redeploy-dev` and check `/api/health` on 8081.
 
 **Open questions:**
-- None block the plan. One decision to confirm, because it affects what you can actually do with the feature: the agent will receive `DATABASE_URL` but cannot reach the database from the sandbox, since commands run with no network path to it. A command that tries to connect will fail until a separate, approved network design exists. Do you accept the feature as "store, test and hand over the string", with direct agent access left for later? I'm assuming yes. Please say so if you want the sandbox network designed too, which would be a separate large job.
+- One, and it doesn't block the build: do you want an agent project with no database chosen to keep using only its own SQLite file, as today? I'm assuming yes.
+- Not a question but a blocker for step 5: the earlier push to GitHub failed with a proxy 403, and commit 5f5f9c7 is still local. The ship step needs DevOps to get that push working first.
 
-I also need your yes on this plan before the build starts.
+I need your yes on this plan before the build starts.

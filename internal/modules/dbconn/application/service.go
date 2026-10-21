@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/dbconn/domain"
 )
@@ -11,15 +12,25 @@ import (
 var ErrNotFound = domain.ErrMissing
 
 type Service struct {
-	store  Store
-	cipher Cipher
-	owner  ProjectOwner
-	env    Environment
-	probe  Prober
+	store        Store
+	cipher       Cipher
+	owner        ProjectOwner
+	env          Environment
+	probe        Prober
+	provisioner  Provisioner
+	provisioning map[string]bool
+	provisionMu  sync.Mutex
 }
 
-func NewService(store Store, cipher Cipher, owner ProjectOwner, env Environment, probe Prober) *Service {
-	return &Service{store: store, cipher: cipher, owner: owner, env: env, probe: probe}
+func NewService(
+	store Store, cipher Cipher, owner ProjectOwner, env Environment, probe Prober,
+	provisioners ...Provisioner,
+) *Service {
+	service := &Service{store: store, cipher: cipher, owner: owner, env: env, probe: probe}
+	if len(provisioners) > 0 {
+		service.provisioner = provisioners[0]
+	}
+	return service
 }
 
 func (s *Service) Get(ctx context.Context, userID, projectID string) (domain.Metadata, error) {
@@ -40,6 +51,16 @@ func (s *Service) Save(ctx context.Context, userID, projectID string, conn domai
 	if err := s.checkOwner(ctx, userID, projectID); err != nil {
 		return domain.Metadata{}, err
 	}
+	if !s.beginProvision(projectID) {
+		return domain.Metadata{}, ProvisionError{Category: ProvisionInProgress}
+	}
+	defer s.endProvision(projectID)
+	return s.saveConnection(ctx, projectID, conn)
+}
+
+func (s *Service) saveConnection(
+	ctx context.Context, projectID string, conn domain.Connection,
+) (domain.Metadata, error) {
 	if conn.EnvName == "" {
 		conn.EnvName = domain.DefaultEnvName(conn.Kind)
 	}
@@ -102,6 +123,10 @@ func (s *Service) Delete(ctx context.Context, userID, projectID string) error {
 	if err := s.checkOwner(ctx, userID, projectID); err != nil {
 		return err
 	}
+	if !s.beginProvision(projectID) {
+		return ProvisionError{Category: ProvisionInProgress}
+	}
+	defer s.endProvision(projectID)
 	stored, err := s.store.Get(ctx, projectID)
 	if errors.Is(err, ErrNotFound) {
 		return ErrNotFound

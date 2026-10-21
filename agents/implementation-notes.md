@@ -143,6 +143,40 @@ candidate IP. The sandbox remains network-disabled.
 - **Rate limits:** sign-in, sign-up and the open OAuth endpoints are limited per visitor address; failed sign-ins also per account and address, so someone else's wrong guesses never lock you out. Expired sessions, codes, tokens and unused clients are swept every hour.
 - **Migrations:** the schema changes only through numbered files in `internal/platform/database/migrations/`. Applied files are checksummed and can never be edited.
 
+### Shared PostgreSQL provisioning
+
+`POSTGRES_ADMIN_URL` is optional process configuration, never a project value.
+It must include a database name in its URL path. The provision adapter uses a
+10-second `PrivateAllowed` dial and a single admin
+transaction pinned to the admin URL's database. It derives `p_<hash24>` from
+the first 24 hex characters of SHA-256(projectID) for both role and schema,
+quoting every identifier with `pgx.Identifier`. In order, the transaction
+quotes the generated 32-byte password server-side; creates or reconciles a
+`LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT` role with connection
+limit 10; creates the schema or verifies its owner; revokes `PUBLIC` on
+`public` and verifies that PUBLIC has neither `CREATE` nor `USAGE`; revokes the
+role's direct database privileges then grants it `CONNECT`; and sets its
+`search_path` to the project schema. PostgreSQL keeps database `TEMPORARY` for
+`PUBLIC`, so do not describe effective database rights as CONNECT-only. The
+`PUBLIC` schema revoke is database-wide, so the configured database must be
+dedicated to this feature. Require `sslmode=require` or stronger and disable
+DDL statement logging and `pg_stat_statements` on that database because role
+passwords appear in role DDL.
+
+Provision failures expose only safe categories, including
+`manual_connection_exists` and `compensation_failed`. ProvisionShared refuses
+to replace a saved manual connection. ProvisionShared, Save and Delete share a
+per-project lock. The service snapshots the previous managed password and
+`DATABASE_URL`; after rotation, a failed local save or Env write restores the
+previous sealed connection, Env value and remote password using an independent
+10-second context. Removing a connection does not drop remote objects.
+Migration 045 adds the persisted `managed` flag. The optional integration test
+uses `PG_ADMIN_TEST_URL` and skips when it is unset; point it only at a
+disposable, dedicated database.
+
+Revoking `PUBLIC` on `public` affects the whole database, so operators must use
+a dedicated database. Some managed PostgreSQL services restrict role creation.
+
 ## Workspace screens (detail)
 
 - **Sidebar:** New task, Search (Ctrl/Cmd+K), Inbox, All projects, recent tasks grouped by day with a status dot and relative time, and a collapsible Projects list. Settings and the account menu sit at the bottom. It is an icon rail on desktop and a drawer on phones.

@@ -2,64 +2,9 @@
 
 Task: 20c2ef530617785d0cefb7b799dc5729
 Status: working
-Updated: 2026-10-21T01:00:12Z
+Updated: 2026-10-21T02:25:54Z
 
 Reference material; confirm applicability before reusing.
-
-## Research report: project Env and external database settings
-
-The project currently has no per-project Env settings or external database connector.  
-SearXNG is configured at server startup; sandbox commands receive a scrubbed environment and cannot reach databases under the current network rules.
-
-### What I found in the project
-
-**Settings tabs.** The settings route and allowed tab names are in [router.ts](/workspace/web/src/app/router.ts); the tab navigation is defined in [settings-nav.ts](/workspace/web/src/features/workspace/settings/settings-nav.ts), and [SettingsPage.svelte](/workspace/web/src/features/workspace/settings/SettingsPage.svelte) selects which tab to show. The current tabs are AI models, Persona & rules, Agent team, Spaces & tools, Connected apps, Integrations, Activity, Notifications, Usage, and Account. There is no Env tab today.
-
-**SearXNG.** It is configured with the process-level `SEARXNG_URL`, read by [config.go](/workspace/internal/platform/config/config.go). [bootstrap/web.go](/workspace/internal/bootstrap/web.go) creates a SearXNG client when that value is present; otherwise web search is off. [client.go](/workspace/internal/modules/web/adapter/searxng/client.go) calls `/search` with JSON format and a 20-second timeout. The agent receives the `web_search` tool only when search is configured ([agenttools_web_defs.go](/workspace/internal/bootstrap/agenttools_web_defs.go)).
-
-SearXNG has **no project settings UI, database storage, or test-connection API** in the code I inspected. The deployment guide says to run it separately, enable JSON responses in SearXNG, and test it with `curl`; a `403` indicates JSON output is not enabled ([deployment.md](/workspace/docs/deployment.md)). The requested per-project address and test button would therefore be a new capability, not a reuse of existing settings behavior.
-
-**Secrets today.** Provider API keys are encrypted with AES-256-GCM by [secretbox/cipher.go](/workspace/internal/platform/secretbox/cipher.go); the key is held in `DATA_DIR/secret.key`, while encrypted provider keys are stored in SQLite in `providers.key_sealed` ([migration 005](/workspace/internal/platform/database/migrations/005_providers.sql), [provider store](/workspace/internal/modules/provider/adapter/sqlite/store.go)). The UI says provider keys are stored encrypted and not shown in full ([AddProviderModal.svelte](/workspace/web/src/features/workspace/settings/AddProviderModal.svelte)). This is evidence about provider keys; I found no existing per-project secret-variable storage.
-
-**Sandbox environment and network.** Commands run in short-lived Docker containers. [runner.go](/workspace/internal/modules/coding/adapter/runner/runner.go) constructs each run’s environment; [sidecars.go](/workspace/internal/modules/coding/adapter/runner/sidecars.go) fixes the base environment and only adds proxy settings when a proxy socket is mounted. [sandbox.go](/workspace/internal/platform/sandbox/sandbox.go) defines the run specification, and [container.go](/workspace/internal/platform/sandbox/container.go) sets `NetworkDisabled: true`.
-
-The egress proxy allows HTTPS `CONNECT` on port 443 to configured hostnames, with DNS-resolved addresses checked to reject non-public IPs ([proxy.go](/workspace/internal/platform/egressproxy/proxy.go)). **Implication:** adding a connection string to a command’s environment would not make a database reachable. Native database traffic on ports such as PostgreSQL 5432 or MySQL 3306 has no path through this proxy today. Private or local database addresses also conflict with its public-address checks. Supporting database access requires an explicit network design decision.
-
-The existing provider “verify” endpoint is a useful reference for API shape, but it checks provider credentials and retrieves models; it is not a database connection tester ([handler.go](/workspace/internal/modules/provider/adapter/http/handler.go), [service.go](/workspace/internal/modules/provider/application/service.go)).
-
-### Technical references and security guidance
-
-- The [OWASP Secrets Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html) recommends limiting who can read secrets, supporting rotation and revocation, and preventing secrets from appearing in logs. The [Cryptographic Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html) discusses encryption and keeping encryption keys separate from the data they protect.
-- A server-side connection test accepts a user-supplied destination, so it creates an SSRF boundary. The [OWASP SSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html) covers destination validation and redirect risks. In this project, [egress.go](/workspace/internal/platform/egress/egress.go) already checks resolved IPs at dial time, but its available policies are public-only or loopback-only—not arbitrary private database access.
-- Go’s [database connection guide](https://go.dev/doc/database/open-handle) documents checking connectivity with `Ping` and advises against keeping credentials in source code. The [connection management guide](https://go.dev/doc/database/manage-connections) describes pooling and connection limits. These are relevant if a test is implemented in Go; the project does not currently have an external database driver path for these requested types.
-- PostgreSQL warns that `PGPASSWORD` may be visible to other local users on some systems and recommends a password file instead ([PostgreSQL environment variables](https://www.postgresql.org/docs/current/libpq-envars.html)). That warning is a reason to make the sandbox secret-delivery method a deliberate security decision, even if the requested integration ultimately uses environment variables.
-- For database-side TLS, see the [MySQL 8.4 encrypted connections guide](https://dev.mysql.com/doc/refman/8.4/en/using-encrypted-connections.html) and the [PostgreSQL connection documentation](https://www.postgresql.org/docs/current/libpq-connect.html).
-- For settings UI acceptance, [WCAG 2.2](https://www.w3.org/TR/WCAG22/) includes keyboard access, visible focus, labels, and minimum contrast. A masked secret field should still have a clear label and status text; success or failure should not be communicated by color alone.
-
-### Quality checks to make checkable
-
-- Env values are scoped to the selected project; one project cannot list, replace, or delete another project’s variables.
-- After saving, secret values are not returned by list/read APIs or shown in the UI; replacing a value does not require retrieving the old value.
-- Names are validated, duplicate names have a clear outcome, and add/replace/delete behavior is understandable.
-- A command in the intended sandbox run receives only that project’s configured variables; another project’s run does not.
-- Database test results distinguish success from failure without echoing credentials or full connection strings. Test timeouts and malformed addresses are handled.
-- Test public, private, loopback, and metadata-service destinations, DNS resolution changes, redirects if HTTP is used, and unsupported DB ports. Confirm the chosen network path still enforces the project’s isolation rules.
-- Check keyboard operation, visible focus, accessible labels, status announcements, mobile layout, and WCAG 2.2 AA contrast.
-
-### Not found
-
-- No Env tab, project-scoped variable storage, external database settings, database connection test, or matching migration/API route.
-- No sandbox network path for native PostgreSQL, MySQL/MariaDB, or MongoDB connections.
-- No exact requirement for database hostname scope, allowed network locations, whether values are secret by default, or whether all project commands receive them.
-
-### Suggestions
-
-- **Decision needed for the plan:** whether project databases may be private/local or must be publicly addressable. Current sandbox egress cannot reach private databases or native DB ports.
-- Treat connection testing as a separate security boundary from storing Env values. A backend test that accepts user-controlled hosts needs destination controls; broadening it to private addresses changes the SSRF threat boundary.
-- Keep the app’s own SQLite database separate from project-provided external database variables, as the request specifies.
-- **No code was changed and no tests or project commands were run.**
-
----
 
 **Summary:** Current official documentation supports the proposed server-side connection checks and dial-time destination policy.  
 Key review risks are SSRF enforcement at the actual dial, credential leakage through errors or logs, and the MongoDB driver’s recent security fixes.
@@ -149,3 +94,159 @@ The main application is also an HTTP server: its address is `:<PORT>`, with port
 - For starting the main app, use the direct binary command from the task. The `make run` OOM remains a separate verification issue.
 
 **What I did:** read the relevant project documents and site/sandbox implementation, then searched for mount rules, exclusions, resource limits, image details, and start-command conventions. No files were changed and no project commands or tests were run.
+
+---
+
+## Research report: per-project PostgreSQL schema provisioning
+
+**The current `dbconn` feature saves one external connection per project, encrypts its password, and tests connectivity; it does not provision schemas or roles.**  
+**Official PostgreSQL and pgx docs support schema-based separation with project-specific login roles, but this adds remote lifecycle and privilege-management work.**
+
+### What the project does today
+
+- [`domain/connection.go`](/workspace/internal/modules/dbconn/domain/connection.go) defines PostgreSQL, MySQL, and MongoDB connection details: host, port, database, user, password, TLS, and environment-variable name. `URL()` builds the string using `net/url`, escaping credentials and the database path; PostgreSQL gets `sslmode=disable` or `require`.
+- [`application/service.go`](/workspace/internal/modules/dbconn/application/service.go) checks project ownership, seals the password, and saves the connection. It also writes the generated URL into that project’s secret Env variable. **Save does not connect to the server or provision anything.**
+- [`adapter/sqlite/store.go`](/workspace/internal/modules/dbconn/adapter/sqlite/store.go) stores one row per project. Migration [`044_project_db_connections.sql`](/workspace/internal/platform/database/migrations/044_project_db_connections.sql) defines that row and cascades its deletion when the project row is removed. This cascade only deletes local SQLite data.
+- [`adapter/probe/postgres.go`](/workspace/internal/modules/dbconn/adapter/probe/postgres.go) parses the URL with pgx, installs the project’s `PrivateAllowed` dial policy, and calls `Ping`. [`adapter/probe/probe.go`](/workspace/internal/modules/dbconn/adapter/probe/probe.go) converts driver failures to safe categories.
+- **Likely fit (inference):** add a provisioning port to `dbconn/application` and a PostgreSQL adapter wired through [`bootstrap/dbconn.go`](/workspace/internal/bootstrap/dbconn.go). `Service.Save` is the natural application boundary for provisioning before saving the generated agent connection. The current record has no separate administrator credentials, schema/role identifiers, or generated tenant password, so those inputs and their sealed storage would need a design decision.
+
+### PostgreSQL and pgx guidance
+
+- PostgreSQL schemas are namespaces inside one database, but are not rigidly isolated: access depends on privileges. `CREATE SCHEMA` requires database-level `CREATE`; `GRANT USAGE` permits access to objects in a schema, and `GRANT CREATE` permits creating objects there. A project role needs the appropriate schema privileges to use and create its own objects. [Schemas and privileges](https://www.postgresql.org/docs/current/ddl-schemas.html), [CREATE SCHEMA](https://www.postgresql.org/docs/current/sql-createschema.html)
+- A dedicated role with `LOGIN`, a generated high-entropy password, and no elevated attributes is a reasonable connection identity. PostgreSQL supports `CONNECTION LIMIT`, but documents it as approximate. Neon’s role guide also recommends strong passwords and gives a minimum entropy threshold. [CREATE ROLE](https://www.postgresql.org/docs/current/sql-createrole.html), [Neon role management](https://neon.com/docs/manage/roles)
+- Set that role’s `search_path` to its project schema so unqualified object names land there. Avoid putting writable schemas in a path for untrusted users: PostgreSQL warns that this can change how other users’ queries resolve names. [Schema search path security](https://www.postgresql.org/docs/current/ddl-schemas.html)
+- `PUBLIC` is shared by all roles. PostgreSQL 15 changed the default so `PUBLIC` no longer has `CREATE` on `public`, but upgraded databases can retain the older grant. Revoking `CREATE` (and, if the intended policy requires it, `USAGE`) from `PUBLIC` affects everyone in that database, not just this project. PostgreSQL also grants `PUBLIC` `EXECUTE` on new functions by default; per-schema default-privilege revokes cannot undo a global default grant. [PostgreSQL 15 changes](https://www.postgresql.org/docs/15/release-15.html), [ALTER DEFAULT PRIVILEGES](https://www.postgresql.org/docs/current/sql-alterdefaultprivileges.html)
+- Identifiers cannot be passed as ordinary SQL value parameters. pgx provides `pgx.Identifier(...).Sanitize()` for safe SQL interpolation. Do not insert a project ID directly into DDL; derive a stable, restricted schema/role name or safely quote it. [pgx `Identifier.Sanitize`](https://pkg.go.dev/github.com/jackc/pgx/v5#Identifier.Sanitize)
+- `IF NOT EXISTS` makes `CREATE SCHEMA` tolerate an existing name, but does not establish that the existing schema has the expected owner or grants. Treat retries as reconciliation: verify state before changing it. On cleanup, `DROP SCHEMA ... CASCADE` removes contained objects; `DROP OWNED` revokes privileges and removes objects owned by a role in the current database, and may need to run in each database before `DROP ROLE`. [CREATE SCHEMA](https://www.postgresql.org/docs/current/sql-createschema.html), [DROP OWNED](https://www.postgresql.org/docs/18/sql-drop-owned.html), [DROP ROLE](https://www.postgresql.org/docs/current/sql-droprole.html)
+- Managed-service permissions vary. RDS does not provide a true PostgreSQL superuser; its `rds_superuser` member can create roles. Supabase documents that some superuser operations are unavailable. The feature should verify the actual account’s capabilities and report a clear provisioning failure. [RDS role permissions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.Roles.rds_superuser.html), [Supabase superuser limits](https://supabase.com/docs/guides/database/postgres/roles-superuser)
+
+### Other database types
+
+- **MySQL/MariaDB:** a database per project plus a login per project is a sensible shared-server analogue. MySQL treats `SCHEMA` as a synonym for `DATABASE`; database-level grants can scope access. Creating accounts requires administrative privileges, so managed-service rights still matter. [MySQL CREATE DATABASE](https://dev.mysql.com/doc/refman/8.4/en/create-database.html), [MySQL GRANT](https://dev.mysql.com/doc/refman/8.4/en/grant.html), [MariaDB GRANT](https://mariadb.com/docs/server/reference/sql-statements/account-management-sql-statements/grant)
+- **MongoDB:** a database per project with a database-scoped user/role is also supported. MongoDB roles apply to database resources; Atlas support for user-management commands varies by cluster tier. [MongoDB roles](https://www.mongodb.com/docs/manual/tutorial/manage-users-and-roles/), [Atlas command support](https://www.mongodb.com/docs/manual/reference/command/)
+
+### Risks and QA checks
+
+- **Privilege escalation:** keep administrator credentials server-side and separate from the project login. Verify the project role cannot create roles, access another schema, or use `public` contrary to the policy.
+- **Injection and collisions:** test unusual, long, Unicode, and SQL-shaped project IDs; verify generated identifiers are stable, valid, and safely quoted.
+- **Partial failure and cleanup:** test failures after role creation, schema creation, grants, and local persistence. Project deletion currently cascades only local rows; remote schema/role cleanup needs an explicit lifecycle hook and retry strategy.
+- **Secret handling:** seal generated passwords using the project’s existing secret mechanism; keep passwords and full connection strings out of logs, errors, and API responses. Test password rotation and failed-save recovery.
+- **Unit tests with fakes:** cover deterministic identifier generation, safe SQL construction, call ordering, retry/state checks, compensation after failures, and no-secret logging.
+- **PostgreSQL integration tests:** a real PostgreSQL server (for example, a test container) is needed to verify actual role/schema privileges, `search_path`, `PUBLIC` behavior, denied cross-project access, connection limits, repeat provisioning, and cleanup. **The sandbox has no real PostgreSQL server available.** Managed-service compatibility also needs testing against each supported provider/account type.
+
+### Not found
+
+- No existing provisioning adapter, administrator-credential model, generated-role password storage, or remote cleanup hook.
+- No settled answer on whether generated tenant credentials are stored separately from the admin connection, or how they rotate.
+- I did not verify exact role-creation permissions for every Supabase, Neon, or Atlas plan.
+
+### Suggestions
+
+- Ask the Planner to specify the admin-credential source, generated credential storage/rotation, schema and role naming, and behavior when provisioning succeeds but local persistence fails.
+- Treat cleanup as a required lifecycle design: deleting a project’s SQLite connection row does not remove its remote schema or role.
+- **What I did:** read the project guidance, notes, `dbconn` implementation, and migration; checked official PostgreSQL, pgx, MySQL, MariaDB, MongoDB, and managed-service documentation. No files were changed and no tests or project commands were run.
+
+---
+
+## Research report: shared PostgreSQL schema provisioning
+
+The repository’s existing PostgreSQL probe uses pgx and the project’s `PrivateAllowed` dial policy; `dbconn` has no provisioning adapter yet. Sources: [postgres.go](/workspace/internal/modules/dbconn/adapter/probe/postgres.go), [service.go](/workspace/internal/modules/dbconn/application/service.go), and the approved PRD at `project-notes/tasks/20c2ef530617785d0cefb7b799dc5729/prd/750.md`.
+
+The documented pgx v5 APIs support a custom dialer and transaction-scoped DDL. Key implementation risks are safely quoting the generated password and accounting for privileges inherited through `PUBLIC` or role membership.
+
+### Technical references
+
+**pgx v5 connection and transaction**
+
+The current tagged pgx release found is **v5.11.0**, published September 7, 2026. Its API provides `pgx.ParseConfig`, `pgx.ConnectConfig`, `(*Conn).Begin`, `pgx.Tx.Exec`, `Commit`, and `Rollback`. `pgconn.DialFunc` has signature `func(ctx context.Context, network, addr string) (net.Conn, error)`. Sources: [pgx v5.11.0 API](https://pkg.go.dev/github.com/jackc/pgx/v5@v5.11.0), [pgconn v5.11.0 API](https://pkg.go.dev/github.com/jackc/pgx/v5/pgconn).
+
+Expected connection pattern:
+
+```go
+cfg, err := pgx.ParseConfig(adminURL)
+if err != nil { /* return safe category */ }
+cfg.DialFunc = egress.Dialer(egress.Policy{
+    Rule: egress.PrivateAllowed,
+    OwnPort: ownPort,
+}).DialContext
+
+conn, err := pgx.ConnectConfig(ctx, cfg)
+if err != nil { /* return safe category */ }
+defer conn.Close(ctx)
+
+tx, err := conn.Begin(ctx)
+if err != nil { /* return safe category */ }
+defer tx.Rollback(ctx)
+
+// tx.Exec(ctx, sql, args...) for statements
+// Commit only after every check and statement succeeds.
+```
+
+pgx says `Begin`’s context only applies to the begin command; cancellation does not auto-rollback. The deferred rollback is therefore useful on failures. `pgx.Identifier{...}.Sanitize()` quotes identifiers for SQL interpolation. Ordinary values use `$1` parameters, but that does not substitute for identifiers. Sources: [pgx `Begin` and `Tx`](https://pkg.go.dev/github.com/jackc/pgx/v5#Conn.Begin), [pgx `Identifier.Sanitize`](https://pkg.go.dev/github.com/jackc/pgx/v5#Identifier.Sanitize).
+
+**Transaction-safe SQL and safe password literal**
+
+The reviewed PostgreSQL `CREATE ROLE`, `ALTER ROLE`, `CREATE SCHEMA`, `GRANT`, and `REVOKE` command references do not mark these statements as forbidden inside a transaction block. This allows role, schema, and privilege reconciliation in one transaction. `CREATE ROLE` requires `CREATEROLE` or superuser; managed-service admin accounts may not have that capability. Sources: [CREATE ROLE](https://www.postgresql.org/docs/18/sql-createrole.html), [ALTER ROLE](https://www.postgresql.org/docs/18/sql-alterrole.html), [CREATE SCHEMA](https://www.postgresql.org/docs/18/sql-createschema.html), [GRANT](https://www.postgresql.org/docs/18/sql-grant.html), [REVOKE](https://www.postgresql.org/docs/18/sql-revoke.html).
+
+PostgreSQL role password syntax takes a literal rather than a bind parameter. One PL/pgSQL-free option is to ask PostgreSQL to quote the value, then execute the returned literal as a separate statement on the same connection:
+
+```sql
+SELECT format('%L', $1)
+```
+
+Scan that result, then use it only in the `PASSWORD <literal>` position of `CREATE ROLE` or `ALTER ROLE`. PostgreSQL documents `%L` as literal quoting equivalent to `quote_nullable`; for a non-null generated password it produces a quoted SQL literal. Do not log the returned literal or statement text containing it. Source: [PostgreSQL `format`, `%L`, and `quote_literal`](https://www.postgresql.org/docs/18/functions-string.html).
+
+pgx’s internal `sanitize` package is not a suitable app-level shortcut: it is internal, and its docs say it is safe only when `standard_conforming_strings` is on. Use server-side quoting or a separately reviewed, tested literal-quoting method. Source: [pgx internal sanitize docs](https://pkg.go.dev/github.com/jackc/pgx/v5/internal/sanitize).
+
+**Provisioning SQL and existence checks**
+
+Use quoted `pgx.Identifier` names for role/schema/database identifiers. A straightforward idempotent flow is:
+
+```sql
+SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $1);
+SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = $1);
+```
+
+`pg_roles` exposes role attributes without exposing password hashes; `pg_namespace` contains `nspname` and `nspowner`. If the role exists, reconcile its password and required flags with `ALTER ROLE`; otherwise create it. If the schema exists, verify `pg_get_userbyid(nspowner)` matches the expected role rather than trusting `IF NOT EXISTS`. Otherwise use:
+
+```sql
+CREATE SCHEMA <quoted_schema> AUTHORIZATION <quoted_role>;
+```
+
+Then use statements of the form:
+
+```sql
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON DATABASE <quoted_database> FROM <quoted_role>;
+GRANT CONNECT ON DATABASE <quoted_database> TO <quoted_role>;
+ALTER ROLE <quoted_role> CONNECTION LIMIT 10;
+ALTER ROLE <quoted_role> SET search_path = <quoted_schema>;
+```
+
+The role should explicitly be `LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT`. Note: PostgreSQL’s `REVOKE ALL ON DATABASE` removes `CONNECT`, `CREATE`, and `TEMPORARY`; a subsequent `GRANT CONNECT` expresses “CONNECT only” for direct database ACLs. Effective privileges can still come from `PUBLIC` or inherited role membership, so verify the actual policy or ensure the role has no memberships. Sources: [pg_roles](https://www.postgresql.org/docs/18/view-pg-roles.html), [pg_namespace](https://www.postgresql.org/docs/18/catalog-pg-namespace.html), [database REVOKE syntax](https://www.postgresql.org/docs/18/sql-revoke.html), [CREATE SCHEMA ownership](https://www.postgresql.org/docs/18/sql-createschema.html), [ALTER ROLE settings and limits](https://www.postgresql.org/docs/18/sql-alterrole.html).
+
+**PostgreSQL 15+ and default privileges**
+
+PostgreSQL 15 removed `PUBLIC`’s default `CREATE` privilege on `public` for new clusters and newly created databases. Upgrades and restored databases preserve existing grants, so older permissions can remain. The PRD’s `REVOKE ALL ON SCHEMA public FROM PUBLIC` is broader than that default change: it also revokes `USAGE` for everyone and affects the whole database. This supports the PRD’s dedicated-database requirement. Sources: [PostgreSQL 15 release notes](https://www.postgresql.org/docs/15/release-15.html), [schema docs](https://www.postgresql.org/docs/18/ddl-schemas.html).
+
+Default privileges need separate consideration: per-schema `REVOKE` entries cannot remove privileges granted globally by default. PostgreSQL also grants `PUBLIC` execute on new functions by default. A project role that owns and creates objects in its schema can expose those objects under default ACL behavior unless the owning role’s defaults are deliberately managed. Source: [ALTER DEFAULT PRIVILEGES](https://www.postgresql.org/docs/18/sql-alterdefaultprivileges.html).
+
+### Quality checks
+
+**Fake executor tests:** assert SQL sequence and transaction boundaries; role creation versus reconciliation; schema creation versus existing-schema owner verification; password rotation; every identifier passed through safe quoting; password values never interpolated except as a server-quoted literal; error categories do not expose URLs/passwords; rollback occurs on each failure; commit occurs only on success. Re-run with “already exists” responses to prove idempotence. Test SQL-shaped and unusual project IDs through the deterministic name derivation.
+
+**Optional integration test (`PG_ADMIN_TEST_URL`):** skip when unset. With a disposable dedicated database and sufficiently privileged admin, assert repeat provisioning succeeds; the role exists with login and expected restrictive flags/connection limit; schema owner is correct; role search path resolves to that schema; `CONNECT` succeeds while direct database `CREATE`/`TEMPORARY` are absent; project role can create/use objects in its schema and cannot access another project’s schema. Check `public` behavior carefully because the PRD revokes its privileges globally.
+
+### Not found
+
+- No live PostgreSQL server or `PG_ADMIN_TEST_URL` was available or exercised.
+- The PRD does not state whether `TEMPORARY` should be denied explicitly beyond its “CONNECT only” database-grant policy.
+- Managed-service-specific role privileges were not checked for every provider.
+
+### Suggestions
+
+- Keep transaction-scoped DDL and the custom pgx dialer in the new adapter, with a short overall context deadline.
+- Make the global effect of revoking `PUBLIC` privileges clear in deployment docs and require a dedicated database.
+- Treat inherited grants and default privileges as part of the integration test’s effective-access checks, not just direct ACL assertions.
+
+**What I did:** read the project notes, PRD, backend memory, and existing `dbconn` code; checked official pgx and PostgreSQL references. No files were changed; no tests or project commands were run.
