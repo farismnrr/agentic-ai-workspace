@@ -34,9 +34,11 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - It also flags a stylesheet that is empty, never built (raw Tailwind) or answered with a web page.
 - `screenshot` uses that same path, so the AI sees the page as you do, with no login even for a private app.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
-- A login in a private app still works: the server keeps the app's cookies for you and sends them back on the next request.
+- A login in your app still works: the server keeps the app's cookies for you and sends them back on the next request.
 - Those cookies live in server memory only. They are per app and per browser, and the browser never receives them.
-- They are lost when Workspace restarts or the app is started again, so you sign in again. Public apps do not keep a login yet.
+- A private app knows your browser by its ticket. A public app gives each browser a pass: a cookie for that app's address, and a header the page adds to its own requests.
+- A public app's pass is never sent to the app, and a request without a valid pass keeps no login.
+- They are lost when Workspace restarts or the app is started again, so you sign in again.
 
 ## Screenshots
 

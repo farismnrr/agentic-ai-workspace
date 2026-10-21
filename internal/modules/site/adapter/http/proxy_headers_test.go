@@ -48,9 +48,14 @@ func TestEverythingFromTheAppIsSandboxedAndCannotSetCookies(t *testing.T) {
 		t.Errorf("csp %q", csp)
 	}
 
-	for _, name := range []string{"Set-Cookie", "Clear-Site-Data"} {
-		if header.Get(name) != "" {
-			t.Errorf("%s must not reach the browser", name)
+	if header.Get("Clear-Site-Data") != "" {
+		t.Error("Clear-Site-Data must not reach the browser")
+	}
+
+	// Only the proxy's own visitor cookie may be set; the app's cookie (session=evil) never reaches the browser.
+	for _, cookie := range header.Values("Set-Cookie") {
+		if !strings.HasPrefix(cookie, visitorCookie+"=") {
+			t.Errorf("an app cookie must not reach the browser: %q", cookie)
 		}
 	}
 

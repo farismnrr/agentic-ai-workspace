@@ -82,9 +82,10 @@ func (h *Handler) deliver(c fiber.Ctx, site domain.Site, ticket, rest string, va
 		return err
 	}
 
-	jar := h.jarFor(c, site, valid, preview)
-	err := h.forwardPreview(c, site, "/"+rest, site.BasePath()+segmentPath(segment), preview, jar)
+	who := h.browserOf(c, site, valid, preview)
+	err := h.forwardPreview(c, site, "/"+rest, site.BasePath()+segmentPath(segment), preview, who)
 	h.setPreviewTicket(c, preview, valid, ticket, err)
+	h.setVisitorCookie(c, site, who, err)
 	return err
 }
 
