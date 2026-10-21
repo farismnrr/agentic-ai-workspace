@@ -29,6 +29,7 @@ type relayRequest struct {
 	Prefix   string
 	ClientIP string
 	Body     []byte
+	Preview  bool
 }
 
 // relayAnswer is what the browser gets: the app's answer, filtered and with its links under the prefix.
@@ -53,7 +54,7 @@ func relay(ctx context.Context, in relayRequest) (relayAnswer, *relayFailure) {
 		return relayAnswer{}, &relayFailure{status: http.StatusBadRequest, text: "Bad request"}
 	}
 
-	req.Header = forRequest(in.Header, in.Prefix, in.ClientIP)
+	req.Header = forSiteRequest(in.Header, in.Prefix, in.ClientIP, in.Preview)
 	req.Host = "site"
 
 	resp, err := runtime.Client(in.Socket, requestTimeout).Do(req)
@@ -71,5 +72,5 @@ func relay(ctx context.Context, in relayRequest) (relayAnswer, *relayFailure) {
 	kind, encoding := resp.Header.Get("Content-Type"), resp.Header.Get("Content-Encoding")
 	body = domain.Localize(kind, encoding, in.Base, in.Prefix, body)
 
-	return relayAnswer{Status: resp.StatusCode, Header: forResponse(resp.Header, in.Base, in.Prefix), Body: body}, nil
+	return relayAnswer{Status: resp.StatusCode, Header: forSiteResponse(resp.Header, in.Base, in.Prefix, in.Preview), Body: body}, nil
 }

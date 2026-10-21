@@ -106,3 +106,51 @@ func secure(h http.Header) {
 	h.Set("X-Robots-Tag", "noindex, nofollow")
 	h.Set("Cache-Control", "no-store")
 }
+
+// A dedicated hostname is a separate browser origin. Only app-specific cookies
+// may cross the proxy; the Workspace session cookie is never forwarded.
+func forSiteRequest(in http.Header, prefix, clientIP string, preview bool) http.Header {
+	out := forRequest(in, prefix, clientIP)
+	if !preview {
+		return out
+	}
+	cookies := []string{}
+	for _, part := range strings.Split(in.Get("Cookie"), ";") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		name, _, ok := strings.Cut(part, "=")
+		if !ok || strings.EqualFold(name, "workspace_session") || strings.EqualFold(name, "session") || strings.EqualFold(name, previewAccessCookie) {
+			continue
+		}
+		cookies = append(cookies, part)
+	}
+	if len(cookies) > 0 {
+		out.Set("Cookie", strings.Join(cookies, "; "))
+	}
+	return out
+}
+
+func forSiteResponse(in http.Header, base, prefix string, preview bool) http.Header {
+	out := forResponse(in, base, prefix)
+	if !preview {
+		return out
+	}
+	out.Del("Content-Security-Policy")
+	// Even on its dedicated host the app cannot embed the Workspace UI.
+	if policy := in.Get("Content-Security-Policy"); policy != "" {
+		out.Set("Content-Security-Policy", policy+"; frame-ancestors 'none'")
+	} else {
+		out.Set("Content-Security-Policy", "frame-ancestors 'none'; object-src 'none'")
+	}
+	out.Del("Access-Control-Allow-Origin")
+	for _, cookie := range in.Values("Set-Cookie") {
+		lower := strings.ToLower(cookie)
+		if strings.Contains(lower, "domain=") || strings.HasPrefix(lower, "workspace_session=") || strings.HasPrefix(lower, "session=") || strings.HasPrefix(lower, strings.ToLower(previewAccessCookie)+"=") {
+			continue
+		}
+		out.Add("Set-Cookie", cookie)
+	}
+	return out
+}
