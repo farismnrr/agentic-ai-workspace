@@ -1,8 +1,8 @@
 # Lnjut dah kita mau implement 2 fitur
 
 Task: 20c2ef530617785d0cefb7b799dc5729
-Status: working
-Updated: 2026-10-21T02:25:54Z
+Status: done
+Updated: 2026-10-21T02:32:27Z
 
 Reference material; confirm applicability before reusing.
 

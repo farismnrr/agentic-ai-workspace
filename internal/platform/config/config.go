@@ -16,6 +16,7 @@ const (
 	defaultSandboxCPUs     = 1
 	defaultPort            = "8081"
 	defaultDataDir         = "data"
+	defaultAdminEmail      = "farismunir2@gmail.com"
 	defaultSandboxImage    = "ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest"
 )
 
@@ -48,6 +49,7 @@ type Config struct {
 	// SearxngURL is the address of a SearXNG server for web search; empty turns web search off.
 	SearxngURL       string
 	PostgresAdminURL string
+	AdminEmail       string
 	CORSOrigins      []string
 	AllowedOrigins   []string
 	SandboxEgress    []string
@@ -105,6 +107,7 @@ func Load() Config {
 		SiteMaxTotal:      atoi(getenv("SITE_MAX_TOTAL", strconv.Itoa(defaultSitesTotal)), defaultSitesTotal),
 		SearxngURL:        strings.TrimRight(strings.TrimSpace(os.Getenv("SEARXNG_URL")), "/"),
 		PostgresAdminURL:  strings.TrimSpace(os.Getenv("POSTGRES_ADMIN_URL")),
+		AdminEmail:        strings.ToLower(strings.TrimSpace(getenv("ADMIN_EMAIL", defaultAdminEmail))),
 		SandboxImage:      getenv("SANDBOX_IMAGE", defaultSandboxImage),
 		SandboxRuntime:    strings.TrimSpace(os.Getenv("SANDBOX_RUNTIME")),
 		SandboxDataVolume: strings.TrimSpace(os.Getenv("SANDBOX_DATA_VOLUME")),

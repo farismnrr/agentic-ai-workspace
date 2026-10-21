@@ -14,6 +14,8 @@ const (
 	// MaxPasswordLength bounds hashing cost for hostile input.
 	MaxPasswordLength = 128
 	maxNameLength     = 100
+	RoleUser          = "user"
+	RoleAdmin         = "admin"
 )
 
 var (
@@ -41,6 +43,7 @@ type User struct {
 	ID        string
 	Name      string
 	Email     string
+	Role      string
 }
 
 // NormalizeName trims and validates a display name.

@@ -24,8 +24,8 @@ func NewStore(db *sql.DB) *Store {
 // Create inserts a user; a duplicate email returns domain.ErrEmailTaken.
 func (s *Store) Create(ctx context.Context, user domain.User, passwordHash string) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)`,
-		user.ID, user.Name, user.Email, passwordHash, user.CreatedAt.Unix())
+		`INSERT INTO users (id, name, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+		user.ID, user.Name, user.Email, passwordHash, user.Role, user.CreatedAt.Unix())
 	if err != nil && strings.Contains(err.Error(), "UNIQUE") {
 		return domain.ErrEmailTaken
 	}
@@ -40,7 +40,7 @@ func (s *Store) Create(ctx context.Context, user domain.User, passwordHash strin
 // ByEmail returns the user and password hash for an email.
 func (s *Store) ByEmail(ctx context.Context, email string) (domain.User, string, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, name, email, created_at, password_hash FROM users WHERE email = ?`, email)
+		`SELECT id, name, email, role, created_at, password_hash FROM users WHERE email = ?`, email)
 
 	return scanUser(row)
 }
@@ -48,7 +48,7 @@ func (s *Store) ByEmail(ctx context.Context, email string) (domain.User, string,
 // ByID returns a user by identifier.
 func (s *Store) ByID(ctx context.Context, id string) (domain.User, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, name, email, created_at, password_hash FROM users WHERE id = ?`, id)
+		`SELECT id, name, email, role, created_at, password_hash FROM users WHERE id = ?`, id)
 	user, _, err := scanUser(row)
 
 	return user, err
@@ -61,7 +61,7 @@ func scanUser(row *sql.Row) (domain.User, string, error) {
 		hash    string
 	)
 
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &created, &hash)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Role, &created, &hash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.User{}, "", domain.ErrUserNotFound
 	}

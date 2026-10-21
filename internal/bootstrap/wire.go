@@ -57,7 +57,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	projects, projectMount, projectSettings, err := projectFeatures(db, cfg, models, folders, tools, auth,
+	projects, projectMount, projectSettings, err := projectFeatures(db, cfg, models, folders, tools, account, auth,
 		sameOrigin)
 	if err != nil {
 		return nil, nil, err
@@ -91,14 +91,14 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 func projectFeatures(
 	db *sql.DB, cfg config.Config, models modelsWiring, folders *folder.Folders,
-	tools *agentTools, auth, sameOrigin fiber.Handler,
+	tools *agentTools, account *accountapp.Service, auth, sameOrigin fiber.Handler,
 ) (*projectapp.Service, httpserver.Mount, []httpserver.Mount, error) {
 	tools.plans.windows = cliagentsqlite.NewWindows(db)
 	models.providers.WithPlans(planCatalog{
 		plans: tools.plans, switches: cliagentsqlite.NewSwitches(db), windows: tools.plans.windows,
 	})
 	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
-	env, settings, err := newProjectSettings(db, cfg, projects, auth, sameOrigin)
+	env, settings, err := newProjectSettings(db, cfg, projects, account, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, nil, err
 	}

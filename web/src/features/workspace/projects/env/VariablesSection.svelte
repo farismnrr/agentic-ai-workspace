@@ -3,9 +3,8 @@
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import ConfirmModal from '../../components/ConfirmModal.svelte';
-  import SettingsSection from '../parts/SettingsSection.svelte';
-  import { deleteVariable, listVariables, saveVariable, getDatabase, type EnvVariable } from '../env-api';
-  import { formatUpdatedAt, normalizeVariableName, variableErrorMessage, variableValue } from '../env-logic';
+  import { deleteVariable, listVariables, saveVariable, getDatabase, type EnvVariable } from './env-api';
+  import { formatUpdatedAt, normalizeVariableName, variableErrorMessage, variableValue } from './env-logic';
 
   interface Props { projectId: string; revision: number }
   const { projectId, revision }: Props = $props();
@@ -84,7 +83,9 @@
   }
 </script>
 
-<SettingsSection title="Variables" description="Secret values are masked and never shown again after saving.">
+<section class="mb-8" aria-labelledby="variables-heading">
+  <div class="mb-1"><h2 id="variables-heading" class="text-sm font-semibold">Variables</h2><p class="mt-0.5 text-xs text-[var(--brand-text-tertiary)]">Secret values are masked and never shown again after saving.</p></div>
+  <div class="divide-y divide-[var(--brand-border)]">
   {#if loading}
     <p class="py-3" aria-busy="true"><span class="loading loading-spinner loading-sm" aria-label="Loading variables"></span></p>
   {:else if variables.length === 0}
@@ -140,7 +141,8 @@
       {#if message !== ''}<p class="flex items-center gap-2 text-sm" class:text-error={error}><Icon name={error ? 'alert-triangle' : 'check-circle'} class="size-4 shrink-0" />{message}</p>{/if}
     </div>
   </form>
-</SettingsSection>
+  </div>
+</section>
 
 <ConfirmModal
   open={pending !== undefined}

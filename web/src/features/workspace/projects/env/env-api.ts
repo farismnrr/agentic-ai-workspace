@@ -1,4 +1,4 @@
-import { request } from '../../../shared/api/http';
+import { request } from '../../../../shared/api/http';
 
 export interface EnvVariable {
   name: string;
@@ -44,6 +44,11 @@ export const getDatabase = (id: string): Promise<DatabaseConnection> => request(
 export const saveDatabase = (id: string, item: DatabaseInput): Promise<DatabaseConnection> =>
   request('PUT', `${projectPath(id)}/db`, item);
 export const deleteDatabase = (id: string): Promise<undefined> => request('DELETE', `${projectPath(id)}/db`);
+export const detachSQLiteDatabase = (id: string): Promise<undefined> => request('DELETE', `${projectPath(id)}/db/sqlite`);
+export const sharedDatabaseConfigured = async (): Promise<boolean> => {
+  const settings = await request<{ configured: boolean }>('GET', '/api/settings/database');
+  return settings.configured;
+};
 export const testDatabase = (id: string, item?: DatabaseInput): Promise<TestResult> =>
   request('POST', `${projectPath(id)}/db/test`, item);
 

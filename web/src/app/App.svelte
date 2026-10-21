@@ -18,14 +18,21 @@
   import { nextPath } from '../shared/session/next-path';
   import { guestOnly, loginUrl, requiresSession } from './guard';
   import { goTo, interceptLinkClick, navigate, route, syncFromLocation } from './router';
+  import { isAdminSettingsTab } from '../features/workspace/settings/settings-nav';
 
   const gated = $derived(requiresSession($route));
   const guest = $derived(guestOnly($route));
+  const adminDenied = $derived($route.name === 'settings' && isAdminSettingsTab($route.tab) &&
+    $session.status === 'signed-in' && $session.user.role !== 'admin');
 
   onMount(() => void loadSession());
 
   $effect(() => {
     if (gated && $session.status === 'anonymous') navigate(loginUrl(window.location.pathname + window.location.search), true);
+  });
+
+  $effect(() => {
+    if (adminDenied) navigate('/app/settings/models', true);
   });
 
   // Already signed in (or just signed in on this page): leave the sign-in and register pages for where the person
@@ -37,7 +44,7 @@
 
 <svelte:window onclick={interceptLinkClick} onpopstate={syncFromLocation} />
 
-{#if (gated && $session.status !== 'signed-in') || (guest && $session.status !== 'anonymous')}
+{#if (gated && $session.status !== 'signed-in') || (guest && $session.status !== 'anonymous') || adminDenied}
   <main class="grid min-h-dvh place-items-center" aria-busy="true"><span class="loading loading-spinner"></span></main>
 {:else if $route.name === 'login'}
   <LoginPage />

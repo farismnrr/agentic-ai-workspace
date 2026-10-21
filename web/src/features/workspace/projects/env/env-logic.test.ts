@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EnvVariable } from './env-api';
 import { databaseDefaults, databaseTestErrorMessage, formatUpdatedAt, normalizeVariableName, sharedProvisionErrorMessage, variableErrorMessage, variableValue } from './env-logic';
-import { ApiError } from '../../../shared/api/http';
+import { ApiError } from '../../../../shared/api/http';
 
 describe('environment settings logic', () => {
   it('normalizes names for the API while typing', () => {

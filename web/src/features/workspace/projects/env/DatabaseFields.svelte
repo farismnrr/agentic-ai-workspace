@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DatabaseType } from '../env-api';
+  import type { DatabaseType } from './env-api';
 
   interface Props {
     type: DatabaseType; host: string; port: number; database: string; user: string;

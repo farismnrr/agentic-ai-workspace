@@ -91,3 +91,53 @@ func TestProvidersAcceptGeminiAndStillRejectUnknownKinds(t *testing.T) {
 		t.Fatal("an unknown provider kind must still be rejected")
 	}
 }
+
+func TestAccountRoleMigrationPromotesConfiguredOwnerAndDefaultsOthers(t *testing.T) {
+	t.Parallel()
+	db := rawDatabase(t)
+	if _, err := db.ExecContext(context.Background(), createJournal); err != nil {
+		t.Fatal(err)
+	}
+	names, err := migrationNames()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		if name == "047_account_roles.sql" {
+			break
+		}
+		if err := apply(context.Background(), db, name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exec(t, db, `INSERT INTO users (id, name, email, password_hash, created_at)
+		VALUES ('admin', 'Admin', 'farismunir2@gmail.com', 'x', 1), ('member', 'Member', 'member@example.com', 'x', 1)`)
+	if err := apply(context.Background(), db, "047_account_roles.sql"); err != nil {
+		t.Fatal(err)
+	}
+	assertRole(t, db, "farismunir2@gmail.com", "admin")
+	assertRole(t, db, "member@example.com", "user")
+}
+
+func assertRole(t *testing.T, db *sql.DB, email, want string) {
+	t.Helper()
+	var got string
+	query := `SELECT role FROM users WHERE email = ?`
+	if err := db.QueryRowContext(context.Background(), query, email).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("role for %s = %q, want %q", email, got, want)
+	}
+}
+
+func rawDatabase(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := sql.Open(driverName, ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = db.Close() })
+	return db
+}

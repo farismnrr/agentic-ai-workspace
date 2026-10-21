@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from '../../../../shared/ui/Icon.svelte';
-  import type { TestResult } from '../env-api';
+  import type { TestResult } from './env-api';
 
   interface Props { result: TestResult | undefined }
   const { result }: Props = $props();

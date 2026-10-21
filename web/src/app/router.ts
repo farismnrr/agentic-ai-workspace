@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 
-export type SettingsTab = 'models' | 'persona' | 'team' | 'spaces' | 'connected' | 'integrations' | 'activity' | 'usage' | 'notifications' | 'account' | 'env';
+export type SettingsTab = 'models' | 'persona' | 'team' | 'spaces' | 'connected' | 'integrations' | 'activity' | 'usage' | 'notifications' | 'database' | 'account';
+
 
 export type Route =
   | { name: 'landing' }
@@ -19,7 +20,7 @@ export type Route =
   | { name: 'task'; projectId: string; taskId: string }
   | { name: 'settings'; tab: SettingsTab };
 
-const settingsTabs: readonly string[] = ['models', 'persona', 'team', 'spaces', 'connected', 'integrations', 'activity', 'usage', 'notifications', 'account', 'env'];
+const settingsTabs: readonly string[] = ['models', 'persona', 'team', 'spaces', 'connected', 'integrations', 'activity', 'usage', 'notifications', 'database', 'account'];
 
 const isSettingsTab = (value: string | undefined): value is SettingsTab => value !== undefined && settingsTabs.includes(value);
 

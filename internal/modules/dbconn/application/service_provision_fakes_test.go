@@ -32,7 +32,7 @@ type fakeProvisioner struct {
 	calls    int
 }
 
-func (*fakeProvisioner) Configured() bool { return true }
+func (*fakeProvisioner) Configured(context.Context) (bool, error) { return true, nil }
 func (f *fakeProvisioner) Provision(context.Context, string) (ProvisionResult, error) {
 	f.calls++
 	return ProvisionResult{
@@ -55,7 +55,7 @@ type blockingProvisioner struct {
 	release chan struct{}
 }
 
-func (*blockingProvisioner) Configured() bool { return true }
+func (*blockingProvisioner) Configured(context.Context) (bool, error) { return true, nil }
 func (p *blockingProvisioner) Provision(context.Context, string) (ProvisionResult, error) {
 	close(p.entered)
 	<-p.release

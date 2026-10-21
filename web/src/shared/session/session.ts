@@ -5,6 +5,7 @@ export interface SessionUser {
   id: string;
   name: string;
   email: string;
+  role: 'admin' | 'user';
 }
 
 export type SessionState = { status: 'loading' } | { status: 'anonymous' } | { status: 'signed-in'; user: SessionUser };
