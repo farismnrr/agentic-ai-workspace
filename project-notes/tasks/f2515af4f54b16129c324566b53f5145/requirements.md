@@ -2,54 +2,53 @@
 
 Task: f2515af4f54b16129c324566b53f5145
 Status: working
-Updated: 2026-10-21T03:37:31Z
+Updated: 2026-10-21T04:18:56Z
 
 Reference material; confirm applicability before reusing.
 
-Scope: medium. It moves UI that already exists, adds one small backend setting (the shared database config), and adds one new project-level choice. No new service or port.
+**Scope:** medium. It is one new loading screen, skeleton placeholders on existing pages, and one small pin feature. The pin feature is a nullable column, two endpoints and a sidebar group. There is no new service or port, and the stack stays Go Fiber v3, Svelte and daisyUI with the `masihawam-light` theme.
 
 **Out of scope:**
-- Dropping or altering anything in the shared database. Detaching never deletes data.
-- Changing how Env values are stored, sealed or passed to checks and sites.
+- Pin controls in task lists, project pages or the task screen. The sidebar is the only place to pin or unpin.
+- Drag-to-reorder pins, pin limits, folders, or sharing pins between users.
+- A route-change loader, or changing the existing small spinners inside tabs and buttons.
 - A dark theme or any new design.
-- Other database engines in the Settings database config. It covers PostgreSQL only.
-- A "test connection" button for Settings, unless it comes free with the existing probe.
 
 **Done when:**
-1. In a project, an **Env** tab edits variables, and Settings no longer has an Env tab. Existing values are still there.
-2. In Settings, an admin saves the database host, port, name, user and password. The password is never shown again. A project that picks "Shared database" gets its schema created if it was missing, and `DATABASE_URL` appears in its Env.
-3. Switching back to SQLite removes that project's connection and `DATABASE_URL`, and the schema and its data stay in the shared database. `make verify` passes and `docs/using-the-app.md` is updated.
+1. A first open or reload shows a centered full-screen Masih Awam mark with "Memuat..." (`role="status"`) before the app appears. The animation stops under `prefers-reduced-motion`. Projects and task lists show daisyUI skeletons, not an empty state, until their data arrives.
+2. In the sidebar, a pin button on a task row moves that task into a "Pinned" group above Recent, without opening the task. A pinned task from another project ("sensio", "pukat") appears in the same group. The pin survives a reload and is only visible to the user who pinned it.
+3. `make verify` passes, and `docs/using-the-app.md` and the agent memory files are updated.
 
 **Todo:**
-1. **Developer: move Env into the project page.**
-   - Add an Env tab to `ProjectDetailPage.svelte` using the existing `VariablesSection` and `env-api.ts` with the page's `projectId`.
-   - Remove `EnvTab.svelte`, its Settings tab entry and the project picker.
-   - Verify: variables can be added, edited and deleted from a project. The Settings tab list has no Env, and `svelte-check` is clean.
-2. **Developer: store the database config in Settings.**
-   - Add a "Database" tab in Settings with host, port, database, user, password and SSL mode.
-   - Add a small `dbconn` application port that saves the config in SQLite with the password sealed by `secretbox`. This needs a new migration and a GET/PUT endpoint, and the GET never returns the password.
-   - Have `bootstrap/dbconn.go` build the provisioner from the saved config at call time, so no restart is needed. If nothing is saved, it falls back to `POSTGRES_ADMIN_URL`.
-   - Verify: Go tests cover save, sealed password, no password in GET, and the env fallback. After saving in the UI, the shared option works with no restart.
-3. **Developer: add the per-project database choice.**
-   - Add a "Database" section on the project page with two options: SQLite (default) and Shared database.
-   - Choosing Shared calls the existing `ProvisionShared`, which checks for the schema, creates it if missing and writes `DATABASE_URL`.
-   - The Shared option is disabled with a hint when Settings has no database config.
-   - Choosing SQLite deletes the project's connection record and `DATABASE_URL` only.
-   - Verify: tests cover shared (schema exists and schema missing) and detach (the connection and `DATABASE_URL` are gone, with no DROP statement issued). In the browser the choice persists after a reload.
-4. **Developer: update docs and agent memory.**
-   - Update `docs/using-the-app.md` and `docs/system-design.md`.
-   - Update `agents/memory-frontend.md` and `agents/memory-backend.md`.
-   - Verify: `scripts/check-guardrails.sh` passes (lines under 60 words), and `make verify` is green.
+1. **Developer: full-screen loading screen.**
+   - Add one `LoadingScreen` component in `web/src/shared/ui` using the theme's roles. It has the brand mark, "Memuat...", a gentle animation and `role="status"`.
+   - Use it for the `App.svelte` session gate, in place of the bare spinner.
+   - Put a tiny static version inside `#app` in `index.html`, so the first paint is not blank. Svelte replaces it on mount.
+   - Verify: a hard reload shows it centered, and the screen reader text is "Memuat...". With reduced motion on, nothing moves. `svelte-check` and ESLint are clean.
+2. **Developer: skeletons while workspace data loads.**
+   - Add a `loaded` flag to `workspace-store.ts` that turns true after the first projects and tasks fetch settles, including on error.
+   - Show daisyUI `skeleton` rows in `ProjectsPage`, the sidebar Recent and Projects lists, and the project Tasks tab until then.
+   - Verify: with the network throttled, the pages show skeletons and never flash "no projects yet". Empty states still appear for a truly empty account.
+3. **Developer: pin backend.**
+   - Add migration `048` with a nullable `pinned_at` on `tasks`, and add `PinnedAt` to the task domain, SQLite select and scan, and the `GET /api/tasks` payload.
+   - Add authenticated `PUT` and `DELETE /api/tasks/:id/pin`, limited to the signed-in user's own tasks. Another user's task or an unknown id returns 404.
+   - Verify: Go tests cover pin, unpin, idempotent repeats, ownership (404 for someone else's task), and the field in the list payload. `make verify` is green.
+4. **Developer: Pinned group and pin button in the sidebar.**
+   - Add `pinnedAt` to `task-types.ts` and a `pinTask`/`unpinTask` call in `tasks-api.ts`, then refresh the store.
+   - Add a `SidebarPinned` group above Recent, with the most recently pinned first.
+   - Add a pin button on each sidebar task row. It is a separate control from the link and has an `aria-label`.
+   - Decision: a pinned task appears only in Pinned, not also in Recent. Recent still shows its first nine unpinned tasks, and the group is hidden when there are no pins.
+   - Verify: in the browser, pin tasks from two projects, and they appear in Pinned. Clicking the pin does not navigate. Unpin returns the task to Recent, and the state survives a reload.
+5. **Developer: docs and agent memory.**
+   - Update `docs/using-the-app.md` (loading screen, pinning) and the matching lessons in `agents/memory-frontend.md` and `agents/memory-backend.md`. Add the pin endpoint to `docs/system-design.md` if it lists endpoints.
+   - Verify: `scripts/check-guardrails.sh` passes, and no doc line is over 45 words.
+6. **QA: walk the flows.**
+   - Check a cold load, a slow network, reduced motion, pin and unpin across two projects, and a second user who cannot see or change the first user's pins.
+   - Verify: a short pass/fail list. Security checks that the pin endpoints reject other users' tasks.
 
-QA and Security then check the flows, and DevOps ships the change, as already planned.
+**Open questions:** none block the work. I took these defaults, which you can change:
+- Pinned tasks sit only in Pinned.
+- The newest pin is listed first.
+- The "Memuat..." text is in Indonesian, as you wrote it.
 
-**Assumptions (all defaults):**
-- Stack: the existing Go Fiber v3 + Svelte SPA, kept as is.
-- The Shared option is the only managed choice. Manual PostgreSQL, MySQL and MongoDB forms stay available under an "Advanced: custom connection" disclosure in the project's database section. This keeps today's behavior and removes nothing.
-- The current choice is derived from the project's connection: none means SQLite, and a managed one means Shared. A manual one shows as "Custom".
-- Switching from Shared or Custom to SQLite asks for confirmation first, and the confirmation text says the data stays in the database.
-- Switching from Custom to Shared replaces the custom connection after the same confirmation.
-
-**Open questions:** none block the work. One default needs the person's confirmation: whether manual MySQL and MongoDB connections stay under "Advanced". I assumed they do, since removing them would drop existing capability.
-
-I changed no files and ran no commands. I only read `internal/bootstrap/dbconn.go` and searched for the `POSTGRES_ADMIN_URL` and `EnvTab` usages. The rest comes from the Researcher's notes.
+I changed no files and ran no commands. This comes from the Researcher's notes and the brief.

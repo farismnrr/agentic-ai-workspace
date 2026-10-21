@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import { loadProjects } from './projects-api';
 import { loadExtensions, type Extension } from './extensions-api';
 import { loadSites, type Site } from './sites-api';
-import { loadTasks } from './tasks-api';
+import { loadTasks, pinTask, unpinTask } from './tasks-api';
 import type { Project, Task } from './task-types';
 
 export const projects = writable<Project[]>([]);
@@ -13,21 +13,25 @@ export const loaded = writable(false);
 /** The project the next task goes to; set when someone starts a task from a project page. */
 export const chosenProject = writable('');
 
+/** Changes a task's pin and patches the shared list with the server's canonical response. */
+export async function setTaskPinned(id: string, pinned: boolean): Promise<void> {
+  const updated = pinned ? await pinTask(id) : await unpinTask(id);
+  tasks.update((items) => items.map((task) => (task.id === updated.id ? updated : task)));
+}
+
 const fallback = 30_000;
 const debounce = 150;
 
 /** Reloads projects and tasks; failures keep what is already shown. */
 export async function refresh(): Promise<void> {
-  try {
-    const [nextProjects, nextTasks, nextSites, nextExtensions] = await Promise.all([loadProjects(), loadTasks(), loadSites(), loadExtensions()]);
-    projects.set(nextProjects);
-    tasks.set(nextTasks);
-    sites.set(nextSites);
-    extensions.set(nextExtensions);
-    loaded.set(true);
-  } catch {
-    // The next change or fallback poll tries again; stale data is better than an error flash.
-  }
+  const [projectResult, taskResult] = await Promise.allSettled([loadProjects(), loadTasks()]);
+  if (projectResult.status === 'fulfilled') projects.set(projectResult.value);
+  if (taskResult.status === 'fulfilled') tasks.set(taskResult.value);
+  loaded.set(true);
+
+  const [siteResult, extensionResult] = await Promise.allSettled([loadSites(), loadExtensions()]);
+  if (siteResult.status === 'fulfilled') sites.set(siteResult.value);
+  if (extensionResult.status === 'fulfilled') extensions.set(extensionResult.value);
 }
 
 /**

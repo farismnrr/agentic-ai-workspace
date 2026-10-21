@@ -59,6 +59,8 @@
     user: 'M20 21a8 8 0 0 0-16 0M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
     'send': 'M22 2 11 13M22 2l-7 20-4-9-9-4z',
     'log-out': 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+    pin: 'M16 3l5 5-4 1-4 4v5l-2 2-2-7-5-5 2-2 5 5 4-4zM7 17l-4 4',
+    'pin-filled': 'M16 3l5 5-4 1-4 4v5l-2 2-2-7-5-5 2-2 5 5 4-4z',
   };
 
   const { name, class: className = 'size-5' }: Props = $props();
@@ -74,5 +76,10 @@
   stroke-linejoin="round"
   aria-hidden="true"
 >
-  <path d={paths[name]} />
+  {#if name === 'pin-filled'}
+    <path d={paths[name]} fill="currentColor" />
+    <path d="M7 17l-4 4" />
+  {:else}
+    <path d={paths[name]} />
+  {/if}
 </svg>

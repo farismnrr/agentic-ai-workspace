@@ -27,6 +27,10 @@ export const loadTasks = (): Promise<Task[]> => request<Task[]>('GET', '/api/tas
 
 export const loadTask = (id: string): Promise<Task> => request<Task>('GET', base(id));
 
+export const pinTask = (id: string): Promise<Task> => request<Task>('PUT', `${base(id)}/pin`);
+
+export const unpinTask = (id: string): Promise<Task> => request<Task>('DELETE', `${base(id)}/pin`);
+
 export const loadEvents = (id: string, after: number): Promise<TaskEvent[]> =>
   request<TaskEvent[]>('GET', `${base(id)}/events?after=${String(after)}`);
 

@@ -4,8 +4,9 @@
   import { statusMeta, statusOrder } from '../content/status';
   import { tasksOf } from '../logic/derive';
   import type { Task, TaskStatus } from '../logic/task-types';
-  import { tasks } from '../logic/workspace-store';
+  import { loaded, tasks } from '../logic/workspace-store';
   import TaskRow from './TaskRow.svelte';
+  import SkeletonList from '../../../shared/ui/SkeletonList.svelte';
 
   interface Props {
     projectId: string;
@@ -37,6 +38,9 @@
   {/each}
 </div>
 <div class="mt-3 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
+  {#if !$loaded}
+    <SkeletonList rows={4} />
+  {:else}
   {#each rows as task (task.id)}<TaskRow {task} />{:else}
     {#if all.length === 0}
       <EmptyState compact icon="check-square" title={projectsCopy.noTasks.title} body={projectsCopy.noTasks.body}>
@@ -46,4 +50,5 @@
       <EmptyState compact icon="search" title="Nothing in “{labels[filter]}”" body="Pick another filter to see the rest of this project's tasks." />
     {/if}
   {/each}
+  {/if}
 </div>

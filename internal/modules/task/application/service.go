@@ -95,7 +95,7 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 
 	s.dispatcher.Enqueue(task.ID, task.ProjectID)
 
-	return task, nil
+	return s.withWindow(ctx, task), nil
 }
 
 // FollowUp adds a message to a task that is waiting for review, finished or stopped.
@@ -130,6 +130,26 @@ func (s *Service) Get(ctx context.Context, userID, taskID string) (domain.Task, 
 	task, err := s.owned(ctx, userID, taskID)
 	if err != nil {
 		return domain.Task{}, err
+	}
+
+	return s.withWindow(ctx, task), nil
+}
+
+// Pin records the first time the person pinned their task.
+func (s *Service) Pin(ctx context.Context, userID, taskID string) (domain.Task, error) {
+	task, err := s.deps.Tasks.Pin(ctx, userID, taskID, s.deps.Now())
+	if err != nil {
+		return domain.Task{}, fmt.Errorf("pin task: %w", err)
+	}
+
+	return s.withWindow(ctx, task), nil
+}
+
+// Unpin clears the person's pin from their task.
+func (s *Service) Unpin(ctx context.Context, userID, taskID string) (domain.Task, error) {
+	task, err := s.deps.Tasks.Unpin(ctx, userID, taskID)
+	if err != nil {
+		return domain.Task{}, fmt.Errorf("unpin task: %w", err)
 	}
 
 	return s.withWindow(ctx, task), nil

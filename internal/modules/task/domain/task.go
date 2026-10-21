@@ -68,6 +68,7 @@ type Proof struct {
 type Task struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+	PinnedAt   *time.Time
 	Proof      *Proof
 	ProviderID string
 	// Source names the connected app the thread was recorded from; empty for tasks the agent ran.

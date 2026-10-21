@@ -13,6 +13,7 @@ import (
 type taskPayload struct {
 	CreatedAt  time.Time     `json:"createdAt"`
 	UpdatedAt  time.Time     `json:"updatedAt"`
+	PinnedAt   *time.Time    `json:"pinnedAt"`
 	Proof      *domain.Proof `json:"proof,omitempty"`
 	ProviderID string        `json:"providerId"`
 	ProjectID  string        `json:"projectId"`
@@ -44,7 +45,8 @@ func toPayload(t domain.Task) taskPayload {
 		PlanFirst: t.PlanFirst,
 		PRD:       t.PRD, Research: t.Research, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
-		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
+		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, PinnedAt: t.PinnedAt,
+		ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
 	}
 }
 
@@ -70,6 +72,24 @@ func (h *Handler) list(c fiber.Ctx) error {
 
 func (h *Handler) get(c fiber.Ctx) error {
 	task, err := h.service.Get(c.Context(), httpserver.UserID(c), c.Params("id"))
+	if err != nil {
+		return fail(c, err)
+	}
+
+	return c.JSON(toPayload(task))
+}
+
+func (h *Handler) pin(c fiber.Ctx) error {
+	task, err := h.service.Pin(c.Context(), httpserver.UserID(c), c.Params("id"))
+	if err != nil {
+		return fail(c, err)
+	}
+
+	return c.JSON(toPayload(task))
+}
+
+func (h *Handler) unpin(c fiber.Ctx) error {
+	task, err := h.service.Unpin(c.Context(), httpserver.UserID(c), c.Params("id"))
 	if err != nil {
 		return fail(c, err)
 	}

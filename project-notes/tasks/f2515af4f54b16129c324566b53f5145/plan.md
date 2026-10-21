@@ -2,19 +2,21 @@
 
 Task: f2515af4f54b16129c324566b53f5145
 Status: working
-Updated: 2026-10-21T03:37:31Z
+Updated: 2026-10-21T04:18:56Z
 
 Reference material; confirm applicability before reusing.
 
 - [done] Researcher, Planner, PRD approval, build references
   
-- [done] Developer: Env tab in Project, shared DB config in Settings, per-project DB choice, docs
+- [done] Developer: loading screen + skeletons
   
-- [done] Developer: fixes and admin/user roles (farismunir2@gmail.com is admin)
+- [done] Developer: pin backend
   
-- [done] Security recheck and QA
+- [done] Developer: Pinned group + pin button, docs, full verify
   
-- [active] DevOps: start app and check it answers
+- [done] Security and QA checks
   
-- [active] DevOps: commit and push
+- [done] DevOps: start app
+  
+- [done] DevOps: commit and push
   

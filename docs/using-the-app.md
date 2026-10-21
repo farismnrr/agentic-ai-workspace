@@ -12,6 +12,13 @@ Add a model, create a project, and describe what you need. The AI shows every st
 
 Press Ctrl/Cmd+K anywhere in the workspace to search.
 
+On a first open or reload, the app shows a brief “Memuat...” loading screen.
+Projects and task lists show placeholders while their data loads.
+
+Pin a task from its sidebar row to keep it in **Pinned** above Recent.
+Pinned tasks stay there across projects and reloads. Choose the pin button
+again to remove it; the task then returns to Recent.
+
 ## Your first task
 
 1. Add a model under Settings, AI models (see [Models](#models)).

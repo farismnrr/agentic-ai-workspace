@@ -50,4 +50,6 @@ export type IconName =
   | 'external-link'
   | 'download'
   | 'user'
-  | 'log-out';
+  | 'log-out'
+  | 'pin'
+  | 'pin-filled';
