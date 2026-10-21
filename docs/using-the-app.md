@@ -117,6 +117,8 @@ the project's own SQLite file. Choose PostgreSQL, MySQL or MongoDB to create
 an isolated connection from details saved under **Settings → Database**.
 PostgreSQL and MySQL use `DATABASE_URL`; MongoDB uses `MONGODB_URL`.
 The AI's commands and your running app can reach that database, and only that one.
+The **Model gateway** section below it lets the project call a gateway on this computer, such as 9router.
+The code then gets `OPENAI_BASE_URL` and, if the provider has a key, `OPENAI_API_KEY`.
 When configured, the public CA is provided as `DATABASE_SSL_CA`.
 
 Project apps can read `DATABASE_SSL_CA` as PEM text and pass it to their

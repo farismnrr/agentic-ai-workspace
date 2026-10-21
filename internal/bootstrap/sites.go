@@ -49,7 +49,7 @@ func newSites(
 		return nil, nil, fmt.Errorf("make ticket key: %w", err)
 	}
 
-	siteRuntime := siteruntime.New(tools.engine, folders, base).WithProjectEnv(tools.env).WithDBTunnel(tools.tunnel)
+	siteRuntime := siteruntime.New(tools.engine, folders, base).WithProjectEnv(tools.env).WithReach(tools.reach)
 	service := siteapp.NewService(siteapp.Deps{
 		Secret: []byte(secret),
 		Store:  sitesqlite.NewStore(db), Runtime: siteRuntime,
@@ -79,12 +79,12 @@ func newAgentAndSites(
 ) (*taskapp.Service, *siteapp.Service, []httpserver.Mount, func(), error) {
 	hub := taskapp.NewHub()
 
-	tunnels, err := newDBTunnels(db, cfg)
+	granted, gatewayMount, err := newReach(db, cfg, models.providers, projects, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	tools.tunnel, tools.plans.tunnel = tunnels, tunnels
+	tools.reach, tools.plans.reach = granted, granted
 
 	sites, siteMount, err := newSites(db, cfg, tools, folders, projects, hub, sess, auth, sameOrigin)
 	if err != nil {
@@ -107,5 +107,5 @@ func newAgentAndSites(
 
 	filesMount := newFiles(projects, tools, hub, sess, auth, sameOrigin)
 
-	return tasks, sites, []httpserver.Mount{siteMount, extensionMount, agentMount, filesMount}, stop, nil
+	return tasks, sites, []httpserver.Mount{siteMount, extensionMount, agentMount, filesMount, gatewayMount}, stop, nil
 }

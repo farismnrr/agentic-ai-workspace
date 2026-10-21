@@ -48,7 +48,7 @@ type Runtime struct {
 	engine  *codingrunner.Engine
 	folders Folders
 	env     ProjectEnv
-	tunnel  codingrunner.DBTunnel
+	reach   codingrunner.Reach
 	base    string
 }
 

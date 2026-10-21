@@ -242,6 +242,19 @@ Commands, web apps and the Claude and ChatGPT programs have no network, but they
 - The server's own port is always refused.
 - Needs the `-sandbox` image that includes `socat` (it already does).
 
+### Model gateway from commands and apps
+
+A project can also call a model gateway on the same computer, such as 9router, for RAG or any other model use.
+
+- Add the gateway as an OpenAI-compatible provider that points to this computer, for example `http://localhost:20128/v1`.
+- In the project's **Env** tab, open **Model gateway** and pick it. Nothing is reachable until you do.
+- Only that address and port are reachable. Other services on the computer or network are not.
+- The code gets `OPENAI_BASE_URL` as saved, and `OPENAI_API_KEY` when the provider has a key. The key is not stored in Variables.
+- A variable of the same name typed in Variables is overridden while a gateway is chosen.
+- Any program the project runs can read the key during that run. Sites included.
+- Removing or disabling the provider ends access. IPv6 addresses such as `http://[::1]:…` are not supported.
+- The database keeps its port if the gateway uses the same one.
+
 Removing a project's database connection does not drop its schema, role or
 data. To reconnect to the existing schema, choose **Use shared Postgres (schema
 created automatically)** and click **Create my schema**. For a connected

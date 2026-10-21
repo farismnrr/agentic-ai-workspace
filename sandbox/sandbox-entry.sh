@@ -11,10 +11,13 @@ if [ -S /run/egress/p.sock ]; then
   socat TCP-LISTEN:3128,bind=127.0.0.1,reuseaddr,fork UNIX-CONNECT:/run/egress/p.sock &
 fi
 
-# Database: the one host:port the server may reach for this project (DB_TUNNEL) is opened on the same
-# loopback port and passed through the proxy socket; the database's own name resolves here (/etc/hosts).
-if [ -n "${DB_TUNNEL:-}" ] && [ -S /run/egress/p.sock ]; then
-  socat "TCP-LISTEN:${DB_TUNNEL##*:},bind=127.0.0.1,reuseaddr,fork" "PROXY:127.0.0.1:${DB_TUNNEL},proxyport=3128" &
+# Exact targets the server grants this project, such as its database and model gateway (TUNNEL_TARGETS, host:port
+# separated by spaces): each is opened on the same loopback port and passed through the proxy socket; its own name
+# resolves here (/etc/hosts), so the saved address works as it is.
+if [ -n "${TUNNEL_TARGETS:-}" ] && [ -S /run/egress/p.sock ]; then
+  for target in $TUNNEL_TARGETS; do
+    socat "TCP-LISTEN:${target##*:},bind=127.0.0.1,reuseaddr,fork" "PROXY:127.0.0.1:${target},proxyport=3128" &
+  done
 fi
 
 if [ -n "${SITE_PORT:-}" ] && [ -d /run/site ]; then
