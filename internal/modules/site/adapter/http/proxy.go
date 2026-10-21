@@ -45,9 +45,10 @@ func (h *Handler) siteAccess(c fiber.Ctx, site domain.Site, access domain.Access
 		return true, reply(c, fiber.StatusForbidden, "This app is private.")
 	case domain.Missing:
 		return true, missing(c)
-	default:
+	case domain.Allow:
 		return false, nil
 	}
+	return true, missing(c)
 }
 
 func (h *Handler) mismatchedPreviewHost(c fiber.Ctx, preview bool) bool {
