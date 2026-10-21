@@ -45,11 +45,11 @@ func containerEnv(spec Spec) []string {
 }
 
 // tunnelHosts lets the database's own name resolve to the local door, so the saved address keeps
-// working as it is (and a certificate still matches the name). A name that is already local, or
-// an IP address, needs no entry.
+// working as it is (and a certificate still matches the name). An IP address needs no entry. Even
+// "localhost" gets one, because the container only has a hosts file when it is given an entry.
 func tunnelHosts(spec Spec) []string {
 	host, _, ok := tunnelTarget(spec)
-	if !ok || host == "localhost" {
+	if !ok {
 		return nil
 	}
 

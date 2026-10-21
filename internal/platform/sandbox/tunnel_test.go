@@ -28,7 +28,7 @@ func TestTunnelTargetAcceptsOnlyAHostAndAPort(t *testing.T) {
 func TestTunnelNamesResolveToTheLocalDoorOnly(t *testing.T) {
 	cases := map[string][]string{
 		"db.internal:5432":  {"db.internal:127.0.0.1"},
-		"localhost:5432":    nil,
+		"localhost:5432":    {"localhost:127.0.0.1"},
 		"192.168.1.5:5432":  nil,
 		"db.internal:5432,": nil,
 	}
@@ -52,8 +52,13 @@ func TestATunnelKeepsTheContainerWithoutANetwork(t *testing.T) {
 	spec := Spec{Workspace: "/w", Egress: "/e", Tunnel: "db.internal:5432", Env: []string{"A=1"}, Argv: []string{"true"}}
 	opts := d.createOptions(spec, nil)
 
-	if opts.HostConfig.NetworkMode != "none" || !opts.Config.NetworkDisabled || !opts.HostConfig.ReadonlyRootfs {
+	// Docker writes no /etc/hosts when the network flag is set, so it is off here; the mode still isolates.
+	if opts.HostConfig.NetworkMode != "none" || opts.Config.NetworkDisabled || !opts.HostConfig.ReadonlyRootfs {
 		t.Fatalf("the container must stay offline and read-only: %+v", opts.HostConfig)
+	}
+
+	if plain := d.createOptions(Spec{Workspace: "/w", Argv: []string{"true"}}, nil); !plain.Config.NetworkDisabled {
+		t.Error("without a database the network flag stays on")
 	}
 
 	if !slices.Equal(opts.HostConfig.ExtraHosts, []string{"db.internal:127.0.0.1"}) {
