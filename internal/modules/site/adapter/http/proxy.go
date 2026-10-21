@@ -1,7 +1,6 @@
 package http
 
 import (
-	"net"
 	"net/url"
 	"strings"
 
@@ -83,7 +82,8 @@ func (h *Handler) deliver(c fiber.Ctx, site domain.Site, ticket, rest string, va
 		return err
 	}
 
-	err := h.forwardPreview(c, site, "/"+rest, site.BasePath()+segmentPath(segment), preview)
+	jar := h.jarFor(c, site, valid, preview)
+	err := h.forwardPreview(c, site, "/"+rest, site.BasePath()+segmentPath(segment), preview, jar)
 	h.setPreviewTicket(c, preview, valid, ticket, err)
 	return err
 }
@@ -102,15 +102,6 @@ func (h *Handler) earlyResponse(c fiber.Ctx, preview bool) (bool, error) {
 		return true, err
 	}
 	return false, nil
-}
-
-func (h *Handler) setPreviewTicket(c fiber.Ctx, preview, valid bool, ticket string, err error) {
-	if err != nil || !preview || !valid || ticket == "" {
-		return
-	}
-	c.Cookie(&fiber.Cookie{
-		Name: previewAccessCookie, Value: ticket, Path: "/", Secure: true, HTTPOnly: true, SameSite: "Lax",
-	})
 }
 
 func segmentPath(segment string) string {
@@ -147,54 +138,4 @@ func (h *Handler) userID(c fiber.Ctx) string {
 	}
 
 	return id
-}
-
-func (h *Handler) isPreviewHost(host, slug string) bool {
-	if h.previewDomain == "" {
-		return false
-	}
-	name := strings.ToLower(host)
-	if stripped, _, err := net.SplitHostPort(name); err == nil {
-		name = stripped
-	}
-	return name == strings.ToLower(slug)+"."+h.previewDomain
-}
-
-const previewAccessCookie = "__Host-workspace_preview_access"
-
-func (h *Handler) previewAccess(c fiber.Ctx, site domain.Site, ticket string) (bool, string, bool) {
-	preview := h.isPreviewHost(c.Hostname(), site.Slug)
-	userID := h.userID(c)
-	if preview {
-		userID = ""
-	}
-	valid := ticket != "" && h.service.ValidTicket(site.Token, h.holder(c), ticket)
-	if preview && !valid {
-		stored := c.Cookies(previewAccessCookie)
-		valid = stored != "" && h.service.ValidTicket(site.Token, h.holder(c), stored)
-	}
-	return preview, userID, valid
-}
-
-func (h *Handler) checkPreviewRequest(c fiber.Ctx, preview bool) error {
-	if preview && c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
-		if origin := c.Get("Origin"); origin != "" && origin != "https://"+c.Hostname() {
-			return reply(c, fiber.StatusForbidden, "Cross-origin request blocked")
-		}
-	}
-
-	return nil
-}
-
-func (h *Handler) previewSegment(c fiber.Ctx, site domain.Site, ticket string, valid, owner bool) string {
-	if site.Visibility != domain.Private {
-		return ""
-	}
-	if valid && ticket != "" {
-		return ticketPrefix + ticket
-	}
-	if owner && isPage(c) {
-		return ticketPrefix + h.service.Ticket(site.Token, h.holder(c))
-	}
-	return ""
 }

@@ -1,7 +1,8 @@
 # Authenticated site previews (opt-in)
 
 The standard `/run/<site>` preview remains opaque-origin, cookie-free and sandboxed.
-It is intentionally **not** suitable for testing a web app's login or file uploads.
+A private app can still keep a login there: the server holds the app's cookies (see `sites.md`).
+It is still **not** suitable for file uploads, `localStorage`, or anything that needs a real browser origin.
 
 For full-stack projects, an operator can configure `SITE_PREVIEW_DOMAIN` to a
 **dedicated wildcard DNS/TLS zone**, for example `preview.example.net`. Route

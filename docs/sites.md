@@ -33,8 +33,9 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - It also flags a stylesheet that is empty, never built (raw Tailwind) or answered with a web page.
 - `screenshot` uses that same path, so the AI sees the page as you do, with no login even for a private app.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
-- Because of that, a login in your app cannot stay signed in inside the preview. The app itself is fine.
-- The AI tests accounts through the app's API instead, and tells you so.
+- A login in a private app still works: the server keeps the app's cookies for you and sends them back on the next request.
+- Those cookies live in server memory only. They are per app and per browser, and the browser never receives them.
+- They are lost when Workspace restarts or the app is started again, so you sign in again. Public apps do not keep a login yet.
 
 ## Screenshots
 
@@ -53,6 +54,7 @@ A site shares the domain with the main app. These protections are always on:
 2. Endpoints that need your session refuse cross-site requests (`Sec-Fetch-Site: cross-site`), except plain navigations.
 3. The proxy never forwards your session cookie or `Authorization` header.
    - It also drops `Set-Cookie`, `Clear-Site-Data`, `Service-Worker-Allowed` and similar headers from the app's responses.
+   - The app's own cookies are kept on the server for a private site, per app and visitor, and never sent to the browser.
 4. The proxy talks only to the app's Unix socket. The container has no network, so the address can't point anywhere else.
 5. Unknown or stopped addresses return 404. A private site returns 403 to anyone without your login or a valid ticket.
 

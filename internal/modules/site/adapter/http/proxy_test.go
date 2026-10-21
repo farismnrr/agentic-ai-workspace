@@ -108,6 +108,20 @@ func startApp(t *testing.T) (socket string, seen chan http.Header) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	})
 
+	mux.HandleFunc("/login", func(w http.ResponseWriter, _ *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name: "sid", Value: "abc", Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
+		})
+	})
+	mux.HandleFunc("/logout", func(w http.ResponseWriter, _ *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name: "sid", Path: "/", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
+		})
+	})
+	mux.HandleFunc("/me", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]string{"cookie": r.Header.Get("Cookie")})
+	})
+
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: time.Second}
 
 	go func() { _ = server.Serve(l) }()

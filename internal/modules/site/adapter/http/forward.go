@@ -11,11 +11,13 @@ import (
 
 // forward sends the request to the app through its socket and writes the answer back,
 // filtered. The app sees the path without the /run/<name> prefix, and the links of its pages get it back.
-func (h *Handler) forwardPreview(c fiber.Ctx, site domain.Site, rest, prefix string, preview bool) error {
+func (h *Handler) forwardPreview(
+	c fiber.Ctx, site domain.Site, rest, prefix string, preview bool, jar *jarSession,
+) error {
 	out, err := relay(c.Context(), relayRequest{
 		Socket: h.service.Socket(site.ProjectID), Method: c.Method(), Path: rest,
 		Query: string(c.Request().URI().QueryString()), Body: c.Body(), Header: requestHeaders(c),
-		Base: site.BasePath(), Prefix: prefix, ClientIP: c.IP(), Preview: preview,
+		Base: site.BasePath(), Prefix: prefix, ClientIP: c.IP(), Preview: preview, Jar: jar,
 	})
 	if err != nil {
 		return reply(c, err.status, err.text)
