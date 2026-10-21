@@ -107,6 +107,37 @@ Web apps the AI starts (`modules/site`) use the same sandbox with a long-lived c
 
 ## Data, live updates, limits
 
+### Project environment and external databases
+
+Migrations 043 and 044 add `project_env_vars` and one `project_db_connections`
+row per project. The Env store (`modules/env/adapter/sqlite`) seals every value
+with `platform/secretbox`; list and save responses omit secret values. Names are
+uppercase identifiers (64 characters max), except `PATH`, `HOME`, proxy names,
+`LD_*`, `GO*` and `DOCKER_*`; projects have 50 variables maximum and values are
+limited to 4096 bytes. The DB store also seals passwords and returns metadata
+only. Its application service coordinates saving/removing the generated URL as
+an Env secret.
+
+HTTP routes are `GET/PUT /api/projects/:id/env`,
+`DELETE /api/projects/:id/env/:name`, `GET/PUT/DELETE /api/projects/:id/db`,
+and `POST /api/projects/:id/db/test`. All are owner-scoped. The DB test has a
+10-second deadline and `databaseTestLimit` allows five calls per user each
+minute. Probe errors are category-only plain messages; never return driver
+errors or connection strings.
+
+`runner.WithProjectEnv` loads values for sandbox commands and checks;
+`site.Runtime.WithProjectEnv` covers project sites, and `bootstrap/taskcli.go`
+adds them to CLI program runs. `MergeProjectEnvironment` preserves the fixed
+base environment, including proxy values. Do not put values in prompts, logs,
+task events or command text. Migrations are append-only and checksummed.
+
+`platform/egress.PrivateAllowed` is for the server-side database probe only. It
+allows public, private and loopback addresses, but rejects link-local,
+unspecified, multicast, special-use ranges and the app's own port at dial time.
+PostgreSQL uses pgx's dial function, MySQL uses a per-connector dial function,
+and Mongo uses its custom context dialer after resolving and checking every
+candidate IP. The sandbox remains network-disabled.
+
 - **Your data** (`modules/mydata`): `GET /api/account/export` streams a zip built from sections that bootstrap assembles from the other features (`bootstrap/export.go`). `DELETE /api/tasks` clears a person's tasks, cancelling running ones. `POST /api/auth/delete` checks the password, then runs the erasers other features registered (tasks, then projects and their folders) before deleting the user row; the rest goes through foreign-key cascades.
 - **Live updates:** task pages and the workspace follow changes over server-sent events (`GET /api/tasks/:id/stream` for steps and streamed text, `GET /api/stream` for list changes). A reconnecting client resumes from `Last-Event-ID`; the workspace falls back to a slow poll.
 - **Rate limits:** sign-in, sign-up and the open OAuth endpoints are limited per visitor address; failed sign-ins also per account and address, so someone else's wrong guesses never lock you out. Expired sessions, codes, tokens and unused clients are swept every hour.

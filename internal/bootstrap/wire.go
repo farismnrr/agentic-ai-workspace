@@ -57,12 +57,11 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	tools.plans.windows = cliagentsqlite.NewWindows(db)
-	models.providers.WithPlans(planCatalog{
-		plans: tools.plans, switches: cliagentsqlite.NewSwitches(db), windows: tools.plans.windows,
-	})
-
-	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
+	projects, projectMount, projectSettings, err := projectFeatures(db, cfg, models, folders, tools, auth,
+		sameOrigin)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	githubMount, err := connectGitHub(db, cfg, tools, projects, auth, sameOrigin)
 	if err != nil {
@@ -82,12 +81,29 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, registry, log, permissions, oauth, sess, sameOrigin)
 
 	mounts := joinMounts(
-		[]httpserver.Mount{accountMount, oauthMount, projectMount}, agentMounts,
+		[]httpserver.Mount{accountMount, oauthMount, projectMount}, projectSettings, agentMounts,
 		[]httpserver.Mount{newExport(account, models, projects, tasks, folders, auth)},
 		models.mounts, []httpserver.Mount{githubMount, newTemplate(tools, projects, auth, sameOrigin)},
 		[]httpserver.Mount{tools.plans.mount(auth, sameOrigin)}, spaceMounts)
 
 	return mounts, func() { stop(); closeProxy() }, nil
+}
+
+func projectFeatures(
+	db *sql.DB, cfg config.Config, models modelsWiring, folders *folder.Folders,
+	tools *agentTools, auth, sameOrigin fiber.Handler,
+) (*projectapp.Service, httpserver.Mount, []httpserver.Mount, error) {
+	tools.plans.windows = cliagentsqlite.NewWindows(db)
+	models.providers.WithPlans(planCatalog{
+		plans: tools.plans, switches: cliagentsqlite.NewSwitches(db), windows: tools.plans.windows,
+	})
+	projects, projectMount := newProjects(db, forgetting{Folders: folders, tools: tools}, tools, auth, sameOrigin)
+	env, settings, err := newProjectSettings(db, cfg, projects, auth, sameOrigin)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	tools.env, tools.plans.env = env, env
+	return projects, projectMount, settings, nil
 }
 
 // newActivityLog records tool calls and knows how to undo the ones the coding space made.

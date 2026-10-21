@@ -39,16 +39,29 @@ type Folders interface {
 	Dir(projectID string) (string, error)
 }
 
+// ProjectEnv supplies the variables for the site being started.
+type ProjectEnv interface {
+	Values(context.Context, string) (map[string]string, error)
+}
+
 // Runtime implements application.Runtime on the shared sandbox engine.
 type Runtime struct {
 	engine  *codingrunner.Engine
 	folders Folders
+	env     ProjectEnv
 	base    string
 }
 
 // New keeps one socket folder per project under base (an absolute path inside the data folder).
 func New(engine *codingrunner.Engine, folders Folders, base string) *Runtime {
 	return &Runtime{engine: engine, folders: folders, base: base}
+}
+
+// WithProjectEnv supplies the values for a site's project.
+func (r *Runtime) WithProjectEnv(source ProjectEnv) *Runtime {
+	r.env = source
+
+	return r
 }
 
 func (r *Runtime) dir(projectID string) string {
@@ -88,6 +101,9 @@ func (r *Runtime) Start(ctx context.Context, spec application.StartSpec) (string
 	port := strconv.Itoa(spec.Port)
 	sandboxSpec := r.engine.SiteSpec(ctx, project, docker, []string{"bash", "-c", spec.Command},
 		[]string{"SITE_PORT=" + port, "PORT=" + port, "HOST=127.0.0.1", "BASE_PATH=" + spec.BasePath})
+	if sandboxSpec.Env, err = r.projectEnvironment(ctx, spec.ProjectID, sandboxSpec.Env); err != nil {
+		return "", err
+	}
 	sandboxSpec.Site = dir
 
 	id, err := docker.Start(ctx, sandboxSpec)

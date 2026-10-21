@@ -54,6 +54,58 @@ func TestLocalOnlyAllowsLoopbackButNotThisServerOrTheNetwork(t *testing.T) {
 	}
 }
 
+func TestPrivateAllowed(t *testing.T) {
+	t.Parallel()
+
+	policy := egress.Policy{Rule: egress.PrivateAllowed, OwnPort: "8081"}
+	cases := []struct {
+		address string
+		blocked bool
+	}{
+		{address: "8.8.8.8:443"},
+		{address: "10.0.0.5:5432"},
+		{address: "172.16.3.4:3306"},
+		{address: "192.168.1.9:27017"},
+		{address: "127.0.0.1:5432"},
+		{address: "[::1]:5432"},
+		{address: "[fc00::1]:5432"},
+		{address: "169.254.169.254:80", blocked: true},
+		{address: "169.254.1.2:80", blocked: true},
+		{address: "[fe80::1]:80", blocked: true},
+		{address: "[::ffff:169.254.169.254]:80", blocked: true},
+		{address: "0.0.0.0:80", blocked: true},
+		{address: "[::]:80", blocked: true},
+		{address: "224.0.0.1:80", blocked: true},
+		{address: "[ff02::1]:80", blocked: true},
+		{address: "100.64.0.1:80", blocked: true},
+		{address: "192.0.0.8:80", blocked: true},
+		{address: "[2001:db8::1]:80", blocked: true},
+		{address: "[fd00:ec2::254]:80", blocked: true},
+		{address: "127.0.0.1:8081", blocked: true},
+		{address: "[::1]:8081", blocked: true},
+	}
+
+	for _, test := range cases {
+		err := egress.Check(policy, test.address)
+		if test.blocked && !errors.Is(err, egress.ErrBlocked) {
+			t.Errorf("%s must be blocked, got %v", test.address, err)
+		}
+		if !test.blocked && err != nil {
+			t.Errorf("%s must be allowed, got %v", test.address, err)
+		}
+	}
+}
+
+func TestPrivateAllowedDialControlRejectsResolvedMetadataAddress(t *testing.T) {
+	t.Parallel()
+
+	dialer := egress.Dialer(egress.Policy{Rule: egress.PrivateAllowed, OwnPort: "8081"})
+	err := dialer.Control("tcp", "169.254.169.254:5432", nil)
+	if !errors.Is(err, egress.ErrBlocked) {
+		t.Fatalf("resolved metadata address must be blocked at dial time, got %v", err)
+	}
+}
+
 func TestTransportReallyRefusesToConnect(t *testing.T) {
 	t.Parallel()
 

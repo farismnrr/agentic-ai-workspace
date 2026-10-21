@@ -28,6 +28,7 @@ import (
 type agentTools struct {
 	folders *folder.Folders
 	engine  *codingrunner.Engine
+	env     codingrunner.ProjectEnv
 	sites   *siteapp.Service
 	// extensions packages the browser extensions the AI builds.
 	extensions *extensionapp.Service
@@ -77,6 +78,9 @@ func (a *agentTools) services(projectID string) (codingmcp.Services, error) {
 	}
 
 	run := codingrunner.New(dir, a.engine)
+	if a.env != nil {
+		run.WithProjectEnv(projectID, a.env)
+	}
 	if a.git != nil {
 		run.WithGit(a.git(projectID))
 	}

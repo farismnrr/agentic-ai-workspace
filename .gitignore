@@ -39,3 +39,16 @@ assets/Minimal_logo_mark_*.jpg
 
 # Local runtime data (SQLite database, signing key)
 data/
+preview-data/
+local-build/
+*.pem
+*.key
+id_rsa*
+node_modules
+.next
+.nuxt
+.output
+dist
+target
+__pycache__
+.venv

@@ -14,15 +14,16 @@ import (
 // Limits are per client address unless noted. Sign-in counts only failures, so
 // people who type their password correctly are never slowed down.
 const (
-	registerPerHour       = 5
-	loginFailuresPerIP    = 30
-	loginFailuresPerEmail = 8
-	loginWindow           = 10 * time.Minute
-	authorizePerMinute    = 60
-	tokenPerMinute        = 120
-	clientRegisterPerHour = 20
-	githubPerMinute       = 20
-	signInPerMinute       = 10
+	registerPerHour        = 5
+	loginFailuresPerIP     = 30
+	loginFailuresPerEmail  = 8
+	loginWindow            = 10 * time.Minute
+	authorizePerMinute     = 60
+	tokenPerMinute         = 120
+	clientRegisterPerHour  = 20
+	githubPerMinute        = 20
+	signInPerMinute        = 10
+	databaseTestsPerMinute = 5
 )
 
 func accountLimits() accounthttp.Limits {
@@ -51,4 +52,9 @@ func oauthLimits() oauthhttp.Limits {
 // signInLimit guards the sign-in endpoints that each start a container.
 func signInLimit() fiber.Handler {
 	return httpserver.Limit(signInPerMinute, time.Minute, nil, false)
+}
+
+func databaseTestLimit() fiber.Handler {
+	return httpserver.Limit(databaseTestsPerMinute, time.Minute,
+		httpserver.UserID, false)
 }

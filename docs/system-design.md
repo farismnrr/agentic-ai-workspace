@@ -44,13 +44,15 @@ internal/modules/<feature>/
   domain/                 business rules and types
   application/            use cases and the interfaces they need
   adapter/                HTTP, database and other implementations
-internal/platform/        config, HTTP server, embedded web app
+internal/platform/        config, egress, HTTP server, embedded web app
 ```
 
 - **Dependencies point inward:** `adapter -> application -> domain`.
 - **A domain rule never knows** which HTTP framework or database is used. That keeps it easy to test and to replace.
 - **Platform code** holds technical details only, never business rules.
 - **A feature creates only the layers it needs.** Empty folders do not help.
+- **Project Env** (`modules/env`) owns project variables and encrypted storage.
+  `modules/dbconn` stores one external database connection and tests it.
 
 ### Frontend
 
@@ -83,7 +85,7 @@ Tasks, commands and web apps run in one throwaway Docker container per run.
 | Limit | How |
 | --- | --- |
 | Files | Only that person's project folder is visible |
-| Network | No network. Package registries only, through a proxy |
+| Network | No direct network. Package registries only, through a proxy |
 | System | Read-only root, no extra privileges, memory, CPU and process limits |
 | Capacity | `MAX_SANDBOXES` runs at once. A run stops if its folder passes 2 GiB |
 
@@ -92,6 +94,11 @@ Tasks, commands and web apps run in one throwaway Docker container per run.
 - **Docker down?** Checks fail with a plain reason and nothing else breaks.
 - **Not covered:** hard disk quotas, and the host kernel and Docker daemon that every container shares.
 - **Docker socket:** whoever controls it controls the host. Docker rootless mode is the recommended mitigation.
+
+The server's `platform/egress` checks outgoing addresses when it dials them.
+`PrivateAllowed` is used only for an owner's database connection test: it allows
+public, private and loopback addresses, but blocks link-local, special ranges
+and the server's own port. Sandbox containers remain network-disabled.
 
 Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 

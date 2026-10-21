@@ -29,6 +29,24 @@ func TestEnvironmentPointsCachesAndProxyOnlyWhenMounted(t *testing.T) {
 	}
 }
 
+func TestProjectValuesDoNotReplaceBaseOrProxyEnvironment(t *testing.T) {
+	base := environment(sandbox.Spec{Egress: "/proxy"})
+	merged := MergeProjectEnvironment(base, map[string]string{
+		"HTTP_PROXY": "http://attacker", "LANG": "secret locale", "PROJECT_TOKEN": "project-only",
+	})
+
+	for _, want := range []string{
+		"HTTP_PROXY=http://127.0.0.1:3128", "LANG=C.UTF-8", "PROJECT_TOKEN=project-only",
+	} {
+		if !slices.Contains(merged, want) {
+			t.Errorf("merged environment lacks %q: %v", want, merged)
+		}
+	}
+	if slices.Contains(merged, "HTTP_PROXY=http://attacker") || slices.Contains(merged, "LANG=secret locale") {
+		t.Fatalf("project values replaced the base environment: %v", merged)
+	}
+}
+
 func TestWipeRemovesReadOnlyFolders(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "cache")
 	deep := filepath.Join(root, "mod", "pkg")
