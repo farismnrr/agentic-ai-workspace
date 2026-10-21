@@ -114,12 +114,15 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 	limits, enabled := d.cfg.Limits, true
 	pids, memory, file := signed(limits.Processes), signed(limits.MemoryBytes), signed(limits.FileBytes)
 	fsize := &container.Ulimit{Name: "fsize", Soft: file, Hard: file}
+	// With the network flag set Docker writes no /etc/hosts, so a database name could not be given its local
+	// address. NetworkMode "none" below still leaves the container with only a loopback interface.
+	hosts := tunnelHosts(spec)
 
 	return client.ContainerCreateOptions{
 		Config: &container.Config{
 			Image: d.cfg.Image, Cmd: command(spec), Env: containerEnv(spec), WorkingDir: Workspace,
 			User:   strconv.Itoa(d.cfg.UID) + ":" + strconv.Itoa(d.cfg.GID),
-			Labels: map[string]string{taskLabel: d.cfg.Owner}, NetworkDisabled: true,
+			Labels: map[string]string{taskLabel: d.cfg.Owner}, NetworkDisabled: len(hosts) == 0,
 			AttachStdin: spec.Stdin != nil, OpenStdin: spec.Stdin != nil, StdinOnce: spec.Stdin != nil,
 			AttachStdout: true, AttachStderr: true,
 			// The image's own entrypoint must not wrap the command.
@@ -127,7 +130,7 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 		},
 		HostConfig: &container.HostConfig{
 			NetworkMode: "none", ReadonlyRootfs: true, Init: &enabled, Runtime: d.cfg.Runtime,
-			ExtraHosts: tunnelHosts(spec),
+			ExtraHosts: hosts,
 			CapDrop:    []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"},
 			Mounts: mounts, Tmpfs: map[string]string{"/tmp": tmpfsOpts},
 			Resources: container.Resources{
