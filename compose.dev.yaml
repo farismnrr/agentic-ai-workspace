@@ -41,9 +41,14 @@ services:
       # POSTGRES_ADMIN_URL: ${POSTGRES_ADMIN_URL:-}
       SITE_PREVIEW_DOMAIN: ${SITE_PREVIEW_DOMAIN:-}
       SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}
-      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-2048}
-      SANDBOX_CPUS: ${SANDBOX_CPUS:-1}
-      MAX_SANDBOXES: ${MAX_SANDBOXES:-4}
+      # This computer is dedicated to the app (12 threads, 23 GB RAM, 71 GB swap). Every command and site container is
+      # capped at memory plus swap, so the worst case stays well inside RAM plus swap and a runaway is killed first.
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-3072}
+      SANDBOX_SWAP_MB: ${SANDBOX_SWAP_MB:-3072}
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-2}
+      MAX_SANDBOXES: ${MAX_SANDBOXES:-5}
+      AGENT_WORKERS: ${AGENT_WORKERS:-3}
+      SITE_MAX_TOTAL: ${SITE_MAX_TOTAL:-6}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
@@ -56,6 +61,9 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    # The app itself is small; a cap here keeps a leak in it from taking the computer down.
+    mem_limit: 2g
+    memswap_limit: 3g
     restart: unless-stopped
 
 volumes:

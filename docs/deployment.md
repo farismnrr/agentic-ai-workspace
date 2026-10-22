@@ -173,7 +173,8 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | `SANDBOX_EGRESS_HOSTS` | HTTPS host allowlist for commands; other hosts are blocked. | PyPI, npm, Go proxy and its storage host, crates.io, Maven Central |
 | `CLAUDE_EGRESS_HOSTS` / `CHATGPT_EGRESS_HOSTS` | Hosts the Claude and ChatGPT programs can reach while people sign in and work on their plan. | the providers' own hosts |
 | `SANDBOX_RUNTIME` | Hardened runtime, such as `runsc` (gVisor). | none |
-| `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check. | 2048 / 1 |
+| `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check or site. | 2048 / 1 |
+| `SANDBOX_SWAP_MB` | Swap a check may add on top of its memory. Memory plus swap stays a hard cap, so a runaway is stopped before it fills the swap. 0 turns swap off. | 0 |
 | `SANDBOX_DATA_VOLUME` | Volume holding `DATA_DIR`. Compose sets it. Leave it empty when you run the binary directly. | set by compose |
 
 Go module ZIP downloads may redirect from `proxy.golang.org` to `storage.googleapis.com`. Keep both hosts in a custom `SANDBOX_EGRESS_HOSTS` list. This allows HTTPS to that storage hostname, not just Go module paths. The checksum database remains enabled.
