@@ -89,7 +89,7 @@ func TestTheWebToolsReturnTextMarkedAsFromStrangers(t *testing.T) {
 	}
 
 	for _, c := range calls {
-		result := tools.Execute(context.Background(), project, c)
+		result := tools.Execute(context.Background(), taskapp.ToolScope{ProjectID: project}, c)
 		if result.IsError || !strings.HasPrefix(result.Output, untrusted) || !strings.Contains(result.Output, "Kopi Teras") {
 			t.Fatalf("%s: %+v", c.Name, result)
 		}
@@ -102,12 +102,16 @@ func TestOnlyPicturesFromTheLatestSearchOfferedWithTheirLicenceCanBeSaved(t *tes
 	tools, project := webTools(t)
 	ctx := context.Background()
 
-	refused := tools.Execute(ctx, project, call("download_asset", map[string]string{"url": signURL}))
+	refused := tools.Execute(ctx, taskapp.ToolScope{ProjectID: project}, call(
+		"download_asset", map[string]string{"url": signURL},
+	))
 	if !refused.IsError {
 		t.Fatalf("nothing was searched yet: %+v", refused)
 	}
 
-	found := tools.Execute(ctx, project, call("search_images", map[string]string{"query": "coffee shop"}))
+	found := tools.Execute(ctx, taskapp.ToolScope{ProjectID: project}, call(
+		"search_images", map[string]string{"query": "coffee shop"},
+	))
 	if found.IsError || strings.Contains(found.Output, "nc.jpg") || !strings.Contains(found.Output, "CC0") {
 		t.Fatalf("only free pictures are offered: %+v", found)
 	}
@@ -118,9 +122,13 @@ func TestASavedPictureKeepsItsTypeAndComesWithItsCredit(t *testing.T) {
 
 	tools, project := webTools(t)
 	ctx := context.Background()
-	tools.Execute(ctx, project, call("search_images", map[string]string{"query": "coffee shop"}))
+	tools.Execute(ctx, taskapp.ToolScope{ProjectID: project}, call(
+		"search_images", map[string]string{"query": "coffee shop"},
+	))
 
-	saved := tools.Execute(ctx, project, call("download_asset", map[string]string{"url": signURL, "path": "hero"}))
+	saved := tools.Execute(ctx, taskapp.ToolScope{ProjectID: project}, call(
+		"download_asset", map[string]string{"url": signURL, "path": "hero"},
+	))
 	if saved.IsError || len(saved.Undo) == 0 || len(saved.Files) != 1 || saved.Files[0] != "assets/hero.png" {
 		t.Fatalf("saved in assets/ with the extension the file really has: %+v", saved)
 	}
@@ -139,7 +147,7 @@ func TestASavedPictureKeepsItsTypeAndComesWithItsCredit(t *testing.T) {
 	}
 
 	replace := call("download_asset", map[string]string{"url": signURL, "path": "assets/hero.png"})
-	again := tools.Execute(ctx, project, replace)
+	again := tools.Execute(ctx, taskapp.ToolScope{ProjectID: project}, replace)
 	if !again.IsError {
 		t.Fatalf("a saved asset is never replaced: %+v", again)
 	}

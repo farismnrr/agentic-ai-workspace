@@ -10,7 +10,7 @@ import (
 
 func ticketService(now *time.Time, secret string) *application.Service {
 	return application.NewService(application.Deps{
-		Now: func() time.Time { return *now }, Secret: []byte(secret),
+		Now: func() time.Time { return *now }, Secret: secret,
 	})
 }
 

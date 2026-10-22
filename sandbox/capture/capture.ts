@@ -1,8 +1,10 @@
 // Opens one page of the running app in a headless browser and prints one line, CAPTURE_JSON:<json>, with a
 // screenshot (base64 PNG) and what the page says about itself. Usage: node capture.ts '<request json>'
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { connect, type Cdp } from './cdp.ts';
 import { inspectPage } from './inspect.ts';
+import { runSession } from './session.ts';
 
 interface Request {
   url: string;
@@ -30,13 +32,14 @@ async function pageSocket(): Promise<string> {
   throw new Error('the browser did not start');
 }
 
-function watch(cdp: Cdp, console: string[], failed: string[]) {
+function watch(cdp: Cdp, console: string[], failed: string[], documentStatus: { value: number }) {
   const urls = new Map<string, string>();
   cdp.on('Network.requestWillBeSent', (p) => { urls.set(String(p.requestId), String((p.request as { url: string }).url)); });
   // A file the page needs that the app answered badly looks like a working request to the browser's own error list.
   cdp.on('Network.responseReceived', (p) => {
     const res = p.response as { url: string; status: number; mimeType: string };
     const kind = String(p.type);
+    if (kind === 'Document') documentStatus.value = res.status;
     const wrongType = kind === 'Stylesheet' && !res.mimeType.includes('css');
     if ((res.status >= 400 || wrongType) && ['Stylesheet', 'Script', 'Image', 'Font'].includes(kind) && failed.length < 10) {
       failed.push(`${kind.toLowerCase()} ${res.url.replace(/^https?:\/\/[^/]+/, '')} answered ${String(res.status)} ${res.mimeType}`);
@@ -64,8 +67,23 @@ async function run(req: Request): Promise<object> {
   ], { stdio: 'ignore' });
   try {
     const cdp = await connect(await pageSocket());
-    const messages: string[] = [], failed: string[] = [];
-    watch(cdp, messages, failed);
+    if (process.argv[2] === '--session') {
+      try {
+        const action = JSON.parse(readFileSync(0, 'utf8')) as Parameters<typeof runSession>[2];
+        const safeRequest = JSON.parse(process.argv[3] ?? '{}') as { url?: string };
+        if (!safeRequest.url || !['login', 'logout'].includes(action.action)) {
+          return { status: 'unsupported' };
+        }
+        await Promise.all(['Page', 'DOM', 'Network'].map((domain) => cdp.send(`${domain}.enable`)));
+        return { status: await runSession(cdp, safeRequest.url, action) };
+      } catch {
+        return { status: 'operation_failed' };
+      } finally {
+        cdp.close();
+      }
+    }
+    const messages: string[] = [], failed: string[] = [], documentStatus = { value: 0 };
+    watch(cdp, messages, failed, documentStatus);
     await Promise.all(['Page', 'Runtime', 'Network'].map((domain) => cdp.send(`${domain}.enable`)));
     await cdp.send('Emulation.setDeviceMetricsOverride', { width: req.width, height: req.height, deviceScaleFactor: 1, mobile: req.mobile });
     const loaded = new Promise<void>((resolve) => { cdp.on('Page.loadEventFired', () => { resolve(); }); });
@@ -82,7 +100,7 @@ async function run(req: Request): Promise<object> {
       : { x: 0, y: Math.min(req.y, Math.max(total - 1, 0)), width: req.width, height: 0, scale: 1 };
     if (!req.overview) clip.height = Math.min(req.height, total - clip.y);
     const shot = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip });
-    return { ok: true, png: shot.data, shot: clip, metrics, console: messages, failed };
+    return { ok: true, status: documentStatus.value, png: shot.data, shot: clip, metrics, console: messages, failed };
   } finally {
     browser.kill('SIGKILL');
   }
@@ -103,7 +121,9 @@ function parse(text: string): Request {
 
 // Exit only once the line is written: a screenshot is far bigger than a pipe, and exiting at once cuts it short.
 function finish(result: object): void {
-  process.stdout.write('CAPTURE_JSON:' + JSON.stringify(result) + '\n', () => { process.exit(0); });
+  const marker = process.argv[2] === '--session' ? 'SESSION_JSON:' : 'CAPTURE_JSON:';
+  process.stdout.write(marker + JSON.stringify(result) + '\n', () => { process.exit(0); });
 }
 
-run(parse(process.argv[2] ?? '{}')).then(finish, (error: Error) => { finish({ ok: false, error: error.message }); });
+const requestText = process.argv[2] === '--session' ? process.argv[3] ?? '{}' : process.argv[2] ?? '{}';
+run(parse(requestText)).then(finish, (error: Error) => { finish({ ok: false, error: error.message }); });

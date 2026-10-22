@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -22,6 +23,11 @@ func (f folders) Dir(string) (string, error) { return f.dir, nil }
 
 // newRuntime needs the toolbox image (SANDBOX_TEST_IMAGE, built by `make sandbox-image`).
 func newRuntime(t *testing.T) *runtime.Runtime {
+	t.Helper()
+	return newRuntimeWithProject(t, t.TempDir())
+}
+
+func newRuntimeWithProject(t *testing.T, projectDir string) *runtime.Runtime {
 	t.Helper()
 
 	image := os.Getenv("SANDBOX_TEST_IMAGE")
@@ -45,7 +51,7 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 		},
 	})
 
-	return runtime.New(engine, folders{dir: t.TempDir()}, short)
+	return runtime.New(engine, folders{dir: projectDir}, short)
 }
 
 func TestAnAppInTheSandboxIsReachableOnlyThroughItsSocket(t *testing.T) {
@@ -64,7 +70,11 @@ func TestAnAppInTheSandboxIsReachableOnlyThroughItsSocket(t *testing.T) {
 
 	defer rt.Stop(ctx, id)
 
-	resp, err := runtime.Client(rt.Socket("p1"), 10*time.Second).Get("http://site/index.html")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://site/index.html", http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := runtime.Client(rt.Socket("p1"), 10*time.Second).Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}

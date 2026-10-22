@@ -19,7 +19,7 @@ var codingScopes = []spacedomain.Scope{
 	},
 	{
 		ID:          codingdomain.ScopeExec,
-		Description: "Run tasks and commands in the sandbox and start the project's web app",
+		Description: "Run sandbox tasks and commands, start the web app, and manage its separate screenshot session",
 	},
 }
 

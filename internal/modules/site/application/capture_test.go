@@ -52,6 +52,21 @@ func TestACaptureThatFailedSaysWhy(t *testing.T) {
 	}
 }
 
+func TestCaptureDescriptionHidesQueryAndCredentialMarkers(t *testing.T) {
+	shot := domain.Capture{Status: 404, Page: domain.Page{
+		Title: "token=visible-token", Text: "Authorization: Bearer secret-token", Headings: []string{"csrf: token-value"},
+	}}
+	text := shot.Describe(domain.CaptureSpec{Path: "/private?token=query-secret"})
+	for _, secret := range []string{"query-secret", "visible-token", "secret-token", "token-value"} {
+		if strings.Contains(text, secret) {
+			t.Errorf("capture description exposed %q: %s", secret, text)
+		}
+	}
+	if !strings.Contains(text, "HTTP 404") {
+		t.Fatalf("capture status missing from description: %s", text)
+	}
+}
+
 func TestCaptureOnlyPhotographsARunningAppAtAKnownPage(t *testing.T) {
 	t.Parallel()
 

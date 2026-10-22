@@ -25,6 +25,27 @@ State-changing requests from foreign origins are refused, and preview responses
 cannot opt into credentialed wildcard CORS. App cookies work because the
 application and its API now share the same browser origin.
 
+## Agent screenshot sessions
+
+The separate `screenshot_session` tool uses an in-memory cookie jar owned by one
+user, project, task and running app container. It does not use a person's browser
+cookies, preview ticket or the visitor cookie jar.
+
+The tool can fill email and password inputs, click one selected submit control,
+and check one caller-selected readiness indicator. Native browser input allows
+regular form submission and JavaScript submit handlers that send JSON. Hidden
+CSRF form values are submitted by the page itself.
+
+The tool receives names of secret Project Env values. The server checks project
+ownership and sends their values to the short-lived browser container on stdin.
+It never returns the values. Login success means only that the requested
+readiness selector appeared; screenshots are not proof of account permissions.
+
+The local jar expires after 30 minutes idle or four hours total. Reset clears it.
+Logout submits the app's own form and clears the local jar even if submission
+fails, but cannot confirm server-side revocation. Browser storage, MFA, CAPTCHA,
+SSO and external redirects are unsupported. Pukat live behavior remains unverified.
+
 Operator checklist:
 
 - Provision wildcard DNS and certificate for the dedicated zone.

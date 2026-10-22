@@ -13,6 +13,7 @@ import (
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	envapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/env/application"
 	extensionapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/extension/application"
 	githubapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
@@ -29,7 +30,10 @@ type agentTools struct {
 	folders *folder.Folders
 	engine  *codingrunner.Engine
 	env     codingrunner.ProjectEnv
-	sites   *siteapp.Service
+	secrets interface {
+		Secret(context.Context, string, string, string) (string, error)
+	}
+	sites *siteapp.Service
 	// extensions packages the browser extensions the AI builds.
 	extensions *extensionapp.Service
 	web        *webapp.Service
@@ -114,7 +118,7 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 
 	defs = append(defs, siteDefinitions()...)
 	defs = append(defs, extensionDefinition())
-	defs = append(defs, screenshotDefinition(), viewImageDefinition())
+	defs = append(defs, screenshotDefinition(), screenshotSessionDefinition(), viewImageDefinition())
 
 	return append(defs, a.webDefinitions()...)
 }
@@ -126,12 +130,16 @@ func (a *agentTools) Risk(name string) taskdomain.Risk {
 		codingdomain.ToolDownloadAsset.Name:
 		return taskdomain.RiskLow
 	case codingdomain.ToolDeleteFile.Name, codingdomain.ToolMoveFile.Name,
-		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite:
+		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite, toolScreenshotSession:
 		return taskdomain.RiskMedium
 	}
 
 	return taskdomain.RiskNone
 }
+
+var _ interface {
+	Secret(context.Context, string, string, string) (string, error)
+} = (*envapp.Service)(nil)
 
 // Undo reverses a change an earlier step made.
 func (a *agentTools) Undo(_ context.Context, projectID string, blob []byte) error {

@@ -40,6 +40,7 @@ func (c Config) mounts(spec Spec) ([]mount.Mount, error) {
 		{spec.Cache, Cache, false},
 		{spec.Egress, Egress, true},
 		{spec.Site, SiteDir, false},
+		{spec.View, ViewDir, false},
 		{spec.Home, Home, false},
 		{spec.Bridge, BridgeDir, false},
 	}

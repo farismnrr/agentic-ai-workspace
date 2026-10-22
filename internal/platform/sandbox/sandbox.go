@@ -25,6 +25,9 @@ const Egress = "/run/egress"
 // publishes the app's local port as a Unix socket that only the server can reach.
 const SiteDir = "/run/site"
 
+// ViewDir holds the one capture's temporary viewer socket.
+const ViewDir = "/run/view"
+
 // BridgeDir is where the folder holding the socket of tools the server runs for a program appears.
 const BridgeDir = "/run/bridge"
 
@@ -48,6 +51,8 @@ type Spec struct {
 	Egress string
 	// Site is an optional writable folder for a site's socket, shown at /run/site.
 	Site string
+	// View is an optional per-capture folder holding the viewer socket, shown at /run/view.
+	View string
 	// Home is an optional writable folder shown at /home/cli, where a vendor CLI keeps its login.
 	Home string
 	// Bridge is an optional folder holding the socket of tools the server runs, shown at /run/bridge.

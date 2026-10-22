@@ -65,7 +65,7 @@ func (f *fakeTools) Describe(c application.Call) application.Described {
 	return application.Described{Text: "Did " + c.Name, Ask: "May I " + c.Name + "?", Technical: c.Name}
 }
 
-func (f *fakeTools) Execute(_ context.Context, _ string, c application.Call) application.ToolResult {
+func (f *fakeTools) Execute(_ context.Context, _ application.ToolScope, c application.Call) application.ToolResult {
 	f.executed = append(f.executed, c.Name)
 
 	if result, ok := f.results[c.Name]; ok {

@@ -33,6 +33,9 @@ func (s *Service) Restart(ctx context.Context, userID, projectID string) (domain
 
 // StopProject stops a project's site when the project is archived or deleted.
 func (s *Service) StopProject(ctx context.Context, projectID string) {
+	if s.deps.AgentSessions != nil {
+		s.deps.AgentSessions.RevokeProject(projectID)
+	}
 	if site, err := s.deps.Store.ByProject(ctx, projectID); err == nil {
 		_ = s.stop(ctx, site)
 	}
@@ -40,6 +43,9 @@ func (s *Service) StopProject(ctx context.Context, projectID string) {
 
 // StopUser stops every site of a person, for when their account is deleted.
 func (s *Service) StopUser(ctx context.Context, userID string) error {
+	if s.deps.AgentSessions != nil {
+		s.deps.AgentSessions.RevokeUser(userID)
+	}
 	sites, err := s.deps.Store.ListByUser(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("list sites: %w", err)
@@ -55,6 +61,9 @@ func (s *Service) StopUser(ctx context.Context, userID string) error {
 }
 
 func (s *Service) stop(ctx context.Context, site domain.Site) error {
+	if s.deps.AgentSessions != nil {
+		s.deps.AgentSessions.RevokeProject(site.ProjectID)
+	}
 	if site.Status == domain.Running {
 		s.deps.Runtime.Stop(ctx, site.ContainerID)
 	}

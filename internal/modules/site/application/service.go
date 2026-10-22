@@ -13,15 +13,16 @@ const maxCommandLength = 4000
 
 // Deps are the collaborators of Service.
 type Deps struct {
-	Store    Store
-	Runtime  Runtime
-	View     Viewer
-	Projects Projects
-	Notify   Notifier
-	IDs      IDs
-	Now      func() time.Time
-	Secret   []byte
-	Limits   Limits
+	Now           func() time.Time
+	Store         Store
+	Runtime       Runtime
+	View          Viewer
+	Projects      Projects
+	Notify        Notifier
+	IDs           IDs
+	AgentSessions AgentSessions
+	Secret        string
+	Limits        Limits
 }
 
 // Service starts, stops and lists sites.
@@ -47,6 +48,7 @@ func (s *Service) Start(ctx context.Context, projectID, command string, port int
 	if err = s.checkRoom(ctx, userID, projectID); err != nil {
 		return domain.Site{}, err
 	}
+	s.revokeAgentSessions(projectID)
 
 	previous, err := s.stopExisting(ctx, projectID)
 	if err != nil {
@@ -85,6 +87,12 @@ func (s *Service) Start(ctx context.Context, projectID, command string, port int
 	s.deps.Notify.Changed(userID)
 
 	return site, nil
+}
+
+func (s *Service) revokeAgentSessions(projectID string) {
+	if s.deps.AgentSessions != nil {
+		s.deps.AgentSessions.RevokeProject(projectID)
+	}
 }
 
 // checkStart validates what the agent asked for and returns the trimmed command.

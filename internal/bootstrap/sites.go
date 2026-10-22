@@ -36,7 +36,7 @@ func (uuids) UUID() (string, error) { return opaque.Generator{}.UUID() } //nolin
 func newSites(
 	db *sql.DB, cfg config.Config, tools *agentTools, folders *folder.Folders,
 	projects *projectapp.Service, hub *taskapp.Hub, sess sessions,
-	auth, sameOrigin fiber.Handler,
+	auth, sameOrigin fiber.Handler, agentSessions siteapp.AgentSessions,
 ) (*siteapp.Service, httpserver.Mount, error) {
 	base, err := filepath.Abs(filepath.Join(cfg.DataDir, "sites"))
 	if err != nil {
@@ -51,12 +51,13 @@ func newSites(
 
 	siteRuntime := siteruntime.New(tools.engine, folders, base).WithProjectEnv(tools.env).WithReach(tools.reach)
 	service := siteapp.NewService(siteapp.Deps{
-		Secret: []byte(secret),
+		Secret: secret,
 		Store:  sitesqlite.NewStore(db), Runtime: siteRuntime,
 		View:     sitehttp.NewViewer(),
 		Projects: projects,
 		Notify:   hubNotifier{hub: hub}, IDs: uuids{}, Now: time.Now,
-		Limits: siteapp.Limits{PerUser: cfg.SiteMaxPerUser, Total: cfg.SiteMaxTotal},
+		Limits:        siteapp.Limits{PerUser: cfg.SiteMaxPerUser, Total: cfg.SiteMaxTotal},
+		AgentSessions: agentSessions,
 	})
 
 	if err = service.Reconcile(context.Background()); err != nil {
@@ -75,7 +76,7 @@ func newSites(
 func newAgentAndSites(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
 	folders *folder.Folders, gate taskapp.ToolGate, steps taskapp.ActivitySink, sess sessions,
-	auth, sameOrigin fiber.Handler,
+	auth, sameOrigin fiber.Handler, agentSessions siteapp.AgentSessions,
 ) (*taskapp.Service, *siteapp.Service, []httpserver.Mount, func(), error) {
 	hub := taskapp.NewHub()
 
@@ -86,7 +87,7 @@ func newAgentAndSites(
 
 	tools.reach, tools.plans.reach = granted, granted
 
-	sites, siteMount, err := newSites(db, cfg, tools, folders, projects, hub, sess, auth, sameOrigin)
+	sites, siteMount, err := newSites(db, cfg, tools, folders, projects, hub, sess, auth, sameOrigin, agentSessions)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -100,7 +101,8 @@ func newAgentAndSites(
 
 	tools.extensions = extensions
 
-	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, steps, hub, auth, sameOrigin)
+	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, steps, hub, auth,
+		sameOrigin, agentSessions)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

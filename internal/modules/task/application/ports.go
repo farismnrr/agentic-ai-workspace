@@ -106,7 +106,7 @@ type ToolSet interface {
 	Definitions() []domain.ToolDef
 	Risk(name string) domain.Risk
 	Describe(call Call) Described
-	Execute(ctx context.Context, projectID string, call Call) ToolResult
+	Execute(ctx context.Context, scope ToolScope, call Call) ToolResult
 	Undo(ctx context.Context, projectID string, blob []byte) error
 }
 
@@ -139,6 +139,11 @@ type TaskStore interface {
 	DeleteProject(ctx context.Context, userID, projectID string) error
 	// DeleteAll removes every task a person has, with its thread.
 	DeleteAll(ctx context.Context, userID string) error
+}
+
+// AgentSessionCleanup removes screenshot cookies when a task ends or is removed.
+type AgentSessionCleanup interface {
+	RevokeTask(userID, taskID string)
 }
 
 // EventStore persists the thread.

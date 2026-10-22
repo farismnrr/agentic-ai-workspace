@@ -39,8 +39,9 @@ type Deps struct {
 	// Shots keeps the screenshots tools produce; optional. Without it a screenshot is only described in words.
 	Shots Shots
 	// CLI runs tasks on a person's own plan with a vendor's coding program; optional. Sessions goes with it.
-	CLI      CLIRunner
-	Sessions CLISessions
+	CLI           CLIRunner
+	Sessions      CLISessions
+	AgentSessions AgentSessionCleanup
 }
 
 // Runner is the agent loop: it talks to the model, runs tools, and records every
@@ -91,6 +92,7 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 
 	// The task must still be recorded as stopped even if ctx was cancelled.
 	settle := context.WithoutCancel(ctx)
+	defer r.revokeFinishedTask(settle, task)
 
 	runCtx, cancel := context.WithTimeout(ctx, r.lim.wallTime(task.Team))
 	defer cancel()
@@ -114,6 +116,17 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 	if err := r.saveNotes(settle, task); err != nil {
 		r.settle(settle, task, failed("Project documents could not be saved.", "Press Continue to retry the export."))
 	}
+}
+
+func (r *Runner) revokeFinishedTask(ctx context.Context, task domain.Task) {
+	if r.deps.AgentSessions == nil {
+		return
+	}
+	current, err := r.deps.Tasks.Find(ctx, "", task.ID)
+	if err != nil || current.Status == domain.StatusNeedsInput || current.Status == domain.StatusReview {
+		return
+	}
+	r.deps.AgentSessions.RevokeTask(task.UserID, task.ID)
 }
 
 func (r *Runner) loop(ctx context.Context, task domain.Task) outcome {

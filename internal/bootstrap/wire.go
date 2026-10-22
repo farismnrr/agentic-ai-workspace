@@ -12,12 +12,10 @@ import (
 
 	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
 	cliagentsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/adapter/sqlite"
-	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
-	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
+	siteagentsession "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/adapter/agentsession"
 	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
-	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spacesqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/sqlite"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -28,8 +26,7 @@ import (
 
 // wire builds every feature and returns the route mounts in registration order.
 func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
-	sameOrigin := httpserver.SameOrigin(cfg.PublicURL, cfg.AllowedOrigins)
-	cors := httpserver.CORS(cfg.CORSOrigins)
+	sameOrigin, cors := routePolicies(cfg)
 
 	account, accountMount := newAccount(db, cfg, sameOrigin, accountLimits())
 	sess := sessions{account: account}
@@ -42,6 +39,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	}
 
 	engine, closeProxy := newSandboxEngine(cfg)
+	agentSessions := siteagentsession.New()
 
 	spaceStore, permissions := newPermissions(db, registry)
 
@@ -72,8 +70,9 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 	tasks, sites, agentMounts, stop, err := newAgentAndSites(
 		db, cfg, models, projects, tools, folders, toolGate{permissions: permissions}, agentSteps{log: log}, sess, auth,
-		sameOrigin)
+		sameOrigin, agentSessions)
 	if err != nil {
+		agentSessions.Close()
 		return nil, nil, err
 	}
 
@@ -86,7 +85,11 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		models.mounts, []httpserver.Mount{githubMount, newTemplate(tools, projects, auth, sameOrigin)},
 		[]httpserver.Mount{tools.plans.mount(auth, sameOrigin)}, spaceMounts)
 
-	return mounts, func() { stop(); closeProxy() }, nil
+	return mounts, func() { stop(); agentSessions.Close(); closeProxy() }, nil
+}
+
+func routePolicies(cfg config.Config) (fiber.Handler, fiber.Handler) {
+	return httpserver.SameOrigin(cfg.PublicURL, cfg.AllowedOrigins), httpserver.CORS(cfg.CORSOrigins)
 }
 
 func projectFeatures(
@@ -102,7 +105,7 @@ func projectFeatures(
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	tools.env, tools.plans.env = env, env
+	tools.env, tools.secrets, tools.plans.env = env, env, env
 	return projects, projectMount, settings, nil
 }
 
@@ -144,25 +147,6 @@ func joinMounts(groups ...[]httpserver.Mount) []httpserver.Mount {
 	}
 
 	return all
-}
-
-// newSpaceMounts wires the activity log, the app API and each hosted space.
-func newSpaceMounts(
-	cfg config.Config, projects *projectapp.Service, tools *agentTools, tasks *taskapp.Service,
-	registry *spaceapp.Registry, log *spaceapp.ActivityLog, permissions *spaceapp.Permissions, oauth *oauthapp.Service,
-	sess sessions, sameOrigin fiber.Handler,
-) []httpserver.Mount {
-	api := spacehttp.NewAPI(registry, sess, permissions, log)
-	mounts := []httpserver.Mount{api.Mount(sameOrigin)}
-
-	space := codingSpace()
-	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
-	handler := codingHandler(appWorkspaces{projects: projects, tools: tools}, codingmcp.Options{
-		Gate: gate{permissions: permissions}, Recorder: recorder{log: log}, Tasks: appThreads{tasks: tasks},
-		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
-	})
-
-	return append(mounts, mounter.Mount(space, handler))
 }
 
 // openFolders opens the project folders after deleting the old per-person ones.

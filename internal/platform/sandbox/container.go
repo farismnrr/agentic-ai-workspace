@@ -143,7 +143,7 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 
 // command runs through the image's start script when the proxy socket is mounted, so tools find it on a local port.
 func command(spec Spec) []string {
-	if spec.Egress == "" && spec.Site == "" && len(spec.Tunnels) == 0 {
+	if spec.Egress == "" && spec.Site == "" && spec.View == "" && len(spec.Tunnels) == 0 {
 		return spec.Argv
 	}
 

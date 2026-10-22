@@ -32,7 +32,7 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - When the AI starts an app, the server loads its pages and tells the AI about links that would not work.
 - Starting is quick. The security check and the other full checks run once, at the end, before the AI reports to you.
 - It also flags a stylesheet that is empty, never built (raw Tailwind) or answered with a web page.
-- `screenshot` uses that same path, so the AI sees the page as you do, with no login even for a private app.
+- `screenshot` uses the project's stable address. It does not borrow your browser's login or private-site ticket.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.
 - A login in your app still works: the server keeps the app's cookies for you and sends them back on the next request.
 - Those cookies live in server memory only. They are per app and per browser, and the browser never receives them.
@@ -46,6 +46,14 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - The AI can take a screenshot of your running app, on a desktop or a phone screen, to check how it looks. It shows in the thread.
 - It uses a headless browser in the sandbox. That browser has no internet, so fonts and images from other websites don't load in the screenshot, but they do for you.
 - It reaches only your project's own app.
+- `screenshot_session` can log in or out with a test account stored as Project Env secrets, or clear the agent's local session.
+- Enable **Manage screenshot login session** separately in Settings. Screenshot access alone does not allow login actions.
+- Login needs email, password, submit and readiness CSS selectors. Hidden CSRF fields work when the app submits them with its form or JavaScript handler.
+- The tool reports whether the requested readiness selector appeared. A screenshot or form submission alone does not prove login succeeded.
+- The agent cookie jar is separate from your browser. It stays in server memory for 30 minutes idle or four hours total, and is removed on reset, task cleanup or restart.
+- Agent screenshot sessions are limited to 16 per person and 256 across the server; each jar is capped at 128 cookies and 64 KiB.
+- Logout submits the app's logout flow, then clears the local jar even if the request fails. The tool cannot confirm that the app revoked its server-side session.
+- Apps that require browser storage, a real browser origin, MFA, CAPTCHA or SSO are unsupported. Pukat live compatibility has not been verified.
 - Screenshots are kept with the task and deleted with it.
 
 ## How sites are kept apart from your account

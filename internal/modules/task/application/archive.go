@@ -43,6 +43,9 @@ func (s *Service) ArchiveTasks(ctx context.Context, userID string, ids []string)
 				s.stopTask(ctx, task)
 			}
 			err = s.deps.Tasks.Archive(ctx, userID, id, s.deps.Now())
+			if err == nil && s.deps.AgentSessions != nil {
+				s.deps.AgentSessions.RevokeTask(userID, id)
+			}
 		}
 		result.Error = batchError(err)
 		result.OK = result.Error == ""
