@@ -45,7 +45,8 @@ fails, choose Retry or remove it. Photos show a thumbnail after upload; select
 it to open a larger preview. Other files show their name and size.
 
 You can attach up to 10 files to one message. Remove a file with its button
-before sending.
+before sending. After sending, photos appear in your message bubble and other
+files show as chips; select one to open it.
 
 Photos (PNG, JPEG, WebP, GIF, SVG), PDF and text files (TXT, Markdown, CSV,
 JSON, LOG) can be up to 25 MB each. Videos (MP4, WebM, MOV) can be up to
