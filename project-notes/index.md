@@ -2,26 +2,39 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/plan.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/plan.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/requirements.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/requirements.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/12.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/12.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/19.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/19.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/28.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/28.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/311.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/311.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/385.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/385.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/391.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/391.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/402.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/402.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/631.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/631.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/637.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/637.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/648.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/648.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/1277.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/1277.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/1284.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/1284.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/1326.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/1326.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/1899.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/1899.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/2091.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/2091.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/2098.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/2098.md; working; 2026-10-21T11:22:28Z
-- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/2113.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/2113.md; working; 2026-10-21T11:22:28Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md; working; 2026-10-22T05:41:09Z
+- [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md; done; 2026-10-21T13:38:46Z
+- [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md; done; 2026-10-21T13:38:46Z
+- [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md; done; 2026-10-21T13:38:46Z
+- [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/research/30.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/research/30.md; done; 2026-10-21T13:38:46Z
+- [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/prd/36.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/prd/36.md; done; 2026-10-21T13:38:46Z
+- [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/research/52.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/research/52.md; done; 2026-10-21T13:38:46Z
+- [revisi!](tasks/5f4a9d007389d1661c1bc4b2bc8ec197/plan.md) — project-notes/tasks/5f4a9d007389d1661c1bc4b2bc8ec197/plan.md; done; 2026-10-21T12:06:27Z
+- [revisi!](tasks/5f4a9d007389d1661c1bc4b2bc8ec197/requirements.md) — project-notes/tasks/5f4a9d007389d1661c1bc4b2bc8ec197/requirements.md; done; 2026-10-21T12:06:27Z
+- [revisi!](tasks/5f4a9d007389d1661c1bc4b2bc8ec197/research.md) — project-notes/tasks/5f4a9d007389d1661c1bc4b2bc8ec197/research.md; done; 2026-10-21T12:06:27Z
+- [revisi!](tasks/5f4a9d007389d1661c1bc4b2bc8ec197/research/18.md) — project-notes/tasks/5f4a9d007389d1661c1bc4b2bc8ec197/research/18.md; done; 2026-10-21T12:06:27Z
+- [revisi!](tasks/5f4a9d007389d1661c1bc4b2bc8ec197/prd/29.md) — project-notes/tasks/5f4a9d007389d1661c1bc4b2bc8ec197/prd/29.md; done; 2026-10-21T12:06:27Z
+- [revisi!](tasks/5f4a9d007389d1661c1bc4b2bc8ec197/research/39.md) — project-notes/tasks/5f4a9d007389d1661c1bc4b2bc8ec197/research/39.md; done; 2026-10-21T12:06:27Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/plan.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/plan.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/requirements.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/requirements.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/12.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/12.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/19.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/19.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/28.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/28.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/311.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/311.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/385.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/385.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/391.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/391.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/402.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/402.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/631.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/631.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/637.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/637.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/648.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/648.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/1277.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/1277.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/1284.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/1284.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/1326.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/1326.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/1899.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/1899.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/2091.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/2091.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/prd/2098.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/prd/2098.md; done; 2026-10-21T11:23:29Z
+- [ok gw mau revisi pelan pelan, ga usah over engineering ya](tasks/f2515af4f54b16129c324566b53f5145/research/2113.md) — project-notes/tasks/f2515af4f54b16129c324566b53f5145/research/2113.md; done; 2026-10-21T11:23:29Z
 - [Lnjut dah kita mau implement 2 fitur](tasks/20c2ef530617785d0cefb7b799dc5729/plan.md) — project-notes/tasks/20c2ef530617785d0cefb7b799dc5729/plan.md; done; 2026-10-21T02:32:27Z
 - [Lnjut dah kita mau implement 2 fitur](tasks/20c2ef530617785d0cefb7b799dc5729/requirements.md) — project-notes/tasks/20c2ef530617785d0cefb7b799dc5729/requirements.md; done; 2026-10-21T02:32:27Z
 - [Lnjut dah kita mau implement 2 fitur](tasks/20c2ef530617785d0cefb7b799dc5729/research.md) — project-notes/tasks/20c2ef530617785d0cefb7b799dc5729/research.md; done; 2026-10-21T02:32:27Z
