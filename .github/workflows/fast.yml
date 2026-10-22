@@ -86,7 +86,8 @@ jobs:
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
       - run: sh scripts/smoke-test.sh bin/agentic-ai-workspace
 
-  image:
+  # The two images build in parallel: the sandbox image is the slow one, and nothing makes the app image wait for it.
+  image-app:
     needs: [guardrails, frontend, backend-test, backend-lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -103,6 +104,17 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  image-sandbox:
+    needs: [guardrails, frontend, backend-test, backend-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/build-image
         with:
           suffix: -sandbox
