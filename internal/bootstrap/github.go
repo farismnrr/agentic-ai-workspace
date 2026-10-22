@@ -90,4 +90,8 @@ func (a *agentTools) useGitHub(github *githubapp.Service, projects projectOwners
 			}, true
 		}
 	}
+
+	if a.plans != nil {
+		a.plans.git = a.git
+	}
 }

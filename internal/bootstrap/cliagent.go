@@ -35,6 +35,7 @@ type projectEnv interface {
 type plans struct {
 	env     projectEnv
 	reach   codingrunner.Reach
+	git     func(projectID string) codingrunner.GitSource
 	service *cliagentapp.Service
 	engine  *codingrunner.Engine
 	folders *folder.Folders
@@ -136,4 +137,18 @@ func (b cliSandbox) erase(_ context.Context, userID string) error {
 	}
 
 	return nil
+}
+
+// gitOf is who the program acts as on GitHub in this project: its owner, when they connected it.
+func (p *plans) gitOf(ctx context.Context, projectID string) (*codingrunner.Git, bool) {
+	if p.git == nil {
+		return nil, false
+	}
+
+	git, ok := p.git(projectID)(ctx)
+	if !ok {
+		return nil, false
+	}
+
+	return &git, true
 }

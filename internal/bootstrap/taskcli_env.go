@@ -13,7 +13,7 @@ import (
 
 var errProjectEnvironmentUnavailable = errors.New("project environment unavailable")
 
-func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted codingrunner.Granted) (
+func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted codingrunner.Granted, hasGit bool) (
 	*sandbox.Docker, sandbox.Spec, func(), error,
 ) {
 	dir, err := p.folders.Dir(req.ProjectID)
@@ -26,7 +26,7 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted 
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("prepare program home: %w", err)
 	}
 
-	docker, spec, release, err := p.engine.Lease(ctx, dir, programHosts(p.hosts[req.Program], granted)...)
+	docker, spec, release, err := p.engine.Lease(ctx, dir, programHosts(p.hosts[req.Program], granted, hasGit)...)
 	if err != nil {
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("start program: %w", err)
 	}
@@ -42,8 +42,14 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted 
 }
 
 // programHosts is the program's own hosts plus what the project was granted as exact host:port targets.
-func programHosts(own []string, granted codingrunner.Granted) []string {
-	return append(slices.Clone(own), granted.Targets...)
+// GitHub is added when the project's owner connected it.
+func programHosts(own []string, granted codingrunner.Granted, hasGit bool) []string {
+	hosts := append(slices.Clone(own), granted.Targets...)
+	if hasGit {
+		hosts = append(hosts, codingrunner.GitHosts()...)
+	}
+
+	return hosts
 }
 
 func combineRelease(stop, release func()) func() {
@@ -71,6 +77,7 @@ func (p *plans) prepareBridge(
 
 func (p *plans) environment(
 	ctx context.Context, req taskapp.CLIRequest, spec sandbox.Spec, window int64, granted codingrunner.Granted,
+	git *codingrunner.Git,
 ) ([]string, error) {
 	var values map[string]string
 	if p.env != nil {
@@ -83,6 +90,10 @@ func (p *plans) environment(
 	entries := append(windowEnv(req.Program, window), "HOME="+sandbox.Home,
 		"CODEX_HOME="+sandbox.Home+"/.codex", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
 		"DISABLE_AUTOUPDATER=1", fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))
-	spec.Env = codingrunner.Environment(spec, append(append(entries, granting...), guardEnv(req)...)...)
+	entries = append(append(entries, granting...), guardEnv(req)...)
+	if git != nil && spec.Egress != "" {
+		entries = append(entries, codingrunner.GitEnvironment(*git)...)
+	}
+	spec.Env = codingrunner.Environment(spec, entries...)
 	return codingrunner.MergeProjectEnvironment(spec.Env, values), nil
 }
