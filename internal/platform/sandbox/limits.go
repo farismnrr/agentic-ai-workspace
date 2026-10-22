@@ -3,8 +3,11 @@ package sandbox
 // Limits bound what one sandboxed command may consume. The Docker daemon enforces
 // them for the whole container, including every process it starts.
 type Limits struct {
-	// MemoryBytes caps memory, tmpfs included; swap is off.
+	// MemoryBytes caps memory, tmpfs included.
 	MemoryBytes uint64
+	// SwapBytes is the swap a command may add on top of MemoryBytes; zero keeps swap off. Memory plus swap is
+	// still a hard cap for the container, so a runaway command is killed before it can fill the host's swap.
+	SwapBytes uint64
 	// FileBytes caps the size of any single file the command writes.
 	FileBytes uint64
 	// Processes caps how many processes and threads a task may have.

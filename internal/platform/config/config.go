@@ -14,6 +14,7 @@ const (
 	defaultSitesTotal      = 20
 	defaultSandboxMemoryMB = 2048
 	defaultSandboxCPUs     = 1
+	defaultSandboxSwapMB   = 0
 	defaultPort            = "8081"
 	defaultDataDir         = "data"
 	defaultAdminEmail      = "farismunir2@gmail.com"
@@ -62,6 +63,7 @@ type Config struct {
 	SiteMaxTotal     int
 	SandboxMemoryMB  int
 	SandboxCPUs      int
+	SandboxSwapMB    int
 	CookieSecure     bool
 }
 
@@ -118,6 +120,7 @@ func Load() Config {
 		ChatGPTEgress:     list("CHATGPT_EGRESS_HOSTS", defaultChatGPTHosts),
 		SandboxMemoryMB:   atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
 		SandboxCPUs:       atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
+		SandboxSwapMB:     atoi(getenv("SANDBOX_SWAP_MB", strconv.Itoa(defaultSandboxSwapMB)), defaultSandboxSwapMB),
 		CookieSecure:      strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
 		GitHub: GitHub{
 			ClientID:     strings.TrimSpace(os.Getenv("GITHUB_CLIENT_ID")),

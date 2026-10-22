@@ -29,6 +29,10 @@ func sandboxConfig(cfg config.Config) sandbox.Config {
 		limits.MemoryBytes = uint64(cfg.SandboxMemoryMB) * mebibyte
 	}
 
+	if cfg.SandboxSwapMB > 0 {
+		limits.SwapBytes = uint64(cfg.SandboxSwapMB) * mebibyte
+	}
+
 	if cfg.SandboxCPUs > 0 {
 		limits.CPUMillis = uint64(cfg.SandboxCPUs) * millisPerCore
 	}

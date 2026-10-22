@@ -134,7 +134,7 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 			CapDrop:    []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"},
 			Mounts: mounts, Tmpfs: map[string]string{"/tmp": tmpfsOpts},
 			Resources: container.Resources{
-				Memory: memory, MemorySwap: memory, PidsLimit: &pids,
+				Memory: memory, MemorySwap: memory + signed(limits.SwapBytes), PidsLimit: &pids,
 				NanoCPUs: signed(limits.CPUMillis) * nanoPerMS, Ulimits: []*container.Ulimit{fsize},
 			},
 		},

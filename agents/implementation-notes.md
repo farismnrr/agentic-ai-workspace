@@ -41,6 +41,7 @@ Tasks and commands run inside `platform/sandbox`, which starts one throwaway Doc
 **Lifecycle.**
 - Containers carry a label with an owner id derived from the data folder; at startup the server removes only leftovers with its own owner id.
 - Docker is opened lazily and warmed in the background. If the daemon is unreachable, checks fail with a plain reason and nothing else breaks.
+- Every sandbox container caps memory plus swap (`SANDBOX_MEMORY_MB` + `SANDBOX_SWAP_MB`, swap 0 by default). `compose.dev.yaml` runs this computer's profile (3 GiB + 3 GiB swap, 2 CPUs, 5 sandboxes, 3 workers, 6 sites, app `mem_limit` 2g): worst case (5+6) x 6 GiB stays under its 23 GB RAM + 71 GB swap. Re-do that sum before raising any of them.
 - A shared pool (`MAX_SANDBOXES`) bounds how many containers run at once. A watcher stops a run whose workspace grows past 2 GiB.
 
 **Not covered.** Disk quotas (the watcher polls once a second, so use filesystem quotas for a hard limit); data smuggled out inside requests to an allowed registry (it has no credentials, but a request can still carry bytes); and the host kernel and Docker daemon, which a container always shares with the host. Whoever controls the Docker socket controls the host, so Docker rootless mode is the recommended mitigation.
