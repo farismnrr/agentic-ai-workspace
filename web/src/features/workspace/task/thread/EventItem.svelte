@@ -1,7 +1,7 @@
 <script lang="ts">
   import { rawUrl } from '../../logic/files-api';
   import { clock } from '../../logic/time';
-  import type { TaskEvent } from '../../logic/task-types';
+  import type { Proof, TaskEvent } from '../../logic/task-types';
   import { splitAttachments } from '../../logic/message-attachments';
   import { questionsOf } from '../../logic/question-form';
   import { shotUrl } from '../../logic/tasks-api';
@@ -23,13 +23,12 @@
     taskId: string;
     projectId: string;
     actions: ThreadActions;
-    proven: boolean;
+    proof?: Proof | undefined;
     onretry?: (() => void) | undefined;
-    onproof?: (() => void) | undefined;
     readOnly?: boolean;
   }
 
-  const { event, taskId, projectId, actions, proven, onretry, onproof, readOnly = false }: Props = $props();
+  const { event, taskId, projectId, actions, proof, onretry, readOnly = false }: Props = $props();
 </script>
 
 {#if event.kind === 'request'}
@@ -66,7 +65,7 @@
     {:else if event.kind === 'site'}
       <SiteCard text={event.text} url={event.url} />
     {:else}
-      <ResultCard kind="receipt" text={event.text} {proven} {onproof} />
+      <ResultCard kind="receipt" text={event.text} proven={proof?.proven ?? false} checks={proof?.checks ?? []} />
     {/if}
   </div>
 {/if}

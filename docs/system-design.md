@@ -135,9 +135,14 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 - **Switches win.** A tool that is off is never offered to the model and never run.
 - **Pause and resume.** The conversation is stored, so a task can wait for you and continue later.
 - **Project documents.** Task plans, requirements and research are exported into `project-notes/`. New tasks get an index reference; documents are loaded through existing file tools.
-- **Task archive.** Archived tasks leave active lists and counts, but retain their records and pin. Restore returns them to active lists. Permanent deletion stops a running task, removes its screenshots and task documents, deletes its records, then rebuilds the project document index. Shared project uploads are not task-owned and remain untouched.
+- **Task archive.** Archive and delete controls live in task lists. Archived
+  tasks leave active lists and counts, but retain their records and pin. Their
+  pages are read-only; restore is available in Archive. Permanent deletion
+  stops a running task, removes its screenshots and task documents, deletes
+  its records, then rebuilds the project document index. Shared uploads remain.
 - **Long input.** Messages over 12,000 characters become an exact text document, a manifest and readable parts. The thread holds a preview and download link. Request-body limits still apply.
-- **Proof.** Built only from checks the app ran itself after the last change. Claims the AI makes alone are marked "claimed".
+- **Task result.** The receipt summarizes checks after the last change.
+  Verified checks are distinct from checks the AI only claims to have run.
 - **Checks.** A project's checks live in `.workspace/tasks.json`. The AI's tools can never read or write that file.
 - **GitHub.** Each person connects their own account. Commands get only their token. Web apps never do.
 
@@ -146,7 +151,8 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 - **How:** the provider's own program (Claude Code or Codex) runs in the sandbox image, once per turn, in the project's folder. The app reads what it prints and records the steps.
 - **Sign-in:** the program signs in on the provider's page. The app never reads or stores the token. It only keeps the program's folder per person and removes it with the account.
 - **Network:** the program reaches only its provider's hosts, through the same per-person proxy socket.
-- **Proof:** commands the program ran count like the app's own, so "Proven to work" still comes from the app.
+- **Checks:** commands the program ran count like the app's own, so
+  "Proven to work" still comes from the app.
 
 ## Models
 

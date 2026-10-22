@@ -30,9 +30,31 @@ export const homeCopy = {
 };
 
 export const proofCopy = {
-  empty: { title: 'No proof yet', body: "It shows up once the work is finished and checked, with what changed and what was tested." },
   proven: 'Proven to work',
   unproven: 'Not independently checked',
   verified: 'Checked by the app',
-  claimed: 'Only said by the AI',
 };
+
+interface CheckSummaryInput {
+  verified: boolean;
+  passed: boolean;
+}
+
+const plural = (count: number, singular: string): string => `${String(count)} ${singular}${count === 1 ? '' : 's'}`;
+
+export function summarizeChecks(checks: CheckSummaryInput[]): string {
+  const verified = checks.filter((check) => check.verified);
+  const claimed = checks.filter((check) => !check.verified);
+  const failedVerified = verified.filter((check) => !check.passed).length;
+  const failedClaimed = claimed.filter((check) => !check.passed).length;
+
+  if (checks.length === 0) return 'No checks were reported.';
+  if (failedVerified > 0) return `${plural(failedVerified, 'check')} ran but did not pass.`;
+  if (failedClaimed > 0) return `The AI says it ran ${plural(claimed.length, 'check')}; ${plural(failedClaimed, 'check')} did not pass, and nobody confirmed the results.`;
+  if (claimed.length > 0 && verified.length > 0) {
+    const otherChecks = `${String(claimed.length)} other ${claimed.length === 1 ? 'check' : 'checks'}`;
+    return `${plural(verified.length, 'check')} ran and passed; the AI says it ran ${otherChecks}, which nobody confirmed.`;
+  }
+  if (claimed.length > 0) return `The AI says it ran ${plural(claimed.length, 'check')}; nobody confirmed the results.`;
+  return `${plural(verified.length, 'check')} ran and passed.`;
+}

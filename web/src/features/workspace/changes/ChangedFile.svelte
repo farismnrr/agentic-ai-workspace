@@ -6,12 +6,11 @@
 
   interface Props {
     change: FileChange;
-    split: boolean;
     open: boolean;
     ontoggle: () => void;
   }
 
-  const { change, split, open, ontoggle }: Props = $props();
+  const { change, open, ontoggle }: Props = $props();
   let stats = $state<DiffStats>();
 
   const label: Record<FileStatus, { text: string; tone: string }> = {
@@ -46,7 +45,7 @@
         <p class="p-3 text-sm text-[var(--brand-text-secondary)]">Moved without changing its content.</p>
       {:else}
         {#if change.truncated}<p class="px-3 pt-2 text-xs text-[var(--brand-text-secondary)]">This file is large, so only the start is compared.</p>{/if}
-        <DiffView path={change.path} before={change.before} after={change.after} {split} />
+        <DiffView path={change.path} before={change.before} after={change.after} />
       {/if}
     </div>
   {/if}

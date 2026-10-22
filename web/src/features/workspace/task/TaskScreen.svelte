@@ -11,14 +11,10 @@
   import { projects } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import WorkPanel from './panel/WorkPanel.svelte';
-  import { panelTabsFor, type PanelTab } from './panel/tabs';
+  import { panelTabs, type PanelTab } from './panel/tabs';
   import ReviewBar from './ReviewBar.svelte';
   import TaskHeader from './TaskHeader.svelte';
   import TaskThread from './thread/TaskThread.svelte';
-  import ConfirmModal from '../components/ConfirmModal.svelte';
-  import { changeTasks, type TaskBatchAction } from '../logic/tasks-api';
-  import { navigate } from '../../../app/router';
-  import { refresh, removeTasks } from '../logic/workspace-store';
 
   interface Props {
     projectId: string;
@@ -39,7 +35,7 @@
 
   const project = $derived(findProject($projects, projectId));
   const crumbs = $derived([{ label: 'Projects', href: '/app/projects' }, { label: project?.name ?? 'Project', href: `/app/projects/${projectId}` }]);
-  const views = $derived<{ id: View; label: string }[]>([{ id: 'chat', label: 'Chat' }, ...panelTabsFor($task?.team ?? false)]);
+  const views = $derived<{ id: View; label: string }[]>([{ id: 'chat', label: 'Chat' }, ...panelTabs]);
   const canWrite = $derived($task?.status === 'review' || $task?.status === 'done' || $task?.status === 'failed');
   let view = $state<View>('chat');
   let follow = $state('');
@@ -47,11 +43,7 @@
   let uploadError = $state('');
   let uploadBusy = $state(false);
   let uploadProgress = $state('');
-  let confirming = $state<'archive' | 'delete' | undefined>();
-  let taskActionError = $state('');
-  let taskActionBusy = $state(false);
   const archived = $derived($task?.archivedAt != null);
-  const running = $derived(['queued', 'planning', 'working'].includes($task?.status ?? ''));
   const panelTab = $derived<PanelTab>(view === 'chat' ? 'plan' : view);
 
   const controller = createController(id, thread);
@@ -80,30 +72,6 @@
 
   const focusFollowUp = (): void => document.getElementById('follow-up')?.focus();
 
-  function requestTaskAction(action: 'archive' | 'delete'): void {
-    if (action === 'delete' || running) confirming = action;
-    else void applyTaskAction(action);
-  }
-
-  async function applyTaskAction(action: TaskBatchAction): Promise<void> {
-    confirming = undefined;
-    taskActionBusy = true;
-    taskActionError = '';
-    try {
-      const [result] = await changeTasks(action, [id]);
-      if (result?.ok !== true) throw new Error('Task action failed');
-      if (action === 'archive' || action === 'delete') {
-        removeTasks([id]);
-        navigate('/app/tasks');
-      } else {
-        await Promise.all([thread.refresh(), refresh()]);
-      }
-    } catch {
-      taskActionError = 'The task could not be updated. Try again.';
-    } finally {
-      taskActionBusy = false;
-    }
-  }
 </script>
 
 <svelte:head><title>{$task?.title ?? 'Task'} · Masih Awam</title></svelte:head>
@@ -122,18 +90,10 @@
     <div class="flex h-[calc(100dvh-3rem)] flex-col">
       <TaskHeader task={$task} {archived} onstop={controller.stop} onretry={controller.retry} />
       {#if archived}
-        <div class="flex flex-wrap items-center gap-3 border-b border-[var(--brand-border)] bg-base-100 px-4 py-2" role="status">
+        <div class="border-b border-[var(--brand-border)] bg-base-100 px-4 py-2" role="status">
           <span class="font-medium">This task is archived</span>
-          <button class="btn btn-outline btn-sm" type="button" disabled={taskActionBusy} onclick={() => void applyTaskAction('restore')}>Restore</button>
-          <button class="btn btn-error btn-outline btn-sm" type="button" disabled={taskActionBusy} onclick={() => { requestTaskAction('delete'); }}>Delete permanently</button>
-        </div>
-      {:else}
-        <div class="flex items-center gap-2 border-b border-[var(--brand-border)] bg-base-100 px-4 py-2">
-          <button class="btn btn-outline btn-sm" type="button" disabled={taskActionBusy} onclick={() => { requestTaskAction('archive'); }}>Archive</button>
-          <button class="btn btn-error btn-outline btn-sm" type="button" disabled={taskActionBusy} onclick={() => { requestTaskAction('delete'); }}>Delete permanently</button>
         </div>
       {/if}
-      <p class="sr-only" aria-live="polite">{taskActionError}</p>
       <div role="tablist" class="tabs tabs-border overflow-x-auto border-b border-[var(--brand-border)] bg-base-100 px-2 lg:hidden" aria-label="Task sections">
         {#each views as item (item.id)}
           <button role="tab" class="tab px-2.5 {view === item.id ? 'tab-active font-medium' : ''}" aria-selected={view === item.id} onclick={() => (view = item.id)}>{item.label}</button>
@@ -141,7 +101,7 @@
       </div>
       <div class="flex min-h-0 flex-1">
         <section class="min-w-0 flex-1 flex-col lg:flex {view === 'chat' ? 'flex' : 'hidden'}" aria-label="Conversation">
-          <TaskThread task={$task} events={$events} draft={$draft} actions={controller.actions} onretry={controller.retry} onproof={() => (view = 'proof')} readOnly={archived} />
+          <TaskThread task={$task} events={$events} draft={$draft} actions={controller.actions} onretry={controller.retry} readOnly={archived} />
           {#if !archived && $task.status === 'review'}
             <ReviewBar proven={$task.proof?.proven ?? false} onaccept={controller.accept} onchanges={focusFollowUp} />
           {/if}
@@ -168,10 +128,3 @@
     </div>
   {/if}
 </AppShell>
-
-<ConfirmModal open={confirming !== undefined}
-  title={confirming === 'delete' ? 'Delete 1 task permanently?' : 'Archive this task?'}
-  body={confirming === 'delete' ? 'This cannot be undone.' : 'The task will move to Archive.'}
-  warning={confirming === 'archive' && running ? '1 task is still running and will be stopped.' : ''}
-  confirmLabel={confirming === 'delete' ? 'Delete permanently' : 'Archive'} cancelLabel="Cancel"
-  oncancel={() => (confirming = undefined)} onconfirm={() => void applyTaskAction(confirming ?? 'archive')} />
