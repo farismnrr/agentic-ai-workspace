@@ -2,6 +2,7 @@
   import { rawUrl } from '../../logic/files-api';
   import { clock } from '../../logic/time';
   import type { TaskEvent } from '../../logic/task-types';
+  import { splitAttachments } from '../../logic/message-attachments';
   import { questionsOf } from '../../logic/question-form';
   import { shotUrl } from '../../logic/tasks-api';
   import type { ThreadActions } from '../../logic/task-actions';
@@ -12,6 +13,7 @@
   import PlanCard from './PlanCard.svelte';
   import PrdCard from './PrdCard.svelte';
   import QuestionCard from './QuestionCard.svelte';
+  import SentFiles from './SentFiles.svelte';
   import ResultCard from './ResultCard.svelte';
   import ShotCard from './ShotCard.svelte';
   import SiteCard from './SiteCard.svelte';
@@ -31,7 +33,13 @@
 </script>
 
 {#if event.kind === 'request'}
-  <ChatBubble who="you" text={event.text} time={clock(event.time)} />
+  {@const sent = splitAttachments(event.text)}
+  {#if sent.files.length > 0}
+    <div class="mb-1"><SentFiles {projectId} files={sent.files} /></div>
+  {/if}
+  {#if sent.text !== '' || sent.files.length === 0}
+    <ChatBubble who="you" text={sent.text} time={clock(event.time)} />
+  {/if}
   {#if event.documents?.[0] !== undefined}
     <div class="mt-2 flex justify-end"><a class="badge badge-outline link" href={rawUrl(projectId, event.documents[0])}>Download full message</a></div>
   {/if}
