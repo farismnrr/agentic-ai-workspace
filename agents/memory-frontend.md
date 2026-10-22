@@ -49,3 +49,5 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
   and after with `scripts/shots.sh`; inspect every desktop and mobile capture.
   Source review alone misses overflow, excess surfaces and spacing drift.
 
+
+- Never write reactive state (`SvelteMap.set`, `$state`) while a template renders, for example in a helper called from markup: Svelte throws `state_unsafe_mutation`, aborts the update and leaves the old DOM on screen (the attachment chip stayed on "Uploading…" after the upload succeeded). Unit tests do not see it; drive the built app in a real browser (Playwright against a throwaway instance on another port) and watch `pageerror`.
