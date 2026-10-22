@@ -194,6 +194,5 @@
     {error}
     pickerErrors={pickerErrors}
     warning={totalSize > 100 * 1024 * 1024}
-    waiting={needsProject}
   />
 </form>

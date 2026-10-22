@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { SvelteMap } from 'svelte/reactivity';
   import Icon from '../../../shared/ui/Icon.svelte';
   import { attachmentKind, formatFileSize, type Attachment } from '../logic/attachments';
 
@@ -14,7 +13,9 @@
   }
 
   let { attachments, busy = false, waiting = false, onremove, onretry }: Props = $props();
-  const previews = new SvelteMap<File, string>();
+  // Plain map on purpose: previewUrl() runs while rendering, where writing reactive state is an error.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- never read reactively
+  const previews = new Map<File, string>();
   let selected = $state<Attachment | undefined>();
   let dialog = $state<HTMLDialogElement>();
 
