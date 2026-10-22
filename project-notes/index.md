@@ -2,7 +2,12 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md; working; 2026-10-22T05:41:09Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md; working; 2026-10-22T06:18:27Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md; done; 2026-10-21T13:38:46Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md; done; 2026-10-21T13:38:46Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md; done; 2026-10-21T13:38:46Z
