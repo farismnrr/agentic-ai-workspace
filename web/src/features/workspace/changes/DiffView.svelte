@@ -5,19 +5,18 @@
     path: string;
     before: string;
     after: string;
-    split: boolean;
   }
 
-  const { path, before, after, split }: Props = $props();
+  const { path, before, after }: Props = $props();
   let host = $state<HTMLDivElement>();
 
-  // The comparison is drawn again whenever the text or the layout changes.
+  // The comparison is drawn again whenever the text changes.
   $effect(() => {
     const parent = host;
     if (parent === undefined) return;
     let gone = false;
     let made: DiffEditor | undefined;
-    void createDiff({ parent, path, before, after, split }).then((created) => {
+    void createDiff({ parent, path, before, after }).then((created) => {
       if (gone) created.destroy();
       else made = created;
     });

@@ -1,4 +1,5 @@
 import type { Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { languageFor } from './editor';
 
 export interface DiffOptions {
@@ -6,8 +7,6 @@ export interface DiffOptions {
   path: string;
   before: string;
   after: string;
-  /** Old and new side by side; otherwise one column with the removed lines among the added. */
-  split: boolean;
 }
 
 export interface DiffEditor {
@@ -15,6 +14,17 @@ export interface DiffEditor {
 }
 
 const collapse = { margin: 2, minSize: 4 };
+
+const markerTheme = EditorView.theme({
+  '.cm-merge-b .cm-changedLine::before': {
+    content: '"+"', color: 'var(--color-success)', display: 'inline-block',
+    fontWeight: '700', paddingRight: '0.5em', userSelect: 'none',
+  },
+  '.cm-deletedLine::before': {
+    content: '"−"', color: 'var(--color-error)', display: 'inline-block',
+    fontWeight: '700', paddingRight: '0.5em', userSelect: 'none',
+  },
+});
 
 /** Shows how a file changed. The comparison code is loaded only when a diff is opened. */
 export async function createDiff(options: DiffOptions): Promise<DiffEditor> {
@@ -26,16 +36,8 @@ export async function createDiff(options: DiffOptions): Promise<DiffEditor> {
   ]);
   const common: Extension[] = [
     EditorState.readOnly.of(true), EditorView.editable.of(false), EditorView.lineWrapping,
-    theme.editorTheme, theme.syntaxColors, theme.diffTheme, await languageFor(options.path),
+    theme.editorTheme, theme.syntaxColors, theme.diffTheme, markerTheme, await languageFor(options.path),
   ];
-
-  if (options.split) {
-    const view = new merge.MergeView({
-      parent: options.parent, gutter: true, highlightChanges: true, collapseUnchanged: collapse,
-      a: { doc: options.before, extensions: common }, b: { doc: options.after, extensions: common },
-    });
-    return { destroy: () => { view.destroy(); } };
-  }
 
   const view = new EditorView({
     parent: options.parent, doc: options.after,

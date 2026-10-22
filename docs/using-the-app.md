@@ -21,12 +21,12 @@ again to remove it; the task then returns to Recent.
 
 ## Archive and delete tasks
 
-Use **Archive** on a task page, in Tasks, or in a project's Tasks tab to hide
+Use **Archive** in Tasks or a project's Tasks tab to hide
 work you no longer need in active lists. Archived tasks leave Recent, Pinned,
 Tasks and needs-you counts, and appear in **Archive** in the sidebar.
 
-Archiving a running task stops it. The task page becomes read-only and offers
-Restore. Restoring returns the task to active lists and keeps its pin.
+Archiving a running task stops it. Its task page becomes read-only. Restore it
+from the Archive list to return it to active lists; its pin is kept.
 
 Select several tasks to archive, restore or delete them together. **Select all
 shown** applies to the rows currently displayed. In Archive, restore tasks to
@@ -86,16 +86,19 @@ The task page has the conversation on one side and a panel on the other. On a ph
 
 | Tab | Shows |
 | --- | --- |
-| Plan | The team's todo list: every request you send adds its steps, and each step shows who does it and where it is. A teammate that gets stuck turns its step red with the reason |
-| Proof | What changed, how it was tested, and what was checked |
-| Changes | Each file the task changed, as a diff, with every step and its Undo |
+| Plan | The team's todo list and each step's owner and status |
+| Documents | Plans, requirements and research for this task |
+| Team | Jobs, who did them, and their reports (shown on every task) |
+| Changes | Edits made with the AI's file tools, shown as a diff |
 | Files | The whole project: open any file, edit it by hand and save. PDFs and pictures are shown in place, and any file can be downloaded |
 
 About Changes:
 
 - **One diff per file,** against how the task found it, even if the AI edited the file many times.
-- **Green** lines were added and **red** lines removed; each file shows its `+` and `−` counts.
-- **Unified** shows one column. **Split** shows old and new side by side. A wide panel starts in Split.
+- **Green** lines were added and **red** lines removed. `+` and `−` markers
+  make the change clear without relying on color; each file shows its counts.
+- The list shows edits made with the AI's file tools. Changes made through git
+  or shell commands do not appear here.
 - **It updates as the AI works.** Steps, with Undo, is listed under the files.
 
 About Files:
@@ -108,10 +111,11 @@ About Files:
 - **Hidden:** secrets such as `.env` files and keys never show.
 - **Save** with the button or Ctrl/Cmd+S.
 
-About Proof:
+About the result:
 
 - **"Proven to work"** appears only when a check the app ran itself passed after the last change.
 - **"Verified"** marks checks the app ran. **"Claimed"** marks things the AI only said.
+- The result summarizes the checks in plain language.
 - **A question that needs no changes** is answered in the conversation and ends as Done, with no review step.
 - **The header** shows which model and effort the task used, and how full the AI's memory is.
 
@@ -371,9 +375,9 @@ Good to know:
 
 - Every step shows who did it, including the lead's own, with a card when work changes hands.
 - The Team tab lists each job: who has it, which model, what was asked, how many steps, files and checks, and the report.
-- The Proof tab names who ran each check.
+- The result summarizes checks, distinguishing verified runs from claims.
 - A teammate still asks before changing anything, with the same Allow button.
-- Proof counts the checks any teammate ran after the last change.
+- Checks any teammate ran after the last change count toward the result.
 - A team task may run 400 model turns and 2 hours, shared by everyone on it. A teammate may take 60 turns per job.
 - If a limit is reached, the task pauses with Continue. Nothing is lost: the work stays and the team carries on.
 - If six jobs in a row change nothing, run no check and write nothing, the lead is told the team is stuck and must change its approach or tell you what blocks it.

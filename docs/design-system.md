@@ -133,7 +133,8 @@ flat and use shared empty states instead of nested cards.
 - **Task page:** the bottom bar steps aside, so the conversation keeps the whole screen.
 - **Status:** always an icon plus a text label, never color alone.
 - **Approvals:** show the exact action, a risk label, and Allow or Don't allow.
-- **Proof:** separates what the app verified from what the AI only claimed. "Proven to work" appears only for verified, passing checks.
+- **Task result:** summarizes verified checks and AI claims in plain language.
+  "Proven to work" appears only for verified, passing checks.
 - **No fakes:** screens never show sample data or pretend buttons. Destructive actions ask for confirmation.
 
 ## Accessibility
