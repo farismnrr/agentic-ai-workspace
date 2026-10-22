@@ -51,6 +51,27 @@ func TestValuesReturnsOnlyTheRequestedProjectsDecryptedMap(t *testing.T) {
 	}
 }
 
+func TestSecretResolutionRequiresProjectOwnerAndSecretVariable(t *testing.T) {
+	store := &memoryStore{items: map[string][]StoredVariable{
+		"one": {
+			{Name: "LOGIN_EMAIL", Sealed: "person@example.test", IsSecret: true},
+			{Name: "PUBLIC_LABEL", Sealed: "hello", IsSecret: false},
+		},
+	}}
+	service := NewService(store, identityCipher{}, owners{"one": "alice"}, time.Now)
+
+	value, err := service.Secret(context.Background(), "alice", "one", "LOGIN_EMAIL")
+	if err != nil || value != "person@example.test" {
+		t.Fatalf("owned secret = %q, %v", value, err)
+	}
+	if _, err = service.Secret(context.Background(), "bob", "one", "LOGIN_EMAIL"); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("foreign secret error = %v", err)
+	}
+	if _, err = service.Secret(context.Background(), "alice", "one", "PUBLIC_LABEL"); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("non-secret error = %v", err)
+	}
+}
+
 func TestPutRequiresProjectOwnershipAndValidValues(t *testing.T) {
 	store := &memoryStore{items: map[string][]StoredVariable{}}
 	service := NewService(store, identityCipher{}, owners{"p1": "alice"}, time.Now)

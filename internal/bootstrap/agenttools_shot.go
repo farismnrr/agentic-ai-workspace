@@ -26,16 +26,17 @@ func screenshotDefinition() taskdomain.ToolDef {
 }
 
 func describeShot(in toolArgs) taskapp.Described {
+	path := sitedomain.CaptureReportPath(in.Path)
 	text := "Looked at your app on a desktop screen"
 	if in.Device == "mobile" {
 		text = "Looked at your app on a phone screen"
 	}
 
-	return said(text, "", "screenshot "+in.Path)
+	return said(text, "", "screenshot "+path)
 }
 
 // executeShot photographs a page of the project's running app.
-func (a *agentTools) executeShot(ctx context.Context, projectID string, call taskapp.Call) taskapp.ToolResult {
+func (a *agentTools) executeShot(ctx context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {
 	if a.sites == nil {
 		return problem("Web apps are not available right now.")
 	}
@@ -47,7 +48,7 @@ func (a *agentTools) executeShot(ctx context.Context, projectID string, call tas
 
 	spec := sitedomain.CaptureSpec{Path: in.Path, Y: in.Y, Overview: in.Overview, Mobile: in.Device == "mobile"}
 
-	shot, err := a.sites.Capture(ctx, projectID, spec)
+	shot, err := a.sites.CaptureForAgent(ctx, scope.UserID, scope.ProjectID, scope.TaskID, spec)
 	if err != nil {
 		return problem(shotFailure(err))
 	}

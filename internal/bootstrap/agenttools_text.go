@@ -94,6 +94,9 @@ func describe(tool string, in toolArgs) taskapp.Described {
 	if tool == toolScreenshot {
 		return describeShot(in)
 	}
+	if tool == toolScreenshotSession {
+		return describeSessionAction(in)
+	}
 
 	if tool == toolViewImage {
 		return describeView(in)

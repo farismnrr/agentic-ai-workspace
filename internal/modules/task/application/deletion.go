@@ -59,6 +59,7 @@ func (s *Service) deleteTasksInChunks(
 			markDeleteFailure(results, chunk)
 		}
 		for _, task := range tasksByID(chunk, deleted) {
+			s.revokeAgentSession(task)
 			projects[task.ProjectID] = struct{}{}
 			s.removeTaskFiles(ctx, task)
 		}

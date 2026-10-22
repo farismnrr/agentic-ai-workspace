@@ -14,32 +14,41 @@ import (
 )
 
 type toolArgs struct {
-	Path          string `json:"path"`
-	Pattern       string `json:"pattern"`
-	Query         string `json:"query"`
-	OldText       string `json:"old_text"`
-	NewText       string `json:"new_text"`
-	Content       string `json:"content"`
-	From          string `json:"from"`
-	To            string `json:"to"`
-	Name          string `json:"name"`
-	Command       string `json:"command"`
-	Device        string `json:"device"`
-	URL           string `json:"url"`
-	Port          int    `json:"port"`
-	Y             int    `json:"y"`
-	StartLine     int    `json:"start_line"`
-	TimeoutSecs   int    `json:"timeout_seconds"`
-	EndLine       int    `json:"end_line"`
-	ReplaceAll    bool   `json:"replace_all"`
-	CaseSensitive bool   `json:"case_sensitive"`
-	Overview      bool   `json:"overview"`
+	Path             string `json:"path"`
+	Pattern          string `json:"pattern"`
+	Query            string `json:"query"`
+	OldText          string `json:"old_text"`
+	NewText          string `json:"new_text"`
+	Content          string `json:"content"`
+	From             string `json:"from"`
+	To               string `json:"to"`
+	Name             string `json:"name"`
+	Command          string `json:"command"`
+	Device           string `json:"device"`
+	URL              string `json:"url"`
+	Action           string `json:"action"`
+	EmailSecret      string `json:"email_secret"`
+	PasswordSecret   string `json:"password_secret"`
+	EmailSelector    string `json:"email_selector"`
+	PasswordSelector string `json:"password_selector"`
+	SubmitSelector   string `json:"submit_selector"`
+	ReadySelector    string `json:"ready_selector"`
+	ErrorSelector    string `json:"error_selector"`
+	Port             int    `json:"port"`
+	Y                int    `json:"y"`
+	StartLine        int    `json:"start_line"`
+	TimeoutSecs      int    `json:"timeout_seconds"`
+	EndLine          int    `json:"end_line"`
+	ReplaceAll       bool   `json:"replace_all"`
+	CaseSensitive    bool   `json:"case_sensitive"`
+	Overview         bool   `json:"overview"`
 }
 
 type toolHandler func(ctx context.Context, services codingmcp.Services, in toolArgs) taskapp.ToolResult
 
 // Execute runs a project tool. Failures become results the model can read and react to.
-func (a *agentTools) Execute(ctx context.Context, projectID string, call taskapp.Call) taskapp.ToolResult {
+func (a *agentTools) Execute(ctx context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {
+	projectID := scope.ProjectID
 	if isSiteTool(call.Name) {
 		return a.executeSite(ctx, projectID, call)
 	}
@@ -49,7 +58,10 @@ func (a *agentTools) Execute(ctx context.Context, projectID string, call taskapp
 	}
 
 	if call.Name == toolScreenshot {
-		return a.executeShot(ctx, projectID, call)
+		return a.executeShot(ctx, scope, call)
+	}
+	if call.Name == toolScreenshotSession {
+		return a.executeScreenshotSession(ctx, scope, call)
 	}
 
 	if call.Name == toolViewImage {

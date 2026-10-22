@@ -22,6 +22,7 @@ const (
 type relayRequest struct {
 	Header   http.Header
 	Jar      *jarSession
+	AgentJar http.CookieJar
 	Visitor  string
 	Socket   string
 	Method   string
@@ -58,6 +59,16 @@ func relay(ctx context.Context, in relayRequest) (relayAnswer, *relayFailure) {
 
 	req.Header = forSiteRequest(in.Header, in.Prefix, in.ClientIP, in.Preview)
 	req.Host = "site"
+	if in.AgentJar != nil {
+		jarURL := target
+		jarURL.Scheme = "https" // Sites are shown through the HTTPS proxy even though the socket is local HTTP.
+		if cookies := in.AgentJar.Cookies(&jarURL); len(cookies) > 0 {
+			req.AddCookie(cookies[0])
+			for _, cookie := range cookies[1:] {
+				req.AddCookie(cookie)
+			}
+		}
+	}
 
 	if cookie := in.Jar.header(in.Path); cookie != "" {
 		req.Header.Set("Cookie", cookie)
@@ -71,6 +82,11 @@ func relay(ctx context.Context, in relayRequest) (relayAnswer, *relayFailure) {
 	defer func() { _ = resp.Body.Close() }()
 
 	in.Jar.record(in.Path, resp.Header.Values("Set-Cookie"))
+	if in.AgentJar != nil {
+		jarURL := target
+		jarURL.Scheme = "https"
+		in.AgentJar.SetCookies(&jarURL, resp.Cookies())
+	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponse+1))
 	if err != nil || len(body) > maxResponse {

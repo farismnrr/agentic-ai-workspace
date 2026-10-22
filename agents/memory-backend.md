@@ -90,3 +90,12 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
   optional integration test; it skips when unset and must point to a disposable
   dedicated test database. Connection tests are limited to five per user per
   minute; shared provisioning has a separate limit of ten per user per minute.
+# Agent screenshot sessions
+
+- `screenshot_session` is a distinct `coding:exec` tool switch, off by default. Its `RiskMedium` behavior uses the existing action approval path; `screenshot` access does not grant session mutation.
+- Resolve session identity only from runner scope plus the current site container. Cookie jars remain in the in-memory `site/adapter/agentsession` registry; reset revokes the current user's task jar, while logout resets the current exact scope even when the app operation fails.
+- Login inputs are references to secret Project Env names. Resolve them through the Env use case with project-owner checks and `IsSecret`; pass the resulting JSON only as `sandbox.Spec.Stdin`. Never add values to argv, command transcripts, logs, result text or screenshots.
+- The CDP session script uses DOM query/focus and Input insert/key/mouse commands. It may fill only email/text and password inputs, then click a selected submit control. This supports hidden-CSRF form submission and page-owned JSON `onSubmit`, without `Runtime.evaluate` or arbitrary requests.
+- A caller-selected readiness selector is the only success signal. Logout clears local cookies after any attempt; the tool cannot prove server-side revocation. Reset stays available when the site is stopped and does not claim to revoke server state.
+- `sandbox/capture/testdata/session_fixture.py` plus `session_capture_test.go` cover the cookie/CSRF form, JSON submit handler and two protected desktop/mobile routes when `SANDBOX_TEST_IMAGE` is set. Unit tests cover session scope/expiry/serialization, but neither fixture nor source review proves live Pukat or Next.js hydration.
+- Capture descriptions remove query strings and common token/password/CSRF markers and report the main document HTTP status. The PNG itself still reflects the test page; use accounts with safe-to-display data.

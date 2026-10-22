@@ -3,6 +3,7 @@ package application
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 )
@@ -51,7 +52,9 @@ type Runtime interface {
 type Viewer interface {
 	// Open serves the app under prefix on a socket in the app's socket folder, and returns that socket's path and
 	// the function that closes it.
-	Open(ctx context.Context, appSocket, base, prefix string) (socket string, closeView func(), err error)
+	Open(
+		ctx context.Context, appSocket, base, prefix string, jar http.CookieJar,
+	) (socket string, closeView func(), err error)
 }
 
 // Projects says who owns a project.

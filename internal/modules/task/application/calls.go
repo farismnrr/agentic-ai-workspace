@@ -84,7 +84,9 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
 	}
 
-	result := r.deps.Tools.Execute(ctx, task.ProjectID, call)
+	result := r.deps.Tools.Execute(ctx, ToolScope{
+		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID,
+	}, call)
 	r.report(ctx, task, call, described, result)
 
 	return r.trackMisses(ctx, task, state, result)

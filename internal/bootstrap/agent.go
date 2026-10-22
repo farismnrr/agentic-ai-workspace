@@ -25,6 +25,7 @@ import (
 func newAgent(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
 	gate taskapp.ToolGate, steps taskapp.ActivitySink, hub *taskapp.Hub, auth, sameOrigin fiber.Handler,
+	agentSessions taskapp.AgentSessionCleanup,
 ) (*taskapp.Service, httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStore(db, opaque.Generator{})
 	deps := taskapp.Observe(taskapp.Deps{
@@ -39,6 +40,7 @@ func newAgent(
 		Team:     agentTeam{team: models.team}, Scopes: store, Delegations: store,
 		Shots: taskshots.New(filepath.Join(cfg.DataDir, "shots")), Diffs: tools,
 		CLI: tools.plans, Sessions: store,
+		AgentSessions: agentSessions,
 	}, hub)
 
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())

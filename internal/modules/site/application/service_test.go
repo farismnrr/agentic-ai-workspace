@@ -85,12 +85,20 @@ func (m *memStore) MarkStopped(_ context.Context, id string) error {
 }
 
 type fakeRuntime struct {
-	failure error
 	// output is what the capture command prints.
-	output  string
-	pages   map[string]application.Page
-	stopped []string
-	started int
+	failure       error
+	output        string
+	sessionOutput string
+	capture       captureRecord
+	pages         map[string]application.Page
+	stopped       []string
+	started       int
+}
+
+type captureRecord struct {
+	ViewSocket string
+	Prefix     string
+	Session    bool
 }
 
 func (r *fakeRuntime) Get(_ context.Context, _, _, path string) (application.Page, error) {
@@ -102,8 +110,18 @@ func (r *fakeRuntime) Get(_ context.Context, _, _, path string) (application.Pag
 	return page, nil
 }
 
-func (r *fakeRuntime) Capture(context.Context, application.CaptureRequest) (string, error) {
+func (r *fakeRuntime) Capture(_ context.Context, request application.CaptureRequest) (string, error) {
+	r.capture = captureRecord{
+		ViewSocket: request.ViewSocket, Prefix: request.Prefix, Session: request.Session != nil,
+	}
 	return r.output, r.failure
+}
+
+func (r *fakeRuntime) Session(_ context.Context, request application.CaptureRequest) (string, error) {
+	r.capture = captureRecord{
+		ViewSocket: request.ViewSocket, Prefix: request.Prefix, Session: request.Session != nil,
+	}
+	return r.sessionOutput, r.failure
 }
 
 func (r *fakeRuntime) Start(context.Context, application.StartSpec) (string, error) {

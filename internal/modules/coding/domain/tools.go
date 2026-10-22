@@ -123,6 +123,13 @@ var ToolScreenshot = ToolInfo{
 		"page scaled down.",
 }
 
+// ToolScreenshotSession is a separate, off-by-default permission because it can change an app login session.
+var ToolScreenshotSession = ToolInfo{
+	Name: "screenshot_session", Title: "Manage screenshot login session", Scope: ScopeExec, Group: GroupExec,
+	Description: "Log in or out of the app using a dedicated test account from Project Env secrets, or clear the " +
+		"agent's local session. This does not share your browser login.",
+}
+
 // ToolViewImage shows the agent a PNG or JPEG of the project, such as a page of a document it rendered. Like the web
 // tools it follows read_file (see SwitchOf).
 var ToolViewImage = ToolInfo{
@@ -167,7 +174,7 @@ func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolListProjects,
 		ToolLogMessage,
-		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand,
+		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand, ToolScreenshotSession,
 	}
 }
 

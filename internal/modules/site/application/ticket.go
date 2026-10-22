@@ -43,7 +43,7 @@ func (s *Service) ValidTicket(token, holder, ticket string) bool {
 }
 
 func (s *Service) mac(token, holder string, expires int64) string {
-	h := hmac.New(sha256.New, s.deps.Secret)
+	h := hmac.New(sha256.New, []byte(s.deps.Secret))
 	_, _ = fmt.Fprintf(h, "site-ticket|%s|%q|%d", token, holder, expires)
 
 	return hex.EncodeToString(h.Sum(nil)[:macBytes])

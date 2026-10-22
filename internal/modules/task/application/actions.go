@@ -74,13 +74,22 @@ func (s *Service) Cancel(ctx context.Context, userID, taskID string) error {
 
 	switch s.dispatcher.Cancel(task.ID) {
 	case CancelRunning:
+		s.revokeAgentSession(task)
 		return nil
 	case CancelQueued:
-		return s.fail(ctx, task.ID, "Stopped before I started.", "Press Continue when you want me to begin.")
+		err := s.fail(ctx, task.ID, "Stopped before I started.", "Press Continue when you want me to begin.")
+		s.revokeAgentSession(task)
+		return err
 	case CancelNone:
 	}
 
 	return domain.ErrWrongState
+}
+
+func (s *Service) revokeAgentSession(task domain.Task) {
+	if s.deps.AgentSessions != nil {
+		s.deps.AgentSessions.RevokeTask(task.UserID, task.ID)
+	}
 }
 
 // Accept marks reviewed work as done.
@@ -100,6 +109,7 @@ func (s *Service) Accept(ctx context.Context, userID, taskID string) error {
 	if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, s.deps.Now()); err != nil {
 		return fmt.Errorf("accept task: %w", err)
 	}
+	s.revokeAgentSession(task)
 
 	return nil
 }

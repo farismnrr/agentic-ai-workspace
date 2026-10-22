@@ -77,18 +77,18 @@ func viewGet(t *testing.T, socket, path string) (int, string) {
 }
 
 func TestViewerShowsTheAppAsThePersonGetsIt(t *testing.T) {
-	view, closeView, err := NewViewer().Open(context.Background(), appSocket(t), "/run/shop", "/run/shop/~preview")
+	view, closeView, err := NewViewer().Open(context.Background(), appSocket(t), "/run/shop", "/run/shop", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	status, page := viewGet(t, view, "/run/shop/~preview/")
-	if status != 200 || !strings.Contains(page, `href="/run/shop/~preview/s.css"`) ||
-		!strings.Contains(page, "<p>/run/shop/~preview") {
+	status, page := viewGet(t, view, "/run/shop/")
+	if status != 200 || !strings.Contains(page, `href="/run/shop/s.css"`) ||
+		!strings.Contains(page, "<p>/run/shop") {
 		t.Fatalf("the page must come with its links under the address: %d %s", status, page)
 	}
 
-	if _, css := viewGet(t, view, "/run/shop/~preview/s.css"); css != "a{background:url(/run/shop/~preview/i.png)}" {
+	if _, css := viewGet(t, view, "/run/shop/s.css"); css != "a{background:url(/run/shop/i.png)}" {
 		t.Fatalf("stylesheet: %s", css)
 	}
 
@@ -101,4 +101,27 @@ func TestViewerShowsTheAppAsThePersonGetsIt(t *testing.T) {
 	if _, err = os.Stat(view); !os.IsNotExist(err) {
 		t.Fatal("the preview socket must go away when the picture is done")
 	}
+}
+
+func TestViewerUsesOnePrivateSocketDirectoryAndCleansUpOnCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	app := appSocket(t)
+	view, closeView, err := NewViewer().Open(ctx, app, "/run/shop", "/run/shop", nil)
+	if err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	if filepath.Dir(view) == filepath.Dir(app) || !strings.HasPrefix(filepath.Base(filepath.Dir(view)), "v-") {
+		t.Fatalf("socket must be inside its capture directory: %s", view)
+	}
+	cancel()
+	closeView()
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if _, err = os.Stat(view); os.IsNotExist(err) {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("capture socket remains after cancellation: %s", view)
 }

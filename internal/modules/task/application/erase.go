@@ -26,6 +26,7 @@ func (s *Service) DeleteProject(ctx context.Context, userID, projectID string) e
 // stopAndForget cancels the tasks that are running and removes their screenshots.
 func (s *Service) stopAndForget(ctx context.Context, tasks []domain.Task) {
 	for _, task := range tasks {
+		s.revokeAgentSession(task)
 		if task.Status.Running() {
 			s.dispatcher.Cancel(task.ID)
 		}
@@ -45,6 +46,7 @@ func (s *Service) DeleteAll(ctx context.Context, userID string) error {
 
 	projects := map[string]struct{}{}
 	for _, task := range tasks {
+		s.revokeAgentSession(task)
 		if task.Status.Running() {
 			s.stopTask(ctx, task)
 		}
