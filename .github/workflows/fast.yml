@@ -86,6 +86,32 @@ jobs:
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
       - run: sh scripts/smoke-test.sh bin/agentic-ai-workspace
 
+  # The toolbox image changes rarely, so it is rebuilt only when what goes into it changed. A new branch, a
+  # rewritten history or any doubt counts as changed; full always builds it.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sandbox: ${{ steps.diff.outputs.sandbox }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -eu
+          changed=true
+          if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            if git diff --quiet "$BASE" HEAD -- sandbox scripts/smoke-test-sandbox.sh \
+              .github/actions/build-image .github/workflows/fast.yml; then
+              changed=false
+            fi
+          fi
+          echo "sandbox=$changed" >> "$GITHUB_OUTPUT"
+
   # The two images build in parallel: the sandbox image is the slow one, and nothing makes the app image wait for it.
   image-app:
     needs: [guardrails, frontend, backend-test, backend-lint]
@@ -105,7 +131,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   image-sandbox:
-    needs: [guardrails, frontend, backend-test, backend-lint]
+    needs: [changes, guardrails, frontend, backend-test, backend-lint]
+    if: needs.changes.outputs.sandbox == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
