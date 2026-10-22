@@ -7,11 +7,13 @@
   interface Props {
     attachments: Attachment[];
     busy?: boolean;
+    /** True while no project is chosen, so nothing can upload yet. */
+    waiting?: boolean;
     onremove: (id: string) => void;
     onretry: (id: string) => void;
   }
 
-  let { attachments, busy = false, onremove, onretry }: Props = $props();
+  let { attachments, busy = false, waiting = false, onremove, onretry }: Props = $props();
   const previews = new SvelteMap<File, string>();
   let selected = $state<Attachment | undefined>();
   let dialog = $state<HTMLDialogElement>();
@@ -86,8 +88,12 @@
         </span>
       </span>
       {#if attachment.status === 'loading'}
-        <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
-        <span class="text-xs" role="status">Uploading…</span>
+        {#if waiting}
+          <span class="text-xs" role="status">Choose a project to upload</span>
+        {:else}
+          <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+          <span class="text-xs" role="status">Uploading…</span>
+        {/if}
       {/if}
       {#if attachment.status === 'failed'}
         <Icon name="alert-triangle" class="size-4 shrink-0 text-error" />
