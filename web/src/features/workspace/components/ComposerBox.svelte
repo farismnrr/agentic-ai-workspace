@@ -107,9 +107,7 @@
     }));
   }
 
-  function send(): void {
-    if (canSend) onsend(text, project);
-  }
+  function send(): void { if (canSend) onsend(text, project); }
 
   function onsubmit(event: SubmitEvent): void {
     event.preventDefault();
@@ -164,7 +162,7 @@
         px-4 pb-1 pt-3.5 text-sm focus:outline-none"
     ></textarea>
     {#if attachments.length > 0}
-      <AttachmentChips {attachments} {busy} onremove={remove} onretry={retry} />
+      <AttachmentChips {attachments} {busy} waiting={needsProject} onremove={remove} onretry={retry} />
     {/if}
     <div class="flex flex-wrap items-center gap-1 px-2 pb-2">
       <ComposerControls {id} {projects} bind:project {attachable} {disabled} {busy} {tools} onattach={attach} />
@@ -196,5 +194,6 @@
     {error}
     pickerErrors={pickerErrors}
     warning={totalSize > 100 * 1024 * 1024}
+    waiting={needsProject}
   />
 </form>
