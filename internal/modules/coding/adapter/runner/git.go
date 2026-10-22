@@ -1,10 +1,17 @@
 package runner
 
-import "context"
+import (
+	"context"
+	"slices"
+)
 
 // githubHosts are what git and gh need besides the registries; only a workspace whose owner
 // connected GitHub gets them.
 var githubHosts = []string{"github.com", "api.github.com", "codeload.github.com"}
+
+// GitHosts are the hosts a program needs to act on GitHub, for a caller that builds its own proxy
+// allowance, such as a vendor's coding program.
+func GitHosts() []string { return slices.Clone(githubHosts) }
 
 // Git is who a command acts as on GitHub: the person who owns the workspace.
 type Git struct {
@@ -23,7 +30,10 @@ const helper = `!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; 
 
 // gitEnvironment is what makes git, gh and commits work as the owner. Git reads its configuration
 // from GIT_CONFIG_* here, so no file in the workspace or the image ever holds the token.
-func gitEnvironment(g Git) []string {
+func gitEnvironment(g Git) []string { return GitEnvironment(g) }
+
+// GitEnvironment is gitEnvironment for callers outside this package.
+func GitEnvironment(g Git) []string {
 	return []string{
 		"GH_TOKEN=" + g.Token, "GIT_TERMINAL_PROMPT=0", "GH_PROMPT_DISABLED=1",
 		"GH_NO_UPDATE_NOTIFIER=1", "GH_NO_EXTENSION_UPDATE_NOTIFIER=1",

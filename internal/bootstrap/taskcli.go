@@ -36,7 +36,8 @@ func (p *plans) Run(
 	ctx context.Context, req taskapp.CLIRequest, emit func(taskapp.CLIEvent),
 ) (taskapp.CLIResult, error) {
 	granted := codingrunner.GrantedFor(ctx, p.reach, req.ProjectID)
-	docker, spec, release, err := p.prepareRun(ctx, req, granted)
+	git, hasGit := p.gitOf(ctx, req.ProjectID)
+	docker, spec, release, err := p.prepareRun(ctx, req, granted, hasGit)
 	if err != nil {
 		return taskapp.CLIResult{}, err
 	}
@@ -45,7 +46,7 @@ func (p *plans) Run(
 	models := p.service.Models(ctx, req.UserID, cliagentdomain.Runtime(req.Program))
 	window := p.chosenWindow(ctx, req)
 	spec.Stdin, spec.Argv = strings.NewReader(req.Prompt), programArgv(req, models, window)
-	spec.Env, err = p.environment(ctx, req, spec, window, granted)
+	spec.Env, err = p.environment(ctx, req, spec, window, granted, git)
 	if err != nil {
 		return taskapp.CLIResult{}, err
 	}
