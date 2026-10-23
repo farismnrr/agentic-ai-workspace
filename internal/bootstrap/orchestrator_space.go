@@ -17,6 +17,14 @@ func orchestratorSpace() spacedomain.Space {
 		},
 		Tools: []spacedomain.Tool{
 			{
+				Name: "list_projects", Title: "List your projects", Description: "Choose one of your active projects",
+				Scope: orchestratorRead, Group: "read", ReadOnly: true, DefaultOn: true,
+			},
+			{
+				Name: "list_tasks", Title: "List team tasks", Description: "List active Orchestrator tasks in a project",
+				Scope: orchestratorRead, Group: "read", ReadOnly: true, DefaultOn: true,
+			},
+			{
 				Name: "start_task", Title: "Start a team task", Description: "Start a new task through your team",
 				Scope: orchestratorRun, Group: "write",
 			},

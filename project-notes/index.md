@@ -2,13 +2,17 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/plan.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/plan.md; working; 2026-10-23T06:22:16Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/requirements.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/requirements.md; working; 2026-10-23T06:22:16Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research.md; working; 2026-10-23T06:22:16Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/18.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/18.md; working; 2026-10-23T06:22:16Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/69.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/69.md; working; 2026-10-23T06:22:16Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/prd/127.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/prd/127.md; working; 2026-10-23T06:22:16Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/148.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/148.md; working; 2026-10-23T06:22:16Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/plan.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/plan.md; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/requirements.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/requirements.md; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research.md; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/18.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/18.md; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/69.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/69.md; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/prd/127.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/prd/127.md; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/148.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/148.md; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.txt) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.txt; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0001.txt) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0001.txt; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0002.txt) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0002.txt; working; 2026-10-23T06:57:04Z
+- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.md; working; 2026-10-23T06:57:04Z
 - [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/plan.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/plan.md; done; 2026-10-22T16:15:50Z
 - [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/requirements.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/requirements.md; done; 2026-10-22T16:15:50Z
 - [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research.md; done; 2026-10-22T16:15:50Z

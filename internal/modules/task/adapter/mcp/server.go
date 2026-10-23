@@ -5,12 +5,15 @@ import (
 	"net/http"
 	"strings"
 
+	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Service is the task application contract required by the Orchestrator tools.
 type Service interface {
+	ListOrchestratorProjects(ctx context.Context, userID string) ([]taskapp.ProjectSummary, error)
+	ListOrchestratorTasks(ctx context.Context, userID, projectID string) ([]taskdomain.Task, error)
 	StartOrchestrator(ctx context.Context, userID, projectID, prompt string) (taskdomain.Task, error)
 	GetOrchestrator(ctx context.Context, userID, projectID, taskID string) (taskdomain.Task, error)
 	SendOrchestratorMessage(ctx context.Context, userID, projectID, taskID, text string) error

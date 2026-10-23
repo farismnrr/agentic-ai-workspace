@@ -32,6 +32,57 @@ func TestArchivedListExcludesTaskFromActiveTasks(t *testing.T) {
 	}
 }
 
+func TestOrchestratorListFiltersOwnerProjectModeAndCapsNewestFirst(t *testing.T) {
+	ctx, store := newArchiveStore(t)
+	_, setupErr := store.db.ExecContext(ctx, `INSERT INTO users (id,name,email,password_hash,created_at)
+		VALUES ('other','Other','other@example.test','hash',1);
+		INSERT INTO projects (id,user_id,name,slug,created_at) VALUES ('other-p','other','Other project','other-p',1)`)
+	if setupErr != nil {
+		t.Fatal(setupErr)
+	}
+	for i := 0; i < 105; i++ {
+		id := fmt.Sprintf("%024x", i+1)
+		task := domain.Task{
+			ID: id, ProjectID: "p", UserID: "u", Title: fmt.Sprintf("Task %03d", i),
+			Status: domain.StatusDone, ProviderID: "provider", Model: "model", Team: true,
+			CreatedAt: time.Unix(int64(i+1), 0), UpdatedAt: time.Unix(int64(i+1), 0),
+		}
+		if err := store.Create(ctx, task); err != nil {
+			t.Fatal(err)
+		}
+	}
+	createModeFixture(t, ctx, store, "solo", "u", "p", false, "", 200)
+	createModeFixture(t, ctx, store, "source", "u", "p", true, "connected", 201)
+	createModeFixture(t, ctx, store, "foreign", "other", "other-p", true, "", 202)
+	createModeFixture(t, ctx, store, "foreign-owner", "other", "p", true, "", 205)
+	createModeFixture(t, ctx, store, "archived", "u", "p", true, "", 203)
+	if err := store.Archive(ctx, "u", "archived", time.Unix(204, 0)); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := store.ListOrchestrator(ctx, "u", "p", 100)
+	if err != nil || len(got) != 100 {
+		t.Fatalf("got %d tasks, error %v; want capped 100", len(got), err)
+	}
+	if got[0].Title != "Task 104" || got[len(got)-1].Title != "Task 005" {
+		t.Fatalf("task list is not newest-first or cap is wrong: first=%q last=%q", got[0].Title, got[len(got)-1].Title)
+	}
+}
+
+func createModeFixture(
+	t *testing.T, ctx context.Context, store *Store, id, owner, project string, team bool, source string, at int64,
+) {
+	t.Helper()
+	err := store.Create(ctx, domain.Task{
+		ID: id, ProjectID: project, UserID: owner, Title: id, Status: domain.StatusDone,
+		ProviderID: "provider", Model: "model", Team: team, Source: source,
+		CreatedAt: time.Unix(at, 0), UpdatedAt: time.Unix(at, 0),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDeleteOwnedProcessesMoreThan200Rows(t *testing.T) {
 	ctx, store := newArchiveStore(t)
 	ids := make([]string, 1101)

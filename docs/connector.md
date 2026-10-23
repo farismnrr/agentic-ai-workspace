@@ -24,18 +24,21 @@ direct Coding space.
 The client needs the `orchestrator:read` permission to connect. It also needs
 `orchestrator:run` to start tasks, send messages and retry tasks.
 
-Orchestrator offers four tools:
+Orchestrator offers six tools:
 
 | Tool | Permission | What it does |
 | --- | --- | --- |
+| `list_projects` | `orchestrator:read` | Lists your active projects by ID and name. |
+| `list_tasks` | `orchestrator:read` | Lists active team tasks in a project, newest first, with task links. |
 | `start_task` | `orchestrator:run` | Queues a new team task and returns its task link. |
 | `get_task` | `orchestrator:read` | Reads the saved status and returns its task link. |
 | `send_message` | `orchestrator:run` | Adds a message to an eligible team task. |
 | `retry_task` | `orchestrator:run` | Queues a failed team task again. |
 
-Each call needs a project ID. Task tools also need the task ID; `start_task`
-needs a prompt and `send_message` needs text. Responses include project ID,
-task ID, status and a link to open the task in the app. Starting and retrying
+`list_projects` needs no input. `list_tasks` needs a project ID; other task
+tools also need the task ID. `start_task` needs a prompt and `send_message`
+needs text. Project results contain ID and name. Task results contain project ID
+and task ID, status and a link to open each task in the app. Starting and retrying
 return `queued`; the tool does not wait for the team to finish.
 
 The app checks that the signed-in person owns the project and task. A task
