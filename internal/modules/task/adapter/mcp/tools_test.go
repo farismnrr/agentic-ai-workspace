@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -14,6 +15,14 @@ type taskService struct {
 	err                               error
 	userID, projectID, taskID, prompt string
 	task                              taskdomain.Task
+}
+
+func (s *taskService) ListOrchestratorProjects(context.Context, string) ([]taskapp.ProjectSummary, error) {
+	return nil, s.err
+}
+
+func (s *taskService) ListOrchestratorTasks(context.Context, string, string) ([]taskdomain.Task, error) {
+	return nil, s.err
 }
 
 var errDatabaseDetails = errors.New("database details")
@@ -136,6 +145,21 @@ func TestRefuseChecksSwitchAndScope(t *testing.T) {
 	if result := refuse(context.Background(), tools{gate: gate{allowed: true}}, "start_task", "orchestrator:run",
 		[]string{"orchestrator:read"}, &entry); result == nil || entry.Outcome != "forbidden" {
 		t.Fatalf("missing scope was not refused: result=%v entry=%#v", result, entry)
+	}
+}
+
+func TestReadToolsRequireReadSwitchAndScope(t *testing.T) {
+	for _, name := range []string{"list_projects", "list_tasks"} {
+		entry := Entry{UserID: "user-1"}
+		if result := refuse(context.Background(), tools{gate: gate{}}, name, "orchestrator:read",
+			[]string{"orchestrator:read"}, &entry); result == nil || entry.Outcome != "off" {
+			t.Fatalf("%s did not honor disabled switch: result=%v entry=%#v", name, result, entry)
+		}
+		entry = Entry{UserID: "user-1"}
+		if result := refuse(context.Background(), tools{gate: gate{allowed: true}}, name, "orchestrator:read",
+			[]string{"orchestrator:run"}, &entry); result == nil || entry.Outcome != "forbidden" {
+			t.Fatalf("%s did not honor missing read scope: result=%v entry=%#v", name, result, entry)
+		}
 	}
 }
 

@@ -2,9 +2,41 @@ package application
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
+
+const orchestratorListLimit = 100
+
+// ListOrchestratorProjects returns the caller's active projects for MCP selection.
+func (s *Service) ListOrchestratorProjects(ctx context.Context, userID string) ([]ProjectSummary, error) {
+	projects, err := s.deps.OrchestratorProjects.List(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list Orchestrator projects: %w", err)
+	}
+	if len(projects) > orchestratorListLimit {
+		projects = projects[:orchestratorListLimit]
+	}
+	return projects, nil
+}
+
+// ListOrchestratorTasks returns active team tasks in an owned project, newest first.
+func (s *Service) ListOrchestratorTasks(
+	ctx context.Context, userID, projectID string,
+) ([]domain.Task, error) {
+	if userID == "" {
+		return nil, domain.ErrNotFound
+	}
+	if _, err := s.deps.Projects.Name(ctx, userID, projectID); err != nil {
+		return nil, domain.ErrNoProject
+	}
+	tasks, err := s.deps.OrchestratorTasks.ListOrchestrator(ctx, userID, projectID, orchestratorListLimit)
+	if err != nil {
+		return nil, fmt.Errorf("list Orchestrator tasks: %w", err)
+	}
+	return tasks, nil
+}
 
 // StartOrchestrator creates and queues a task that must run with the project team.
 func (s *Service) StartOrchestrator(ctx context.Context, userID, projectID, prompt string) (domain.Task, error) {

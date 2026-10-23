@@ -34,6 +34,29 @@ type taskInput struct {
 	TaskID    string `json:"taskId" jsonschema:"ID of the Orchestrator task"`
 }
 
+type projectsInput struct{}
+
+type projectTasksInput struct {
+	ProjectID string `json:"projectId" jsonschema:"ID of the project whose team tasks should be listed"`
+}
+
+type projectOutput struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type taskSummary struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Status string `json:"status"`
+	URL    string `json:"url"`
+}
+
+type taskListOutput struct {
+	ProjectID string        `json:"projectId"`
+	Tasks     []taskSummary `json:"tasks"`
+}
+
 type messageInput struct {
 	ProjectID string `json:"projectId" jsonschema:"ID of the project that contains the task"`
 	TaskID    string `json:"taskId" jsonschema:"ID of the Orchestrator task"`
@@ -48,6 +71,13 @@ type taskOutput struct {
 }
 
 func (t tools) addTools(server *sdk.Server) {
+	sdk.AddTool(server, t.definition("list_projects", "List your projects", "orchestrator:read", true),
+		guarded(t, "list_projects", "orchestrator:read", func(projectsInput) string { return "list your projects" },
+			func(projectsInput) string { return "" }, func(projectsInput) string { return "" }, t.listProjects))
+	sdk.AddTool(server, t.definition("list_tasks", "List team tasks", "orchestrator:read", true),
+		guarded(t, "list_tasks", "orchestrator:read", func(projectTasksInput) string { return "list team tasks" },
+			func(in projectTasksInput) string { return in.ProjectID },
+			func(projectTasksInput) string { return "" }, t.listTasks))
 	sdk.AddTool(server, t.definition("start_task", "Start a team task", "orchestrator:run", false),
 		guarded(t, "start_task", "orchestrator:run", func(startInput) string { return "start a team task" },
 			projectOf, func(startInput) string { return "" }, t.start))
@@ -60,6 +90,32 @@ func (t tools) addTools(server *sdk.Server) {
 	sdk.AddTool(server, t.definition("retry_task", "Retry a failed task", "orchestrator:run", false),
 		guarded(t, "retry_task", "orchestrator:run", func(taskInput) string { return "retry a failed task" },
 			projectOfTask, taskOfTask, t.retry))
+}
+
+func (t tools) listProjects(ctx context.Context, userID string, _ projectsInput) ([]projectOutput, error) {
+	projects, err := t.service.ListOrchestratorProjects(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list Orchestrator projects: %w", err)
+	}
+	result := make([]projectOutput, 0, len(projects))
+	for _, project := range projects {
+		result = append(result, projectOutput{ID: project.ID, Name: project.Name})
+	}
+	return result, nil
+}
+
+func (t tools) listTasks(ctx context.Context, userID string, in projectTasksInput) (taskListOutput, error) {
+	tasks, err := t.service.ListOrchestratorTasks(ctx, userID, in.ProjectID)
+	if err != nil {
+		return taskListOutput{}, fmt.Errorf("list Orchestrator tasks: %w", err)
+	}
+	result := taskListOutput{ProjectID: in.ProjectID, Tasks: make([]taskSummary, 0, len(tasks))}
+	for _, task := range tasks {
+		result.Tasks = append(result.Tasks, taskSummary{
+			ID: task.ID, Title: task.Title, Status: string(task.Status), URL: t.taskURL(task.ProjectID, task.ID),
+		})
+	}
+	return result, nil
 }
 
 func (t tools) definition(name, title, scope string, readOnly bool) *sdk.Tool {
