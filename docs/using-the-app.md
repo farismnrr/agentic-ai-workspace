@@ -72,7 +72,7 @@ The AI can inspect PNG photos and read PDFs and text files from the project.
    - "From a GitHub repository" starts from one of your repositories, with its history, and has no template. Type to search; the list scrolls.
    - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.
    - If GitHub does not let the app create a repository, you are told. Create it on GitHub, share it with the app, then use "From a GitHub repository".
-3. Describe what you need on Home. New tasks use **Coding — langsung** and work directly; the model and effort come from Settings.
+3. Describe what you need on Home. The team takes each new task and chooses who should work on it; the model and effort come from Settings.
    Long messages become project documents automatically. The complete text stays available to the AI and can be downloaded from the thread.
 4. Expect a few questions first. The AI asks what you want before it starts, with a recommended answer for each, and skips questions for a small, clear request. Answer in your own words or pick an option.
 5. If you asked for a browser extension, open **Extensions** in the sidebar to install it. See [extensions.md](./extensions.md).
@@ -278,11 +278,11 @@ Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay
 
 An agent team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.
 
-- New tasks from Home use **Coding — langsung** and work directly.
+- New tasks from Home are run by the team. The lead chooses which teammates, if any, need to work on the request.
+- **Coding — langsung** remains the separate Coding space for connected apps.
 - The task page shows the saved mode after reload. Continue, Retry and follow-up keep that mode.
 - Orchestrator requires a ready team. If it is unavailable, the task does not switch to Coding; restore the team setup, then retry or continue.
 
-- New tasks default to Coding, which works directly. A task explicitly started in Orchestrator mode uses the team.
 - A task keeps its saved mode when you retry or continue it. If the team is unavailable, restore the team setup, then retry or continue that task.
 - A question, or a small change, never needs the whole team: the lead answers it or hands it straight to the Developer.
 - The lead decides who to call and when. Only the lead talks to you.

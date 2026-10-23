@@ -10,7 +10,6 @@
 
   let text = $state('');
   let project = $state('');
-  let mode = $state<'coding' | 'orchestrator'>('coding');
   let attachments = $state<Attachment[]>([]);
   let busy = $state(false);
   let error = $state('');
@@ -37,7 +36,7 @@
       const task = await createTask({
         projectId: chosen,
         prompt: withAttachments(prompt, paths),
-        team: mode === 'orchestrator',
+        team: true,
       });
       text = '';
       attachments = [];
