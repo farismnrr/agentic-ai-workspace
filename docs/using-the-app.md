@@ -72,7 +72,7 @@ The AI can inspect PNG photos and read PDFs and text files from the project.
    - "From a GitHub repository" starts from one of your repositories, with its history, and has no template. Type to search; the list scrolls.
    - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.
    - If GitHub does not let the app create a repository, you are told. Create it on GitHub, share it with the app, then use "From a GitHub repository".
-3. Choose **Coding — langsung** to work directly or **Orchestrator — melalui tim** to hand work to the team. Coding is selected by default. Describe what you need on Home; the model and effort come from Settings.
+3. Describe what you need on Home. New tasks use **Coding — langsung** and work directly; the model and effort come from Settings.
    Long messages become project documents automatically. The complete text stays available to the AI and can be downloaded from the thread.
 4. Expect a few questions first. The AI asks what you want before it starts, with a recommended answer for each, and skips questions for a small, clear request. Answer in your own words or pick an option.
 5. If you asked for a browser extension, open **Extensions** in the sidebar to install it. See [extensions.md](./extensions.md).
@@ -278,7 +278,7 @@ Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay
 
 An agent team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.
 
-- The Home composer offers **Coding — langsung** and **Orchestrator — melalui tim**. New tasks use Coding unless you choose Orchestrator.
+- New tasks from Home use **Coding — langsung** and work directly.
 - The task page shows the saved mode after reload. Continue, Retry and follow-up keep that mode.
 - Orchestrator requires a ready team. If it is unavailable, the task does not switch to Coding; restore the team setup, then retry or continue.
 
