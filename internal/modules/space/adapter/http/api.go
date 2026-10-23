@@ -61,8 +61,6 @@ func fail(c fiber.Ctx, err error) error {
 	case errors.Is(err, domain.ErrUnknownSpace), errors.Is(err, domain.ErrUnknownTool),
 		errors.Is(err, domain.ErrNoActivity):
 		return c.Status(fiber.StatusNotFound).JSON(httpserver.Failure("not_found"))
-	case errors.Is(err, domain.ErrApprovalsUnsupported):
-		return c.Status(fiber.StatusBadRequest).JSON(httpserver.Failure("approvals_unsupported"))
 	case errors.Is(err, domain.ErrAlreadyUndone):
 		return c.Status(fiber.StatusConflict).JSON(httpserver.Failure("already_undone"))
 	case errors.Is(err, domain.ErrNotUndoable):

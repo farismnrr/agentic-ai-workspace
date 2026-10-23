@@ -2,33 +2,12 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/plan.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/plan.md; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/requirements.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/requirements.md; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research.md; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/18.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/18.md; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/69.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/69.md; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/prd/127.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/prd/127.md; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/research/148.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/research/148.md; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.txt) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.txt; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0001.txt) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0001.txt; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0002.txt) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4/part-0002.txt; working; 2026-10-23T06:57:04Z
-- [untuk Spaces & tools](tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.md) — project-notes/tasks/709765c6edabf607142b270853b5e91b/input/4f649d07d9945a9c60fbd0ec382ae7d4.md; working; 2026-10-23T06:57:04Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/plan.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/plan.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/requirements.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/requirements.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research/41.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research/41.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/prd/101.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/prd/101.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research/116.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research/116.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research/140.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research/140.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research/640.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research/640.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research/810.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research/810.md; done; 2026-10-22T16:15:50Z
-- [ada issue critical](tasks/2d20947744751ae769acc4b65cb354f1/research/887.md) — project-notes/tasks/2d20947744751ae769acc4b65cb354f1/research/887.md; done; 2026-10-22T16:15:50Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md; done; 2026-10-22T06:38:07Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md; done; 2026-10-22T06:38:07Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md; done; 2026-10-22T06:38:07Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md; done; 2026-10-22T06:38:07Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md; done; 2026-10-22T06:38:07Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md; done; 2026-10-22T06:38:07Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md; working; 2026-10-22T06:18:27Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md; working; 2026-10-22T06:18:27Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md; done; 2026-10-21T13:38:46Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md; done; 2026-10-21T13:38:46Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md; done; 2026-10-21T13:38:46Z

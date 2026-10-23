@@ -33,11 +33,7 @@
     try {
       const paths = readyPaths(attachments);
       // The model and effort come from Settings: the lead's own, else the person's default.
-      const task = await createTask({
-        projectId: chosen,
-        prompt: withAttachments(prompt, paths),
-        team: true,
-      });
+      const task = await createTask({ projectId: chosen, prompt: withAttachments(prompt, paths) });
       text = '';
       attachments = [];
       await refresh();
@@ -68,8 +64,7 @@
     {uploadProgress}
     {error}
     onsend={send}
-  >
-  </ComposerBox>
+  />
   <ul class="mt-3 flex flex-wrap gap-2">
     {#each suggestions as suggestion (suggestion)}
       <li><button class="btn btn-sm rounded-full border-[var(--brand-border)] bg-base-100 font-normal" type="button" onclick={() => (text = suggestion)}>{suggestion}</button></li>

@@ -20,7 +20,6 @@ export interface ConnectorSpace {
   scopes: ConnectedScope[];
   tools: SpaceTool[];
   skipApprovals: boolean;
-  supportsApprovals: boolean;
 }
 
 export interface ConnectedScope {

@@ -34,8 +34,7 @@ func codingSpace() spacedomain.Space {
 	}
 
 	return spacedomain.Space{
-		Slug: "coding", Name: "Coding", Entry: codingdomain.ScopeRead, SupportsApprovals: true,
-		Scopes: codingScopes, Tools: tools,
+		Slug: "coding", Name: "Coding", Entry: codingdomain.ScopeRead, Scopes: codingScopes, Tools: tools,
 	}
 }
 

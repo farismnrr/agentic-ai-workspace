@@ -96,13 +96,6 @@ func (s *Store) List(ctx context.Context, userID, projectID string, limit int) (
 	return s.list(ctx, userID, projectID, limit, `archived_at IS NULL`)
 }
 
-// OrchestratorList returns only active team tasks with no connected-app source.
-func (s *Store) ListOrchestrator(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error) {
-	return s.list(ctx, userID, projectID, limit, `archived_at IS NULL AND team = 1 AND source = ''`)
-}
-
-var _ application.OrchestratorTasks = (*Store)(nil)
-
 // All returns active and archived tasks for server maintenance and document exports.
 func (s *Store) All(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error) {
 	return s.list(ctx, userID, projectID, limit, "")

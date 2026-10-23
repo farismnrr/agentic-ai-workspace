@@ -11,22 +11,20 @@ import (
 
 // Deps are the runner's collaborators.
 type Deps struct {
-	Notes                NoteFiles
-	Tasks                TaskStore
-	Events               EventStore
-	Transcript           TranscriptStore
-	Usage                UsageStore
-	Models               Models
-	Windows              ContextWindows
-	Efforts              EffortLevels
-	Persona              PersonaSource
-	Projects             Projects
-	OrchestratorProjects OrchestratorProjects
-	OrchestratorTasks    OrchestratorTasks
-	Tools                ToolSet
-	Gate                 ToolGate
-	IDs                  IDs
-	Notify               Notifier
+	Notes      NoteFiles
+	Tasks      TaskStore
+	Events     EventStore
+	Transcript TranscriptStore
+	Usage      UsageStore
+	Models     Models
+	Windows    ContextWindows
+	Efforts    EffortLevels
+	Persona    PersonaSource
+	Projects   Projects
+	Tools      ToolSet
+	Gate       ToolGate
+	IDs        IDs
+	Notify     Notifier
 	// Activity, when set, is told about the steps that change or run something; optional.
 	Activity ActivitySink
 	// Computer says what the agent's run_command can use; optional.
@@ -64,6 +62,26 @@ func NewRunner(deps Deps, limits Limits) *Runner {
 	return &Runner{deps: deps, lim: limits}
 }
 
+type stop int
+
+const (
+	stopWaiting stop = iota + 1
+	stopFinished
+	stopFailed
+)
+
+type outcome struct {
+	text string
+	hint string
+	// document is a markdown document a teammate sends with its report, such as the PRD.
+	document string
+	stop     stop
+}
+
+func failed(text, hint string) outcome {
+	return outcome{stop: stopFailed, text: text, hint: hint}
+}
+
 // Run works on a task until it must wait, finishes or fails. Every result is
 // recorded in the task's thread and status; Run itself returns nothing.
 func (r *Runner) Run(ctx context.Context, taskID string) {
@@ -78,15 +96,6 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 
 	runCtx, cancel := context.WithTimeout(ctx, r.lim.wallTime(task.Team))
 	defer cancel()
-	var roster *Roster
-	if task.Team {
-		loaded, rosterErr := r.teamRoster(runCtx, task)
-		if rosterErr != nil {
-			r.settle(settle, task, teamUnavailable())
-			return
-		}
-		roster = &loaded
-	}
 
 	var result outcome
 	task, err = r.refreshModel(runCtx, task)
@@ -98,9 +107,9 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 		return
 	}
 	if _, onPlan := domain.PlanRuntime(task.ProviderID); onPlan {
-		result = r.runPlan(runCtx, task, roster)
+		result = r.runPlan(runCtx, task)
 	} else {
-		result = r.loop(runCtx, task, roster)
+		result = r.loop(runCtx, task)
 	}
 
 	r.settle(settle, task, result)
@@ -120,7 +129,7 @@ func (r *Runner) revokeFinishedTask(ctx context.Context, task domain.Task) {
 	r.deps.AgentSessions.RevokeTask(task.UserID, task.ID)
 }
 
-func (r *Runner) loop(ctx context.Context, task domain.Task, roster *Roster) outcome {
+func (r *Runner) loop(ctx context.Context, task domain.Task) outcome {
 	status := domain.StatusWorking
 	if len(task.Plan) == 0 {
 		status = domain.StatusPlanning
@@ -132,7 +141,7 @@ func (r *Runner) loop(ctx context.Context, task domain.Task, roster *Roster) out
 
 	// A step is one model turn; working through its tool calls does not count.
 	steps := r.lim.steps(task.Team)
-	state := &runState{budget: &budget{left: steps}, segment: steps, roster: roster}
+	state := &runState{budget: &budget{left: steps}, segment: steps, roster: r.roster(ctx, task)}
 
 	return r.leading(state).drive(ctx, task, state, fmt.Sprintf("I stopped after %d steps without finishing.", steps))
 }

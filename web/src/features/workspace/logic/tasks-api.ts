@@ -11,8 +11,8 @@ export interface NewTask {
   model?: string;
   /** Leave out to use the default effort. */
   effort?: string;
-  /** Whether Orchestrator leads a team on this task. */
-  team: boolean;
+  /** Whether a lead hands the work to the AI team; leave out to follow the person's setting. */
+  team?: boolean;
 }
 
 export interface UsageRow {
