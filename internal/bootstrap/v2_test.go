@@ -59,7 +59,6 @@ func TestToolSwitchesStartOffForWritingAndRunning(t *testing.T) {
 	cookie, _ := signedInClient(t, app)
 
 	var spaces []struct {
-		Slug  string `json:"slug"`
 		Tools []struct {
 			Name    string `json:"name"`
 			Group   string `json:"group"`
@@ -68,15 +67,13 @@ func TestToolSwitchesStartOffForWritingAndRunning(t *testing.T) {
 	}
 
 	body := do(t, app, "GET", "/api/spaces", "", map[string]string{"Cookie": cookie}).Body
-	if err := json.Unmarshal(body, &spaces); err != nil || len(spaces) != 2 {
-		t.Fatalf("Coding and Orchestrator spaces expected: %v %s", err, body)
+	if err := json.Unmarshal(body, &spaces); err != nil || len(spaces) != 1 {
+		t.Fatalf("one space expected: %v %s", err, body)
 	}
 
-	for _, space := range spaces {
-		for _, tool := range space.Tools {
-			if want := tool.Group == "read"; tool.Enabled != want {
-				t.Errorf("%s/%s (%s) enabled=%v, want %v", space.Slug, tool.Name, tool.Group, tool.Enabled, want)
-			}
+	for _, tool := range spaces[0].Tools {
+		if want := tool.Group == "read"; tool.Enabled != want {
+			t.Errorf("%s (%s) enabled=%v, want %v", tool.Name, tool.Group, tool.Enabled, want)
 		}
 	}
 }

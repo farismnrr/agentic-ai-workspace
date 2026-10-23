@@ -18,13 +18,12 @@ const (
 
 // Errors of the permission and activity use cases.
 var (
-	ErrUnknownSpace         = errors.New("unknown space")
-	ErrUnknownTool          = errors.New("unknown tool")
-	ErrApprovalsUnsupported = errors.New("space does not support skipped approvals")
-	ErrNoActivity           = errors.New("activity entry not found")
-	ErrNotUndoable          = errors.New("this entry cannot be undone")
-	ErrAlreadyUndone        = errors.New("this entry was already undone")
-	ErrUndoRefused          = errors.New("undo refused")
+	ErrUnknownSpace  = errors.New("unknown space")
+	ErrUnknownTool   = errors.New("unknown tool")
+	ErrNoActivity    = errors.New("activity entry not found")
+	ErrNotUndoable   = errors.New("this entry cannot be undone")
+	ErrAlreadyUndone = errors.New("this entry was already undone")
+	ErrUndoRefused   = errors.New("undo refused")
 )
 
 // Activity is one recorded tool call. Undo is an opaque blob only the space's

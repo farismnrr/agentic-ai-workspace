@@ -1,32 +1,19 @@
 package application
 
-import (
-	"context"
+import "context"
 
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
-)
-
-// chooseTeam uses the explicit mode requested for a new task; omitted mode means Coding Solo.
+// chooseTeam gives every new task a team, as long as the app has teams at all. Only code that starts a task on
+// someone's behalf can ask for none: the person has no switch.
 func (s *Service) chooseTeam(asked *bool) bool {
-	if asked == nil {
+	if s.deps.Team == nil || s.deps.Scopes == nil || s.deps.Delegations == nil {
 		return false
 	}
 
-	return *asked
-}
+	if asked != nil {
+		return *asked
+	}
 
-func (s *Service) validateTeam(ctx context.Context, userID string, requested *bool) error {
-	if requested == nil || !*requested {
-		return nil
-	}
-	if s.deps.Team == nil || s.deps.Scopes == nil || s.deps.Delegations == nil {
-		return domain.ErrTeamUnavailable
-	}
-	roster, err := s.deps.Team.Roster(ctx, userID)
-	if err != nil || !validTeamRoster(roster) {
-		return domain.ErrTeamUnavailable
-	}
-	return nil
+	return true
 }
 
 // leadModel fills in the orchestrator's own model when a team task did not pick one, so the lead role's

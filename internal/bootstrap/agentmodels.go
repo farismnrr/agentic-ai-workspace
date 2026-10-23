@@ -147,15 +147,3 @@ func (p agentProjects) Name(ctx context.Context, userID, projectID string) (stri
 
 	return project.Name, nil
 }
-
-func (p agentProjects) List(ctx context.Context, userID string) ([]taskapp.ProjectSummary, error) {
-	projects, err := p.projects.List(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list projects for Orchestrator: %w", err)
-	}
-	result := make([]taskapp.ProjectSummary, 0, len(projects))
-	for _, project := range projects {
-		result = append(result, taskapp.ProjectSummary{ID: project.ID, Name: project.Name})
-	}
-	return result, nil
-}

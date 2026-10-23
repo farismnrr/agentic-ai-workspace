@@ -41,15 +41,13 @@
             <p class="font-medium">{tool.title}</p>
             <p class="text-xs text-[var(--brand-text-tertiary)]">{toolCopy[tool.name] ?? tool.description}</p>
           </div>
-          <label class="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary" aria-label="Allow {tool.title}">
-            <input
-              class="toggle toggle-sm toggle-primary"
-              type="checkbox"
-              aria-label="Allow {tool.title}"
-              checked={isOn(tool)}
-              onchange={(event) => flip(tool, event.currentTarget.checked)}
-            />
-          </label>
+          <input
+            class="toggle toggle-sm toggle-primary"
+            type="checkbox"
+            aria-label="Allow {tool.title}"
+            checked={isOn(tool)}
+            onchange={(event) => flip(tool, event.currentTarget.checked)}
+          />
         </li>
       {/each}
     </ul>

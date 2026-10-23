@@ -29,7 +29,5 @@
     <p class="text-xs text-[var(--brand-text-tertiary)]">{approvalsCopy.body}</p>
     {#if failed}<p class="text-xs text-error" role="alert">{approvalsCopy.failed}</p>{/if}
   </div>
-  <label class="grid size-11 shrink-0 cursor-pointer place-items-center rounded-lg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary" aria-label={approvalsCopy.title}>
-    <input class="toggle toggle-sm toggle-warning" type="checkbox" aria-label={approvalsCopy.title} checked={on} onchange={(event) => flip(event.currentTarget.checked)} />
-  </label>
+  <input class="toggle toggle-sm toggle-warning" type="checkbox" aria-label={approvalsCopy.title} checked={on} onchange={(event) => flip(event.currentTarget.checked)} />
 </div>

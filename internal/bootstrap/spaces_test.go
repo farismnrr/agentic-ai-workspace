@@ -18,11 +18,8 @@ func TestSpacesListNeedsSessionAndDescribesTools(t *testing.T) {
 	cookie, _ := signedInClient(t, app)
 	spaces := do(t, app, "GET", "/api/spaces", "", map[string]string{"Cookie": cookie})
 
-	mustContain(t, spaces.Body,
-		`"url":"`+publicURL+`/api/coding"`, `"name":"read_file"`, `"readOnly":true`,
-		`"id":"coding:read"`, `"supportsApprovals":true`, "Read files and search code",
-		`"url":"`+publicURL+`/api/orchestrator"`,
-		`"id":"orchestrator:read"`, `"supportsApprovals":false`, `"name":"start_task"`)
+	mustContain(t, spaces.Body, `"url":"`+publicURL+`/api/coding"`, `"name":"read_file"`, `"readOnly":true`,
+		`"id":"coding:read"`, "Read files and search code")
 }
 
 func TestTheConnectorAddressFollowsConnectorURLNotTheAppAddress(t *testing.T) {
@@ -39,9 +36,6 @@ func TestTheConnectorAddressFollowsConnectorURLNotTheAppAddress(t *testing.T) {
 
 	resource := do(t, env.app, "GET", "/.well-known/oauth-protected-resource/api/coding", "", nil)
 	mustContain(t, resource.Body, `"resource":"`+connector+`/api/coding"`, `"authorization_servers":["`+connector+`"]`)
-	orchestratorResource := do(t, env.app, "GET", "/.well-known/oauth-protected-resource/api/orchestrator", "", nil)
-	mustContain(t, orchestratorResource.Body, `"resource":"`+connector+`/api/orchestrator"`,
-		`"resource_name":"Orchestrator"`, `"orchestrator:run"`)
 
 	issuer := do(t, env.app, "GET", "/.well-known/oauth-authorization-server", "", nil)
 	mustContain(t, issuer.Body, `"issuer":"`+connector+`"`, connector+"/oauth/token")
@@ -49,16 +43,4 @@ func TestTheConnectorAddressFollowsConnectorURLNotTheAppAddress(t *testing.T) {
 	challenge := do(t, env.app, "POST", "/api/coding", rpc("tools/list", "{}"), mcpHeaders(""))
 	mustContain(t, []byte(challenge.Header.Get("WWW-Authenticate")),
 		`resource_metadata="`+connector+`/.well-known/oauth-protected-resource/api/coding"`)
-}
-
-func TestCodingTokenCannotCallOrchestratorSpace(t *testing.T) {
-	t.Parallel()
-
-	app := newApp(t)
-	cookie, clientID := signedInClient(t, app)
-	token := connect(t, app, cookie, clientID, "coding:read")
-	response := do(t, app, "POST", "/api/orchestrator", rpc("tools/list", "{}"), mcpHeaders(token))
-	if response.Status != 401 {
-		t.Fatalf("Coding token must not be accepted by Orchestrator, got %d: %s", response.Status, response.Body)
-	}
 }

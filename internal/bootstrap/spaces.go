@@ -12,7 +12,7 @@ import (
 
 // newRegistry lists the spaces this server offers.
 func newRegistry(cfg config.Config) *spaceapp.Registry {
-	return spaceapp.NewRegistry(cfg.Connector(), codingSpace(), orchestratorSpace())
+	return spaceapp.NewRegistry(cfg.Connector(), codingSpace())
 }
 
 func resourceOf(registry *spaceapp.Registry, space spacedomain.Space) oauthapp.Resource {

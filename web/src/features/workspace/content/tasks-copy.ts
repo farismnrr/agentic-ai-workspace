@@ -9,8 +9,6 @@ export const taskErrors: Record<string, string> = {
   undo_refused: 'The file changed after this step, so it was left as it is.',
   not_found: 'We could not find that task.',
   bad_effort: 'That effort level is not available.',
-  team_unavailable: 'Orchestrator is unavailable because the team is not ready. ' +
-    'Ask your workspace owner to check the team setup, then try again.',
   binary: 'Only pictures can be attached: PNG, JPG, WebP, GIF or SVG.',
   too_large: 'A picture can be 10 MB at most.',
   exists: 'A picture with that name is already in the project. Rename it and try again.',

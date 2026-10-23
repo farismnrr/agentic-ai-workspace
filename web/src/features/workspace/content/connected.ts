@@ -5,8 +5,7 @@ export const connectedAppsCopy = {
 };
 
 export const spacesCopy = {
-  intro: 'These switches control what connected AI apps can do in each space. ' +
-    'Tasks you start here still follow Coding permissions.',
+  intro: 'A space is a set of tools. The switches here apply everywhere: to tasks in this app and to AI apps you connect, such as ChatGPT. A tool that is off cannot be used by anyone.',
   empty: { title: 'No spaces available', body: 'This server has no spaces switched on yet, so there is nothing to connect an AI app to.' },
   failed: 'We could not load your spaces. Please try again in a moment.',
 };

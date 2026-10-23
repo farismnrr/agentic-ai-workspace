@@ -135,7 +135,7 @@ func TestToolsOfferedDifferByRole(t *testing.T) {
 	}
 }
 
-func TestNewTaskDefaultsToSoloAndHonorsExplicitTeamMode(t *testing.T) {
+func TestEveryNewTaskHasATeamUnlessCodeAsksForNone(t *testing.T) {
 	t.Parallel()
 
 	r := newTeamRig(nil, []application.AgentRole{developer()}, finish("Hello"))
@@ -143,16 +143,16 @@ func TestNewTaskDefaultsToSoloAndHonorsExplicitTeamMode(t *testing.T) {
 	ctx := context.Background()
 
 	task, err := r.service.Create(ctx, "u1", application.CreateInput{ProjectID: "proj", Prompt: "Just talk"})
-	if err != nil || task.Team || !task.PlanFirst {
-		t.Fatalf("a task without a mode uses Solo and keeps the planning default: %+v %v", task, err)
+	if err != nil || !task.Team || !task.PlanFirst {
+		t.Fatalf("a task made without any choice has the team and plans first: %+v %v", task, err)
 	}
 
-	yes := true
+	no := false
 
-	teamTask, err := r.service.Create(ctx, "u1", application.CreateInput{
-		ProjectID: "proj", Prompt: "Use the team", Team: &yes,
+	solo, err := r.service.Create(ctx, "u1", application.CreateInput{
+		ProjectID: "proj", Prompt: "Just talk", Team: &no,
 	})
-	if err != nil || !teamTask.Team {
-		t.Fatalf("an explicit Orchestrator choice is stored on the task: %+v %v", teamTask, err)
+	if err != nil || solo.Team {
+		t.Fatalf("code that starts a task on someone's behalf can ask for none: %+v %v", solo, err)
 	}
 }
