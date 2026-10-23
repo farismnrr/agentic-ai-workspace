@@ -23,12 +23,13 @@ type toolPayload struct {
 }
 
 type spacePayload struct {
-	Slug   string         `json:"slug"`
-	Name   string         `json:"name"`
-	Path   string         `json:"path"`
-	URL    string         `json:"url"`
-	Scopes []scopePayload `json:"scopes"`
-	Tools  []toolPayload  `json:"tools"`
+	Slug              string         `json:"slug"`
+	Name              string         `json:"name"`
+	Path              string         `json:"path"`
+	URL               string         `json:"url"`
+	Scopes            []scopePayload `json:"scopes"`
+	Tools             []toolPayload  `json:"tools"`
+	SupportsApprovals bool           `json:"supportsApprovals"`
 	// SkipApprovals lets the assistant use every enabled tool of the space without asking.
 	SkipApprovals bool `json:"skipApprovals"`
 }
@@ -64,7 +65,8 @@ func (a *API) list(c fiber.Ctx) error {
 func (a *API) describe(space domain.Space, states map[string]bool) spacePayload {
 	payload := spacePayload{
 		Slug: space.Slug, Name: space.Name, Path: space.Path(), URL: a.registry.ResourceURI(space),
-		Scopes: []scopePayload{}, Tools: []toolPayload{},
+		SupportsApprovals: space.SupportsApprovals,
+		Scopes:            []scopePayload{}, Tools: []toolPayload{},
 	}
 
 	for _, scope := range space.Scopes {

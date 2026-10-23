@@ -1,6 +1,7 @@
 <script lang="ts">
   import { navigate } from '../../../app/router';
   import ComposerBox from '../components/ComposerBox.svelte';
+  import FormField from '../components/FormField.svelte';
   import { homeCopy } from '../content/tasks-copy';
   import { suggestions } from '../content/user';
   import { describeTaskError } from '../logic/task-errors';
@@ -10,6 +11,7 @@
 
   let text = $state('');
   let project = $state('');
+  let mode = $state<'coding' | 'orchestrator'>('coding');
   let attachments = $state<Attachment[]>([]);
   let busy = $state(false);
   let error = $state('');
@@ -33,7 +35,11 @@
     try {
       const paths = readyPaths(attachments);
       // The model and effort come from Settings: the lead's own, else the person's default.
-      const task = await createTask({ projectId: chosen, prompt: withAttachments(prompt, paths) });
+      const task = await createTask({
+        projectId: chosen,
+        prompt: withAttachments(prompt, paths),
+        team: mode === 'orchestrator',
+      });
       text = '';
       attachments = [];
       await refresh();
@@ -64,7 +70,31 @@
     {uploadProgress}
     {error}
     onsend={send}
-  />
+  >
+    {#snippet tools()}
+      <div class="min-w-52 flex-1 px-2 py-1">
+        <FormField
+          id="composer-mode"
+          label="Bagaimana task ini dikerjakan?"
+          hint="Coding mengerjakan langsung. Orchestrator mengoordinasikan tim."
+        >
+          {#snippet children({ describedby, invalid })}
+            <select
+              id="composer-mode"
+              class="select select-sm min-h-11 w-full"
+              bind:value={mode}
+              aria-describedby={describedby}
+              aria-invalid={invalid}
+              disabled={busy}
+            >
+              <option value="coding">Coding — langsung</option>
+              <option value="orchestrator">Orchestrator — melalui tim</option>
+            </select>
+          {/snippet}
+        </FormField>
+      </div>
+    {/snippet}
+  </ComposerBox>
   <ul class="mt-3 flex flex-wrap gap-2">
     {#each suggestions as suggestion (suggestion)}
       <li><button class="btn btn-sm rounded-full border-[var(--brand-border)] bg-base-100 font-normal" type="button" onclick={() => (text = suggestion)}>{suggestion}</button></li>

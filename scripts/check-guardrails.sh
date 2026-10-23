@@ -65,6 +65,29 @@ if [ -n "$doc_violations" ]; then
   exit 1
 fi
 
+require_doc_text() {
+  file="$1"
+  text="$2"
+  if ! grep -Fq "$text" "$file"; then
+    echo "$file must document: $text" >&2
+    exit 1
+  fi
+}
+
+require_doc_text docs/connector.md '/api/orchestrator'
+require_doc_text docs/connector.md '`start_task`'
+require_doc_text docs/connector.md '`get_task`'
+require_doc_text docs/connector.md '`send_message`'
+require_doc_text docs/connector.md '`retry_task`'
+require_doc_text docs/connector.md 'Do not automatically retry a timed-out'
+require_doc_text docs/using-the-app.md 'Coding — langsung'
+require_doc_text docs/using-the-app.md 'Only Coding supports **Skip approvals**.'
+require_doc_text docs/using-the-app.md 'Orchestrator switches apply only to connected apps'
+if grep -Fq 'Every task has the team. There is no switch to turn it off.' docs/using-the-app.md; then
+  echo 'docs/using-the-app.md contains the retired all-tasks-use-team behavior' >&2
+  exit 1
+fi
+
 js_sources="$(
   find web -type f \
     \( -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) \

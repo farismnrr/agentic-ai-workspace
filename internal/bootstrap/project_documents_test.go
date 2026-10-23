@@ -26,7 +26,8 @@ func TestProjectDocumentsAreExportedRepairedAndSharedWithoutThreadHistory(t *tes
 		finishCall("Plan ready"), finishCall("New task answer"),
 	)
 	headers := jsonCookie(a.cookie)
-	res := do(t, a.env.app, "POST", "/api/tasks", `{"projectId":"`+a.project+`","prompt":"Plan this project"}`, headers)
+	input, _ := json.Marshal(map[string]any{"projectId": a.project, "prompt": "Plan this project", "team": true})
+	res := do(t, a.env.app, "POST", "/api/tasks", string(input), headers)
 	first, _ := res.JSON(t)["id"].(string)
 	a.waitFor(t, first, "done")
 	second := a.start(t, "Read the previous project documents")

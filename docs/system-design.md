@@ -85,11 +85,17 @@ The binary hosts its own sign-in and an OAuth 2.1 server, so AI apps can connect
 
 - **Accounts:** email and password with a cookie session. Data lives in SQLite, using a pure-Go driver so the binary stays static. Accounts have `admin` or `user` roles; new accounts default to `user`.
 - **Server settings:** only admins can read full shared database settings or save them. PostgreSQL, MySQL and MongoDB settings are stored separately; other signed-in users see only which kinds are configured. Per-user providers, integrations, preferences and project settings remain owner-scoped.
-- **Spaces:** each space is an endpoint an AI app can call. The first, `coding`, lets it read, search, change and run things in that app's own project.
+- **Spaces:** each space is an endpoint an AI app can call. `coding` exposes direct project tools; `orchestrator` queues and follows team tasks through the existing task service.
+- **Task mode:** new tasks default to Coding Solo. An explicit Orchestrator choice is stored on the task and remains in effect through retry, continue and follow-up. Missing team setup fails the task instead of falling back to Solo.
+- **Orchestrator MCP:** `internal/modules/task/adapter/mcp` exposes only `start_task`, `get_task`, `send_message` and `retry_task`. It calls the task application service; ownership, project match, mode and task-state rules stay in the application layer. Bootstrap mounts it as the separate `/api/orchestrator` resource.
 - **Isolation:** every call resolves to one person's project. Nobody can reach another person's files, and two apps never share a folder.
 - **Tokens:** stored hashed and tied to one space. A replayed code or refresh token revokes the whole connection.
 
-Each tool has a switch the person controls in Settings. A call must pass the switch, then the token's scope, and is always logged. Edits save the old content first, which is what Undo restores.
+Each space has its own tool switches and token resource. A call must pass the
+space's switch and the token's scope, and is recorded in Activity. Coding
+switches govern app tasks and the Coding connector; Orchestrator switches
+govern only the Orchestrator MCP endpoint. Only Coding supports Skip approvals.
+Edits save the old content first, which is what Undo restores.
 
 Project files use owner-scoped `/api/projects/:id/files` routes. The upload
 endpoint, `POST /api/projects/:id/uploads`, accepts one multipart file per

@@ -25,6 +25,7 @@ const (
 	signInPerMinute         = 10
 	databaseTestsPerMinute  = 5
 	databaseSharedPerMinute = 10
+	orchestratorPerMinute   = 60
 )
 
 func accountLimits() accounthttp.Limits {

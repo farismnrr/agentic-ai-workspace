@@ -49,7 +49,7 @@ func NewMounter(registry *application.Registry, publicURL, issuer string, verifi
 
 // Mount serves one space: its Protected Resource Metadata (open) and its MCP
 // endpoint behind bearer-token authentication bound to this space's resource.
-func (m *Mounter) Mount(space domain.Space, mcpHandler http.Handler) httpserver.Mount {
+func (m *Mounter) Mount(space domain.Space, mcpHandler http.Handler, middleware ...fiber.Handler) httpserver.Mount {
 	resource := space.ResourceURI(m.publicURL)
 	metadataURL := m.publicURL + space.MetadataPath()
 
@@ -69,7 +69,12 @@ func (m *Mounter) Mount(space domain.Space, mcpHandler http.Handler) httpserver.
 
 	return func(app *fiber.App) {
 		app.Get(space.MetadataPath(), adaptor.HTTPHandler(metadata))
-		app.All(space.Path(), adaptor.HTTPHandler(protected))
+		route := make([]any, 0, len(middleware)+1)
+		for _, handler := range middleware {
+			route = append(route, handler)
+		}
+		route = append(route, adaptor.HTTPHandler(protected))
+		app.All(space.Path(), route[0], route[1:]...)
 	}
 }
 

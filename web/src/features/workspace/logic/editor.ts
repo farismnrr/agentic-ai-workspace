@@ -1,4 +1,3 @@
-import type { EditorView } from '@codemirror/view';
 import type { Extension } from '@codemirror/state';
 
 /** What the page holds of one editor: its text, and the way to stop it. */
@@ -40,32 +39,6 @@ export const languageFor = async (path: string): Promise<Extension> => (await la
 
 /** Opens a code editor in the element. CodeMirror is loaded on first use, so the rest of the app does not carry it. */
 export async function createEditor(options: EditorOptions): Promise<Editor> {
-  const [{ EditorView, keymap, lineNumbers, highlightActiveLine }, { EditorState }, { defaultKeymap, history, historyKeymap }, theme] = await Promise.all([
-    import('@codemirror/view'),
-    import('@codemirror/state'),
-    import('@codemirror/commands'),
-    import('./editor-theme'),
-  ]);
-  let quiet = false;
-  const view: EditorView = new EditorView({
-    parent: options.parent,
-    state: EditorState.create({
-      doc: options.doc,
-      extensions: [
-        lineNumbers(), highlightActiveLine(), history(), keymap.of([...defaultKeymap, ...historyKeymap]),
-        theme.editorTheme, theme.syntaxColors, await languageFor(options.path),
-        EditorState.readOnly.of(options.readOnly), EditorView.editable.of(!options.readOnly),
-        EditorView.updateListener.of((update) => { if (update.docChanged && !quiet) options.onchange(update.state.doc.toString()); }),
-      ],
-    }),
-  });
-  return {
-    text: () => view.state.doc.toString(),
-    replace: (text) => {
-      quiet = true;
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
-      quiet = false;
-    },
-    destroy: () => { view.destroy(); },
-  };
+  const runtime = await import('./editor-runtime');
+  return runtime.createEditor(options);
 }

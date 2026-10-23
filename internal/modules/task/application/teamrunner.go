@@ -7,19 +7,31 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// roster loads the team for a task that asked for one. It is nil for a solo task, for a teammate, and
-// when the person has nobody to hand work to, so the run then goes on as a solo one.
-func (r *Runner) roster(ctx context.Context, task domain.Task) *Roster {
-	if !task.Team || r.role != nil || r.deps.Team == nil || r.deps.Scopes == nil || r.deps.Delegations == nil {
-		return nil
+func (r *Runner) teamRoster(ctx context.Context, task domain.Task) (Roster, error) {
+	if r.deps.Team == nil || r.deps.Scopes == nil || r.deps.Delegations == nil {
+		return Roster{}, domain.ErrTeamUnavailable
 	}
-
 	roster, err := r.deps.Team.Roster(ctx, task.UserID)
-	if err != nil || len(roster.Members) == 0 {
-		return nil
+	if err != nil || !validTeamRoster(roster) {
+		return Roster{}, domain.ErrTeamUnavailable
 	}
+	return roster, nil
+}
 
-	return &roster
+func validTeamRoster(roster Roster) bool {
+	if !roster.Lead.Lead || roster.Lead.Key == "" || roster.Lead.Name == "" {
+		return false
+	}
+	for _, member := range roster.Members {
+		if !member.Lead && member.Key != "" && member.Name != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func teamUnavailable() outcome {
+	return failed("The Orchestrator team is unavailable.", "Restore the team setup, then Retry or Continue this task.")
 }
 
 // leading is the runner that leads a run: on a team task its steps carry the lead's name, so every step of

@@ -15,6 +15,42 @@ Let AI apps like ChatGPT work on your projects through this server.
 
 See and remove connected apps under Settings, Connected apps.
 
+## Orchestrator space
+
+Connect an AI app to `<CONNECTOR_URL>/api/orchestrator` to start and follow
+team tasks. The existing `<CONNECTOR_URL>/api/coding` address remains the
+direct Coding space.
+
+The client needs the `orchestrator:read` permission to connect. It also needs
+`orchestrator:run` to start tasks, send messages and retry tasks.
+
+Orchestrator offers four tools:
+
+| Tool | Permission | What it does |
+| --- | --- | --- |
+| `start_task` | `orchestrator:run` | Queues a new team task and returns its task link. |
+| `get_task` | `orchestrator:read` | Reads the saved status and returns its task link. |
+| `send_message` | `orchestrator:run` | Adds a message to an eligible team task. |
+| `retry_task` | `orchestrator:run` | Queues a failed team task again. |
+
+Each call needs a project ID. Task tools also need the task ID; `start_task`
+needs a prompt and `send_message` needs text. Responses include project ID,
+task ID, status and a link to open the task in the app. Starting and retrying
+return `queued`; the tool does not wait for the team to finish.
+
+The app checks that the signed-in person owns the project and task. A task
+must belong to the selected project and be an Orchestrator task. Follow-up is
+unavailable while a task is running, archived or waiting for an answer or
+approval. A completed, unarchived task can still accept a follow-up message.
+Retry is available only for tasks allowed by the app's Retry rules.
+
+Tool switches for Orchestrator are separate from Coding and apply to this
+MCP endpoint only. Reading is on by default; task-changing tools are off.
+Orchestrator has no Skip approvals setting. Use the app to answer questions,
+approve work and accept results. Do not automatically retry a timed-out
+`start_task`: first check the returned task list in the app in case it was
+created before the connection timed out.
+
 ## Where the AI app works
 
 Each connected app works in its own project, named after it (ChatGPT works in "ChatGPT").
