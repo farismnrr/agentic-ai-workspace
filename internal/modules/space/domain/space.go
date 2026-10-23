@@ -24,11 +24,12 @@ type Tool struct {
 type Space struct {
 	Slug string
 	Name string
-	// Entry is the scope needed to reach the endpoint at all; each tool then
-	// checks its own scope.
+	// Entry is the scope needed to reach the endpoint at all; each tool then checks its own scope.
 	Entry  string
 	Scopes []Scope
 	Tools  []Tool
+	// SupportsApprovals reports whether a person can skip approval prompts for this space.
+	SupportsApprovals bool
 }
 
 // FindTool returns the named tool.

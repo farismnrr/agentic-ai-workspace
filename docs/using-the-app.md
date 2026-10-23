@@ -72,7 +72,7 @@ The AI can inspect PNG photos and read PDFs and text files from the project.
    - "From a GitHub repository" starts from one of your repositories, with its history, and has no template. Type to search; the list scrolls.
    - Without GitHub connected, the GitHub choices stay visible but unavailable, with a link to connect GitHub.
    - If GitHub does not let the app create a repository, you are told. Create it on GitHub, share it with the app, then use "From a GitHub repository".
-3. Describe what you need on Home. The model and effort come from Settings: each teammate has its own, and the default covers the rest.
+3. Choose **Coding — langsung** to work directly or **Orchestrator — melalui tim** to hand work to the team. Coding is selected by default. Describe what you need on Home; the model and effort come from Settings.
    Long messages become project documents automatically. The complete text stays available to the AI and can be downloaded from the thread.
 4. Expect a few questions first. The AI asks what you want before it starts, with a recommended answer for each, and skips questions for a small, clear request. Answer in your own words or pick an option.
 5. If you asked for a browser extension, open **Extensions** in the sidebar to install it. See [extensions.md](./extensions.md).
@@ -278,7 +278,12 @@ Sign in with a Claude (Pro or Max) or ChatGPT (Plus or Pro) plan you already pay
 
 An agent team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.
 
-- Every task has the team. There is no switch to turn it off.
+- The Home composer offers **Coding — langsung** and **Orchestrator — melalui tim**. New tasks use Coding unless you choose Orchestrator.
+- The task page shows the saved mode after reload. Continue, Retry and follow-up keep that mode.
+- Orchestrator requires a ready team. If it is unavailable, the task does not switch to Coding; restore the team setup, then retry or continue.
+
+- New tasks default to Coding, which works directly. A task explicitly started in Orchestrator mode uses the team.
+- A task keeps its saved mode when you retry or continue it. If the team is unavailable, restore the team setup, then retry or continue that task.
 - A question, or a small change, never needs the whole team: the lead answers it or hands it straight to the Developer.
 - The lead decides who to call and when. Only the lead talks to you.
 - The lead never changes anything itself, even a one-line fix. It reads, plans, asks you and hands every change to a teammate.
@@ -392,12 +397,13 @@ A check is a command a project defines, such as `go test ./...`. The AI runs che
 
 ## Tools and approvals
 
-Settings, Spaces & tools has one list of tools. It applies to tasks in this app and to the AI apps you connect.
+Settings, Spaces & tools lists the separate Coding and Orchestrator spaces.
 
-- A tool that's off can't be used. The AI isn't even told it exists.
-- A tool that's on is allowed, but the AI still asks before risky steps.
-- "Skip approvals" lets the AI use every tool that's on without asking. It never turns a tool on.
-- On a new account, only looking around is on. Changing files, running commands and starting a web app stay off until you turn them on.
+- Coding switches apply to tasks started in this app and to connected apps using Coding.
+- Orchestrator switches apply only to connected apps using its MCP endpoint. They do not change Coding or its connected-app permissions.
+- Each space shows its own address and tools. A tool that's off can't be used; a tool that's on still follows its scope and task rules.
+- Only Coding supports **Skip approvals**. Orchestrator messages cannot answer questions, approve work or accept results; do those in the app.
+- Read tools start on. Orchestrator tools that start or change tasks start off.
 
 Connecting ChatGPT and other AI apps is covered in [connector.md](./connector.md).
 

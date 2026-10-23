@@ -29,10 +29,13 @@ func (s scoped) LoadTranscript(ctx context.Context, taskID string) ([]domain.Mes
 }
 
 type fakeTeam struct {
+	err    error
 	roster application.Roster
 }
 
-func (f *fakeTeam) Roster(context.Context, string) (application.Roster, error) { return f.roster, nil }
+func (f *fakeTeam) Roster(context.Context, string) (application.Roster, error) {
+	return f.roster, f.err
+}
 
 type fakeDelegations struct {
 	rows map[string]application.Delegation

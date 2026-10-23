@@ -64,6 +64,7 @@ var mapped = []statusError{
 	{domain.ErrNoProject, "no_project", fiber.StatusBadRequest},
 	{domain.ErrBadEffort, "bad_effort", fiber.StatusBadRequest},
 	{domain.ErrNoModel, "no_model", fiber.StatusConflict},
+	{domain.ErrTeamUnavailable, "team_unavailable", fiber.StatusConflict},
 	{domain.ErrBusy, "busy", fiber.StatusConflict},
 	{domain.ErrNeedsAnswer, "needs_answer", fiber.StatusConflict},
 	{domain.ErrNotWaiting, "not_waiting", fiber.StatusConflict},

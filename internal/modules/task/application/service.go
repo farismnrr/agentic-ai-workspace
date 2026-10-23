@@ -34,7 +34,7 @@ func NewService(deps Deps, dispatcher Dispatcher) *Service {
 
 // CreateInput is what the composer sends.
 type CreateInput struct {
-	// Team says whether the agent leads a team; nil uses the person's choice for new tasks.
+	// Team says whether this task uses Orchestrator; nil defaults a new task to Coding Solo.
 	Team *bool
 	// PlanFirst says whether the team stops at the PRD and waits for a yes. It is not offered to the person: nil, the
 	// default, always waits. Only code that starts a task on someone's behalf may turn it off.
@@ -56,6 +56,9 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 
 	if _, err := s.deps.Projects.Name(ctx, userID, in.ProjectID); err != nil {
 		return domain.Task{}, domain.ErrNoProject
+	}
+	if err := s.validateTeam(ctx, userID, in.Team); err != nil {
+		return domain.Task{}, err
 	}
 
 	followSettings := in.followsSettings()

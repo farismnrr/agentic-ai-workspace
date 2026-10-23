@@ -19,6 +19,15 @@ func skipApprovals(t *testing.T, app *fiber.App, cookie string) {
 	}
 }
 
+type spaceApprovalState struct {
+	Slug  string `json:"slug"`
+	Tools []struct {
+		Name    string `json:"name"`
+		Enabled bool   `json:"enabled"`
+	} `json:"tools"`
+	SkipApprovals bool `json:"skipApprovals"`
+}
+
 func TestSkipApprovalsIsPerSpaceAndNeverTurnsAToolOn(t *testing.T) {
 	t.Parallel()
 
@@ -33,25 +42,30 @@ func TestSkipApprovalsIsPerSpaceAndNeverTurnsAToolOn(t *testing.T) {
 
 	skipApprovals(t, app, cookie)
 
-	var spaces []struct {
-		Tools []struct {
-			Name    string `json:"name"`
-			Enabled bool   `json:"enabled"`
-		} `json:"tools"`
-		SkipApprovals bool `json:"skipApprovals"`
-	}
+	var spaces []spaceApprovalState
 
 	if err := json.Unmarshal(do(t, app, "GET", "/api/spaces", "", jsonCookie(cookie)).Body, &spaces); err != nil {
 		t.Fatal(err)
 	}
 
-	if len(spaces) != 1 || !spaces[0].SkipApprovals {
+	if len(spaces) != 2 || spaces[0].Slug != "coding" || !spaces[0].SkipApprovals ||
+		spaces[1].Slug != "orchestrator" || spaces[1].SkipApprovals {
 		t.Fatalf("the setting should be saved for the space: %+v", spaces)
 	}
 
-	for _, tool := range spaces[0].Tools {
-		if tool.Name == "edit_file" && tool.Enabled {
-			t.Fatal("skipping approvals must never switch a tool on")
+	assertSkipApprovalsDoesNotEnableTools(t, spaces)
+}
+
+func assertSkipApprovalsDoesNotEnableTools(t *testing.T, spaces []spaceApprovalState) {
+	t.Helper()
+	for _, space := range spaces {
+		if space.Slug != "coding" {
+			continue
+		}
+		for _, tool := range space.Tools {
+			if tool.Name == "edit_file" && tool.Enabled {
+				t.Fatal("skipping approvals must never switch a tool on")
+			}
 		}
 	}
 }

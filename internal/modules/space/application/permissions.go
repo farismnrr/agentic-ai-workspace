@@ -92,8 +92,12 @@ func (p *Permissions) SkipApprovals(ctx context.Context, userID, slug string) (b
 
 // SetSkipApprovals turns "skip approvals" on or off for one space of a person.
 func (p *Permissions) SetSkipApprovals(ctx context.Context, userID, slug string, skip bool) error {
-	if _, ok := p.registry.FindBySlug(slug); !ok {
+	space, ok := p.registry.FindBySlug(slug)
+	if !ok {
 		return domain.ErrUnknownSpace
+	}
+	if !space.SupportsApprovals {
+		return domain.ErrApprovalsUnsupported
 	}
 
 	if err := p.store.SetSkipApprovals(ctx, userID, slug, skip, p.now()); err != nil {

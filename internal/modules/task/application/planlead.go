@@ -29,13 +29,8 @@ type leadSession struct {
 	mu      sync.Mutex
 }
 
-// leadOf starts the lead's session when the task has a team; nil when it does not and runs alone.
-func (r *Runner) leadOf(ctx context.Context, task domain.Task) *leadSession {
-	roster := r.roster(ctx, task)
-	if roster == nil {
-		return nil
-	}
-
+// leadOf starts the lead's session for the validated team roster of a task.
+func (r *Runner) leadOf(task domain.Task, roster *Roster) *leadSession {
 	steps := r.lim.steps(true)
 	state := &runState{budget: &budget{left: steps}, segment: steps, roster: roster}
 	lead := r.leading(state)

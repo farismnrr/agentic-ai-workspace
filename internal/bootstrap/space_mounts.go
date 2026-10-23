@@ -1,6 +1,8 @@
 package bootstrap
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v3"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
@@ -8,6 +10,7 @@ import (
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
+	orchestratormcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/mcp"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
@@ -28,6 +31,17 @@ func newSpaceMounts(
 		Gate: gate{permissions: permissions}, Recorder: recorder{log: log}, Tasks: appThreads{tasks: tasks},
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
+	orchestrator := orchestratorSpace()
+	orchestratorHandler := orchestratormcp.HTTPHandler(tasks, orchestratormcp.Options{
+		Gate: orchestratorGate{permissions: permissions}, Activity: orchestratorActivity{log: log},
+		ResourceMetadataURL: cfg.Connector() + orchestrator.MetadataPath(), TaskURLBase: cfg.PublicURL,
+	})
+	orchestratorLimit := orchestratorRateLimit(
+		verifier{oauth: oauth}, orchestrator.ResourceURI(cfg.Connector()),
+	)
 
-	return append(mounts, mounter.Mount(space, handler))
+	return append(mounts, mounter.Mount(space, handler), mounter.Mount(
+		orchestrator, orchestratorHandler, orchestratorLimit,
+		httpserver.Limit(orchestratorPerMinute, time.Minute, orchestratorUserKey, false),
+	))
 }

@@ -11,7 +11,7 @@ var programNames = map[string]string{"claude": "Claude", "chatgpt": "ChatGPT"}
 
 // runPlan does a task on the person's own plan: the vendor's coding program does the work in the project's
 // folder and this records what it reports, so the thread, the files and the receipt look like any other task.
-func (r *Runner) runPlan(ctx context.Context, task domain.Task) outcome {
+func (r *Runner) runPlan(ctx context.Context, task domain.Task, roster *Roster) outcome {
 	program, _ := domain.PlanRuntime(task.ProviderID)
 	name := programNames[program]
 
@@ -32,16 +32,15 @@ func (r *Runner) runPlan(ctx context.Context, task domain.Task) outcome {
 		return failed("I could not start this task.", "")
 	}
 
-	return r.turnOnPlan(ctx, task, program)
+	return r.turnOnPlan(ctx, task, program, roster)
 }
 
-func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program string) outcome {
+func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program string, roster *Roster) outcome {
 	session, _ := r.deps.Sessions.Session(ctx, task.ID)
 	runner, lead, leadName := r, (*leadSession)(nil), ""
 	if task.Team {
-		if lead = r.leadOf(ctx, task); lead != nil {
-			runner, leadName = lead.lead, lead.state.roster.Lead.Name
-		}
+		lead = r.leadOf(task, roster)
+		runner, leadName = lead.lead, roster.Lead.Name
 	}
 
 	req := CLIRequest{

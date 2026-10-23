@@ -38,7 +38,7 @@
       <ul class="flex gap-1 overflow-x-auto md:flex-col">
         {#each spaces as item (item.slug)}
           <li>
-            <button class="flex h-9 w-full shrink-0 items-center rounded-lg px-2 text-left hover:bg-base-100/70 {space.slug === item.slug ? 'bg-base-300/60 font-medium' : ''}" type="button" aria-pressed={space.slug === item.slug} onclick={() => (selected = item.slug)}>
+            <button class="flex h-11 w-full shrink-0 items-center rounded-lg px-2 text-left hover:bg-base-100/70 {space.slug === item.slug ? 'bg-base-300/60 font-medium' : ''}" type="button" aria-pressed={space.slug === item.slug} onclick={() => (selected = item.slug)}>
               <span class="flex-1 truncate">{item.name}</span>
             </button>
           </li>
@@ -48,7 +48,9 @@
     <section class="min-w-0 rounded-xl border border-[var(--brand-border)] bg-base-100" aria-label="{space.name} tools">
       <h2 class="border-b border-[var(--brand-border)] px-4 py-3 text-sm font-semibold">{space.name}</h2>
       <ConnectorAddress url={space.url} />
-      {#key space.slug}<SkipApprovals {space} />{/key}
+      {#if space.supportsApprovals}
+        {#key space.slug}<SkipApprovals {space} />{/key}
+      {/if}
       <SpaceTools {space} />
     </section>
   </div>

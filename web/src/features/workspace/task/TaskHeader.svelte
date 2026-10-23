@@ -20,7 +20,7 @@
   <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 sm:min-h-12 sm:flex-nowrap sm:py-0">
     <h1 class="line-clamp-2 w-full min-w-0 text-[15px] font-semibold leading-snug sm:line-clamp-1 sm:w-auto">{task.title}</h1>
     <StatusBadge status={task.status} />
-    {#if task.team}<span class="badge badge-soft badge-sm">Team</span>{/if}
+    <span class="badge badge-soft badge-sm">{task.team ? 'Orchestrator' : 'Coding'}</span>
     <p class="hidden flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">Started {timeAgo(task.createdAt)} · {task.model}{task.effort === '' ? '' : ` · ${effortLabel(task.effort)} effort`}</p>
     <span class="flex-1 md:hidden"></span>
     <ContextMeter used={task.contextUsed} window={task.contextWindow} />
