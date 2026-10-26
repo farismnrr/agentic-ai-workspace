@@ -32,7 +32,9 @@ var defaultEgressHosts = []string{
 // Hosts the vendors' own CLIs may reach while a person signs in or works with their plan. Each list is
 // reachable only from the container of that vendor's CLI.
 var (
-	defaultClaudeHosts  = []string{"claude.com", "platform.claude.com", "console.anthropic.com", "api.anthropic.com"}
+	defaultClaudeHosts = []string{
+		"claude.com", "claude.ai", "platform.claude.com", "console.anthropic.com", "api.anthropic.com",
+	}
 	defaultChatGPTHosts = []string{"auth.openai.com", "chatgpt.com", "api.openai.com"}
 )
 
