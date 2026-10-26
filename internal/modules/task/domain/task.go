@@ -82,7 +82,11 @@ type Task struct {
 	// Research is what the team found out from the web and the project, in markdown; rounds are added one after another.
 	Research string
 	ID       string
-	Model    string
+	// WorkID links a task to its persistent external work session.
+	WorkID string `json:"workId,omitempty"`
+	// Work is a read-only summary of the linked external work session.
+	Work  *WorkSummary `json:"work,omitempty"`
+	Model string
 	// ProjectID is the project the task works in.
 	ProjectID string
 	// Effort is how hard the model was asked to think; empty is the provider's default.
