@@ -34,8 +34,9 @@ func TestMigrationNamesAreUniqueAndKeepAFixedOrder(t *testing.T) {
 		t.Fatalf("the two 051 files must stay as they are and run in this order: %v", names)
 	}
 
-	if position["052_egress_grants.sql"] != position[second]+1 {
-		t.Fatalf("052 must run right after both 051 files")
+	if position["052_egress_grants.sql"] != position[second]+1 ||
+		position["053_egress_audit.sql"] != position["052_egress_grants.sql"]+1 {
+		t.Fatalf("052 and 053 must follow both 051 files in order")
 	}
 }
 
@@ -60,8 +61,9 @@ func TestAnExistingDatabaseTakes052WithoutTouchingTheJournal(t *testing.T) {
 		}
 	}
 
-	if after["052_egress_grants.sql"] == "" || len(after) != len(before)+1 {
-		t.Fatalf("exactly 052 should have been added, journal has %d rows (was %d)", len(after), len(before))
+	if after["052_egress_grants.sql"] == "" || after["053_egress_audit.sql"] == "" ||
+		len(after) != len(before)+2 {
+		t.Fatalf("exactly 052 and 053 should have been added, journal has %d rows (was %d)", len(after), len(before))
 	}
 }
 
