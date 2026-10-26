@@ -62,7 +62,7 @@ echo 'PASS vendor binaries present in isolated toolbox'
 
 SANDBOX_TEST_IMAGE="$sandbox_image" \
   go test -count=1 -v -timeout 12m ./internal/modules/coding/adapter/runner \
-    -run '^Test(AGrantIsUsableOnlyFromItsOwnTasksContainer|TheContainerSeesOnlyItsOwnSocketAndCannotChangeIt|AVendorProgramContainerGetsOnlyItsOwnTasksSocket|AVendorProgramForATaskThatIsOverDoesNotStartAndFreesItsPlace|WithoutAScopeAndForSitesTheWorkspaceSocketIsUsedAndCarriesNoGrants)$' \
+    -run '^Test(AGrantIsUsableOnlyFromItsOwnTasksContainer|TheContainerSeesOnlyItsOwnSocketAndCannotChangeIt|Stage7RealPublicHTTPSNeedsTaskGrant|AVendorProgramContainerGetsOnlyItsOwnTasksSocket|AVendorProgramForATaskThatIsOverDoesNotStartAndFreesItsPlace|WithoutAScopeAndForSitesTheWorkspaceSocketIsUsedAndCarriesNoGrants)$' \
   | tee stage7-evidence/socket-isolation.log
 ! grep -q -- '--- SKIP' stage7-evidence/socket-isolation.log
 echo 'PASS Coding Runner and vendor Lease socket isolation'
