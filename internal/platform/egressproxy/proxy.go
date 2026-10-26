@@ -37,6 +37,8 @@ type Proxy struct {
 	dial    dialFunc
 	// dialTarget connects to an exact target, which may be on the LAN or this computer.
 	dialTarget dialFunc
+	// task is set only on the proxy of a task socket (Hub.TaskDir); see grantpath.go.
+	task taskPath
 }
 
 // New allows the given hostnames. Names resolving to non-public addresses are still refused.
@@ -60,7 +62,7 @@ func New(hosts []string) *Proxy {
 		return dialer.DialContext(ctx, "tcp", address)
 	}
 
-	return &Proxy{hosts: allowed, dial: dial, dialTarget: targetDial("")}
+	return &Proxy{hosts: allowed, dial: dial, dialTarget: targetDial(""), task: defaultTaskPath()}
 }
 
 // Serve answers connections on l until it is closed.
@@ -70,19 +72,29 @@ func (p *Proxy) Serve(l net.Listener) error {
 	return server.Serve(l) //nolint:wrapcheck // the caller only needs to know that serving ended
 }
 
-// ServeHTTP handles one CONNECT request.
+// ServeHTTP handles one CONNECT request. The older rules (registry list, exact targets) are tried first and are
+// unchanged; only a proxy made for a task socket goes on to consult dynamic grants.
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host, port, err := net.SplitHostPort(r.Host)
-
-	target := p.isTarget(host, port)
-	permitted := target || (port == httpsPort && p.allowed(host))
-
-	if r.Method != http.MethodConnect || err != nil || !permitted {
+	if r.Method != http.MethodConnect || err != nil {
 		http.Error(w, blockedText, http.StatusForbidden)
 
 		return
 	}
 
+	target := p.isTarget(host, port)
+
+	switch {
+	case target || (port == httpsPort && p.allowed(host)):
+		p.tunnelTo(w, r, host, port, target)
+	case p.task.grants != nil:
+		p.serveGrant(w, r, host, port)
+	default:
+		http.Error(w, blockedText, http.StatusForbidden)
+	}
+}
+
+func (p *Proxy) tunnelTo(w http.ResponseWriter, r *http.Request, host, port string, target bool) {
 	dial := p.dial
 	if target {
 		dial = p.dialTarget
