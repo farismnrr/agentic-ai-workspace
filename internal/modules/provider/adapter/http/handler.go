@@ -167,6 +167,7 @@ var badInput = []struct {
 	code string
 }{
 	{domain.ErrInvalidKind, "invalid_kind"},
+	{domain.ErrAccountRelay, "account_relay_disabled"},
 	{domain.ErrInvalidName, "invalid_name"},
 	{domain.ErrInvalidBaseURL, "invalid_base_url"},
 	{domain.ErrAddressFixed, "address_fixed"},

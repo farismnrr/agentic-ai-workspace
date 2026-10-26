@@ -39,6 +39,7 @@ const fileRules: Record<string, FileRule> = {
   md: { kind: 'document', limit: 25 * megabyte, mime: ['text/markdown', 'text/plain'] },
   csv: { kind: 'document', limit: 25 * megabyte, mime: ['text/csv', 'text/plain'] },
   json: { kind: 'document', limit: 25 * megabyte, mime: ['application/json', 'text/json', 'text/plain'] },
+  zip: { kind: 'document', limit: 25 * megabyte, mime: ['application/zip', 'application/x-zip-compressed'] },
   log: { kind: 'document', limit: 25 * megabyte, mime: ['text/plain'] },
   mp4: { kind: 'video', limit: 100 * megabyte, mime: ['video/mp4'] },
   webm: { kind: 'video', limit: 100 * megabyte, mime: ['video/webm'] },
@@ -151,6 +152,7 @@ function attachmentHint(path: string): string {
     return 'view it with view_image (PNG only; convert other formats to PNG first)';
   }
   if (extension === 'pdf') return 'read it with pdftotext';
+  if (extension === 'zip') return 'inspect as an untrusted archive; only extract inside the sandbox after checking paths, links and size limits';
   if (['txt', 'md', 'csv', 'json', 'log'].includes(extension)) return 'read it directly';
   if (['mp4', 'webm', 'mov'].includes(extension)) {
     return 'stored only; you cannot watch video — tell the user what you can and cannot do';

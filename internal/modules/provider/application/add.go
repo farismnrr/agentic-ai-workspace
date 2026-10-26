@@ -60,6 +60,9 @@ func (s *Service) build(userID string, in AddInput) (domain.Provider, error) {
 	if err != nil {
 		return domain.Provider{}, fmt.Errorf("add provider: %w", err)
 	}
+	if domain.IsLegacy9router(in.Kind, name, baseURL) {
+		return domain.Provider{}, domain.ErrAccountRelay
+	}
 
 	key := strings.TrimSpace(in.APIKey)
 	if key == "" {
