@@ -98,6 +98,10 @@ func (s *Service) Credential(ctx context.Context, userID, id string) (domain.Cre
 		return domain.Credential{}, fmt.Errorf("find provider: %w", err)
 	}
 
+	if domain.IsLegacy9router(provider.Kind, provider.Name, provider.BaseURL) {
+		return domain.Credential{}, domain.ErrAccountRelay
+	}
+
 	key, err := s.cipher.Decrypt(sealed)
 	if err != nil {
 		return domain.Credential{}, fmt.Errorf("open key: %w", err)
@@ -113,6 +117,7 @@ func (s *Service) List(ctx context.Context, userID string) ([]domain.Provider, e
 		return nil, fmt.Errorf("list providers: %w", err)
 	}
 
+	disableLegacyAccountRelays(providers)
 	if s.plans != nil {
 		providers = append(s.plans.Connected(ctx, userID), providers...)
 	}
@@ -130,6 +135,11 @@ func (s *Service) SetEnabled(ctx context.Context, userID, id string, enabled boo
 		return nil
 	}
 
+	if enabled {
+		if err := s.checkLegacyAccountRelay(ctx, userID, id); err != nil {
+			return err
+		}
+	}
 	if err := s.store.SetEnabled(ctx, userID, id, enabled); err != nil {
 		return fmt.Errorf("switch provider: %w", err)
 	}
@@ -159,7 +169,7 @@ type ModelOption struct {
 	ProviderID   string
 	ProviderName string
 	Model        string
-	// Group is who serves the model when the provider is a gateway that says so, such as cc or cx behind 9router.
+	// Group is who serves the model when the gateway reports a provider alias.
 	Group string
 }
 

@@ -45,6 +45,12 @@ func (e *Editor) Upload(given string, size int64, src io.Reader) (Stored, error)
 	}
 	defer func() { _ = e.writer.Remove(temp.path) }()
 
+	if upload.Kind == "archive" {
+		if err := e.validateArchive(temp.path, temp.size); err != nil {
+			return Stored{}, fmt.Errorf("validate ZIP: %w", err)
+		}
+	}
+
 	return e.finishUpload(given, upload, temp)
 }
 

@@ -35,7 +35,7 @@ func modelServer(t *testing.T) *httptest.Server {
 func addProvider(t *testing.T, app testEnv, cookie, baseURL, key string) reply {
 	t.Helper()
 
-	body := `{"kind":"compatible","name":"9router","baseUrl":"` + baseURL + `","apiKey":"` + key + `"}`
+	body := `{"kind":"compatible","name":"Local test gateway","baseUrl":"` + baseURL + `","apiKey":"` + key + `"}`
 
 	return do(t, app.app, "POST", "/api/providers", body, jsonCookie(cookie))
 }

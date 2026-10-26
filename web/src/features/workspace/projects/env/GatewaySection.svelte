@@ -33,7 +33,7 @@
   }
 </script>
 
-<SettingsSection title="Model gateway" description="Let this project's code call a model gateway on this computer, such as 9router.">
+<SettingsSection title="Model gateway" description="Let this project's code use an OpenAI-compatible local API with your own API key. Account relays are unsupported.">
   {#if loading}
     <div class="py-3" role="status"><span class="loading loading-spinner loading-sm" aria-label="Loading model gateway"></span></div>
   {:else if loadFailed}

@@ -38,7 +38,7 @@ func TestProviderAddressesCannotAimTheServerElsewhere(t *testing.T) {
 	hosted := do(t, env.app, "POST", "/api/providers", providerBody("gemini", ""), jsonCookie(cookie))
 	mustContain(t, hosted.Body, "https://generativelanguage.googleapis.com/v1beta/openai")
 
-	local := providerBody("compatible", "http://localhost:20128/v1")
+	local := providerBody("compatible", "http://localhost:9010/v1")
 	if got := do(t, env.app, "POST", "/api/providers", local, jsonCookie(cookie)).Status; got != 201 {
 		t.Errorf("a gateway on this computer must be accepted, got %d", got)
 	}

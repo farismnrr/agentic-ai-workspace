@@ -12,7 +12,7 @@ import (
 type Kind string
 
 // Provider kinds. Gemini is spoken through Google's OpenAI-compatible endpoint, and
-// "compatible" is any other OpenAI-compatible gateway, such as 9router.
+// "compatible" is a local OpenAI-compatible API backed by an independently issued API key.
 const (
 	KindAnthropic  Kind = "anthropic"
 	KindOpenAI     Kind = "openai"
@@ -38,6 +38,7 @@ var (
 	ErrNotFound       = errors.New("provider not found")
 	ErrVerifyFailed   = errors.New("the provider did not accept this key")
 	ErrTooMany        = errors.New("too many providers; remove one first")
+	ErrAccountRelay   = errors.New("9router account relay is no longer supported")
 )
 
 const (
@@ -141,6 +142,19 @@ func isLocalGateway(parsed *url.URL) bool {
 
 func isLocalHost(host string) bool {
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+// IsLegacy9router detects known legacy account-relay configurations without deleting their stored credentials.
+// Generic OpenAI-compatible gateways remain supported when they use legitimate user-provided API keys.
+func IsLegacy9router(kind Kind, name, baseURL string) bool {
+	if kind != KindCompatible {
+		return false
+	}
+	if strings.Contains(strings.ToLower(strings.TrimSpace(name)), "9router") {
+		return true
+	}
+	parsed, err := url.Parse(baseURL)
+	return err == nil && isLocalHost(parsed.Hostname()) && parsed.Port() == "20128"
 }
 
 // KeyHint is the only part of a key that is ever shown again.

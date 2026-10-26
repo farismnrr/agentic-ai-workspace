@@ -246,7 +246,7 @@ Commands, web apps and the Claude and ChatGPT programs have no network, but they
 
 ### Model gateway from commands and apps
 
-A project can also call a model gateway on the same computer, such as 9router, for RAG or any other model use.
+A project can also call an OpenAI-compatible local model API with its own API key for RAG or other model use. Legacy 9router connections are disabled and must be deleted from provider settings by their owner.
 
 - Add the gateway as an OpenAI-compatible provider that points to this computer, for example `http://localhost:20128/v1`.
 - In the project's **Env** tab, open **Model gateway** and pick it. Nothing is reachable until you do.

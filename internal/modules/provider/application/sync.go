@@ -13,7 +13,7 @@ const (
 )
 
 // SyncStale reads again the model list of every gateway that has not been read lately, so a provider added behind
-// it (a Claude account connected in 9router, say) appears without anyone pressing Refresh. A gateway that cannot be
+// it appears without anyone pressing Refresh. A gateway that cannot be
 // reached keeps the list it has: nothing is marked unverified, since the key was proven when it was added.
 // Providers that are not gateways are left alone, because their catalogue rarely changes and is not free to fetch.
 func (s *Service) SyncStale(ctx context.Context, userID string) {
