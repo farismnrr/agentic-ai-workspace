@@ -35,7 +35,7 @@ func (r *Runner) workOnPlan(
 	site := worker.siteBridge(teammate, role, d.ID)
 
 	result, err := r.deps.CLI.Run(ctx, CLIRequest{
-		UserID: teammate.UserID, ProjectID: teammate.ProjectID, Program: program,
+		UserID: teammate.UserID, ProjectID: teammate.ProjectID, TaskID: teammate.ID, Program: program,
 		Model: d.Model, Effort: string(d.Effort), Tools: allowed, Limited: true, Bridge: site.bridge(),
 		Prompt: worker.rolePrompt(ctx, teammate, role, d),
 	}, func(event CLIEvent) { sink.emit(ctx, event) })

@@ -24,7 +24,7 @@ func (g *fakeGate) Enabled(context.Context, string) (map[string]bool, error) {
 
 	known := []string{
 		"read_file", "edit_file", "write_file", "delete_file", "run_task", "run_command", "start_site", "screenshot",
-		"test", "deploy_extension",
+		"test", "deploy_extension", "request_egress",
 	}
 
 	for _, name := range known {

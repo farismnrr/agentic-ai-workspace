@@ -141,7 +141,11 @@ func (e *Engine) Lease(
 	}
 
 	spec = sandbox.Spec{Workspace: dir}
-	e.prepare(ctx, dir, &spec, docker, hosts...)
+	if err = e.prepare(ctx, dir, &spec, docker, hosts...); err != nil {
+		release()
+
+		return nil, sandbox.Spec{}, nil, err
+	}
 
 	return docker, spec, release, nil
 }

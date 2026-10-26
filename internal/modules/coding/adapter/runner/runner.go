@@ -106,7 +106,7 @@ func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunR
 	git, hasGit := r.credentials(ctx)
 
 	hosts, granted := r.egressHosts(ctx, hasGit)
-	r.engine.prepare(ctx, r.dir, &spec, docker, hosts...)
+	_ = r.engine.prepare(ctx, r.dir, &spec, docker, hosts...) // without a socket the command just has no network
 	projectValues, granting := granted.Apply(&spec, projectValues)
 	baseEnv := append(environment(spec), granting...)
 

@@ -2,7 +2,7 @@ package runner
 
 import (
 	"context"
-	"log"
+	"errors"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egressproxy"
 )
@@ -38,35 +38,37 @@ func (r *Runner) bind(ctx context.Context) context.Context {
 	return context.WithValue(ctx, scopeKey{}, scope)
 }
 
+// ErrTaskNotOpen means a run carries a task scope that cannot be confirmed (the task is over, belongs to another
+// project, or the check failed), so it gets no network at all.
+var ErrTaskNotOpen = errors.New("the task is not open, so it gets no network")
+
+// withoutTask removes any task scope from ctx. Work that is not a task's own command, such as a site, uses it.
+func withoutTask(ctx context.Context) context.Context {
+	return context.WithValue(ctx, scopeKey{}, nil)
+}
+
 // socket returns the folder of the proxy socket a command may be given. Without grants enabled it is the workspace's
 // socket, exactly as before. With grants enabled, a command that carries a task scope gets that task's own socket,
-// and only if the task is live; a scope that cannot be confirmed gets no socket at all (no network), never the
-// workspace's socket in its place.
-func (e *Engine) socket(ctx context.Context, id string, hosts []string) (string, bool) {
+// and only if the task is live; a scope that cannot be confirmed gets ErrTaskNotOpen and no socket at all (no
+// network), never the workspace's socket in its place.
+func (e *Engine) socket(ctx context.Context, id string, hosts []string) (string, error) {
 	hub := e.extras.Proxy
 	scope, scoped := ctx.Value(scopeKey{}).(taskScope)
 
 	if !hub.Enabled() || !scoped {
-		dir, err := hub.Dir(ctx, id, hosts...)
-
-		return dir, err == nil
+		return hub.Dir(ctx, id, hosts...) //nolint:wrapcheck // worded by the caller
 	}
 
 	if scope.bad || e.extras.Scopes == nil {
-		return "", false
+		return "", ErrTaskNotOpen
 	}
 
 	live, err := e.extras.Scopes.TaskLive(ctx, scope.project, scope.task)
 	if err != nil || !live {
-		return "", false
+		return "", ErrTaskNotOpen
 	}
 
-	dir, err := hub.TaskDir(ctx, id, egressproxy.Scope{Project: scope.project, Task: scope.task}, hosts...)
-	if err != nil {
-		log.Printf("egress: no task socket: %v", err)
+	task := egressproxy.Scope{Project: scope.project, Task: scope.task}
 
-		return "", false
-	}
-
-	return dir, true
+	return hub.TaskDir(ctx, id, task, hosts...) //nolint:wrapcheck // worded by the caller
 }

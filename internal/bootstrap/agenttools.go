@@ -18,7 +18,6 @@ import (
 	githubapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
-	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	webapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/web/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
@@ -42,6 +41,7 @@ type agentTools struct {
 	handlers   map[string]toolHandler
 	github     *githubapp.Service
 	plans      *plans
+	egress     *egressRuntime
 	git        func(projectID string) codingrunner.GitSource
 	reach      codingrunner.Reach
 	public     string
@@ -120,7 +120,7 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 	defs = append(defs, extensionDefinition())
 	defs = append(defs, screenshotDefinition(), screenshotSessionDefinition(), viewImageDefinition())
 
-	return append(defs, a.webDefinitions()...)
+	return append(append(defs, a.webDefinitions()...), a.egressDefinitions()...)
 }
 
 // Risk grades how careful the agent must be: edits are undoable (low), the rest ask by default.
@@ -162,15 +162,6 @@ func (a *agentTools) Undo(_ context.Context, projectID string, blob []byte) erro
 	}
 
 	return nil
-}
-
-// Describe says what a tool call does, in plain words and as a question.
-func (a *agentTools) Describe(call taskapp.Call) taskapp.Described {
-	var in toolArgs
-
-	_ = json.Unmarshal(call.Input, &in)
-
-	return describe(call.Name, in)
 }
 
 // forgetting removes a project's folder and then what its commands left outside it (package cache, proxy socket).

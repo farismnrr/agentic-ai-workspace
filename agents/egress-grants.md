@@ -2,7 +2,7 @@
 
 Design and status of `internal/modules/egressgrant`. Agent-only. Read before touching `platform/egressproxy`, `bootstrap/reach.go`, or the grant tool/endpoints.
 
-**Status: stages 1-4 done (domain, migration 052, use cases, SQLite store, proxy enforcement, runtime integration behind `EGRESS_GRANTS`, default false). With the flag off nothing new runs. With it on the runtime is wired, but there is still no request tool, endpoint or screen (stages 5-6), so no grant can be created by a person yet. The feature stays off (`EGRESS_GRANTS` unset; the flag itself arrives with stage 4) in every environment until every item in "Activation gate" is done.**
+**Status: stages 1-5 done (domain, migration 052, use cases, SQLite store, proxy enforcement, runtime integration behind `EGRESS_GRANTS`, default false, vendor-agent sockets, the `request_egress` tool, immediate task-end hooks). With the flag off nothing new runs. With it on an agent can ask but nobody can approve: there is no endpoint or screen yet (stage 6), so no request can become a grant. The feature stays off (`EGRESS_GRANTS` unset; the flag itself arrives with stage 4) in every environment until every item in "Activation gate" is done.**
 
 ## Decisions (user, 2026-10-26)
 
@@ -34,7 +34,7 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 2. Application use cases and ports (`Request`, `Approve`, `Deny`, `Revoke`, `Active`, `List`), sqlite adapter, tests. (done)
 3. `egressproxy.Grants`: registry, normalized match, resolve-then-dial, SNI check, tunnel tracking, revoke/expiry. Security tests below. (done)
 4. Wiring behind `EGRESS_GRANTS`: per-task socket, verifier, startup rebuild, sweep. (done; `reach` untouched)
-5. `request_egress` tool (bridge included) with `Actor{Agent}`.
+5. `request_egress` tool (bridge included) with `Actor{Agent}`, vendor-agent task sockets, immediate task-end hooks. (done)
 6. HTTP endpoints, owner/admin authorization, Svelte panel, thread notice.
 7. Docs for people (`docs/`), final gate review.
 
@@ -100,7 +100,7 @@ A valid ClientHello with the right SNI does not prove that everything inside the
 - **Restart.** `startEgressGrants` calls the same `Reconcile` that the 5 s sweep runs. It restores exactly the approved, unexpired grants of live tasks, nothing else. If the database cannot be read the registry is emptied (`Reconcile` revokes everything) and rebuilt by the next good sweep.
 - **Sweep and lag.** Revoke and approve act on the registry before the call returns. A task that ends, is archived or deleted loses its grants and open tunnels within one sweep (5 s); new connections are refused at once by the verifier. The sweep also stops the sockets of tasks that are no longer live (`Hub.RemoveTask`).
 - **One instance only.** The registry is in memory and tunnels live in this process. `startEgressGrants` takes an exclusive `flock` on `DATA_DIR/egress/.grants.lock`; a second process on the same data folder fails to get it, logs "egress grants stay off", and runs without grants (its hub has no registry, so it serves none). That is the supported answer to "several instances": grants work in exactly one. Two processes on different hosts sharing a database over a network file system are not detected (flock is per host) and are not supported; because every revoke and approve is also written to the database and the verifier reads it, a second process that somehow ran grants would still refuse new connections after a revoke, but could keep an old tunnel until its own sweep (5 s). No distributed registry is planned.
-- **Not done on purpose.** The vendor programs' containers (`Engine.Lease` from `taskcli_env.go`, `cliagent.go` `Slot`) and sites do not get task sockets. Commands that Claude Code or Codex run inside their own container therefore cannot use a grant yet. Decide that with the user before stage 5.
+- **Superseded in stage 5:** vendor programs now get task sockets (below). `Slot` (sign-in and model lists, no task) and sites still use the workspace socket.
 
 ## Test plan before activation (end to end, marimo-pair)
 
@@ -114,3 +114,11 @@ Run on a throwaway instance with `EGRESS_GRANTS=true`, the static marimo host re
 6. Host behind a CDN or with several addresses (and IPv6): resolution, pinning and the "any non-public answer refuses" rule behave.
 7. Volume `Subpath` mounts (the app in a container, as deployed): the same isolation checks as `taskisolation_test.go`.
 8. After all of that passes, remove the marimo host from the static list (keep the registry defaults), recreate only the app container, and repeat step 1 through a grant.
+
+## Stage 5 facts
+
+- **Vendor programs (Claude Code, Codex).** `taskapp.CLIRequest` has a `TaskID`, filled from the task row by `cli.go` and `planworker.go` (a teammate's `domain.Task` is the same row). `plans.prepareRun` puts `runner.WithTask(ctx, req.ProjectID, req.TaskID)` on the context, so `Engine.Lease` gives the program's container that task's socket (its own hosts go through `TaskDir`'s `extra`, exactly like `Dir`). `Engine.prepare` now returns `ErrTaskNotOpen` and `Lease` releases its place and refuses to start the program when a scope cannot be confirmed (task over, other project, check failed, no checker): a program never silently gets the workspace socket instead. `Slot` and `SiteSpec` ignore scope (`SiteSpec` strips it), so a site or a sign-in container never gets grants. Flag off: the scope is ignored. Tested with real containers (`taskisolation_lease_test.go`): a grant of task b is 403 from task a's container and passes authorization from b's; each container sees only its own `/run/egress`.
+- **`request_egress(host, reason)`** (`bootstrap/agenttools_egress.go`, `coding/domain/egress_tool.go`). Offered only when grants run (`agentTools.egress != nil`); not in `codingdomain.Tools()`, so outside AI apps never see it; it follows the `run_command` switch (`SwitchOf`, `toolGate`). Project and task come from `ToolScope`; arguments named `project_id`, `task_id` or `status` are ignored. The actor is always `Actor{Agent, "agent:<task>"}` and the tool only calls `Service.Ask`, which can create or return a request; nothing in the tool path can approve, deny or revoke. Teammates on a plan get it through the MCP bridge when their role may run commands (`roleToolSet` adds it to `run_command` roles; `siteToolNames`). Solo plan tasks (no team, no bridge) cannot call it; a person-made request (stage 6) covers them.
+- **Idempotency and limits.** `Service.Ask` returns the live request for the same host (any spelling) instead of an error, also while approved. One `INSERT ... SELECT` enforces: open task of the project, no live request for the host, at most 5 pending per task, at most 10 requests by an agent per task per hour (`application.DefaultLimits`; people are not rate limited). Tested with 12 sequential and 30 concurrent callers.
+- **Task end is immediate.** `egressTasks` wraps the task store at the composition root (only when grants run): `SetStatus` to done or failed, `Archive`, `DeleteOwned`, `DeleteProject` and `DeleteAll` call `egressRuntime.TaskEnded`, which ends the task's pending and approved grants in the database for good, clears them from the registry (`Grants.ClearTask`, which closes every tunnel before it returns) and stops the task's sockets. Statuses review and needs-input do not end anything. The 5 s sweep is only the safety net. A task retried after failing needs its hosts approved again.
+- **Database failure stays fail-closed.** Unchanged: the verifier refuses when the database cannot answer, a sweep that cannot read it empties the registry, `TaskEnded` clears the registry even when the database write fails and reports the error.

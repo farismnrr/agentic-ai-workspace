@@ -14,7 +14,8 @@ func (e *Engine) SiteSpec(
 	ctx context.Context, dir string, docker *sandbox.Docker, argv, extraEnv []string, hosts ...string,
 ) sandbox.Spec {
 	spec := sandbox.Spec{Workspace: dir, Argv: argv}
-	e.prepare(ctx, dir, &spec, docker, hosts...)
+	// A site is not a task's command: whatever scope the context carries, it gets the workspace socket and no grants.
+	_ = e.prepare(withoutTask(ctx), dir, &spec, docker, hosts...)
 	spec.Env = append(environment(spec), extraEnv...)
 
 	return spec

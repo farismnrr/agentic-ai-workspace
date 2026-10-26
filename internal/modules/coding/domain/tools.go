@@ -177,23 +177,3 @@ func Tools() []ToolInfo {
 		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand, ToolScreenshotSession,
 	}
 }
-
-// SwitchOf names the switch that governs a tool. Most tools have their own; starting and stopping the web
-// app follow run_command.
-func SwitchOf(tool string) string {
-	if tool == ToolStartSite.Name || tool == ToolStopSite.Name || tool == ToolScreenshot.Name ||
-		tool == ToolDeployExtension.Name {
-		return ToolRunCommand.Name
-	}
-
-	if tool == ToolWebSearch.Name || tool == ToolFetchPage.Name || tool == ToolSearchImages.Name ||
-		tool == ToolViewImage.Name {
-		return ToolReadFile.Name
-	}
-
-	if tool == ToolDownloadAsset.Name {
-		return ToolWriteFile.Name
-	}
-
-	return tool
-}

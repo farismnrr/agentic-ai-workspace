@@ -15,17 +15,44 @@ import (
 // Errors of the use cases. The store reports them, the service passes them on.
 var (
 	ErrNotFound  = errors.New("grant not found")
-	ErrScope     = errors.New("that task does not belong to that project")
+	ErrScope     = errors.New("that is not an open task of that project")
 	ErrDuplicate = errors.New("that task already has a live request for that host")
 	ErrConflict  = errors.New("the grant changed while it was being decided; try again")
+	// ErrTooManyPending and ErrRateLimited stop a task from burying the person in requests.
+	ErrTooManyPending = errors.New("that task already has too many requests waiting for an answer")
+	ErrRateLimited    = errors.New("that task has asked too often; try again later")
 )
+
+// Limits bound how many requests one task can make.
+type Limits struct {
+	// MaxPending is how many requests of one task may wait for an answer at once.
+	MaxPending int
+	// MaxByAgent is how many requests an agent may make for one task within Window, answered or not.
+	MaxByAgent int
+	Window     time.Duration
+}
+
+// DefaultLimits are the limits a service uses unless told otherwise.
+func DefaultLimits() Limits {
+	const (
+		pending = 5
+		byAgent = 10
+	)
+
+	return Limits{MaxPending: pending, MaxByAgent: byAgent, Window: time.Hour}
+}
 
 // Store keeps grants. Every method is atomic: a decision either replaces exactly the state it was made from or
 // changes nothing.
 type Store interface {
-	// Create saves a pending grant. It returns ErrScope unless the task belongs to the project, and ErrDuplicate when
-	// the task already has a pending or active grant for the host.
-	Create(ctx context.Context, grant domain.Grant) error
+	// Create saves a pending grant. It returns ErrScope unless the task is an open task of the project, ErrDuplicate
+	// when the task already has a pending or active grant for the host, and ErrTooManyPending or ErrRateLimited when
+	// the limits are reached. The checks and the insert are one atomic step.
+	Create(ctx context.Context, grant domain.Grant, limits Limits) error
+	// Live returns the pending or approved, not yet ended grant of the task for the host, or ErrNotFound.
+	Live(ctx context.Context, taskID, host string, now time.Time) (domain.Grant, error)
+	// EndTask ends every pending or approved grant of the task, for good.
+	EndTask(ctx context.Context, taskID string, now time.Time) (int, error)
 	Get(ctx context.Context, id string) (domain.Grant, error)
 	// Decide loads the grant, lets change work out the next state and saves it only if nothing else changed it in
 	// between, retrying a few times before it gives up with ErrConflict. An error from change is returned as it is.
@@ -50,12 +77,20 @@ type Service struct {
 	ids      IDs
 	registry Registry
 	now      func() time.Time
+	limits   Limits
 	syncMu   sync.Mutex
 }
 
 // NewService builds the use cases. now is injectable for tests.
 func NewService(store Store, ids IDs, now func() time.Time) *Service {
-	return &Service{store: store, ids: ids, now: now}
+	return &Service{store: store, ids: ids, now: now, limits: DefaultLimits()}
+}
+
+// WithLimits replaces the request limits.
+func (s *Service) WithLimits(limits Limits) *Service {
+	s.limits = limits
+
+	return s
 }
 
 // Request records that a task wants to reach host. An agent or a person can ask; nothing is allowed until a
@@ -73,7 +108,7 @@ func (s *Service) Request(
 		return domain.Grant{}, fmt.Errorf("request grant: %w", err)
 	}
 
-	if err = s.store.Create(ctx, grant); err != nil {
+	if err = s.store.Create(ctx, grant, s.limits); err != nil {
 		return domain.Grant{}, fmt.Errorf("save grant: %w", err)
 	}
 

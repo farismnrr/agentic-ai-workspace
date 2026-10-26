@@ -27,6 +27,7 @@ const (
 
 // egressRuntime is dynamic egress grants wired into the running app. It exists only when EGRESS_GRANTS is on.
 type egressRuntime struct {
+	db      *sql.DB
 	service *egressapp.Service
 	grants  *egressproxy.Grants
 	hub     *egressproxy.Hub
@@ -59,7 +60,7 @@ func startEgressGrants(db *sql.DB, hub *egressproxy.Hub, dataDir string) (*egres
 
 	hub.WithGrants(grants)
 
-	rt := &egressRuntime{service: service, grants: grants, hub: hub}
+	rt := &egressRuntime{db: db, service: service, grants: grants, hub: hub}
 	rt.stop = rt.run(release)
 
 	return rt, nil
@@ -131,6 +132,8 @@ func (r egressRegistry) Revoke(id string) { r.grants.Revoke(id) }
 
 func (r egressRegistry) IDs() []string { return r.grants.IDs() }
 
+func (r egressRegistry) EndTask(taskID string) { r.grants.ClearTask(taskID) }
+
 // egressVerifier is the proxy's per-connection check, answered by the database.
 type egressVerifier struct{ service *egressapp.Service }
 
@@ -149,4 +152,21 @@ func (v *egressVerifier) Verify(ctx context.Context, grantID string, scope egres
 // the task loop, never from the call's input; it only matters when egress grants are enabled.
 func taskContext(ctx context.Context, scope taskapp.ToolScope) context.Context {
 	return codingrunner.WithTask(ctx, scope.ProjectID, scope.TaskID)
+}
+
+// TaskEnded closes everything a task had the moment it ends: its grants are ended for good and their tunnels
+// closed, and its sockets stop. The sweep repeats this as a safety net; this is the main path.
+func (rt *egressRuntime) TaskEnded(ctx context.Context, taskID string) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), egressTimeout)
+	defer cancel()
+
+	if err := rt.service.TaskEnded(ctx, taskID); err != nil {
+		log.Printf("egress grants: %v", err)
+	}
+
+	for _, scope := range rt.hub.TaskScopes() {
+		if scope.Task == taskID {
+			rt.hub.RemoveTask(scope)
+		}
+	}
 }

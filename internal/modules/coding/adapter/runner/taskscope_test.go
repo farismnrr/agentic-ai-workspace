@@ -47,7 +47,9 @@ func engineFor(hub *egressproxy.Hub, check ScopeCheck) *Engine {
 func sockets(t *testing.T, e *Engine, ctx context.Context) (string, bool) {
 	t.Helper()
 
-	return e.socket(ctx, "ws", nil)
+	dir, err := e.socket(ctx, "ws", nil)
+
+	return dir, err == nil
 }
 
 func TestWithGrantsOffEveryCommandKeepsTheWorkspaceSocketWhateverItsScope(t *testing.T) {

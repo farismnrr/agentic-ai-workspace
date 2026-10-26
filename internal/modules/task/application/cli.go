@@ -45,7 +45,7 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 	}
 
 	req := CLIRequest{
-		UserID: task.UserID, ProjectID: task.ProjectID, Program: program, Session: session,
+		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID, Program: program, Session: session,
 		Model: task.Model, Effort: string(task.Effort), Prompt: r.lastInput(ctx, task.ID, leadName),
 	}
 	if session == "" {

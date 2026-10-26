@@ -24,17 +24,26 @@ type Store struct{ db *sql.DB }
 // NewStore builds the store over db.
 func NewStore(db *sql.DB) *Store { return &Store{db: db} }
 
-// Create inserts the grant in one statement that also checks, in the same atomic step, that the task belongs to the
-// project and that the task has no live request for the host. Two callers racing for the same host cannot both win.
-func (s *Store) Create(ctx context.Context, g domain.Grant) error {
+// Create inserts the grant in one statement that also checks, in the same atomic step, that the task is an open
+// task of the project, that it has no live request for the host, and that the limits hold. Two callers racing for
+// the same host or for the last free place cannot both win.
+func (s *Store) Create(ctx context.Context, g domain.Grant, limits application.Limits) error {
+	since := g.CreatedAt.Add(-limits.Window).Unix()
+
 	result, err := s.db.ExecContext(ctx, `INSERT INTO egress_grants (`+columns+`)
 		SELECT ?, ?, ?, ?, ?, ?, ?, ?, '', ?, 0, ?
-		WHERE EXISTS (SELECT 1 FROM tasks WHERE id = ? AND project_id = ?)
+		WHERE EXISTS (SELECT 1 FROM tasks t WHERE t.id = ? AND t.project_id = ? AND `+liveTask+`)
 		AND NOT EXISTS (SELECT 1 FROM egress_grants WHERE task_id = ? AND host = ?
-			AND status IN ('pending', 'approved') AND expires_at > ?)`,
+			AND status IN ('pending', 'approved') AND expires_at > ?)
+		AND (SELECT COUNT(*) FROM egress_grants WHERE task_id = ? AND status = 'pending' AND expires_at > ?) < ?
+		AND (? != 'agent' OR (SELECT COUNT(*) FROM egress_grants WHERE task_id = ?
+			AND requested_by_kind = 'agent' AND created_at > ?) < ?)`,
 		g.ID, g.ProjectID, g.TaskID, g.Host, g.Reason, g.Status, g.RequestedBy.Kind, g.RequestedBy.ID,
 		g.CreatedAt.Unix(), g.ExpiresAt.Unix(),
-		g.TaskID, g.ProjectID, g.TaskID, g.Host, g.CreatedAt.Unix())
+		g.TaskID, g.ProjectID,
+		g.TaskID, g.Host, g.CreatedAt.Unix(),
+		g.TaskID, g.CreatedAt.Unix(), limits.MaxPending,
+		g.RequestedBy.Kind, g.TaskID, since, limits.MaxByAgent)
 	if err != nil {
 		return fmt.Errorf("insert grant: %w", err)
 	}
@@ -48,22 +57,36 @@ func (s *Store) Create(ctx context.Context, g domain.Grant) error {
 		return nil
 	}
 
-	return s.whyNotCreated(ctx, g)
+	return s.whyNotCreated(ctx, g, limits)
 }
 
-func (s *Store) whyNotCreated(ctx context.Context, g domain.Grant) error {
-	var owned int
-
-	query := `SELECT COUNT(*) FROM tasks WHERE id = ? AND project_id = ?`
-	if err := s.db.QueryRowContext(ctx, query, g.TaskID, g.ProjectID).Scan(&owned); err != nil {
-		return fmt.Errorf("check task: %w", err)
+// whyNotCreated names the first rule that stopped the insert, in the order a caller can act on them.
+func (s *Store) whyNotCreated(ctx context.Context, g domain.Grant, limits application.Limits) error {
+	live, err := s.TaskLive(ctx, g.ProjectID, g.TaskID)
+	if err != nil {
+		return err
 	}
 
-	if owned == 0 {
+	if !live {
 		return application.ErrScope
 	}
 
-	return application.ErrDuplicate
+	if _, err = s.Live(ctx, g.TaskID, g.Host, g.CreatedAt); err == nil {
+		return application.ErrDuplicate
+	}
+
+	var pending int
+
+	query := `SELECT COUNT(*) FROM egress_grants WHERE task_id = ? AND status = 'pending' AND expires_at > ?`
+	if err = s.db.QueryRowContext(ctx, query, g.TaskID, g.CreatedAt.Unix()).Scan(&pending); err != nil {
+		return fmt.Errorf("count requests: %w", err)
+	}
+
+	if pending >= limits.MaxPending {
+		return application.ErrTooManyPending
+	}
+
+	return application.ErrRateLimited
 }
 
 // Get returns one grant.

@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"encoding/json"
 	"fmt"
 
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
@@ -115,4 +116,17 @@ func said(text, ask, technical string) taskapp.Described {
 	}
 
 	return taskapp.Described{Text: text, Ask: ask, Technical: technical}
+}
+
+// Describe says what a tool call does, in plain words and as a question.
+func (a *agentTools) Describe(call taskapp.Call) taskapp.Described {
+	if call.Name == toolRequestEgress {
+		return describeEgress(call.Input)
+	}
+
+	var in toolArgs
+
+	_ = json.Unmarshal(call.Input, &in)
+
+	return describe(call.Name, in)
 }

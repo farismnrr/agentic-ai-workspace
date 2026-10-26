@@ -21,6 +21,8 @@ type Registry interface {
 	Revoke(id string)
 	// IDs lists the grants currently held.
 	IDs() []string
+	// EndTask revokes every grant of the task, closing its tunnels before it returns.
+	EndTask(taskID string)
 }
 
 // WithRegistry makes decisions and sweeps keep reg in line with the database. Without it the service only keeps
