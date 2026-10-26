@@ -18,7 +18,7 @@ func TestConcurrentRequestsForOneHostCreateOne(t *testing.T) {
 	})
 
 	if got.ok != 1 || got.other != 0 || got.duplicate != 19 || w.count(t, "") != 1 {
-		t.Fatalf("results %+v", got)
+		t.Fatalf("results %+v (first other: %v)", got, got.firstOther)
 	}
 }
 
@@ -32,7 +32,7 @@ func TestConcurrentApprovalsOfOneGrantSucceedOnce(t *testing.T) {
 	})
 
 	if got.ok != 1 || got.other != 0 || got.notPending != 29 {
-		t.Fatalf("results %+v", got)
+		t.Fatalf("results %+v (first other: %v)", got, got.firstOther)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestApproveAndDenyRaceHasOneWinner(t *testing.T) {
 	})
 
 	if got.ok != 1 || got.other != 0 || w.count(t, "WHERE status IN ('approved', 'denied')") != 1 {
-		t.Fatalf("results %+v", got)
+		t.Fatalf("results %+v (first other: %v)", got, got.firstOther)
 	}
 }
 
@@ -75,7 +75,7 @@ func TestRevokeRacingApprovalsNeverLeavesAnActiveGrantAfterRevoke(t *testing.T) 
 
 	if got.ok != 1 || got.other != 0 || got.notPending != 10 || got.notApproved != 9 ||
 		w.count(t, "WHERE status = 'revoked'") != 1 {
-		t.Fatalf("results %+v", got)
+		t.Fatalf("results %+v (first other: %v)", got, got.firstOther)
 	}
 }
 
