@@ -72,6 +72,7 @@ func (h *Handler) request(c fiber.Ctx) error {
 	if err != nil {
 		return problem(c, err)
 	}
+	h.notice(c.Context(), grant, "requested")
 	return c.Status(fiber.StatusCreated).JSON(view(grant))
 }
 
@@ -104,6 +105,7 @@ func (h *Handler) decide(c fiber.Ctx, kind string) error {
 	if err != nil {
 		return problem(c, err)
 	}
+	h.notice(c.Context(), grant, kind)
 	return c.JSON(view(grant))
 }
 func (h *Handler) approve(c fiber.Ctx) error { return h.decide(c, "approve") }
