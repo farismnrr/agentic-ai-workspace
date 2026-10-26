@@ -38,6 +38,18 @@ func (s *Store) decideOnce(
 
 	defer func() { _ = tx.Rollback() }()
 
+	// The first statement is a write that changes nothing: it takes SQLite's write lock before anything is read, so
+	// decisions wait for each other and each one reads what the last committed. Reading first and writing later would
+	// fail with a stale snapshot whenever another decision committed in between.
+	locked, err := tx.ExecContext(ctx, `UPDATE egress_grants SET id = id WHERE id = ?`, id)
+	if err != nil {
+		return domain.Grant{}, busy(err), fmt.Errorf("lock grant: %w", err)
+	}
+
+	if n, _ := locked.RowsAffected(); n == 0 {
+		return domain.Grant{}, false, application.ErrNotFound
+	}
+
 	current, err := scan(tx.QueryRowContext(ctx, `SELECT `+columns+` FROM egress_grants WHERE id = ?`, id))
 	if err != nil {
 		return domain.Grant{}, false, err

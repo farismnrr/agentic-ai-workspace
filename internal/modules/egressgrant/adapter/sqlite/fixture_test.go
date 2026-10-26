@@ -107,7 +107,10 @@ func only(err error) error {
 	return nil
 }
 
-type tally struct{ ok, notPending, notApproved, duplicate, other int }
+type tally struct {
+	firstOther                                    error
+	ok, notPending, notApproved, duplicate, other int
+}
 
 // race runs fn on n goroutines released together and sorts what they returned.
 func race(n int, fn func(i int) error) tally {
@@ -152,5 +155,6 @@ func (o *tally) add(err error) {
 		o.duplicate++
 	default:
 		o.other++
+		o.firstOther = err
 	}
 }
