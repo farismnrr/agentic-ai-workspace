@@ -171,7 +171,7 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | --- | --- | --- |
 | `SANDBOX_IMAGE` | Image the AI's commands run in. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
 | `SANDBOX_EGRESS_HOSTS` | HTTPS host allowlist for commands; other hosts are blocked. | PyPI, npm, Go proxy and its storage host, crates.io, Maven Central |
-| `EGRESS_GRANTS` | Lets a person approve extra HTTPS hosts for one task. Unfinished: there is no screen to approve yet, so leave it off. Needs one app instance per data folder. | `false` |
+| `EGRESS_GRANTS` | Enables the project owner/admin approval screen for per-task HTTPS hosts. Leave off until Docker and marimo-pair integration review. Requires one app instance per data folder. | `false` |
 | `CLAUDE_EGRESS_HOSTS` / `CHATGPT_EGRESS_HOSTS` | Hosts the Claude and ChatGPT programs can reach while people sign in and work on their plan. | the providers' own hosts |
 | `SANDBOX_RUNTIME` | Hardened runtime, such as `runsc` (gVisor). | none |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check or site. | 2048 / 1 |
