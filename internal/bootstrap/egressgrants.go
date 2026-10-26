@@ -31,6 +31,7 @@ type egressRuntime struct {
 	service *egressapp.Service
 	grants  *egressproxy.Grants
 	hub     *egressproxy.Hub
+	audit   *egresssqlite.Audit
 	stop    func()
 }
 
@@ -55,12 +56,14 @@ func startEgressGrants(db *sql.DB, hub *egressproxy.Hub, dataDir string) (*egres
 
 	verifier := &egressVerifier{}
 	grants := egressproxy.NewGrants(egressproxy.DefaultLimits(), verifier)
-	service := egressapp.NewService(egresssqlite.NewStore(db), uuids{}, time.Now).WithRegistry(egressRegistry{grants})
+	audit := egresssqlite.NewAudit(db)
+	service := egressapp.NewService(egresssqlite.NewStore(db), uuids{}, time.Now).
+		WithRegistry(egressRegistry{grants, audit})
 	verifier.service = service
 
 	hub.WithGrants(grants)
 
-	rt := &egressRuntime{db: db, service: service, grants: grants, hub: hub}
+	rt := &egressRuntime{db: db, service: service, grants: grants, hub: hub, audit: audit}
 	rt.stop = rt.run(release)
 
 	return rt, nil
@@ -108,6 +111,9 @@ func (rt *egressRuntime) sweep(ctx context.Context) {
 		return
 	}
 
+	if _, err := rt.audit.Expired(ctx, time.Now()); err != nil {
+		log.Printf("egress grants: expiration audit unavailable")
+	}
 	for _, scope := range rt.hub.TaskScopes() {
 		if live, err := rt.service.TaskLive(ctx, scope.Project, scope.Task); err == nil && !live {
 			rt.hub.RemoveTask(scope)
@@ -116,7 +122,10 @@ func (rt *egressRuntime) sweep(ctx context.Context) {
 }
 
 // egressRegistry lets the application keep the proxy's in-memory grants in line with the database.
-type egressRegistry struct{ grants *egressproxy.Grants }
+type egressRegistry struct {
+	grants *egressproxy.Grants
+	audit  *egresssqlite.Audit
+}
 
 func (r egressRegistry) Allow(id, projectID, taskID, host string, ends time.Time) error {
 	if r.grants.Has(id) {
@@ -125,7 +134,15 @@ func (r egressRegistry) Allow(id, projectID, taskID, host string, ends time.Time
 
 	scope := egressproxy.Scope{Project: projectID, Task: taskID}
 
-	return r.grants.Allow(id, scope, host, ends) //nolint:wrapcheck // worded by the caller
+	err := r.grants.Allow(id, scope, host, ends)
+	if err != nil && r.audit != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), egressTimeout)
+		defer cancel()
+		if auditErr := r.audit.EnforcementFailure(ctx, id); auditErr != nil {
+			log.Printf("egress grants: enforcement audit unavailable")
+		}
+	}
+	return err //nolint:wrapcheck // worded by the caller
 }
 
 func (r egressRegistry) Revoke(id string) { r.grants.Revoke(id) }

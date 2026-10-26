@@ -53,3 +53,23 @@ func TestApprovalAdminAndManualRequestScope(t *testing.T) {
 		t.Fatalf("request status %d scope %+v", resp.code, s.grant)
 	}
 }
+
+func TestGrantRateLimitAndSessionBoundCSRF(t *testing.T) {
+	app, _ := testApp(t)
+	ownerToken := issue(t, app, "owner")
+	path := "/api/projects/p1/egress-grants/"
+	input := `{"taskId":"t1","host":"rate.example.com","reason":"need this"}`
+	resp := send(t, app, "POST", path, "admin", "https://app.example", ownerToken, input)
+	if resp.code != http.StatusForbidden {
+		t.Fatalf("cross-session token accepted: %d", resp.code)
+	}
+	for i := range 31 {
+		resp := send(t, app, "POST", path, "owner", "https://app.example", ownerToken, input)
+		if i < 30 && resp.code != http.StatusCreated {
+			t.Fatalf("request %d status %d", i, resp.code)
+		}
+		if i == 30 && resp.code != http.StatusTooManyRequests {
+			t.Fatalf("missing rate limit: %d", resp.code)
+		}
+	}
+}

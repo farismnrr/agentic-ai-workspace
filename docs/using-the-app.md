@@ -390,6 +390,17 @@ A check is a command a project defines, such as `go test ./...`. The AI runs che
 - They run on this computer with the app's rights, so add only commands you trust.
 - The AI can also run any command in the sandbox once you turn on "Run a command". It asks before every run.
 
+## Per-task internet access (not yet active)
+
+When this feature is approved for activation, a project's **Internet access** tab shows requests from its active tasks. Until then, the tab stays hidden and internet access works as before.
+
+- An agent may request access to a public HTTPS hostname, but cannot approve it.
+- Project owners and admins may approve, deny or revoke requests. You can also request access manually for a solo task.
+- Approval covers one hostname and one task. The default is 24 hours; the maximum is seven days. Access ends on expiry, revocation or task completion.
+- Decisions appear in the task thread and activity log. A pending request grants no access.
+- Only HTTPS connections on port 443 are considered. The proxy verifies the TLS server name but does not decrypt traffic. Approving a host means trusting that destination.
+- Existing static sandbox hosts and their access rules are unchanged.
+
 ## Tools and approvals
 
 Settings, Spaces & tools has one list of tools. It applies to tasks in this app and to the AI apps you connect.
