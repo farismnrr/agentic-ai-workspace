@@ -36,6 +36,8 @@ services:
       SANDBOX_DATA_VOLUME: agentic-data
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
       SANDBOX_EGRESS_HOSTS: ${SANDBOX_EGRESS_HOSTS:-}
+      # Per-task approvals of extra HTTPS hosts. Unfinished: leave it off.
+      EGRESS_GRANTS: ${EGRESS_GRANTS:-false}
       SEARXNG_URL: ${SEARXNG_URL:-}
       # Optional server-wide admin connection for project schema provisioning.
       # POSTGRES_ADMIN_URL: ${POSTGRES_ADMIN_URL:-}

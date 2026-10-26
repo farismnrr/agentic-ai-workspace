@@ -77,3 +77,16 @@ func TestPostgresAdminURLIsLoadedWithoutNormalization(t *testing.T) {
 		t.Fatalf("admin URL was not trimmed safely: %q", got)
 	}
 }
+
+func TestEgressGrantsAreOffUnlessExplicitlyTrue(t *testing.T) {
+	for value, want := range map[string]bool{
+		"": false, "false": false, "0": false, "no": false, "off": false, "garbage": false, "2": false, " ": false,
+		"true": true, "TRUE": true, "1": true, " true ": true,
+	} {
+		t.Setenv("EGRESS_GRANTS", value)
+
+		if got := Load().EgressGrants; got != want {
+			t.Errorf("EGRESS_GRANTS=%q: %v, want %v", value, got, want)
+		}
+	}
+}

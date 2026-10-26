@@ -87,7 +87,7 @@ func (a *agentTools) Execute(ctx context.Context, scope taskapp.ToolScope, call 
 		return problem("The tool arguments were not valid JSON.")
 	}
 
-	return handler(ctx, services, in)
+	return handler(taskContext(ctx, scope), services, in)
 }
 
 func problem(message string) taskapp.ToolResult {

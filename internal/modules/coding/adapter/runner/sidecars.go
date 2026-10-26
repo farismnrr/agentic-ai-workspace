@@ -29,6 +29,9 @@ const (
 type Extras struct {
 	// Proxy serves the socket folders; nil means the command has no network at all.
 	Proxy *egressproxy.Hub
+	// Scopes confirms that a task is open before it is given a task socket. It is only used when the hub has
+	// grants enabled.
+	Scopes ScopeCheck
 	// CacheDir holds one cache folder per workspace; empty means no cache.
 	CacheDir string
 }
@@ -54,7 +57,7 @@ func (e *Engine) prepare(
 	}
 
 	if e.extras.Proxy != nil && len(docker.Toolchains()) > 0 {
-		if socket, err := e.extras.Proxy.Dir(ctx, id, hosts...); err == nil {
+		if socket, ok := e.socket(ctx, id, hosts); ok {
 			spec.Egress = socket
 		}
 	}
