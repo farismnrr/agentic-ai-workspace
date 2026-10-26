@@ -34,9 +34,14 @@ func TestMigrationNamesAreUniqueAndKeepAFixedOrder(t *testing.T) {
 		t.Fatalf("the two 051 files must stay as they are and run in this order: %v", names)
 	}
 
-	if position["052_egress_grants.sql"] != position[second]+1 ||
-		position["053_egress_audit.sql"] != position["052_egress_grants.sql"]+1 {
-		t.Fatalf("052 and 053 must follow both 051 files in order")
+	last := position[second]
+	for _, name := range []string{
+		"052_egress_grants.sql", "053_egress_audit.sql", "054_egress_actor_attribution.sql",
+	} {
+		if position[name] != last+1 {
+			t.Fatalf("migration %s must follow the prior migration", name)
+		}
+		last = position[name]
 	}
 }
 
@@ -62,8 +67,8 @@ func TestAnExistingDatabaseTakes052WithoutTouchingTheJournal(t *testing.T) {
 	}
 
 	if after["052_egress_grants.sql"] == "" || after["053_egress_audit.sql"] == "" ||
-		len(after) != len(before)+2 {
-		t.Fatalf("exactly 052 and 053 should have been added, journal has %d rows (was %d)", len(after), len(before))
+		after["054_egress_actor_attribution.sql"] == "" || len(after) != len(before)+3 {
+		t.Fatalf("052 through 054 should have been added, journal has %d rows (was %d)", len(after), len(before))
 	}
 }
 
@@ -114,4 +119,25 @@ func journal(t *testing.T, db *sql.DB) map[string]string {
 	}
 
 	return out
+}
+
+// An installation with 053 already applied must add 054 without rewriting an old checksum.
+func TestExistingAuditMigrationGetsAppendOnlyActorAttribution(t *testing.T) {
+	t.Parallel()
+	db := rawDatabase(t)
+	ctx := context.Background()
+	applyBefore(t, db, "054_egress_actor_attribution.sql")
+	before := journal(t, db)
+	if err := migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	after := journal(t, db)
+	if len(after) != len(before)+1 || after["054_egress_actor_attribution.sql"] == "" {
+		t.Fatalf("actor migration not appended: before=%d after=%d", len(before), len(after))
+	}
+	for name, checksum := range before {
+		if after[name] != checksum {
+			t.Errorf("modified prior migration %s", name)
+		}
+	}
 }

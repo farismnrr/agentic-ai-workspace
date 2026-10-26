@@ -52,7 +52,7 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **Platform code** holds technical details only, never business rules.
 - **A feature creates only the layers it needs.** Empty folders do not help.
 - **Egress grants** (`modules/egressgrant`) will let a person approve an extra HTTPS host for one task.
-  The domain rules, use cases, SQLite store, migrations 052–053 and the proxy side (`platform/egressproxy`: per-task
+  The domain rules, use cases, SQLite store, migrations 052–054 and the proxy side (`platform/egressproxy`: per-task
   sockets, a grant registry, TLS server-name check, tunnel revocation) exist and are wired behind
   `EGRESS_GRANTS` (default off). The request tool, guarded approval API, project panel and audit log are implemented. They remain disabled until activation review.
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.

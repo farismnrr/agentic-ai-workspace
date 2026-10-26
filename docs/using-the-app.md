@@ -397,7 +397,8 @@ When this feature is approved for activation, a project's **Internet access** ta
 - An agent may request access to a public HTTPS hostname, but cannot approve it.
 - Project owners and admins may approve, deny or revoke requests. You can also request access manually for a solo task.
 - Approval covers one hostname and one task. The default is 24 hours; the maximum is seven days. Access ends on expiry, revocation or task completion.
-- Decisions appear in the task thread and activity log. A pending request grants no access.
+- Requests show their creation time and remaining lifetime; expired requests stop offering decisions. The panel also identifies who decided a request.
+- Successful requests and decisions appear in the task thread once; retries do not add duplicate notices. The activity log retains requester, decision actor, owner and task scope without the request reason. A pending request grants no access.
 - Only HTTPS connections on port 443 are considered. The proxy verifies the TLS server name but does not decrypt traffic. Approving a host means trusting that destination.
 - Existing static sandbox hosts and their access rules are unchanged.
 

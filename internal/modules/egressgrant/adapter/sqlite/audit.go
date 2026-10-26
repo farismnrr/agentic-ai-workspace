@@ -19,7 +19,7 @@ func (a *Audit) Expired(ctx context.Context, now time.Time) (int64, error) {
 	result, err := a.db.ExecContext(ctx, `INSERT INTO activity
   (id, user_id, space, client, tool, summary, outcome, detail, at, project_id, task_id)
   SELECT lower(hex(randomblob(16))), p.user_id, 'coding', g.id, 'egress_expired',
-   'HTTPS request expired: ' || g.host, 'ok', '', ?, g.project_id, g.task_id
+   'HTTPS request expired: ' || g.host, 'ok', 'actor=system:expiry', ?, g.project_id, g.task_id
   FROM egress_grants g JOIN projects p ON p.id = g.project_id
   WHERE g.status IN ('pending','approved') AND g.expires_at <= ?
    AND NOT EXISTS (SELECT 1 FROM activity a WHERE a.client=g.id AND a.tool='egress_expired')`,
@@ -39,7 +39,7 @@ func (a *Audit) EnforcementFailure(ctx context.Context, id string) error {
 	_, err := a.db.ExecContext(ctx, `INSERT INTO activity
  (id, user_id, space, client, tool, summary, outcome, detail, at, project_id, task_id)
  SELECT lower(hex(randomblob(16))), p.user_id, 'coding', g.id, 'egress_enforcement_failed',
- 'HTTPS access enforcement failed: ' || g.host, 'failed', '', ?, g.project_id, g.task_id
+ 'HTTPS access enforcement failed: ' || g.host, 'failed', 'actor=system:enforcement', ?, g.project_id, g.task_id
  FROM egress_grants g JOIN projects p ON p.id=g.project_id WHERE g.id=?`,
 		time.Now().Unix(), id)
 	if err != nil {
