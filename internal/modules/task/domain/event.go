@@ -28,6 +28,8 @@ const (
 	EventPlan EventKind = "plan"
 	// EventPRD is the product requirements document a teammate wrote; its text is the document.
 	EventPRD EventKind = "prd"
+	// EventRole records an external assistant changing its working role.
+	EventRole EventKind = "role"
 )
 
 // Risk grades how careful the agent must be before a step.
@@ -59,6 +61,7 @@ type RunInfo struct {
 type Event struct {
 	Time      time.Time `json:"time"`
 	Run       *RunInfo  `json:"run,omitempty"`
+	Work      *WorkRef  `json:"work,omitempty"`
 	ID        string    `json:"id"`
 	Kind      EventKind `json:"kind"`
 	Text      string    `json:"text"`
