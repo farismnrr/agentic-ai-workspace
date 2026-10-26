@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -55,6 +56,10 @@ func (s *Store) decideOnce(
 		return domain.Grant{}, false, err
 	}
 
+	if err = s.taskStillOpen(ctx, tx, current); err != nil {
+		return domain.Grant{}, false, err
+	}
+
 	if next, err = change(current); err != nil {
 		return domain.Grant{}, false, err
 	}
@@ -83,4 +88,21 @@ func busy(err error) bool {
 	text := err.Error()
 
 	return strings.Contains(text, "SQLITE_BUSY") || strings.Contains(text, "database is locked")
+}
+
+// taskStillOpen prevents decisions after task closure inside the same locked transaction.
+func (s *Store) taskStillOpen(ctx context.Context, tx *sql.Tx, current domain.Grant) error {
+	if current.Status != domain.StatusPending {
+		return nil
+	}
+	var open int
+	err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks t WHERE t.id = ? AND t.project_id = ? AND `+liveTask,
+		current.TaskID, current.ProjectID).Scan(&open)
+	if err != nil {
+		return fmt.Errorf("check grant task: %w", err)
+	}
+	if open != 1 {
+		return application.ErrScope
+	}
+	return nil
 }
