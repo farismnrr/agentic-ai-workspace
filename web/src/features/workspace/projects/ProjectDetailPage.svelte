@@ -12,12 +12,14 @@
   import VariablesSection from './env/VariablesSection.svelte';
   import DatabaseSection from './env/DatabaseSection.svelte';
   import GatewaySection from './env/GatewaySection.svelte';
+  import AccessPanel from './egress/AccessPanel.svelte';
+  import { listGrants, type Grant } from './egress/egress-api';
 
   interface Props {
     projectId: string;
   }
 
-  type Tab = 'tasks' | 'files' | 'checks' | 'env' | 'about';
+  type Tab = 'tasks' | 'files' | 'checks' | 'env' | 'about' | 'egress';
 
   const { projectId }: Props = $props();
   const project = $derived(findProject($projects, projectId));
@@ -29,6 +31,18 @@
     { id: 'about', label: 'About' },
   ];
   let tab = $state<Tab>('tasks');
+  let accessEnabled = $state(false);
+  let initialGrants = $state<Grant[]>([]);
+  $effect(() => {
+    const id = projectId;
+    let cancelled = false;
+    accessEnabled = false;
+    if (tab === 'egress') tab = 'tasks';
+    void listGrants(id).then((grants) => {
+      if (!cancelled) { initialGrants = grants; accessEnabled = true; }
+    }).catch(() => { if (!cancelled) accessEnabled = false; });
+    return () => { cancelled = true; };
+  });
   let variableRevision = $state(0);
 
   function refreshVariables(): void {
@@ -60,9 +74,13 @@
       {#each tabs as item (item.id)}
         <button role="tab" class="tab {tab === item.id ? 'tab-active font-medium' : ''}" aria-selected={tab === item.id} onclick={() => (tab = item.id)}>{item.label}</button>
       {/each}
+      {#if accessEnabled}
+        <button role="tab" class="tab {tab === 'egress' ? 'tab-active font-medium' : ''}"
+          aria-selected={tab === 'egress'} onclick={() => (tab = 'egress')}>Internet access</button>
+      {/if}
     </div>
     <div class="mt-4">
-      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'env'}{#key projectId}<VariablesSection {projectId} revision={variableRevision} /><div class="border-t border-base-300"><DatabaseSection {projectId} onenvchange={refreshVariables} /></div><div class="border-t border-base-300"><GatewaySection {projectId} /></div>{/key}{:else}<AboutTab {project} />{/if}
+      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'egress' && accessEnabled}{#key projectId}<AccessPanel {projectId} initial={initialGrants} />{/key}{:else if tab === 'env'}{#key projectId}<VariablesSection {projectId} revision={variableRevision} /><div class="border-t border-base-300"><DatabaseSection {projectId} onenvchange={refreshVariables} /></div><div class="border-t border-base-300"><GatewaySection {projectId} /></div>{/key}{:else}<AboutTab {project} />{/if}
     </div>
   {/if}
 </AppShell>

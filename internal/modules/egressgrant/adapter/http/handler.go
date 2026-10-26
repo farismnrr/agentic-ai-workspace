@@ -28,11 +28,16 @@ type Owner interface {
 type Roles interface {
 	Profile(context.Context, string) (accountdomain.User, error)
 }
+type Notifier interface {
+	Notice(context.Context, domain.Grant, string)
+}
+
 type Handler struct {
 	service  Service
 	projects Owner
 	roles    Roles
 	csrf     *CSRF
+	notifier Notifier
 }
 
 func NewHandler(service Service, projects Owner, roles Roles, csrf *CSRF) *Handler {
@@ -51,6 +56,15 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		api.Post("/:grant/approve", sameOrigin, h.csrf.Validate, limit, h.approve)
 		api.Post("/:grant/deny", sameOrigin, h.csrf.Validate, limit, h.deny)
 		api.Post("/:grant/revoke", sameOrigin, h.csrf.Validate, limit, h.revoke)
+	}
+}
+
+// WithNotifier delivers decisions to the task thread after the database decision commits.
+func (h *Handler) WithNotifier(n Notifier) *Handler { h.notifier = n; return h }
+
+func (h *Handler) notice(ctx context.Context, g domain.Grant, action string) {
+	if h.notifier != nil {
+		h.notifier.Notice(ctx, g, action)
 	}
 }
 

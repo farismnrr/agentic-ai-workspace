@@ -52,10 +52,6 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	egressMount, err := newEgressAPIMount(egress, projects, account, auth, sameOrigin)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	githubMount, err := connectGitHub(db, cfg, tools, projects, auth, sameOrigin)
 	if err != nil {
@@ -69,6 +65,11 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		sameOrigin, agentSessions)
 	if err != nil {
 		agentSessions.Close()
+		return nil, nil, err
+	}
+
+	egressMount, err := newEgressAPIMount(egress, projects, account, tasks, auth, sameOrigin)
+	if err != nil {
 		return nil, nil, err
 	}
 
