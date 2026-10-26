@@ -2,7 +2,7 @@
 
 Design and status of `internal/modules/egressgrant`. Agent-only. Read before touching `platform/egressproxy`, `bootstrap/reach.go`, or the grant tool/endpoints.
 
-**Status: stages 1 and 2 done (domain, migration 052, application use cases, SQLite store, tests). Nothing is wired: no bootstrap, no config flag yet, no proxy or sandbox change, no route. The feature stays off (`EGRESS_GRANTS` unset; the flag itself arrives with stage 4) in every environment until every item in "Activation gate" is done.**
+**Status: stages 1-3 done (domain, migration 052, use cases, SQLite store, proxy enforcement in `platform/egressproxy`, tests). Nothing is wired: no bootstrap, no config flag yet, nothing calls `Hub.TaskDir`, `Hub.WithGrants` or `Grants.Allow`, no sandbox change, no route. The feature stays off (`EGRESS_GRANTS` unset; the flag itself arrives with stage 4) in every environment until every item in "Activation gate" is done.**
 
 ## Decisions (user, 2026-10-26)
 
@@ -32,7 +32,7 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 
 1. Domain model, migration `052_egress_grants.sql`, unit tests. (done)
 2. Application use cases and ports (`Request`, `Approve`, `Deny`, `Revoke`, `Active`, `List`), sqlite adapter, tests. (done)
-3. `egressproxy.Grants`: registry, normalized match, resolve-then-dial, SNI check, tunnel tracking, revoke/expiry. Security tests below.
+3. `egressproxy.Grants`: registry, normalized match, resolve-then-dial, SNI check, tunnel tracking, revoke/expiry. Security tests below. (done)
 4. Wiring behind `EGRESS_GRANTS`: per-task socket, `reach`, startup rebuild.
 5. `request_egress` tool (bridge included) with `Actor{Agent}`.
 6. HTTP endpoints, owner/admin authorization, Svelte panel, thread notice.
@@ -67,3 +67,24 @@ On this computer `.env` currently lists `sb-f6c7943aa05fb36c.sb.molab.run` in `S
 ## Stage 3 must also prove (proxy gate)
 
 A valid ClientHello with the right SNI does not prove that everything inside the tunnel is TLS: after the first record the proxy still forwards opaque bytes, and a client can finish a handshake and then send anything, or put plaintext after a ClientHello. The proxy cannot see inside without terminating TLS, which this design does not do. So stage 3 states the limit in its docs, and tests at least: plaintext first bytes refused, a non-ClientHello record refused, SNI different from the granted host refused, no SNI refused, ECH-style outer SNI refused, a truncated or oversized first record refused with a timeout, and a ClientHello followed by plaintext still reaches only the approved public address (the limit: the destination, not the content, is what is enforced). These tests must exist before the activation gate.
+
+## Stage 3 facts (proxy enforcement, in `platform/egressproxy`)
+
+- **Three separate paths, one switch.** `Proxy.ServeHTTP` tries the older rules first, unchanged: registry list and exact targets (`tunnelTo`). Only when none allows the request and the proxy belongs to a task socket (`task.grants != nil`) does it call `serveGrant` (`grantpath.go`). A proxy from `Hub.Dir` has no grants, so its behaviour is byte-for-byte the old one (the old tests pass untouched). A grant host is never written to `Proxy.hosts` or `Proxy.targets` (tested), and `Hub.TaskDir`'s `extra` hosts keep going through `WithHosts` exactly as in `Dir`.
+- **Identity.** `Hub.TaskDir(ctx, workspaceID, Scope{Project, Task}, extra...)` makes one socket and folder per scope. The scope is captured in the listener's proxy when the server creates it (`proxy.task.scope`); nothing in a request (`Host`, headers, path) can change it, and a sandbox is only mounted its own folder. Zero or half scopes are refused (`ErrBadGrant`) and `Lease` also refuses them. `Hub.Remove(workspaceID)` stops task sockets too; `RemoveTask(scope)` stops one task's and revokes its grants.
+- **Registry.** `Grants` (`grants.go`, `lease.go`, `limits.go`): `Allow(id, scope, host, ends)` (host canonicalized by `egress.CanonicalHost`, a timer revokes at `ends`), `Revoke(id)`, `Clear(scope)`, `Close()`. `Lease(scope, host)` checks the grant, the end time, and the per-task/total limits and registers the tunnel in ONE locked step, so a revoke either sees the tunnel and closes it or the tunnel never opens (tested with 16 goroutines racing a revoke). Every connection of a tunnel (client, destination) is added to its `Lease`; `Revoke` closes them all before it returns. Closing a lease takes the registry lock again, so never close leases while holding it (`Allow` once deadlocked on that).
+- **Fail closed.** Unknown, expired, revoked, over-limit, zero scope, non-canonical host, port other than 443, a failing `Verifier`, a name that does not resolve, a name with ANY non-public answer: all refuse (403, or 502 when nothing resolves, 503 over the limit). The proxy holds grants only in memory: a restart or a lost registry means no access. `Verifier` (stage 4 will back it with the database) is asked on every CONNECT after the local match; an error refuses the connection. After a database error stage 4 should also call `Grants.Close`/`Clear`.
+- **DNS and destination pinning.** The name is resolved once (`lookupIP`), every answer must pass `egress.Check` PublicOnly (IPv4-mapped IPv6 unmapped; reserved, NAT64, 6to4, link-local, private and loopback refused), and the connection goes to the checked IP literal, so a second lookup can never lead elsewhere. The dialer's `Control` check stays as defence in depth. A CNAME is followed by the resolver; only final addresses matter.
+- **TLS check, and its limit.** After `200 Connection Established` the proxy reads exactly one TLS record (`clienthello.go`): handshake record, version 3.1-3.3, at most 16384 bytes, one unfragmented ClientHello with exact lengths, no repeated extension, no `encrypted_client_hello`, exactly one `host_name` whose canonical form equals the granted host. Anything else closes the tunnel before the destination sees a byte. Then bytes are forwarded unchanged. **This proves the destination name, not that the rest of the tunnel is TLS**: after the hello the client can send anything to that approved host (the proxy never terminates TLS and never sees content). The docs for people must say this. Tests: plaintext, SSH, garbage, alert and application-data records, bad versions and lengths, truncation, trailing bytes, fragmentation, duplicate/ECH/multiple/non-host names, IP and wildcard names, no SNI, mismatched SNI, a fuzz target.
+- **Resource limits** (`Limits`, defaults 16 per task, 128 total): the hello must arrive within `Handshake` (10 s) of the tunnel opening, `Idle` (5 min) closes a quiet tunnel (deadline refreshed on each read and write), `Dial` (10 s) bounds resolution plus connect, and every deadline is capped at the grant's end.
+- **Host spelling.** `egress.CanonicalHost` (platform) and `domain.NormalizeHost` (module) cannot import each other, so `bootstrap/egress_host_test.go` asserts that for every name the domain accepts the proxy yields the same spelling. Keep that test when changing either.
+- **Write lock (stage 2 follow-up).** `_txlock=immediate` on the driver is connection-wide (every transaction of every module), so the targeted no-op `UPDATE` stays. `lock_test.go` pins the driver behaviour: a decision blocks while another writer holds the lock, then sees what it committed.
+
+## Residual risks (state them in the review)
+
+- Nothing is wired, so none of this runs in the app. Stage 4 must build the scope only from server data, rebuild the registry from approved rows at start, call `Revoke` synchronously on revoke/expiry, and `RemoveTask` when a task ends.
+- Content to an approved host cannot be inspected; approving a host trusts its operator and its DNS (an attacker who controls the approved name's DNS chooses which public address answers).
+- ECH and a ClientHello split over several records are refused, so some clients will not work through a grant.
+- Expiry and revoke are enforced in-process; a crash drops all grants (fail closed) but also all tunnels.
+- No per-destination rate limit and no bandwidth cap beyond the connection limits.
+- The static `SANDBOX_EGRESS_HOSTS` list still contains the marimo host for everyone until grants are enabled (see above).

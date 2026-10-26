@@ -27,15 +27,17 @@ var errPathTooLong = errors.New("the data folder path is too long for a Unix soc
 
 // served is one open socket: the workspace it belongs to and its folder.
 type served struct {
-	l   net.Listener
-	id  string
-	dir string
+	l    net.Listener
+	id   string
+	dir  string
+	task Scope
 }
 
 // Hub gives every workspace its own socket, so a sandbox can only reach the proxy
 // through the folder it was handed and each person's traffic stays apart.
 type Hub struct {
 	proxy   *Proxy
+	grants  *Grants
 	servers map[string]served
 	base    string
 	mu      sync.Mutex
@@ -52,6 +54,12 @@ func NewHub(base string, proxy *Proxy) *Hub {
 // access never carries over to another workspace.
 func (h *Hub) Dir(ctx context.Context, id string, extra ...string) (string, error) {
 	key := id + "\x00" + strings.Join(slices.Sorted(slices.Values(extra)), ",")
+
+	return h.serve(ctx, key, served{id: id}, func() *Proxy { return h.proxy.WithHosts(extra) })
+}
+
+// serve opens the socket for key on first use. build makes the proxy that answers on it.
+func (h *Hub) serve(ctx context.Context, key string, s served, build func() *Proxy) (string, error) {
 	sum := sha256.Sum256([]byte(key))
 	dir := filepath.Join(h.base, hex.EncodeToString(sum[:nameBytes]))
 
@@ -84,8 +92,9 @@ func (h *Hub) Dir(ctx context.Context, id string, extra ...string) (string, erro
 		return "", fmt.Errorf("protect socket: %w", err)
 	}
 
-	h.servers[key] = served{l: l, id: id, dir: dir}
-	proxy := h.proxy.WithHosts(extra)
+	s.l, s.dir = l, dir
+	h.servers[key] = s
+	proxy := build()
 
 	go func() { _ = proxy.Serve(l) }()
 
@@ -99,12 +108,17 @@ func (h *Hub) Remove(id string) {
 
 	for key, s := range h.servers {
 		if s.id == id {
-			_ = s.l.Close()
-			_ = os.RemoveAll(s.dir)
-
-			delete(h.servers, key)
+			h.stop(key, s)
 		}
 	}
+}
+
+// stop closes one socket and deletes its folder. The caller holds the lock.
+func (h *Hub) stop(key string, s served) {
+	_ = s.l.Close()
+	_ = os.RemoveAll(s.dir)
+
+	delete(h.servers, key)
 }
 
 // Close stops every socket.

@@ -52,8 +52,9 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **Platform code** holds technical details only, never business rules.
 - **A feature creates only the layers it needs.** Empty folders do not help.
 - **Egress grants** (`modules/egressgrant`) will let a person approve an extra HTTPS host for one task.
-  The domain rules, use cases, SQLite store and migration 052 exist; nothing is connected to the proxy, the
-  sandbox or any route, and the feature is off.
+  The domain rules, use cases, SQLite store, migration 052 and the proxy side (`platform/egressproxy`: per-task
+  sockets, a grant registry, TLS server-name check, tunnel revocation) exist; nothing in the app calls them,
+  no sandbox gets a task socket and no route exists, so the feature is off.
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.
   `modules/dbconn` stores one external database connection, tests it, and can
   provision isolated PostgreSQL, MySQL and MongoDB resources through
