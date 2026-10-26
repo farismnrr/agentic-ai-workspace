@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 // WorkState is the durable lifecycle state of one external work session.
 type WorkState string
 
@@ -43,6 +45,26 @@ type WorkSummary struct {
 	Role     string    `json:"role,omitempty"`
 	RoleName string    `json:"roleName,omitempty"`
 	Revision int64     `json:"revision"`
+}
+
+// ExternalWork is the persisted identity and lifecycle record for a work session.
+type ExternalWork struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ID        string
+	TaskID    string
+	UserID    string
+	ProjectID string
+	Client    string
+	State     WorkState
+	RoleKey   string
+	RoleName  string
+	IdemKey   string
+	IdemHash  string
+	EndedAt   int64
+	Rev       int64
+	PlanRev   int64
+	NextStep  int64
 }
 
 // External work inputs are bounded before they are persisted or exported.
