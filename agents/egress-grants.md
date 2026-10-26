@@ -2,7 +2,7 @@
 
 Design and status of `internal/modules/egressgrant`. Agent-only. Read before touching `platform/egressproxy`, `bootstrap/reach.go`, or the grant tool/endpoints.
 
-**Status: stages 1–6 implemented and locally verified on dev. Stage 6 adds session-bound CSRF, server-side owner/admin authorization, project UI, thread notices, activity audit and migrations 053–054. The flag `EGRESS_GRANTS` remains disabled by default. Activation is prohibited pending the black-box and marimo integration gate; no environment or static allowlist changes are permitted.**
+**Status: stages 1–6 implemented and verified; Stage 7 Docker black-box gate passed on a hosted Docker runner (Fast #40296058816). Live marimo-pair compatibility is DEFERRED because no notebook/login fixture is available, not PASS. This deferral does not block releasing the app with `EGRESS_GRANTS=false` or a separately approved limited non-marimo canary. It still blocks removing the static marimo allowlist. Production activation requires explicit authorization and the applicable safety checks below.**
 
 ## Decisions (user, 2026-10-26)
 
@@ -38,13 +38,13 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 6. HTTP endpoints, owner/admin authorization, Svelte panel, thread notice, audit and tests. (implemented; not activated)
 7. Docs for people (`docs/`), final gate review.
 
-## Activation gate (all required)
+## Release and activation gates (external blockers deferred)
 
-- Authorization (owner/admin only) and the approval UI done.
-- Proxy enforcement, revocation, expiry done.
-- Integration tests: concurrent sandbox isolation, unauthorized approval (agent, non-owner, other project's owner), permission replay, DNS rebinding (single and mixed answers), active tunnel revocation, TTL expiry, SNI mismatch, and the regression suite for database/gateway tunnels, `SANDBOX_EGRESS_HOSTS`, GitHub hosts and the own-port refusal.
-- Black-box run on the real app, as in `blackbox-testing`.
-- `docs/` and this file updated.
+- **Core app release with grants off:** require Fast CI, deployment backup/rollback compatibility and smoke checks, including Claude/ChatGPT sign-in. No live marimo fixture is needed; keep `EGRESS_GRANTS=false` and the existing static allowlist. Missing Docker on one agent does not invalidate the Docker black-box gate already passed on a hosted runner.
+- **Limited non-marimo grants canary (explicitly approved only):** require owner/admin authorization, CSRF, atomic TTL/replay handling, DNS/SSRF/SNI checks, task and vendor socket isolation, active tunnel revoke/expiry, fail-closed database handling, image identity, and verified backup/restore on the actual Docker host. No bypass or deletion of security tests. Keep the marimo static host unchanged; a missing live marimo fixture is not a blocker for testing an unrelated approved HTTPS host.
+- **Marimo migration / static allowlist removal:** live marimo-pair TLS ClientHello, WebSocket idle >5 minutes, reconnect, revoke/expiry and task-end checks must PASS before removing its hostname from the global static allowlist. Mark unavailable checks **DEFERRED / NOT RUN**, never PASS.
+- A broken Claude sign-in or generic outbound network is a **release blocker**, not a test to waive. Investigate and restore normal vendor access before any rollout.
+- The Docker-backed Subpath, vendor socket, public HTTPS and HTTP approval tests already passed in GitHub run #40296058816; reuse that evidence unless affected code changes. Preserve original `fast.yml` and `full.yml`.
 
 ## Notes
 
@@ -82,7 +82,7 @@ A valid ClientHello with the right SNI does not prove that everything inside the
 
 ## Residual risks (state them in the review)
 
-- The feature is wired but disabled. Production activation still requires the black-box and marimo integration checks, including volume `Subpath` mounts.
+- The feature is wired but disabled by default. Docker black-box Subpath tests passed on hosted CI; real marimo compatibility is deferred. A core app release with grants off is separate from a limited grants canary and from the later marimo static-allowlist migration.
 - Content to an approved host cannot be inspected; approving a host trusts its operator and its DNS (an attacker who controls the approved name's DNS chooses which public address answers).
 - ECH and a ClientHello split over several records are refused, so some clients will not work through a grant.
 - Expiry and revoke are enforced in-process; a crash drops all grants (fail closed) but also all tunnels.
@@ -102,9 +102,9 @@ A valid ClientHello with the right SNI does not prove that everything inside the
 - **One instance only.** The registry is in memory and tunnels live in this process. `startEgressGrants` takes an exclusive `flock` on `DATA_DIR/egress/.grants.lock`; a second process on the same data folder fails to get it, logs "egress grants stay off", and runs without grants (its hub has no registry, so it serves none). That is the supported answer to "several instances": grants work in exactly one. Two processes on different hosts sharing a database over a network file system are not detected (flock is per host) and are not supported; because every revoke and approve is also written to the database and the verifier reads it, a second process that somehow ran grants would still refuse new connections after a revoke, but could keep an old tunnel until its own sweep (5 s). No distributed registry is planned.
 - **Superseded in stage 5:** vendor programs now get task sockets (below). `Slot` (sign-in and model lists, no task) and sites still use the workspace socket.
 
-## Test plan before activation (end to end, marimo-pair)
+## Deferred marimo-pair compatibility suite (not a core-app release blocker)
 
-Run on a throwaway instance with `EGRESS_GRANTS=true`, the static marimo host removed from `SANDBOX_EGRESS_HOSTS`, and a real marimo notebook (marimo-pair) that the task's command opens:
+Run before removing the static marimo allowlist, on a throwaway instance with `EGRESS_GRANTS=true`, the static marimo host removed from `SANDBOX_EGRESS_HOSTS`, and a real marimo notebook (marimo-pair) that the task's command opens:
 
 1. A command in the task connects to the notebook host with the tools marimo-pair really uses (Python `ssl`/`httpx`/`websockets`, `curl`, Node if used). Record each ClientHello: TLS 1.2 and 1.3, post-quantum key shares (larger hellos), ALPN `h2` and `http/1.1`, session resumption, a client that sends no SNI. Every one must pass the single-record check or the failure must be understood.
 2. A WebSocket that lives a long time: idle for more than `Idle` (5 min), with and without pings; the session must not be cut unexpectedly. Decide whether `Idle` needs to be longer for grants, or whether clients must send pings. A grant's 24 h end must still close it.
@@ -132,4 +132,4 @@ Run on a throwaway instance with `EGRESS_GRANTS=true`, the static marimo host re
 - **Task thread.** Browser-originated requests and decisions append a message through the existing task event store. Agent-originated requests already appear in the tool-action thread. Message delivery failure after a committed decision does not reopen network access or roll back a valid decision.
 - **Activity log.** Migration `053_egress_audit.sql` introduced SQLite triggers; the append-only `054_egress_actor_attribution.sql` replaces them with actor-aware versions while preserving `activity.user_id` as the project owner for visibility. The runtime sweep records effective expiry once per grant and failed registry enforcement when the database remains reachable. Audit messages include hostname, grant ID and actor; never the reason, request body or secret. Project-owner visibility is reused.
 - **Residual risks.** Database outage prevents writing an enforcement failure to SQLite; the proxy still fails closed. Some denied per-connection checks are refusals rather than individual activity rows. Thread notifications are best effort after commit. HTTP `Ask` detects existing grants and skips duplicate notifications; replayed decisions fail without another notification or activity entry. The proxy's TLS ClientHello limitations and static allowlist remain unchanged. Any rollback after applying migration 053 requires retaining both 052 and 053.
-- **Verification.** Unit, HTTP authorization/CSRF/rate/replay, task-liveness, SQLite audit/expiry, concurrency and proxy-regression tests plus `make verify` form the local gate. The real marimo-pair and production-container black-box checks are not run under the no-live/no-deploy restriction; activation requires separate review and authorization.
+- **Verification.** Unit, HTTP authorization/CSRF/rate/replay, task-liveness, SQLite audit/expiry, concurrency, proxy regression and `make verify` remain mandatory. Stage 7 Docker runner passed Subpath, HTTPS grant and HTTP/container checks (run #40296058816); no need to repeat solely because another sandbox lacks Docker. Real marimo-pair remains DEFERRED until a valid notebook/login fixture exists; this only prevents marimo allowlist removal, not releases with grants off. Activation requires independent review and explicit authorization.
