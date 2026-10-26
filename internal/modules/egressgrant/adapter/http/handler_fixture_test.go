@@ -53,13 +53,19 @@ func (testRoles) Profile(_ context.Context, id string) (accountdomain.User, erro
 	return accountdomain.User{ID: id, Role: role}, nil
 }
 
-type testService struct{ grant domain.Grant }
+type testService struct {
+	grant    domain.Grant
+	existing bool
+}
 
 func (s *testService) Ask(_ context.Context, project, task, host, reason string,
 	by domain.Actor,
 ) (domain.Grant, bool, error) {
 	if task != "t1" {
 		return domain.Grant{}, false, errTestTask
+	}
+	if s.existing {
+		return s.grant, true, nil
 	}
 	g, e := domain.Request("g1", project, task, host, reason, by, time.Now())
 	if e == nil {
@@ -111,6 +117,10 @@ func wrapTest(err error) error {
 }
 
 func testApp(t *testing.T) (*fiber.App, *testService) {
+	return testAppWithNotifier(t, nil)
+}
+
+func testAppWithNotifier(t *testing.T, n Notifier) (*fiber.App, *testService) {
 	t.Helper()
 	csrf, err := NewCSRF()
 	if err != nil {
@@ -121,7 +131,7 @@ func testApp(t *testing.T) (*fiber.App, *testService) {
 		Reason: "need it", Status: domain.StatusPending, ExpiresAt: time.Now().Add(time.Hour),
 	}}
 	app := fiber.New()
-	NewHandler(s, testOwner{}, testRoles{}, csrf).Mount(
+	NewHandler(s, testOwner{}, testRoles{}, csrf).WithNotifier(n).Mount(
 		httpserver.RequireSession(testAuth{}), httpserver.SameOrigin("https://app.example", nil))(app)
 	return app, s
 }

@@ -11,10 +11,13 @@ bin/
 *.test
 coverage.out
 
-# Frontend dependencies and caches
-web/node_modules/
+# Frontend dependencies, caches and test artifacts
+node_modules/
 web/.vite/
 web/.svelte-check/
+web/coverage/
+web/test-results/
+web/playwright-report/
 
 # Generated embedded SPA output
 internal/platform/webassets/dist/*
@@ -44,11 +47,6 @@ local-build/
 *.pem
 *.key
 id_rsa*
-node_modules
-.next
-.nuxt
-.output
-dist
-target
-__pycache__
-.venv
+# Local non-Go tooling caches (do not exclude source or migrations)
+__pycache__/
+.venv/

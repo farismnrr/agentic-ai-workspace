@@ -67,10 +67,13 @@ func (h *Handler) request(c fiber.Ctx) error {
 	if err := c.Bind().JSON(&body); err != nil {
 		return errorJSON(c, fiber.StatusBadRequest, "invalid_body")
 	}
-	grant, _, err := h.service.Ask(c.Context(), c.Params("id"), body.TaskID, body.Host, body.Reason,
+	grant, existing, err := h.service.Ask(c.Context(), c.Params("id"), body.TaskID, body.Host, body.Reason,
 		domain.Actor{Kind: domain.ActorPerson, ID: httpserver.UserID(c)})
 	if err != nil {
 		return problem(c, err)
+	}
+	if existing {
+		return c.Status(fiber.StatusOK).JSON(view(grant))
 	}
 	h.notice(c.Context(), grant, "requested")
 	return c.Status(fiber.StatusCreated).JSON(view(grant))

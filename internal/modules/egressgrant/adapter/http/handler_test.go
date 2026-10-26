@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -71,5 +72,37 @@ func TestGrantRateLimitAndSessionBoundCSRF(t *testing.T) {
 		if i == 30 && resp.code != http.StatusTooManyRequests {
 			t.Fatalf("missing rate limit: %d", resp.code)
 		}
+	}
+}
+
+type countingNotifier struct{ notices []string }
+
+func (n *countingNotifier) Notice(_ context.Context, _ domain.Grant, action string) {
+	n.notices = append(n.notices, action)
+}
+
+func TestIdempotentRequestAndDecisionReplayDoNotRepeatNotifications(t *testing.T) {
+	n := &countingNotifier{}
+	app, service := testAppWithNotifier(t, n)
+	token := issue(t, app, "owner")
+	path := "/api/projects/p1/egress-grants/"
+	body := `{"taskId":"t1","host":"once.example.com","reason":"build"}`
+	if got := send(t, app, "POST", path, "owner", "https://app.example", token, body).code; got != 201 {
+		t.Fatalf("first request status %d", got)
+	}
+	service.existing = true
+	if got := send(t, app, "POST", path, "owner", "https://app.example", token, body).code; got != 200 {
+		t.Fatalf("duplicate request status %d", got)
+	}
+	service.existing = false
+	decision := path + "g1/approve"
+	if got := send(t, app, "POST", decision, "owner", "https://app.example", token, "{}").code; got != 200 {
+		t.Fatalf("first approval status %d", got)
+	}
+	if got := send(t, app, "POST", decision, "owner", "https://app.example", token, "{}").code; got != 409 {
+		t.Fatalf("replayed approval status %d", got)
+	}
+	if len(n.notices) != 2 || n.notices[0] != "requested" || n.notices[1] != "approve" {
+		t.Fatalf("unexpected notifications: %v", n.notices)
 	}
 }

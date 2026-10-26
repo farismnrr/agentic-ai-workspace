@@ -4,18 +4,25 @@
   import type { Grant } from './egress-api';
   import { decideGrant, listGrants, requestGrant } from './egress-api';
   import GrantRow from './GrantRow.svelte';
+  import { effectiveStatus } from './egress-time';
 
   interface Props { projectId: string; initial: Grant[] }
   let { projectId, initial }: Props = $props();
   let grants = $state<Grant[]>([]);
   let busy = $state(false), loading = $state(false);
+  let now = $state(Date.now());
   let error = $state(''), success = $state('');
   let host = $state(''), reason = $state(''), taskId = $state('');
   const activeTasks = $derived($tasks.filter((task) => task.projectId === projectId &&
     task.archivedAt === null && task.status !== 'done' && task.status !== 'failed'));
-  const pending = $derived(grants.filter((grant) => grant.status === 'pending'));
-  const other = $derived(grants.filter((grant) => grant.status !== 'pending'));
-  onMount(() => { grants = initial; void refresh(); });
+  const pending = $derived(grants.filter((grant) => effectiveStatus(grant, now) === 'pending'));
+  const other = $derived(grants.filter((grant) => effectiveStatus(grant, now) !== 'pending'));
+  onMount(() => {
+    grants = initial;
+    void refresh();
+    const interval = setInterval(() => { now = Date.now(); }, 1000);
+    return () => { clearInterval(interval); };
+  });
   $effect(() => {
     if (!activeTasks.some((task) => task.id === taskId)) taskId = activeTasks[0]?.id ?? '';
   });
@@ -101,13 +108,13 @@
   </form>
   <div class="space-y-3">
     <h3 class="font-medium">Waiting for decision ({pending.length})</h3>
-    {#each pending as grant (grant.id)}<GrantRow {grant} {busy} decide={onGrantDecision} />{:else}
+    {#each pending as grant (grant.id)}<GrantRow {grant} {busy} {now} decide={onGrantDecision} />{:else}
       <p class="text-sm text-base-content/70">No pending requests.</p>
     {/each}
   </div>
   <div class="space-y-3">
     <h3 class="font-medium">Previous decisions</h3>
-    {#each other as grant (grant.id)}<GrantRow {grant} {busy} decide={onGrantDecision} />{:else}
+    {#each other as grant (grant.id)}<GrantRow {grant} {busy} {now} decide={onGrantDecision} />{:else}
       <p class="text-sm text-base-content/70">No past decisions.</p>
     {/each}
   </div>

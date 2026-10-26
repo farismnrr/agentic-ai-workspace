@@ -3,6 +3,7 @@ package sqlite_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -90,7 +91,43 @@ func TestEnforcementIncidentDoesNotExposeGrantReason(t *testing.T) {
 	var summary, detail, outcome string
 	err := w.db.QueryRowContext(t.Context(), `SELECT summary,detail,outcome FROM activity
  WHERE client=? AND tool='egress_enforcement_failed'`, g.ID).Scan(&summary, &detail, &outcome)
-	if err != nil || detail != "" || outcome != "failed" || !strings.Contains(summary, "incident.example.com") {
+	if err != nil || detail != "actor=system:enforcement" || outcome != "failed" ||
+		!strings.Contains(summary, "incident.example.com") {
 		t.Fatalf("incident %s %s %s %v", summary, detail, outcome, err)
+	}
+}
+
+func TestActivityPreservesOwnerVisibilityAndAttributesRequestAndAdminDecision(t *testing.T) {
+	w := newWorld(t)
+	_, err := w.db.ExecContext(t.Context(), `INSERT INTO users (id,name,email,password_hash,created_at,role)
+ VALUES ('admin', 'Admin', 'admin@example.com', 'x', 1, 'admin')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := w.Request(t.Context(), "p1", "t1", "attribution.example.com", "secret-do-not-log",
+		domain.Actor{Kind: domain.ActorPerson, ID: "u1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = w.Approve(t.Context(), g.ID, domain.Decider{ID: "admin", Admin: true}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ tool, expected string }{
+		{"egress_request", "requester=person:u1; owner=u1"},
+		{"egress_approve", "decider=admin:admin; requester=person:u1; owner=u1"},
+	} {
+		var detail, owner, project, task, summary string
+		err = w.db.QueryRowContext(t.Context(), `SELECT detail, user_id, project_id, task_id, summary
+ FROM activity WHERE client=? AND tool=?`, g.ID, tc.tool).
+			Scan(&detail, &owner, &project, &task, &summary)
+		if err != nil {
+			t.Fatal(err)
+		}
+		actual := []string{detail, owner, project, task}
+		wanted := []string{tc.expected, "u1", "p1", "t1"}
+		if !slices.Equal(actual, wanted) || strings.Contains(summary+detail, "secret-do-not-log") {
+			t.Fatalf("%s audit misattribution or secret: %v", tc.tool, actual)
+		}
 	}
 }
