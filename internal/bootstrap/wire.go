@@ -38,7 +38,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	engine, closeProxy := newSandboxEngine(cfg, db)
+	engine, egress, closeProxy := newSandboxEngine(cfg, db)
 	agentSessions := siteagentsession.New()
 
 	spaceStore, permissions := newPermissions(db, registry)
@@ -50,7 +50,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	folders, tools, err := openToolbox(cfg, engine)
+	folders, tools, err := openToolbox(cfg, engine, egress)
 	if err != nil {
 		return nil, nil, err
 	}

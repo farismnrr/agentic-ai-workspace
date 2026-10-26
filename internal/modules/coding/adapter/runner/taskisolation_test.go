@@ -25,7 +25,7 @@ func (noEnv) Values(context.Context, string) (map[string]string, error) { return
 func grantEngine(t *testing.T) (*runner.Engine, *egressproxy.Grants) {
 	t.Helper()
 
-	image := os.Getenv("SANDBOX_TEST_IMAGE")
+	image := toolboxImage()
 	if image == "" {
 		t.Skip("set SANDBOX_TEST_IMAGE to the toolbox image to run this test")
 	}
@@ -119,3 +119,5 @@ touch /run/egress/x 2>&1; rm -f /run/egress/p.sock 2>&1; ls /run/egress`
 		}
 	}
 }
+
+func toolboxImage() string { return os.Getenv("SANDBOX_TEST_IMAGE") }

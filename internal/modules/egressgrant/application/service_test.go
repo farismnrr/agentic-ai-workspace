@@ -23,11 +23,17 @@ type loose struct {
 	created []domain.Grant
 }
 
-func (l *loose) Create(_ context.Context, g domain.Grant) error {
+func (l *loose) Create(_ context.Context, g domain.Grant, _ application.Limits) error {
 	l.created = append(l.created, g)
 
 	return l.err
 }
+
+func (l *loose) Live(context.Context, string, string, time.Time) (domain.Grant, error) {
+	return domain.Grant{}, application.ErrNotFound
+}
+
+func (l *loose) EndTask(context.Context, string, time.Time) (int, error) { return 0, l.err }
 
 func (l *loose) Get(context.Context, string) (domain.Grant, error) { return domain.Grant{}, l.err }
 

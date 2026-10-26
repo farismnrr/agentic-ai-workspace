@@ -32,7 +32,9 @@ func newWeb(cfg config.Config) *webapp.Service {
 
 // newToolbox builds the tools the agent works with, web lookups included.
 // openToolbox opens the project folders and the tools that work in them.
-func openToolbox(cfg config.Config, engine *codingrunner.Engine) (*folder.Folders, *agentTools, error) {
+func openToolbox(
+	cfg config.Config, engine *codingrunner.Engine, egress *egressRuntime,
+) (*folder.Folders, *agentTools, error) {
 	folders, err := openFolders(cfg.DataDir)
 	if err != nil {
 		return nil, nil, err
@@ -42,6 +44,8 @@ func openToolbox(cfg config.Config, engine *codingrunner.Engine) (*folder.Folder
 	if err != nil {
 		return nil, nil, err
 	}
+
+	tools.egress = egress
 
 	return folders, tools, nil
 }

@@ -3,6 +3,7 @@ package sqlite_test
 import (
 	"errors"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -51,6 +52,17 @@ func (m *memRegistry) IDs() []string {
 	slices.Sort(ids)
 
 	return ids
+}
+
+func (m *memRegistry) EndTask(taskID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for id, v := range m.held {
+		if strings.Split(v, "/")[1] == taskID {
+			delete(m.held, id)
+		}
+	}
 }
 
 func (m *memRegistry) has(id string) bool {

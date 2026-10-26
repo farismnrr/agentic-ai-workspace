@@ -28,8 +28,14 @@ func newAgent(
 	agentSessions taskapp.AgentSessionCleanup,
 ) (*taskapp.Service, httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStore(db, opaque.Generator{})
+
+	var taskStore taskapp.TaskStore = store
+	if tools.egress != nil {
+		taskStore = egressTasks{TaskStore: store, ended: tools.egress.TaskEnded}
+	}
+
 	deps := taskapp.Observe(taskapp.Deps{
-		Notes: tasknotes.New(tools.folders.Dir), Tasks: store, Events: store, Transcript: store, Usage: store,
+		Notes: tasknotes.New(tools.folders.Dir), Tasks: taskStore, Events: store, Transcript: store, Usage: store,
 		Models:   models.agentModels(),
 		Windows:  models.providers,
 		Efforts:  models.providers,

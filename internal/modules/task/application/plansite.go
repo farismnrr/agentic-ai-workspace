@@ -17,7 +17,7 @@ import (
 // there too, because a program has no browser; the picture cannot cross the bridge, so it gets the report of the page.
 var siteToolNames = []string{
 	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
-	"screenshot",
+	"screenshot", toolRequestEgress,
 }
 
 // siteSession serves the site tools to a teammate's program. Each call goes through the same code as a call of the
@@ -38,7 +38,7 @@ func (r *Runner) siteBridge(task domain.Task, role AgentRole, jobID string) *sit
 	tools := []CLITool{}
 
 	for _, def := range r.deps.Tools.Definitions() {
-		if contains(siteToolNames, def.Name) && contains(role.Tools, def.Name) {
+		if contains(siteToolNames, def.Name) && roleToolSet(role.Tools)[def.Name] {
 			tools = append(tools, toolOfDef(def))
 		}
 	}

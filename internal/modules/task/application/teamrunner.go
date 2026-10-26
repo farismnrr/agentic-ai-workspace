@@ -42,7 +42,7 @@ func (r *Runner) child(role AgentRole, d Delegation) *Runner {
 	deps := r.deps
 	deps.Transcript = r.deps.Scopes.Scope(d.ID)
 	deps.Events = labelledEvents{EventStore: r.deps.Events, agent: d.RoleName}
-	deps.Gate = roleGate{ToolGate: r.deps.Gate, allow: toSet(role.Tools)}
+	deps.Gate = roleGate{ToolGate: r.deps.Gate, allow: roleToolSet(role.Tools)}
 	deps.Team, deps.Scopes, deps.Delegations = nil, nil, nil
 
 	return &Runner{deps: deps, lim: r.lim, role: &role, since: d.StartSeq}
@@ -80,6 +80,20 @@ func (g roleGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 	}
 
 	return narrowed, nil
+}
+
+// toolRequestEgress is asking for a website. A role that may run commands may ask; the server only offers the tool
+// when egress grants are on, and a person decides.
+const toolRequestEgress = "request_egress"
+
+// roleToolSet is the tools a role may use: its own list, plus asking for a website when it can run commands.
+func roleToolSet(names []string) map[string]bool {
+	set := toSet(names)
+	if set[toolRunCommand] {
+		set[toolRequestEgress] = true
+	}
+
+	return set
 }
 
 func toSet(names []string) map[string]bool {

@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -39,10 +40,11 @@ type Extras struct {
 // prepare creates (and when needed empties) the workspace's cache and starts its proxy socket.
 // It never fails the command: without the extras the command still runs, just offline and uncached.
 // Extra hosts are reachable from this workspace only. Images without the toolbox's start script
-// (any plain image) get no proxy socket.
+// (any plain image) get no proxy socket. It returns ErrTaskNotOpen when the run carries a task scope that cannot be
+// confirmed; the spec then has no network, and a caller that must not run without it can stop.
 func (e *Engine) prepare(
 	ctx context.Context, dir string, spec *sandbox.Spec, docker *sandbox.Docker, hosts ...string,
-) {
+) error {
 	id := filepath.Base(dir)
 
 	if e.extras.CacheDir != "" {
@@ -57,10 +59,17 @@ func (e *Engine) prepare(
 	}
 
 	if e.extras.Proxy != nil && len(docker.Toolchains()) > 0 {
-		if socket, ok := e.socket(ctx, id, hosts); ok {
+		socket, err := e.socket(ctx, id, hosts)
+
+		switch {
+		case err == nil:
 			spec.Egress = socket
+		case errors.Is(err, ErrTaskNotOpen):
+			return err
 		}
 	}
+
+	return nil
 }
 
 // wipe deletes a cache folder. Some tools (Go's module cache by default) make their files

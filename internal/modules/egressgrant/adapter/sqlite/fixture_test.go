@@ -61,7 +61,8 @@ func newWorld(t *testing.T) world {
 	}
 
 	clock := t0
-	service := application.NewService(sqlite.NewStore(db), &counter{}, func() time.Time { return clock })
+	service := application.NewService(sqlite.NewStore(db), &counter{}, func() time.Time { return clock }).
+		WithLimits(application.Limits{MaxPending: 1000, MaxByAgent: 1000, Window: time.Hour})
 
 	return world{Service: service, db: db, clock: &clock}
 }
@@ -108,8 +109,8 @@ func only(err error) error {
 }
 
 type tally struct {
-	firstOther                                    error
-	ok, notPending, notApproved, duplicate, other int
+	firstOther                                             error
+	ok, notPending, notApproved, duplicate, limited, other int
 }
 
 // race runs fn on n goroutines released together and sorts what they returned.
@@ -153,6 +154,8 @@ func (o *tally) add(err error) {
 		o.notApproved++
 	case errors.Is(err, application.ErrDuplicate):
 		o.duplicate++
+	case errors.Is(err, application.ErrTooManyPending), errors.Is(err, application.ErrRateLimited):
+		o.limited++
 	default:
 		o.other++
 		o.firstOther = err

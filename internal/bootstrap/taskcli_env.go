@@ -26,6 +26,12 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted 
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("prepare program home: %w", err)
 	}
 
+	// The program works for one task: the server's own record of it, never anything the program sends. With egress
+	// grants on, its container gets that task's socket; a task that is not open gets no run at all.
+	if req.TaskID != "" {
+		ctx = codingrunner.WithTask(ctx, req.ProjectID, req.TaskID)
+	}
+
 	docker, spec, release, err := p.engine.Lease(ctx, dir, programHosts(p.hosts[req.Program], granted, hasGit)...)
 	if err != nil {
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("start program: %w", err)

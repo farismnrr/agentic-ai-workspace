@@ -53,19 +53,8 @@ func (a *agentTools) Execute(ctx context.Context, scope taskapp.ToolScope, call 
 		return a.executeSite(ctx, projectID, call)
 	}
 
-	if call.Name == toolDeployExtension {
-		return a.executeExtension(ctx, projectID, call)
-	}
-
-	if call.Name == toolScreenshot {
-		return a.executeShot(ctx, scope, call)
-	}
-	if call.Name == toolScreenshotSession {
-		return a.executeScreenshotSession(ctx, scope, call)
-	}
-
-	if call.Name == toolViewImage {
-		return a.executeView(projectID, call)
+	if run, ok := a.otherTools()[call.Name]; ok {
+		return run(ctx, scope, call)
 	}
 
 	if codingdomain.IsWebTool(call.Name) {

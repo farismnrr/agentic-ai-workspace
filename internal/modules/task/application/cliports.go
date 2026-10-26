@@ -39,6 +39,9 @@ type CLIRequest struct {
 	Bridge    *CLIBridge
 	UserID    string
 	ProjectID string
+	// TaskID is the task the program works for; the server fills it from the task row, so it can scope what the
+	// program may reach.
+	TaskID string
 	// Program is which one: "claude" or "chatgpt".
 	Program string
 	Prompt  string
