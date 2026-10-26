@@ -51,6 +51,8 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **A domain rule never knows** which HTTP framework or database is used. That keeps it easy to test and to replace.
 - **Platform code** holds technical details only, never business rules.
 - **A feature creates only the layers it needs.** Empty folders do not help.
+- **Egress grants** (`modules/egressgrant`) will let a person approve an extra HTTPS host for one task.
+  Only the domain rules and migration 052 exist; nothing is connected and the feature is off.
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.
   `modules/dbconn` stores one external database connection, tests it, and can
   provision isolated PostgreSQL, MySQL and MongoDB resources through

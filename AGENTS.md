@@ -177,6 +177,7 @@ Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read th
 - `agents/self-improvement.md`: the observe -> codify loop and how to maintain repository memory (read for every meaningful task).
 - `agents/memory-backend.md`: platform lessons for Go, OAuth/MCP, sandbox, migrations and the agent loop.
 - `agents/memory-frontend.md`: lessons for the Svelte app, routing, workspace UI and status looks.
+- `agents/egress-grants.md`: the security design, stages and activation gate of per-task egress approvals (read before touching `platform/egressproxy` or sandbox reach).
 - `agents/implementation-notes.md`: long, exact backend detail (sandbox, agent loop, models and effort, connectors, data, workspace screens) that `docs/` only summarizes.
 
 ## Project document continuity
