@@ -8,11 +8,11 @@ import (
 
 // PlanDiff describes the stable IDs affected by a plan replacement.
 type PlanDiff struct {
-	Changed bool
-	Added   []string
-	Removed []string
-	Updated []string
-	Moved   []string
+	Added     []string
+	Removed   []string
+	Updated   []string
+	Changed   bool
+	Reordered bool
 }
 
 // ReconcilePlan keeps IDs and existing status when incoming steps omit them.
@@ -24,31 +24,39 @@ func ReconcilePlan(current, incoming []PlanStep) ([]PlanStep, PlanDiff) {
 	next := nextPlanID(current, incoming)
 
 	for _, step := range incoming {
-		previous, found := byID[step.ID]
-		if step.ID == "" {
-			previous, found = unmatchedTitle(byTitle[normalizeTitle(step.Title)], used)
-			if found {
-				step.ID = previous.ID
-			} else {
-				step.ID = fmt.Sprintf("s%d", next)
-				next++
-			}
-		} else if found && step.State == "" {
-			step.State = previous.State
-		}
+		var previous PlanStep
+		var found bool
+		step, previous, found, next = reconcileStep(step, byID, byTitle, used, next)
 		if found {
 			used[previous.ID] = true
-			if step.State == "" {
-				step.State = previous.State
-			}
-		} else if step.State == "" {
-			step.State = PlanPending
 		}
 		steps = append(steps, step)
 	}
 
 	diff := comparePlans(current, steps)
 	return steps, diff
+}
+
+func reconcileStep(step PlanStep, byID map[string]PlanStep, byTitle map[string][]PlanStep,
+	used map[string]bool, next int,
+) (PlanStep, PlanStep, bool, int) {
+	previous, found := byID[step.ID]
+	if step.ID == "" {
+		previous, found = unmatchedTitle(byTitle[normalizeTitle(step.Title)], used)
+		if found {
+			step.ID = previous.ID
+		} else {
+			step.ID = fmt.Sprintf("s%d", next)
+			next++
+		}
+	}
+	if found && step.State == "" {
+		step.State = previous.State
+	}
+	if !found && step.State == "" {
+		step.State = PlanPending
+	}
+	return step, previous, found, next
 }
 
 func indexPlan(plan []PlanStep) (map[string]PlanStep, map[string][]PlanStep) {
@@ -105,7 +113,7 @@ func comparePlans(current, updated []PlanStep) PlanDiff {
 				diff.Changed = true
 			}
 			if old != i {
-				diff.Moved = append(diff.Moved, step.ID)
+				diff.Reordered = true
 				diff.Changed = true
 			}
 		}

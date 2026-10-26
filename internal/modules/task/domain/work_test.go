@@ -45,7 +45,11 @@ func TestRedactCredentials(t *testing.T) {
 	if count != 10 {
 		t.Fatalf("redaction count = %d, want 10: %s", count, clean)
 	}
-	for _, secret := range []string{"abc", "hunter2", "sk-12345", "ghu_12345", "github_pat_12345", "AKIA12345678", "xoxb-12345", "eyJhbGci", "user:pass"} {
+	secrets := []string{
+		"abc", "hunter2", "sk-12345", "ghu_12345", "github_pat_12345",
+		"AKIA12345678", "xoxb-12345", "eyJhbGci", "user:pass",
+	}
+	for _, secret := range secrets {
 		if strings.Contains(clean, secret) {
 			t.Errorf("secret %q remains in %q", secret, clean)
 		}

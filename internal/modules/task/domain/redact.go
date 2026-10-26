@@ -6,9 +6,14 @@ var workSecretPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)(authorization\s*[:=]\s*)(?:bearer\s+)?[^\s,;]+`),
 	regexp.MustCompile(`(?i)\bbearer\s+[^\s,;]+`),
 	regexp.MustCompile(`(?i)\b(password|token|secret|key)\s*([=:])\s*[^\s&;,]+`),
-	regexp.MustCompile(`\b(?:sk-[A-Za-z0-9_-]{4,}|gh[pus]_[A-Za-z0-9_-]{4,}|github_pat_[A-Za-z0-9_-]{4,}|AKIA[A-Z0-9]{8,}|xox[baprs]-[A-Za-z0-9-]{4,})\b`),
+	regexp.MustCompile(`\bsk-[A-Za-z0-9_-]{4,}\b`),
+	regexp.MustCompile(`\bgh[pus]_[A-Za-z0-9_-]{4,}\b`),
+	regexp.MustCompile(`\bgithub_pat_[A-Za-z0-9_-]{4,}\b`),
+	regexp.MustCompile(`\bAKIA[A-Z0-9]{8,}\b`),
+	regexp.MustCompile(`\bxox[baprs]-[A-Za-z0-9-]{4,}\b`),
 	regexp.MustCompile(`\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b`),
-	regexp.MustCompile(`-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----`),
+	regexp.MustCompile(`-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----` +
+		`[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----`),
 	regexp.MustCompile(`://[^/:@\s]+:[^/@\s]+@`),
 }
 
