@@ -53,8 +53,8 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **A feature creates only the layers it needs.** Empty folders do not help.
 - **Egress grants** (`modules/egressgrant`) will let a person approve an extra HTTPS host for one task.
   The domain rules, use cases, SQLite store, migration 052 and the proxy side (`platform/egressproxy`: per-task
-  sockets, a grant registry, TLS server-name check, tunnel revocation) exist; nothing in the app calls them,
-  no sandbox gets a task socket and no route exists, so the feature is off.
+  sockets, a grant registry, TLS server-name check, tunnel revocation) exist and are wired behind
+  `EGRESS_GRANTS` (default off). There is no tool, route or screen to ask for or approve a host yet.
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.
   `modules/dbconn` stores one external database connection, tests it, and can
   provision isolated PostgreSQL, MySQL and MongoDB resources through

@@ -87,7 +87,7 @@ const (
 )
 
 func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunResult {
-	ctx, cancel := context.WithTimeout(ctx, task.Timeout())
+	ctx, cancel := context.WithTimeout(r.bind(ctx), task.Timeout())
 	defer cancel()
 
 	out := &tail{limit: domain.MaxOutputBytes}

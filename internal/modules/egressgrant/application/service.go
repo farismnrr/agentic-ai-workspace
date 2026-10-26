@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/domain"
@@ -32,6 +33,12 @@ type Store interface {
 	// Active lists the grants of one task that are approved and not past their end at now.
 	Active(ctx context.Context, projectID, taskID string, now time.Time) ([]domain.Grant, error)
 	List(ctx context.Context, projectID, taskID string) ([]domain.Grant, error)
+	// TaskLive reports whether the task exists in that project and is still open: not archived, not done or failed.
+	TaskLive(ctx context.Context, projectID, taskID string) (bool, error)
+	// EndInactive ends every pending or approved grant whose task is no longer live, for good, and returns how many.
+	EndInactive(ctx context.Context, now time.Time) (int, error)
+	// LiveApproved lists every approved grant that has not ended and whose task is live: what the proxy should hold.
+	LiveApproved(ctx context.Context, now time.Time) ([]domain.Grant, error)
 }
 
 // IDs makes opaque identifiers.
@@ -39,9 +46,11 @@ type IDs interface{ UUID() (string, error) }
 
 // Service is the egress grant use cases.
 type Service struct {
-	store Store
-	ids   IDs
-	now   func() time.Time
+	store    Store
+	ids      IDs
+	registry Registry
+	now      func() time.Time
+	syncMu   sync.Mutex
 }
 
 // NewService builds the use cases. now is injectable for tests.
@@ -92,6 +101,12 @@ func (s *Service) decide(
 	grant, err := s.store.Decide(ctx, id, change)
 	if err != nil {
 		return domain.Grant{}, fmt.Errorf("decide on grant: %w", err)
+	}
+
+	// The decision is committed. The enforcement point is brought in line with the database before the caller is
+	// told; if that fails the caller hears about it, and enforcement stays closed (see syncGrant).
+	if err = s.syncGrant(ctx, id); err != nil {
+		return domain.Grant{}, err
 	}
 
 	return grant, nil

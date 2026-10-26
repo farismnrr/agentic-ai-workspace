@@ -15,6 +15,9 @@ import (
 const columns = `id, project_id, task_id, host, reason, status, requested_by_kind, requested_by,
 	decided_by, created_at, decided_at, expires_at`
 
+// liveTask is the SQL for "the task is still open": not archived, not done, not failed. A deleted task has no row.
+const liveTask = `t.archived_at IS NULL AND t.status NOT IN ('done', 'failed')`
+
 // Store is the egress_grants table.
 type Store struct{ db *sql.DB }
 
@@ -72,7 +75,7 @@ func (s *Store) Get(ctx context.Context, id string) (domain.Grant, error) {
 // written with a mismatched pair never counts.
 func (s *Store) Active(ctx context.Context, projectID, taskID string, now time.Time) ([]domain.Grant, error) {
 	return s.list(ctx, `SELECT `+prefixed("g")+` FROM egress_grants g
-		JOIN tasks t ON t.id = g.task_id AND t.project_id = g.project_id
+		JOIN tasks t ON t.id = g.task_id AND t.project_id = g.project_id AND `+liveTask+`
 		WHERE g.project_id = ? AND g.task_id = ? AND g.status = 'approved' AND g.expires_at > ?
 		ORDER BY g.host`, projectID, taskID, now.Unix())
 }

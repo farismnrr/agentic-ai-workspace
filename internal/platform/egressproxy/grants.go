@@ -170,3 +170,24 @@ func closeAll(leases []*Lease) {
 		lease.Close()
 	}
 }
+
+// Has reports whether a grant id is held.
+func (g *Grants) Has(id string) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.byID[id] != nil
+}
+
+// IDs lists the grant ids held.
+func (g *Grants) IDs() []string {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	ids := make([]string, 0, len(g.byID))
+	for id := range g.byID {
+		ids = append(ids, id)
+	}
+
+	return ids
+}

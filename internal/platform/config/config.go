@@ -65,6 +65,8 @@ type Config struct {
 	SandboxCPUs      int
 	SandboxSwapMB    int
 	CookieSecure     bool
+	// EgressGrants turns on per-task approvals of extra HTTPS hosts. Off unless EGRESS_GRANTS is true.
+	EgressGrants bool
 }
 
 // GitHub is the GitHub App people connect their account through. Empty means the feature is off.
@@ -122,6 +124,7 @@ func Load() Config {
 		SandboxCPUs:       atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
 		SandboxSwapMB:     atoi(getenv("SANDBOX_SWAP_MB", strconv.Itoa(defaultSandboxSwapMB)), defaultSandboxSwapMB),
 		CookieSecure:      strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
+		EgressGrants:      flag("EGRESS_GRANTS"),
 		GitHub: GitHub{
 			ClientID:     strings.TrimSpace(os.Getenv("GITHUB_CLIENT_ID")),
 			ClientSecret: strings.TrimSpace(os.Getenv("GITHUB_CLIENT_SECRET")),
@@ -179,4 +182,11 @@ func atoi(value string, fallback int) int {
 	}
 
 	return number
+}
+
+// flag reads a boolean setting that is off unless it is set to a true value. Anything unreadable is off.
+func flag(key string) bool {
+	on, err := strconv.ParseBool(strings.TrimSpace(os.Getenv(key)))
+
+	return err == nil && on
 }

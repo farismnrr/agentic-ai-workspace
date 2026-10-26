@@ -70,3 +70,27 @@ func (h *Hub) RemoveTask(scope Scope) {
 		grants.Clear(scope)
 	}
 }
+
+// Enabled reports whether this hub serves task sockets, which is only so when it was given a grant registry.
+func (h *Hub) Enabled() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	return h.grants != nil
+}
+
+// TaskScopes lists the tasks that have a socket right now, so a sweep can stop the ones whose task is over.
+func (h *Hub) TaskScopes() []Scope {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	var scopes []Scope
+
+	for _, s := range h.servers {
+		if s.task.valid() && !slices.Contains(scopes, s.task) {
+			scopes = append(scopes, s.task)
+		}
+	}
+
+	return scopes
+}

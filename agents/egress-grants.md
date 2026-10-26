@@ -2,7 +2,7 @@
 
 Design and status of `internal/modules/egressgrant`. Agent-only. Read before touching `platform/egressproxy`, `bootstrap/reach.go`, or the grant tool/endpoints.
 
-**Status: stages 1-3 done (domain, migration 052, use cases, SQLite store, proxy enforcement in `platform/egressproxy`, tests). Nothing is wired: no bootstrap, no config flag yet, nothing calls `Hub.TaskDir`, `Hub.WithGrants` or `Grants.Allow`, no sandbox change, no route. The feature stays off (`EGRESS_GRANTS` unset; the flag itself arrives with stage 4) in every environment until every item in "Activation gate" is done.**
+**Status: stages 1-4 done (domain, migration 052, use cases, SQLite store, proxy enforcement, runtime integration behind `EGRESS_GRANTS`, default false). With the flag off nothing new runs. With it on the runtime is wired, but there is still no request tool, endpoint or screen (stages 5-6), so no grant can be created by a person yet. The feature stays off (`EGRESS_GRANTS` unset; the flag itself arrives with stage 4) in every environment until every item in "Activation gate" is done.**
 
 ## Decisions (user, 2026-10-26)
 
@@ -33,7 +33,7 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 1. Domain model, migration `052_egress_grants.sql`, unit tests. (done)
 2. Application use cases and ports (`Request`, `Approve`, `Deny`, `Revoke`, `Active`, `List`), sqlite adapter, tests. (done)
 3. `egressproxy.Grants`: registry, normalized match, resolve-then-dial, SNI check, tunnel tracking, revoke/expiry. Security tests below. (done)
-4. Wiring behind `EGRESS_GRANTS`: per-task socket, `reach`, startup rebuild.
+4. Wiring behind `EGRESS_GRANTS`: per-task socket, verifier, startup rebuild, sweep. (done; `reach` untouched)
 5. `request_egress` tool (bridge included) with `Actor{Agent}`.
 6. HTTP endpoints, owner/admin authorization, Svelte panel, thread notice.
 7. Docs for people (`docs/`), final gate review.
@@ -88,3 +88,29 @@ A valid ClientHello with the right SNI does not prove that everything inside the
 - Expiry and revoke are enforced in-process; a crash drops all grants (fail closed) but also all tunnels.
 - No per-destination rate limit and no bandwidth cap beyond the connection limits.
 - The static `SANDBOX_EGRESS_HOSTS` list still contains the marimo host for everyone until grants are enabled (see above).
+
+## Stage 4 facts (runtime integration)
+
+- **Flag.** `EGRESS_GRANTS` (`config.Config.EgressGrants`, `strconv.ParseBool`, anything unreadable is false). Compose files pass it through with default `false`. Off: `newSandboxEngine` does not call `startEgressGrants`, the hub keeps no registry (`Hub.Enabled()` false), `runner.Engine.socket` returns the workspace socket exactly as before whatever the context carries, and migration 052 is the only trace. Tested (`taskscope_test.go`, `TestGrantsAreInertUntilStartedAndTheHubHasNone`).
+- **Where the scope comes from.** `agentTools.Execute` wraps the context with `runner.WithTask(ctx, scope.ProjectID, scope.TaskID)`; `scope` is the `ToolScope` the task loop builds from its own task row (`task/application/calls.go`), never from the model's tool input. `Runner.bind` distrusts a scope whose project is not the runner's own project (or is empty) and the command then gets no socket. `Engine.socket` additionally asks `Extras.Scopes.TaskLive` (the egressgrant service) before it calls `Hub.TaskDir`. With grants on and a scope present the command gets the task's socket or no socket: never the workspace socket in its place (a workspace socket carries no grants, so that would not widen access, but it would hide a failure). Without a scope in the context (plan CLIs via `Engine.Lease`, `Slot`, sites, checks started from the UI) the workspace socket is used as before and no grants apply.
+- **Filesystem and mount isolation** (`taskisolation_test.go`, needs `SANDBOX_TEST_IMAGE`, run against the local toolbox image): a real container sees only its own `/run/egress` (read-only; one `p.sock`; `find /` finds no other socket); task a gets 403 and task b gets through authorization (502, the made-up name does not resolve) for a grant that belongs to b. Not exercised there: the volume `Subpath` form used when the app itself runs in a container (`folderMount`, unchanged code that already isolates workspaces and caches). Check it in the black-box run before activation.
+- **Database is the source of truth, the registry a mirror.** `Service.syncGrant` runs after every committed decision, under one mutex that also guards `Reconcile`; it re-reads the grant and the task and then allows or revokes in the registry, so racing commits cannot leave an older state behind (tested with concurrent approve/revoke/sweep rounds under `-race`). A failure ends the grant in the registry and the decision call returns the error.
+- **Verifier.** `egressVerifier` calls `Service.Verify` (5 s timeout) on every CONNECT that matched a grant: the grant row must cover project, task and host, be approved and unexpired, and the task must be live. Database error, missing service, wrong scope, ended task: refused.
+- **Task liveness.** A task is live when it exists in that project, is not archived and is not `done` or `failed` (`review` and `needs-input` count as live). `Store.EndInactive` ends the pending and approved grants of tasks that are not live for good (`revoked` or `denied`, `decided_by = 'system:task-ended'`); a task that comes back to life does not get them back. A deleted task's rows go with it (cascade).
+- **Restart.** `startEgressGrants` calls the same `Reconcile` that the 5 s sweep runs. It restores exactly the approved, unexpired grants of live tasks, nothing else. If the database cannot be read the registry is emptied (`Reconcile` revokes everything) and rebuilt by the next good sweep.
+- **Sweep and lag.** Revoke and approve act on the registry before the call returns. A task that ends, is archived or deleted loses its grants and open tunnels within one sweep (5 s); new connections are refused at once by the verifier. The sweep also stops the sockets of tasks that are no longer live (`Hub.RemoveTask`).
+- **One instance only.** The registry is in memory and tunnels live in this process. `startEgressGrants` takes an exclusive `flock` on `DATA_DIR/egress/.grants.lock`; a second process on the same data folder fails to get it, logs "egress grants stay off", and runs without grants (its hub has no registry, so it serves none). That is the supported answer to "several instances": grants work in exactly one. Two processes on different hosts sharing a database over a network file system are not detected (flock is per host) and are not supported; because every revoke and approve is also written to the database and the verifier reads it, a second process that somehow ran grants would still refuse new connections after a revoke, but could keep an old tunnel until its own sweep (5 s). No distributed registry is planned.
+- **Not done on purpose.** The vendor programs' containers (`Engine.Lease` from `taskcli_env.go`, `cliagent.go` `Slot`) and sites do not get task sockets. Commands that Claude Code or Codex run inside their own container therefore cannot use a grant yet. Decide that with the user before stage 5.
+
+## Test plan before activation (end to end, marimo-pair)
+
+Run on a throwaway instance with `EGRESS_GRANTS=true`, the static marimo host removed from `SANDBOX_EGRESS_HOSTS`, and a real marimo notebook (marimo-pair) that the task's command opens:
+
+1. A command in the task connects to the notebook host with the tools marimo-pair really uses (Python `ssl`/`httpx`/`websockets`, `curl`, Node if used). Record each ClientHello: TLS 1.2 and 1.3, post-quantum key shares (larger hellos), ALPN `h2` and `http/1.1`, session resumption, a client that sends no SNI. Every one must pass the single-record check or the failure must be understood.
+2. A WebSocket that lives a long time: idle for more than `Idle` (5 min), with and without pings; the session must not be cut unexpectedly. Decide whether `Idle` needs to be longer for grants, or whether clients must send pings. A grant's 24 h end must still close it.
+3. Approve, work, revoke mid-session: the connection closes at once and reconnect is refused. Expiry mid-session the same. Task done mid-session: closed within one sweep.
+4. App restart mid-session: the tunnel drops, the grant is back after restart, reconnect works.
+5. Two tasks of one project and two projects at once: only the approved one reaches the host.
+6. Host behind a CDN or with several addresses (and IPv6): resolution, pinning and the "any non-public answer refuses" rule behave.
+7. Volume `Subpath` mounts (the app in a container, as deployed): the same isolation checks as `taskisolation_test.go`.
+8. After all of that passes, remove the marimo host from the static list (keep the registry defaults), recreate only the app container, and repeat step 1 through a grant.

@@ -41,6 +41,14 @@ func (l *loose) Active(context.Context, string, string, time.Time) ([]domain.Gra
 
 func (l *loose) List(context.Context, string, string) ([]domain.Grant, error) { return l.active, l.err }
 
+func (l *loose) TaskLive(context.Context, string, string) (bool, error) { return l.err == nil, l.err }
+
+func (l *loose) EndInactive(context.Context, time.Time) (int, error) { return 0, l.err }
+
+func (l *loose) LiveApproved(context.Context, time.Time) ([]domain.Grant, error) {
+	return l.active, l.err
+}
+
 type ids struct{ err error }
 
 func (i ids) UUID() (string, error) { return "g1", i.err }
