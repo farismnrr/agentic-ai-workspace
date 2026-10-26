@@ -27,36 +27,32 @@ import (
 // wire builds every feature and returns the route mounts in registration order.
 func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	sameOrigin, cors := routePolicies(cfg)
-
 	account, accountMount := newAccount(db, cfg, sameOrigin, accountLimits())
 	sess := sessions{account: account}
 	registry := newRegistry(cfg)
-
 	oauth, oauthMount, err := newOAuth(
 		db, cfg, registry, sess, directory{account: account}, sameOrigin, cors, oauthLimits())
 	if err != nil {
 		return nil, nil, err
 	}
-
 	engine, egress, closeProxy := newSandboxEngine(cfg, db)
 	agentSessions := siteagentsession.New()
-
 	spaceStore, permissions := newPermissions(db, registry)
-
 	auth := httpserver.RequireSession(sess)
-
 	models, err := newModels(db, cfg, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	folders, tools, err := openToolbox(cfg, engine, egress)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	projects, projectMount, projectSettings, err := projectFeatures(db, cfg, models, folders, tools, account, auth,
-		sameOrigin)
+	projects, projectMount, projectSettings, err := projectFeatures(
+		db, cfg, models, folders, tools, account, auth, sameOrigin)
+	if err != nil {
+		return nil, nil, err
+	}
+	egressMount, err := newEgressAPIMount(egress, projects, account, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -80,7 +76,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, registry, log, permissions, oauth, sess, sameOrigin)
 
 	mounts := joinMounts(
-		[]httpserver.Mount{accountMount, oauthMount, projectMount}, projectSettings, agentMounts,
+		[]httpserver.Mount{accountMount, oauthMount, projectMount, egressMount}, projectSettings, agentMounts,
 		[]httpserver.Mount{newExport(account, models, projects, tasks, folders, auth)},
 		models.mounts, []httpserver.Mount{githubMount, newTemplate(tools, projects, auth, sameOrigin)},
 		[]httpserver.Mount{tools.plans.mount(auth, sameOrigin)}, spaceMounts)

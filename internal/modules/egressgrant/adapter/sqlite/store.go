@@ -109,6 +109,12 @@ func (s *Store) List(ctx context.Context, projectID, taskID string) ([]domain.Gr
 		ORDER BY created_at DESC, id`, projectID, taskID)
 }
 
+// ListProject returns recent requests for the project without leaking another project's rows.
+func (s *Store) ListProject(ctx context.Context, projectID string) ([]domain.Grant, error) {
+	return s.list(ctx, `SELECT `+columns+` FROM egress_grants WHERE project_id = ?
+ ORDER BY created_at DESC, id DESC LIMIT 200`, projectID)
+}
+
 func (s *Store) list(ctx context.Context, query string, args ...any) ([]domain.Grant, error) {
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {

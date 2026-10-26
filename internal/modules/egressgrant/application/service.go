@@ -60,6 +60,7 @@ type Store interface {
 	// Active lists the grants of one task that are approved and not past their end at now.
 	Active(ctx context.Context, projectID, taskID string, now time.Time) ([]domain.Grant, error)
 	List(ctx context.Context, projectID, taskID string) ([]domain.Grant, error)
+	ListProject(ctx context.Context, projectID string) ([]domain.Grant, error)
 	// TaskLive reports whether the task exists in that project and is still open: not archived, not done or failed.
 	TaskLive(ctx context.Context, projectID, taskID string) (bool, error)
 	// EndInactive ends every pending or approved grant whose task is no longer live, for good, and returns how many.
@@ -176,4 +177,14 @@ func (s *Service) List(ctx context.Context, projectID, taskID string) ([]domain.
 	}
 
 	return grants, nil
+}
+
+// Get returns a request; the HTTP adapter validates its project before exposing it.
+func (s *Service) Get(ctx context.Context, id string) (domain.Grant, error) {
+	return s.store.Get(ctx, id) //nolint:wrapcheck // Preserve the store error.
+}
+
+// ListProject reports up to 200 latest requests across tasks of one project.
+func (s *Service) ListProject(ctx context.Context, projectID string) ([]domain.Grant, error) {
+	return s.store.ListProject(ctx, projectID) //nolint:wrapcheck // Preserve the store error.
 }
