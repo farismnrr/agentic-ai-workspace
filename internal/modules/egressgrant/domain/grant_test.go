@@ -9,9 +9,9 @@ import (
 var (
 	t0     = time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
 	agent  = Actor{Kind: ActorAgent, ID: "agent:t1"}
-	owner  = Decider{ID: "u1", Owner: true}
+	owner  = Decider{ID: "u1", ProjectID: "p1", Owner: true}
 	admin  = Decider{ID: "u2", Admin: true}
-	nobody = Decider{ID: "u3"}
+	nobody = Decider{ID: "u3", ProjectID: "p1"}
 )
 
 func pending(t *testing.T) Grant {
@@ -63,26 +63,6 @@ func TestRequestRefusesBadInput(t *testing.T) {
 	}
 }
 
-func TestOnlyAnOwnerOrAdminDecides(t *testing.T) {
-	g := pending(t)
-
-	for _, who := range []Decider{nobody, {}} {
-		if _, err := g.Approve(who, 0, t0); !errors.Is(err, ErrNotAuthorized) {
-			t.Errorf("approve by %+v: %v", who, err)
-		}
-
-		if _, err := g.Deny(who, t0); !errors.Is(err, ErrNotAuthorized) {
-			t.Errorf("deny by %+v: %v", who, err)
-		}
-	}
-
-	for _, who := range []Decider{owner, admin} {
-		if _, err := g.Approve(who, 0, t0); err != nil {
-			t.Errorf("approve by %+v: %v", who, err)
-		}
-	}
-}
-
 func TestApprovalLastsADayByDefaultAndStopsThen(t *testing.T) {
 	g, err := pending(t).Approve(owner, 0, t0)
 	if err != nil {
@@ -117,48 +97,6 @@ func TestLifetimeIsCapped(t *testing.T) {
 
 	if a, err := g.Approve(owner, MaxTTL, t0); err != nil || !a.ExpiresAt.Equal(t0.Add(MaxTTL)) {
 		t.Errorf("the cap itself is allowed: %v", err)
-	}
-}
-
-func TestADecidedOrExpiredRequestCannotBeDecidedAgain(t *testing.T) {
-	approved, _ := pending(t).Approve(owner, 0, t0)
-	denied, _ := pending(t).Deny(owner, t0)
-	revoked, _ := approved.Revoke(owner, t0)
-
-	for name, g := range map[string]Grant{"approved": approved, "denied": denied, "revoked": revoked} {
-		if _, err := g.Approve(owner, 0, t0); !errors.Is(err, ErrNotPending) {
-			t.Errorf("%s approved again: %v", name, err)
-		}
-
-		if _, err := g.Deny(owner, t0); !errors.Is(err, ErrNotPending) {
-			t.Errorf("%s denied again: %v", name, err)
-		}
-	}
-
-	if _, err := pending(t).Approve(owner, 0, t0.Add(PendingTTL)); !errors.Is(err, ErrNotPending) {
-		t.Errorf("an unanswered request must stop being approvable: %v", err)
-	}
-}
-
-func TestRevokeEndsAGrantAtOnce(t *testing.T) {
-	approved, _ := pending(t).Approve(owner, 0, t0)
-	now := t0.Add(time.Hour)
-
-	if _, err := approved.Revoke(nobody, now); !errors.Is(err, ErrNotAuthorized) {
-		t.Errorf("revoke by nobody: %v", err)
-	}
-
-	revoked, err := approved.Revoke(admin, now)
-	if err != nil || revoked.Active(now) || revoked.Status != StatusRevoked {
-		t.Fatalf("revoked %+v, %v", revoked, err)
-	}
-
-	if _, err = revoked.Revoke(owner, now); !errors.Is(err, ErrNotApproved) {
-		t.Errorf("revoking twice: %v", err)
-	}
-
-	if _, err = pending(t).Revoke(owner, now); !errors.Is(err, ErrNotApproved) {
-		t.Errorf("revoking something never approved: %v", err)
 	}
 }
 

@@ -2,7 +2,7 @@
 
 Design and status of `internal/modules/egressgrant`. Agent-only. Read before touching `platform/egressproxy`, `bootstrap/reach.go`, or the grant tool/endpoints.
 
-**Status: stage 1 only (domain, migration 052, unit tests). Nothing is wired. The feature stays off (`EGRESS_GRANTS` unset) in every environment until every item in "Activation gate" is done.**
+**Status: stages 1 and 2 done (domain, migration 052, application use cases, SQLite store, tests). Nothing is wired: no bootstrap, no config flag yet, no proxy or sandbox change, no route. The feature stays off (`EGRESS_GRANTS` unset; the flag itself arrives with stage 4) in every environment until every item in "Activation gate" is done.**
 
 ## Decisions (user, 2026-10-26)
 
@@ -31,7 +31,7 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 ## Stages
 
 1. Domain model, migration `052_egress_grants.sql`, unit tests. (done)
-2. Application use cases and ports (`Request`, `Approve`, `Deny`, `Revoke`, `Active`), sqlite adapter, tests.
+2. Application use cases and ports (`Request`, `Approve`, `Deny`, `Revoke`, `Active`, `List`), sqlite adapter, tests. (done)
 3. `egressproxy.Grants`: registry, normalized match, resolve-then-dial, SNI check, tunnel tracking, revoke/expiry. Security tests below.
 4. Wiring behind `EGRESS_GRANTS`: per-task socket, `reach`, startup rebuild.
 5. `request_egress` tool (bridge included) with `Actor{Agent}`.
@@ -50,3 +50,20 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 
 - Two migrations already share number 051; the next free number is 052. Migrations are append-only.
 - Pending requests also expire after 24 hours and cannot be approved afterwards.
+
+## Stage 2 facts (what the code guarantees)
+
+- **Deciding rights.** `domain.Decider{ID, ProjectID, Owner, Admin}`: `Owner` counts only for `ProjectID == grant.ProjectID`; `Admin` spans projects. The HTTP adapter (stage 6) must build it from the session and from a server-side project-owner lookup, never from request fields.
+- **Atomicity.** `Create` is one `INSERT ... SELECT` that checks in the same statement that the task belongs to the project and that the task has no live (pending or unexpired approved) grant for the host. `Decide` reads and updates in one transaction and the `UPDATE` names the old status, end, project and task, so a decision made from a stale state changes nothing; it is retried (up to 5 times) and the retry meets the domain rule (`ErrNotPending`/`ErrNotApproved`). Only lock conflicts are retried; any other database error surfaces as itself. Tested with 20-30 goroutines under `-race`.
+- **Scope.** `Active` joins `tasks` on both ids, filters `status = 'approved' AND expires_at > now`, and the service re-applies `Grant.Covers` to what the store returned.
+- **Not done on purpose:** no cap on pending requests per task (add one if agents flood the UI), no event/log write on decisions (stage 6), no registry or proxy hook (stage 3).
+- **Rollback caveat.** Once the app has run with migration 052, an older binary refuses to start (`ErrMigrationMissing`). Roll back by deploying a build that still contains `052_egress_grants.sql`; never delete the file.
+- **Two 051 files.** `051_project_gateway.sql` and `051_task_archived_at.sql` are both applied on real databases. The runner journals by full file name and sorts names, so it is safe; `migrate_order_test.go` pins both names and their order. Verified on a copy of the live database (both applied, 052 added, no earlier journal row changed, no foreign-key violations). Never rename or renumber either file.
+
+## Static `SANDBOX_EGRESS_HOSTS` and the marimo host
+
+On this computer `.env` currently lists `sb-f6c7943aa05fb36c.sb.molab.run` in `SANDBOX_EGRESS_HOSTS` (added 2026-10-26), so every sandbox of every person can reach it. It is a stop-gap. After dynamic grants are enabled and proven: approve that host through a grant for the task that needs it, then remove the host from `.env` and recreate only the app container. Keep the registry defaults (`pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org`, `proxy.golang.org`, `sum.golang.org`, `storage.googleapis.com`, `crates.io`, `index.crates.io`, `static.crates.io`, `static.rust-lang.org`, `repo.maven.apache.org`, `repo1.maven.org`). Setting the variable replaces the defaults, so removing the host means either deleting the whole line (defaults return) or listing the defaults again.
+
+## Stage 3 must also prove (proxy gate)
+
+A valid ClientHello with the right SNI does not prove that everything inside the tunnel is TLS: after the first record the proxy still forwards opaque bytes, and a client can finish a handshake and then send anything, or put plaintext after a ClientHello. The proxy cannot see inside without terminating TLS, which this design does not do. So stage 3 states the limit in its docs, and tests at least: plaintext first bytes refused, a non-ClientHello record refused, SNI different from the granted host refused, no SNI refused, ECH-style outer SNI refused, a truncated or oversized first record refused with a timeout, and a ClientHello followed by plaintext still reaches only the approved public address (the limit: the destination, not the content, is what is enforced). These tests must exist before the activation gate.

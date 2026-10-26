@@ -52,7 +52,8 @@ internal/platform/        config, egress, HTTP server, embedded web app
 - **Platform code** holds technical details only, never business rules.
 - **A feature creates only the layers it needs.** Empty folders do not help.
 - **Egress grants** (`modules/egressgrant`) will let a person approve an extra HTTPS host for one task.
-  Only the domain rules and migration 052 exist; nothing is connected and the feature is off.
+  The domain rules, use cases, SQLite store and migration 052 exist; nothing is connected to the proxy, the
+  sandbox or any route, and the feature is off.
 - **Project Env** (`modules/env`) owns project variables and encrypted storage.
   `modules/dbconn` stores one external database connection, tests it, and can
   provision isolated PostgreSQL, MySQL and MongoDB resources through

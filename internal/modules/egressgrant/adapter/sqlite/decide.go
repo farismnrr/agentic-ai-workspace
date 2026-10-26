@@ -1,0 +1,74 @@
+package sqlite
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/application"
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/domain"
+)
+
+// attempts is how many times a decision is tried again when another decision changed the grant first.
+const attempts = 5
+
+// Decide works out the next state inside a transaction and saves it only where the row still has the state it was
+// read in: the update names the old status and end, so a second decision made from the same state changes nothing
+// and tries again from what the first one left. That second try is refused by the domain rules (already decided).
+func (s *Store) Decide(
+	ctx context.Context, id string, change func(domain.Grant) (domain.Grant, error),
+) (domain.Grant, error) {
+	for range attempts {
+		next, retry, err := s.decideOnce(ctx, id, change)
+		if !retry {
+			return next, err
+		}
+	}
+
+	return domain.Grant{}, application.ErrConflict
+}
+
+func (s *Store) decideOnce(
+	ctx context.Context, id string, change func(domain.Grant) (domain.Grant, error),
+) (next domain.Grant, retry bool, err error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.Grant{}, false, fmt.Errorf("begin decision: %w", err)
+	}
+
+	defer func() { _ = tx.Rollback() }()
+
+	current, err := scan(tx.QueryRowContext(ctx, `SELECT `+columns+` FROM egress_grants WHERE id = ?`, id))
+	if err != nil {
+		return domain.Grant{}, false, err
+	}
+
+	if next, err = change(current); err != nil {
+		return domain.Grant{}, false, err
+	}
+
+	result, err := tx.ExecContext(ctx, `UPDATE egress_grants SET status = ?, decided_by = ?, decided_at = ?,
+		expires_at = ? WHERE id = ? AND status = ? AND expires_at = ? AND project_id = ? AND task_id = ?`,
+		next.Status, next.DecidedBy, next.DecidedAt.Unix(), next.ExpiresAt.Unix(),
+		id, current.Status, current.ExpiresAt.Unix(), current.ProjectID, current.TaskID)
+	if err != nil {
+		return domain.Grant{}, busy(err), fmt.Errorf("update grant: %w", err)
+	}
+
+	if n, _ := result.RowsAffected(); n != 1 {
+		return domain.Grant{}, true, nil
+	}
+
+	if err = tx.Commit(); err != nil {
+		return domain.Grant{}, busy(err), fmt.Errorf("commit decision: %w", err)
+	}
+
+	return next, false, nil
+}
+
+// busy reports a lock conflict with another writer, the one failure worth trying a decision again for.
+func busy(err error) bool {
+	text := err.Error()
+
+	return strings.Contains(text, "SQLITE_BUSY") || strings.Contains(text, "database is locked")
+}

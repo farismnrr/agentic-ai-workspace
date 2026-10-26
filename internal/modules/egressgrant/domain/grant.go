@@ -51,14 +51,18 @@ type Actor struct {
 }
 
 // Decider is a person allowed to approve, deny or revoke. The HTTP adapter builds one from the signed-in session
-// and nothing else does, so a request made by an agent never carries the right to decide.
+// and nothing else does, so a request made by an agent never carries the right to decide. Owner means the owner of
+// ProjectID only: the right never reaches another project's grants. Admin is the one right that spans projects.
 type Decider struct {
-	ID    string
-	Owner bool
-	Admin bool
+	ID        string
+	ProjectID string
+	Owner     bool
+	Admin     bool
 }
 
-func (d Decider) allowed() bool { return d.ID != "" && (d.Owner || d.Admin) }
+func (d Decider) allowed(g Grant) bool {
+	return d.ID != "" && (d.Admin || (d.Owner && d.ProjectID != "" && d.ProjectID == g.ProjectID))
+}
 
 // Grant is one task's access to one extra HTTPS host (port 443, public addresses only).
 type Grant struct {
@@ -118,7 +122,7 @@ func (g Grant) Covers(projectID, taskID, host string, now time.Time) bool {
 
 // Approve activates a pending request for ttl (DefaultTTL when zero), counted from now.
 func (g Grant) Approve(by Decider, ttl time.Duration, now time.Time) (Grant, error) {
-	if !by.allowed() {
+	if !by.allowed(g) {
 		return Grant{}, ErrNotAuthorized
 	}
 
@@ -139,7 +143,7 @@ func (g Grant) Approve(by Decider, ttl time.Duration, now time.Time) (Grant, err
 
 // Deny closes a pending request.
 func (g Grant) Deny(by Decider, now time.Time) (Grant, error) {
-	if !by.allowed() {
+	if !by.allowed(g) {
 		return Grant{}, ErrNotAuthorized
 	}
 
@@ -152,7 +156,7 @@ func (g Grant) Deny(by Decider, now time.Time) (Grant, error) {
 
 // Revoke ends an active grant at once.
 func (g Grant) Revoke(by Decider, now time.Time) (Grant, error) {
-	if !by.allowed() {
+	if !by.allowed(g) {
 		return Grant{}, ErrNotAuthorized
 	}
 
