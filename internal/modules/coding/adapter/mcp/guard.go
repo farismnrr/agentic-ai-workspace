@@ -74,7 +74,9 @@ func guarded[In, Out any](
 		}
 
 		state := g.newState(ctx, info, &entry, req)
-		who := context.WithValue(ctx, identityKey{}, identity{User: token.UserID, Client: client, Project: projectOf(in)})
+		who := context.WithValue(ctx, identityKey{}, identity{
+			User: token.UserID, Client: client, Project: projectOf(in), WorkID: workIDOf(in),
+		})
 
 		out, rep, err := run(context.WithValue(who, stateKey{}, state), in)
 		defer g.end(ctx, state)

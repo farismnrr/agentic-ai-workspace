@@ -63,6 +63,17 @@ var (
 			"Call it with role \"user\" for what the person asked, then do the work, then with role \"assistant\" for " +
 			"a short summary of your answer. Never include passwords or keys.",
 	}
+	// External work lifecycle tools share log_message's existing read switch.
+	ToolBeginWork = workTool("begin_work", "Begin work", "Start a separate tracked work session.")
+	ToolSetRole   = workTool("set_role", "Set work role",
+		"Label the role used for this work; this does not change permissions.")
+	ToolUpdatePlan       = workTool("update_plan", "Update work plan", "Save the steps for this work session.")
+	ToolSaveResearch     = workTool("save_research", "Save research", "Save research notes and their sources.")
+	ToolSaveRequirements = workTool("save_requirements", "Save requirements", "Save the requirements document.")
+	ToolReportProgress   = workTool("report_progress", "Report progress", "Record self-reported progress and claims.")
+	ToolCompleteWork     = workTool("complete_work", "Complete work",
+		"Finish or block this work and summarize verified evidence.")
+	ToolGetWorkState = workTool("get_work_state", "Get work state", "Read the compact state of a work session.")
 
 	ToolEditFile = writeTool("edit_file", "Edit a file",
 		"Replace old_text with new_text in a file. Fails if old_text is missing or not unique unless replace_all is set.")
@@ -76,6 +87,13 @@ var (
 		Description: "Run one of the named tasks from list_tasks and return its exit code and output.",
 	}
 )
+
+func workTool(name, title, description string) ToolInfo {
+	return ToolInfo{
+		Name: name, Title: title, Description: description, Scope: ScopeRead, Group: GroupRead,
+		ReadOnly: name == "get_work_state",
+	}
+}
 
 // ToolRunCommand runs any command in the sandbox, so the agent can use the installed languages.
 var ToolRunCommand = ToolInfo{

@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -67,5 +68,14 @@ func TestProgressStoresRedactedClaimedEvidence(t *testing.T) {
 	if !strings.Contains(event.Text, "[redacted]") || !strings.Contains(event.Technical, "[redacted]") ||
 		event.Work.Evidence != domain.EvidenceClaimed {
 		t.Fatalf("progress evidence was not safely attributed: %+v", event)
+	}
+}
+
+func TestExternalWorkRejectsOversizedDocuments(t *testing.T) {
+	works, _, begun := begunWork(t)
+	err := works.SaveRequirements(context.Background(), "u1", "ChatGPT", "proj", begun.WorkID,
+		strings.Repeat("x", domain.MaxWorkMarkdown+1))
+	if !errors.Is(err, domain.ErrTooLarge) {
+		t.Fatalf("oversized requirements error = %v", err)
 	}
 }

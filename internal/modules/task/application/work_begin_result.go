@@ -11,18 +11,21 @@ import (
 //
 //nolint:govet // fieldalignment: its compact internal mode preserves the required JSON response shape.
 type BeginResult struct {
-	mode   beginMode
-	Roles  []WorkRole
-	WorkID string
+	mode        beginMode
+	TaskID      string
+	WorkID      string
+	Roles       []WorkRole
+	Resumed     bool
+	Idempotency string
 }
 
 func (r BeginResult) MarshalJSON() ([]byte, error) {
-	mode := "none"
+	idempotency := "none"
 	if r.mode != beginWithoutKey {
-		mode = "keyed"
+		idempotency = "keyed"
 	}
 	encoded, err := json.Marshal(beginResponse{
-		Roles: r.Roles, WorkID: r.WorkID, Idempotency: mode, Resumed: r.mode == beginResumed,
+		Roles: r.Roles, WorkID: r.WorkID, Idempotency: idempotency, Resumed: r.mode == beginResumed,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("encode begin response: %w", err)
@@ -39,12 +42,19 @@ type beginResponse struct {
 }
 
 func (w *Works) beginResult(work domain.ExternalWork, resumed bool, roster Roster) BeginResult {
-	mode := beginWithoutKey
+	idempotency := "none"
 	if work.IdemKey != "" {
+		idempotency = "keyed"
+	}
+	mode := beginWithoutKey
+	if idempotency == "keyed" {
 		mode = beginWithKey
 	}
 	if resumed {
 		mode = beginResumed
 	}
-	return BeginResult{mode: mode, WorkID: work.ID, Roles: publicRoles(roster)}
+	return BeginResult{
+		mode: mode, TaskID: work.TaskID, WorkID: work.ID, Roles: publicRoles(roster),
+		Resumed: resumed, Idempotency: idempotency,
+	}
 }

@@ -50,7 +50,10 @@ func (w *Works) SaveRequirements(ctx context.Context, userID, client, projectID,
 		return err
 	}
 	document, err := sanitizeText(markdown, domain.MaxWorkMarkdown)
-	if err != nil || document == "" {
+	if err != nil {
+		return err
+	}
+	if document == "" {
 		return domain.ErrBadRequest
 	}
 	work, task, resumed, err := w.mutable(ctx, userID, client, projectID, workID)
@@ -72,7 +75,10 @@ func (w *Works) Progress(ctx context.Context, userID, client, projectID, workID,
 		return err
 	}
 	text, err := sanitizeText(message, domain.MaxWorkProgress)
-	if err != nil || text == "" || len(claims) > domain.MaxWorkClaims {
+	if err != nil {
+		return err
+	}
+	if text == "" || len(claims) > domain.MaxWorkClaims {
 		return domain.ErrBadRequest
 	}
 	cleanClaims := make([]string, 0, len(claims))
@@ -96,7 +102,10 @@ func (w *Works) Progress(ctx context.Context, userID, client, projectID, workID,
 
 func workDocument(markdown string, sources []string) (string, error) {
 	document, err := sanitizeText(markdown, domain.MaxWorkMarkdown)
-	if err != nil || document == "" || len(sources) > domain.MaxWorkSources {
+	if err != nil {
+		return "", err
+	}
+	if document == "" || len(sources) > domain.MaxWorkSources {
 		return "", domain.ErrBadRequest
 	}
 	for _, source := range sources {

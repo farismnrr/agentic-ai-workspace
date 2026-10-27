@@ -106,8 +106,10 @@ func completionInput(outcome, summary string, claims []string) (string, []string
 		return "", nil, domain.ErrBadRequest
 	}
 	clean, err := sanitizeText(summary, domain.MaxWorkSummary)
-	if err != nil || clean == "" || utf8.RuneCountInString(summary) > domain.MaxWorkSummary ||
-		len(claims) > domain.MaxWorkClaims {
+	if err != nil {
+		return "", nil, err
+	}
+	if clean == "" || utf8.RuneCountInString(summary) > domain.MaxWorkSummary || len(claims) > domain.MaxWorkClaims {
 		return "", nil, domain.ErrBadRequest
 	}
 	cleanClaims, err := sanitizeClaims(claims)

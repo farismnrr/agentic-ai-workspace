@@ -65,7 +65,18 @@ func matchRole(name string, roster Roster, roles []WorkRole) (WorkRole, bool) {
 
 // SetRole changes work attribution only. It does not participate in access checks.
 func (w *Works) SetRole(ctx context.Context, userID, client, projectID, workID, roleName string) (WorkRole, error) {
+	return w.SetRoleWithBrief(ctx, userID, client, projectID, workID, roleName, "")
+}
+
+// SetRoleWithBrief records a bounded explanation with the attribution change; it does not alter permissions.
+func (w *Works) SetRoleWithBrief(
+	ctx context.Context, userID, client, projectID, workID, roleName, brief string,
+) (WorkRole, error) {
 	if err := w.limits.allow(userID, false, w.now()); err != nil {
+		return WorkRole{}, err
+	}
+	cleanBrief, err := sanitizeText(brief, domain.MaxWorkClaim)
+	if err != nil {
 		return WorkRole{}, err
 	}
 	work, err := w.store.FindWork(ctx, userID, client, projectID, workID)
@@ -79,16 +90,20 @@ func (w *Works) SetRole(ctx context.Context, userID, client, projectID, workID, 
 	if err != nil {
 		return WorkRole{}, err
 	}
-	if work.RoleKey == role.Key && work.State == domain.WorkOpen {
+	if roleAlreadySet(work, role, cleanBrief) {
 		return role, nil
 	}
-	change := roleChange(work, userID, role, w.now())
+	change := roleChange(work, userID, role, cleanBrief, w.now())
 	_, _, err = w.store.Commit(ctx, change)
 	if err != nil {
 		return WorkRole{}, fmt.Errorf("set work role: %w", err)
 	}
 	w.notify(ctx, domain.Task{ID: work.TaskID, UserID: userID})
 	return role, nil
+}
+
+func roleAlreadySet(work domain.ExternalWork, role WorkRole, brief string) bool {
+	return work.RoleKey == role.Key && work.State == domain.WorkOpen && brief == ""
 }
 
 func (w *Works) availableRole(ctx context.Context, userID, name string) (WorkRole, error) {
@@ -106,9 +121,9 @@ func (w *Works) availableRole(ctx context.Context, userID, name string) (WorkRol
 	return role, nil
 }
 
-func roleChange(work domain.ExternalWork, userID string, role WorkRole, at time.Time) WorkChange {
+func roleChange(work domain.ExternalWork, userID string, role WorkRole, brief string, at time.Time) WorkChange {
 	patch, taskPatch := rolePatches(work, role)
-	events := roleEvents(work, role, at)
+	events := roleEvents(work, role, brief, at)
 	return WorkChange{
 		WorkID: work.ID, UserID: userID, ExpectRev: work.Rev,
 		Patch: patch, Task: taskPatch, Events: events,
@@ -128,20 +143,20 @@ func rolePatches(work domain.ExternalWork, role WorkRole) (*WorkPatch, *TaskPatc
 	return patch, taskPatch
 }
 
-func roleEvents(work domain.ExternalWork, role WorkRole, at time.Time) []domain.Event {
+func roleEvents(work domain.ExternalWork, role WorkRole, brief string, at time.Time) []domain.Event {
 	events := []domain.Event{}
 	if work.State == domain.WorkBlocked {
 		events = append(events, resumedEvent(work, at))
 	}
-	if work.RoleKey != role.Key {
-		events = append(events, roleEvent(work, role, at))
+	if work.RoleKey != role.Key || brief != "" {
+		events = append(events, roleEvent(work, role, brief, at))
 	}
 	return events
 }
 
-func roleEvent(work domain.ExternalWork, role WorkRole, at time.Time) domain.Event {
+func roleEvent(work domain.ExternalWork, role WorkRole, brief string, at time.Time) domain.Event {
 	return domain.Event{
-		Kind: domain.EventRole, Text: role.Name, Time: at,
+		Kind: domain.EventRole, Text: role.Name, Technical: brief, Time: at,
 		Work: &domain.WorkRef{ID: work.ID, Role: role.Key, RoleName: role.Name, From: work.RoleKey},
 	}
 }
