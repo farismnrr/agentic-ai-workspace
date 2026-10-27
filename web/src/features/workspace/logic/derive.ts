@@ -51,7 +51,12 @@ export function changesOf(events: TaskEvent[]): Change[] {
   const changes: Change[] = [];
   for (const event of events) {
     if (event.kind === 'action' && (event.files?.length ?? 0) > 0) {
-      changes.push({ id: event.id, text: event.text, files: event.files ?? [], canUndo: event.canUndo, undone: event.undone ?? false });
+      changes.push({
+        id: event.id, text: event.text, files: event.files ?? [], canUndo: event.canUndo,
+        undone: event.undone ?? false,
+        ...(event.work === undefined ? {} : { work: event.work }),
+        ...(event.run === undefined ? {} : { exitCode: event.run.exitCode }),
+      });
     }
   }
   return changes;

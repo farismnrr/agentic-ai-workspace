@@ -6,6 +6,7 @@
   import { questionsOf } from '../../logic/question-form';
   import { shotUrl } from '../../logic/tasks-api';
   import type { ThreadActions } from '../../logic/task-actions';
+  import RoleCard from './RoleCard.svelte';
   import ApprovalCard from './ApprovalCard.svelte';
   import ChatBubble from './ChatBubble.svelte';
   import ExtensionCard from './ExtensionCard.svelte';
@@ -58,6 +59,8 @@
       <PlanCard text={event.text} steps={event.technical} />
     {:else if event.kind === 'handoff'}
       <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} effort={event.effort} />
+    {:else if event.kind === 'role'}
+      <RoleCard {event} />
     {:else if event.kind === 'shot'}
       <ShotCard text={event.text} src={shotUrl(taskId, event.image)} agent={event.agent} />
     {:else if event.kind === 'extension'}

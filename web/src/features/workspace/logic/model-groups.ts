@@ -8,8 +8,8 @@ export interface ModelGroup {
 }
 
 /**
- * Models in groups, in the order the server listed them. A gateway such as 9router serves many providers' models
- * and reports who serves each (cc, cx, kr, ...), so they are split by that. The few best-known providers get a proper
+ * Models in groups, in the order the server listed them. A local API can report a provider alias,
+ * so models are grouped by that. The few best-known provider aliases get a proper
  * name; any other one shows up as its own group under the alias it reported.
  */
 export function groupModels(options: ModelOption[]): ModelGroup[] {

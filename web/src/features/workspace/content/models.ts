@@ -12,16 +12,14 @@ export const kindChoices: KindChoice[] = [
   { value: 'anthropic', label: 'Anthropic (Claude)', name: 'Anthropic', baseUrlHint: 'https://api.anthropic.com', keyHelp: 'https://console.anthropic.com/settings/keys' },
   { value: 'openai', label: 'OpenAI', name: 'OpenAI', baseUrlHint: 'https://api.openai.com/v1', keyHelp: 'https://platform.openai.com/api-keys' },
   { value: 'gemini', label: 'Google (Gemini)', name: 'Gemini', baseUrlHint: 'https://generativelanguage.googleapis.com/v1beta/openai', keyHelp: 'https://aistudio.google.com/apikey' },
-  { value: 'compatible', label: 'Gateway on this computer (for example 9router)', name: '9router', baseUrlHint: 'http://localhost:20128/v1', keyHelp: '' },
+  { value: 'compatible', label: 'Local OpenAI-compatible API (own API key only)', name: 'Local API', baseUrlHint: 'http://localhost:9000/v1', keyHelp: '' },
 ];
 
 export const kindLabel = (kind: ProviderKind): string => kindChoices.find((choice) => choice.value === kind)?.label ?? kind;
 
 /**
- * Names for the three providers people use most behind a gateway, as 9router's own dashboard calls them. A gateway
- * only reports a short alias (cx, cc, oc) and its dashboard API needs a login, so just these are named here; any other
- * provider shows the alias it reported. Only providers are named: their models always come from the gateway and are
- * never listed in the code, because they change.
+ * Legacy aliases reported by local OpenAI-compatible model gateways. A gateway may return a short provider alias;
+ * known aliases are labelled while others keep the original value. Models are always read from the provider.
  */
 export const gatewayProviderNames: Record<string, string> = {
   cx: 'OpenAI Codex',
@@ -56,6 +54,7 @@ export const modelsCopy = {
     address_fixed: 'This provider has a fixed address. Leave the address empty.',
     invalid_key: 'Enter the API key.',
     invalid_kind: 'Choose a provider.',
+    account_relay_disabled: '9router is no longer supported. Use your own provider API key or an official coding CLI.',
     too_many: 'You have too many providers. Remove one first.',
     invalid_context: 'Choose a size between 8,000 and 2,000,000 tokens.',
     verify_failed: 'The provider did not accept this key.',

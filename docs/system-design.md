@@ -161,7 +161,7 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 
 ## Models
 
-- **Providers:** Anthropic, OpenAI, Gemini, or an OpenAI-compatible gateway on the same computer, such as 9router.
+- **Providers:** Anthropic, OpenAI, Gemini, or a local OpenAI-compatible API using its own API key. Legacy 9router account relays are disabled.
 - **Keys:** stored encrypted. Hosted providers can reach only public addresses. Gateways only this computer.
 - **Gateways:** the model list is re-read on its own, at most every 30 seconds, so a provider added behind it appears without a click.
 - **Model and effort:** app tasks resolve current orchestrator settings at each run. Assigned teammate jobs retain their selection on resume. Explicit model or effort choices from the API stay pinned.

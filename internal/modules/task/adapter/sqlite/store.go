@@ -18,7 +18,7 @@ const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
 	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, ` +
-	`plan_first, follow_settings, pinned_at, archived_at`
+	`plan_first, follow_settings, pinned_at, archived_at, work_id`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -35,19 +35,27 @@ type scanner interface {
 	Scan(dest ...any) error
 }
 
+type taskExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
 // Create inserts a task.
 func (s *Store) Create(ctx context.Context, t domain.Task) error {
+	return insertTask(ctx, s.db, t)
+}
+
+func insertTask(ctx context.Context, exec taskExecutor, t domain.Task) error {
 	plan, err := json.Marshal(append([]domain.PlanStep{}, t.Plan...))
 	if err != nil {
 		return fmt.Errorf("encode plan: %w", err)
 	}
 
-	_, err = s.db.ExecContext(ctx,
+	_, err = exec.ExecContext(ctx,
 		`INSERT INTO tasks (id, project_id, user_id, title, summary, status, mode, provider_id, model, plan,
-		   created_at, updated_at, source, effort, team, plan_first, follow_settings)
-		 VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		t.ID, t.ProjectID, t.UserID, t.Title, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
-		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team, t.PlanFirst, t.FollowSettings)
+		   created_at, updated_at, source, effort, team, plan_first, follow_settings, work_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		t.ID, t.ProjectID, t.UserID, t.Title, t.Summary, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
+		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team, t.PlanFirst, t.FollowSettings, t.WorkID)
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
 	}

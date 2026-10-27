@@ -27,6 +27,9 @@ func (s *Service) Recover(ctx context.Context) error {
 
 	var failures []error
 	for _, task := range tasks {
+		if task.WorkID != "" {
+			continue
+		}
 		if task.Source != "" {
 			if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, s.deps.Now()); err != nil {
 				failures = append(failures, err)

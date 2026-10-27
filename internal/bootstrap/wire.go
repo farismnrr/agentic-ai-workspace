@@ -60,7 +60,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 
 	log := newActivityLog(spaceStore, tools)
 
-	tasks, sites, agentMounts, stop, err := newAgentAndSites(
+	tasks, works, sites, agentMounts, stop, err := newAgentAndSites(
 		db, cfg, models, projects, tools, folders, toolGate{permissions: permissions}, agentSteps{log: log}, sess, auth,
 		sameOrigin, agentSessions)
 	if err != nil {
@@ -74,7 +74,7 @@ func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	}
 
 	cleanUpOnDelete(account, projects, sites, tasks, tools)
-	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, registry, log, permissions, oauth, sess, sameOrigin)
+	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, works, registry, log, permissions, oauth, sess, sameOrigin)
 
 	mounts := joinMounts(
 		[]httpserver.Mount{accountMount, oauthMount, projectMount, egressMount}, projectSettings, agentMounts,

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
@@ -15,7 +16,24 @@ const eventColumns = `seq, id, at, tool_use_id, body, undo`
 
 // AppendEvent adds an entry to a task's thread and returns it with its id and sequence number.
 func (s *Store) AppendEvent(ctx context.Context, taskID string, event domain.Event) (domain.Event, error) {
-	id, err := s.ids.ID()
+	event, err := insertEvent(ctx, s.db, s.ids, taskID, event)
+	if err != nil {
+		return domain.Event{}, err
+	}
+	_, _ = s.db.ExecContext(ctx, `UPDATE tasks SET updated_at = ? WHERE id = ?`, event.Time.Unix(), taskID)
+
+	return event, nil
+}
+
+type eventExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func insertEvent(ctx context.Context, exec eventExecutor, ids application.IDs,
+	taskID string, event domain.Event,
+) (domain.Event, error) {
+	id, err := ids.ID()
 	if err != nil {
 		return domain.Event{}, fmt.Errorf("new event id: %w", err)
 	}
@@ -31,7 +49,7 @@ func (s *Store) AppendEvent(ctx context.Context, taskID string, event domain.Eve
 		return domain.Event{}, fmt.Errorf("encode event: %w", err)
 	}
 
-	err = s.db.QueryRowContext(ctx,
+	err = exec.QueryRowContext(ctx,
 		`INSERT INTO task_events (task_id, seq, id, at, kind, tool_use_id, body, undo)
 		 VALUES (?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM task_events WHERE task_id = ?), ?, ?, ?, ?, ?, ?)
 		 RETURNING seq`,
@@ -40,8 +58,6 @@ func (s *Store) AppendEvent(ctx context.Context, taskID string, event domain.Eve
 	if err != nil {
 		return domain.Event{}, fmt.Errorf("insert event: %w", err)
 	}
-
-	_, _ = s.db.ExecContext(ctx, `UPDATE tasks SET updated_at = ? WHERE id = ?`, event.Time.Unix(), taskID)
 
 	return event, nil
 }

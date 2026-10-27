@@ -6,6 +6,7 @@
   import { changesCopy } from '../../content/changes-copy';
   import { createFileChanges } from '../../logic/changes-store';
   import type { Change } from '../../logic/task-types';
+  import EvidenceBadge from '../thread/EvidenceBadge.svelte';
 
   interface Props {
     taskId: string;
@@ -48,7 +49,7 @@
       <ul class="mt-2 flex flex-col gap-2">
         {#each changes as change (change.id)}
           <li class="rounded-lg border border-[var(--brand-border)] p-3 text-sm">
-            <p class="flex items-center gap-2 font-medium"><Icon name="pencil" class="size-4 text-secondary" />{change.text}</p>
+            <p class="flex flex-wrap items-center gap-2 font-medium"><Icon name="pencil" class="size-4 shrink-0 text-secondary" />{change.text}<EvidenceBadge work={change.work} exitCode={change.exitCode} /></p>
             <ul class="mt-2 flex flex-wrap gap-1">
               {#each change.files as file, index (index)}<li><code class="rounded bg-base-200 px-1.5 py-0.5 text-xs">{file}</code></li>{/each}
             </ul>

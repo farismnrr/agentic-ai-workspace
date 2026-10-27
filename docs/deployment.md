@@ -171,7 +171,7 @@ Set these as environment variables or in `.env` next to the compose file. A loca
 | --- | --- | --- |
 | `SANDBOX_IMAGE` | Image the AI's commands run in. | `ghcr.io/<owner>/agentic-ai-workspace-sandbox` |
 | `SANDBOX_EGRESS_HOSTS` | HTTPS host allowlist for commands; other hosts are blocked. | PyPI, npm, Go proxy and its storage host, crates.io, Maven Central |
-| `EGRESS_GRANTS` | Lets a person approve extra HTTPS hosts for one task. Unfinished: there is no screen to approve yet, so leave it off. Needs one app instance per data folder. | `false` |
+| `EGRESS_GRANTS` | Enables the project owner/admin approval screen for per-task HTTPS hosts. Leave off until Docker and marimo-pair integration review. Requires one app instance per data folder. | `false` |
 | `CLAUDE_EGRESS_HOSTS` / `CHATGPT_EGRESS_HOSTS` | Hosts the Claude and ChatGPT programs can reach while people sign in and work on their plan. | the providers' own hosts |
 | `SANDBOX_RUNTIME` | Hardened runtime, such as `runsc` (gVisor). | none |
 | `SANDBOX_MEMORY_MB` / `SANDBOX_CPUS` | Limits for one check or site. | 2048 / 1 |
@@ -246,7 +246,7 @@ Commands, web apps and the Claude and ChatGPT programs have no network, but they
 
 ### Model gateway from commands and apps
 
-A project can also call a model gateway on the same computer, such as 9router, for RAG or any other model use.
+A project can also call an OpenAI-compatible local model API with its own API key for RAG or other model use. Legacy 9router connections are disabled and must be deleted from provider settings by their owner.
 
 - Add the gateway as an OpenAI-compatible provider that points to this computer, for example `http://localhost:20128/v1`.
 - In the project's **Env** tab, open **Model gateway** and pick it. Nothing is reachable until you do.
@@ -312,6 +312,16 @@ Access to the Docker socket is access to the whole machine. To limit the risk:
 
 - **What each workflow does:** see [system-design.md](./system-design.md#quality-and-release).
 - **Jenkins and hotfix deploys:** see [devops.md](./devops.md).
+
+## Egress rollout checklist
+
+The application can be released with `EGRESS_GRANTS=false` without a live marimo notebook. Keep the existing `SANDBOX_EGRESS_HOSTS` configuration unchanged. On the Docker host, verify the release image, database backup and restore compatibility, health endpoint, and the Claude/ChatGPT sign-in flow. A broken sign-in or network is a release blocker, not a test to skip.
+
+The Stage 7 Docker-backed Subpath, task socket isolation, public HTTPS grant and HTTP approval checks already passed in a hosted runner (Fast workflow run #40296058816). Do not rerun them just because another agent has no Docker.
+
+Live marimo-pair TLS, WebSocket idle, reconnect, revocation and task-end checks are **DEFERRED / NOT RUN** until a real notebook is available. They do not block a release with grants off, but are required **before removing** the marimo hostname from the global static allowlist.
+
+A limited non-marimo egress canary requires separate approval and its own security, backup and runtime smoke checks. Never describe deferred tests as passed.
 
 ## Masih Awam production
 
