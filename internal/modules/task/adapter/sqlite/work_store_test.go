@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -49,7 +50,7 @@ func TestWorkStoreCommitRollsBackAllChangesOnEventFailure(t *testing.T) {
 	if err == nil {
 		t.Fatal("injected event failure should rollback commit")
 	}
-	got, err := store.FindWork(ctx, "u", work.ID)
+	got, err := store.FindWork(ctx, "u", "client", "p", work.ID)
 	if err != nil || got.Rev != 0 {
 		t.Fatalf("revision escaped rollback: %+v, %v", got, err)
 	}
@@ -66,9 +67,13 @@ func TestWorkStoreCommitRollsBackAllChangesOnEventFailure(t *testing.T) {
 func TestWorkStoreIdempotencyAndQueries(t *testing.T) {
 	ctx, _, store := newWorkStore(t)
 	first := createTestWork(t, ctx, store, "w1", "t1", "same-key")
+	assertAtomicWorkCreate(t, ctx, store, first)
 	duplicate := createTestWork(t, ctx, store, "w2", "t3", "same-key")
 	if duplicate.ID != first.ID {
 		t.Fatalf("duplicate key returned work %q, want %q", duplicate.ID, first.ID)
+	}
+	if _, err := store.Find(ctx, "u", "t3"); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("idempotent replay left a duplicate task: %v", err)
 	}
 	createTestWork(t, ctx, store, "w3", "t2", "")
 	op := application.WorkOp{
@@ -81,6 +86,18 @@ func TestWorkStoreIdempotencyAndQueries(t *testing.T) {
 	assertWorkQueries(t, ctx, store, first.ID)
 }
 
+func assertAtomicWorkCreate(t *testing.T, ctx context.Context, store *Store, work domain.ExternalWork) {
+	t.Helper()
+	task, err := store.Find(ctx, "u", work.TaskID)
+	if err != nil || task.WorkID != work.ID || task.Status != domain.StatusWorking || task.Source != "client" {
+		t.Fatalf("created task link: %+v, %v", task, err)
+	}
+	events, err := store.EventsAfter(ctx, work.TaskID, 0)
+	if err != nil || len(events) != 1 || events[0].Kind != domain.EventRequest {
+		t.Fatalf("initial request event: %+v, %v", events, err)
+	}
+}
+
 func TestWorkStoreOwnerIsolationAndCascade(t *testing.T) {
 	ctx, db, store := newWorkStore(t)
 	first := createTestWork(t, ctx, store, "w1", "t1", "")
@@ -91,7 +108,7 @@ func TestWorkStoreOwnerIsolationAndCascade(t *testing.T) {
 	if _, _, err := store.Commit(ctx, application.WorkChange{WorkID: first.ID, UserID: "u", Op: &op}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.FindWork(ctx, "other", first.ID); !errors.Is(err, domain.ErrUnknownWork) {
+	if _, err := store.FindWork(ctx, "other", "client", "p2", first.ID); !errors.Is(err, domain.ErrUnknownWork) {
 		t.Fatalf("wrong owner must not see work: %v", err)
 	}
 	change := application.WorkChange{WorkID: first.ID, UserID: "other", ExpectRev: 0}

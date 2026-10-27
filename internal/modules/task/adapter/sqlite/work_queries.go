@@ -27,9 +27,9 @@ func (s *Store) FindOp(ctx context.Context, workID, opKey string) (application.W
 }
 
 // StaleOpen returns open works inactive at or before the cutoff.
-func (s *Store) StaleOpen(ctx context.Context, before time.Time) ([]domain.ExternalWork, error) {
+func (s *Store) StaleOpen(ctx context.Context, userID string, before time.Time) ([]domain.ExternalWork, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT `+workColumns+` FROM external_works
-		WHERE state = 'open' AND updated_at <= ? ORDER BY updated_at`, before.Unix())
+		WHERE user_id = ? AND state = 'open' AND updated_at <= ? ORDER BY updated_at`, userID, before.Unix())
 	if err != nil {
 		return nil, fmt.Errorf("select stale works: %w", err)
 	}

@@ -9,13 +9,21 @@ import (
 
 // WorkStore persists external work sessions and atomically commits task changes and events.
 type WorkStore interface {
-	CreateWork(ctx context.Context, work domain.ExternalWork) (domain.ExternalWork, error)
+	CreateWork(ctx context.Context, create WorkCreate) (domain.ExternalWork, error)
 	Commit(ctx context.Context, change WorkChange) ([]domain.Event, int64, error)
-	FindWork(ctx context.Context, userID, workID string) (domain.ExternalWork, error)
+	FindWork(ctx context.Context, userID, client, projectID, workID string) (domain.ExternalWork, error)
+	FindIdempotent(ctx context.Context, userID, client, projectID, key string) (domain.ExternalWork, bool, error)
 	FindOp(ctx context.Context, workID, opKey string) (WorkOp, bool, error)
-	StaleOpen(ctx context.Context, before time.Time) ([]domain.ExternalWork, error)
+	StaleOpen(ctx context.Context, userID string, before time.Time) ([]domain.ExternalWork, error)
 	CountOpen(ctx context.Context, userID, projectID string) (int, error)
 	ByTask(ctx context.Context, taskID string) (domain.ExternalWork, error)
+}
+
+// WorkCreate is one atomic task, work, and initial-event creation request.
+type WorkCreate struct {
+	Task  domain.Task
+	Event domain.Event
+	Work  domain.ExternalWork
 }
 
 // WorkOp is the saved response for an idempotent operation on one work session.
