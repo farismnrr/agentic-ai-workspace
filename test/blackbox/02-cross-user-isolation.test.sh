@@ -39,8 +39,10 @@ assert_not_contains "$APP_TMP_DIR/other-export-files.txt" "$project_id" \
 
 http_request GET "$jar_a" /api/projects
 assert_status "$HTTP_STATUS" 200 'owner project list remains available'
+# shellcheck disable=SC2016 # The single-quoted expressions are jq syntax, not shell expansion.
 assert_json 'any(.[]; .id == $id)' 'owner still has the original project' --arg id "$project_id"
 http_request GET "$jar_b" /api/projects
+# shellcheck disable=SC2016 # jq receives $id through --arg; the shell must not expand it.
 assert_json 'all(.[]; .id != $id)' 'other account list excludes owner project' --arg id "$project_id"
 
 http_unauthenticated GET "/run/$project_id/"

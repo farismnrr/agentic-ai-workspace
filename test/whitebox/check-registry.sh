@@ -11,9 +11,11 @@ if [[ ! -f $registry ]]; then
 fi
 
 mapfile -t entries < <(
+  # shellcheck disable=SC2016 # Backreferences and capture groups belong to sed's regex.
   sed -nE 's/^\| `([^`]+::Test[^`]+)` \|.*/\1/p' "$registry"
 )
 mapfile -t support_files < <(
+  # shellcheck disable=SC2016 # Backreferences and capture groups belong to sed's regex.
   sed -nE 's/^- `([^`]+_test\.go)` .*/\1/p' "$registry"
 )
 

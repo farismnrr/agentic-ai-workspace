@@ -20,7 +20,7 @@ app_free_port() {
 }
 
 app_start() {
-  local attempt port ready index
+  local attempt port ready
   for attempt in 1 2 3 4 5; do
     port=$(app_free_port)
     APP_PORT=$port
@@ -29,7 +29,7 @@ app_start() {
       "$APP_BIN" >>"$APP_LOG" 2>&1 &
     APP_PID=$!
     ready=0
-    for index in $(seq 1 50); do
+    for _ in $(seq 1 50); do
       if ! kill -0 "$APP_PID" 2>/dev/null; then
         break
       fi
