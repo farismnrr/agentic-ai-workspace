@@ -17,10 +17,24 @@ case $suite in
       APP_BIN="$REPO_ROOT/bin/agentic-ai-workspace"
     fi
     export APP_BIN
-    for scenario in "$REPO_ROOT"/test/blackbox/*.test.sh; do
+    if [[ -n ${2:-} ]]; then
+      if [[ $2 == *[!a-z0-9-]* ]]; then
+        printf 'Invalid black-box scenario: %s\n' "$2" >&2
+        exit 2
+      fi
+      scenario="$REPO_ROOT/test/blackbox/${2}.test.sh"
+      if [[ ! -f $scenario ]]; then
+        printf 'Unknown black-box scenario: %s\n' "$2" >&2
+        exit 2
+      fi
       printf '\n==> %s\n' "$(basename "$scenario")"
       bash "$scenario"
-    done
+    else
+      for scenario in "$REPO_ROOT"/test/blackbox/*.test.sh; do
+        printf '\n==> %s\n' "$(basename "$scenario")"
+        bash "$scenario"
+      done
+    fi
     ;;
   smoke)
     if [[ -z ${APP_BIN:-} ]]; then
@@ -37,7 +51,7 @@ case $suite in
     bash "$REPO_ROOT/test/whitebox/check-registry.sh"
     ;;
   *)
-    printf 'Usage: %s {blackbox|smoke|e2e|whitebox-check}\n' "$0" >&2
+    printf 'Usage: %s {blackbox [scenario]|smoke|e2e|whitebox-check}\n' "$0" >&2
     exit 2
     ;;
 esac

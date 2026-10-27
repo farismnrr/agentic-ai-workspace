@@ -109,7 +109,7 @@ verify: guardrails shellcheck frontend-verify backend-verify
 	@APP_BIN="$(abspath $(BIN_PATH))" $(MAKE) blackbox smoke
 
 blackbox:
-	@./test/run.sh blackbox
+	@./test/run.sh blackbox "$(SCENARIO)"
 
 docker-boundary:
 	@if [ -z "$(SANDBOX_TEST_IMAGE)" ]; then \
