@@ -23,7 +23,7 @@ again to remove it; the task then returns to Recent.
 
 Use **Archive** in Tasks or a project's Tasks tab to hide
 work you no longer need in active lists. Archived tasks leave Recent, Pinned,
-Tasks and needs-you counts, and appear in **Archive** in the sidebar.
+Tasks and needs-you counts, and appear in **Settings → Workspace → Archive**.
 
 Archiving a running task stops it. Its task page becomes read-only. Restore it
 from the Archive list to return it to active lists; its pin is kept.
@@ -75,7 +75,7 @@ The AI can inspect PNG photos and read PDFs and text files from the project.
 3. Describe what you need on Home. The model and effort come from Settings: each teammate has its own, and the default covers the rest.
    Long messages become project documents automatically. The complete text stays available to the AI and can be downloaded from the thread.
 4. Expect a few questions first. The AI asks what you want before it starts, with a recommended answer for each, and skips questions for a small, clear request. Answer in your own words or pick an option.
-5. If you asked for a browser extension, open **Extensions** in the sidebar to install it. See [extensions.md](./extensions.md).
+5. If you asked for a browser extension, open **Settings → Workspace → Extensions** to install it. See [extensions.md](./extensions.md).
 6. Before the AI tells you it is done, it saves the work in git on the branch `dev` and pushes it. Without a GitHub remote it only saves it here, and says so.
 7. Watch the plan and the steps. The AI asks before it edits, deletes or moves files, runs commands, or starts a web app.
 5. Review the result, then accept it or ask for changes.

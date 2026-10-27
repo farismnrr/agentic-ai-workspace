@@ -1,6 +1,6 @@
 # Browser extensions
 
-Ask the AI to build a browser extension, and install it from **Extensions** in the sidebar.
+Ask the AI to build a browser extension, then open **Settings → Workspace → Extensions** to install it.
 
 ## How it works
 
@@ -8,7 +8,7 @@ Ask the AI to build a browser extension, and install it from **Extensions** in t
 - The AI first asks what sites it should work on and what it may read.
 - It builds the extension, checks it, and DevOps packages it.
 - The thread shows "Your extension is ready to install". Press **Install**.
-- Extensions appear next to Sites. Sites are for web apps, Extensions are for your browser.
+- You can also open Extensions with Ctrl/Cmd+K. Sites are web apps; extensions run in your browser.
 
 ## Install in Chrome or Edge
 
