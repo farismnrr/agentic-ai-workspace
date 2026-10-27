@@ -2,9 +2,6 @@ package application
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -16,15 +13,21 @@ import (
 
 // Works contains the use cases for a connected app's explicit work session.
 type Works struct {
-	deps    Deps
-	store   WorkStore
-	limits  workLimiter
-	beginMu sync.Mutex
+	deps        Deps
+	store       WorkStore
+	plans       PlanStore
+	questions   QuestionStore
+	planReviews *PlanReviews
+	limits      workLimiter
+	beginMu     sync.Mutex
 }
 
 // NewWorks wires external work use cases to their persistence boundary.
-func NewWorks(deps Deps, store WorkStore) *Works {
-	return &Works{deps: deps, store: store, limits: workLimiter{buckets: map[string]map[int64]int{}}}
+func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionStore) *Works {
+	return &Works{
+		deps: deps, store: store, plans: plans, questions: questions,
+		limits: workLimiter{buckets: map[string]map[int64]int{}},
+	}
 }
 
 // BeginInput is the request supplied by a connected app after token verification.
@@ -33,6 +36,7 @@ type BeginInput struct {
 	Client         string
 	ProjectID      string
 	Summary        string
+	Role           string
 	IdempotencyKey string
 	PlannedRoles   []string
 }
@@ -57,7 +61,7 @@ func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
 	if err := w.limits.allow(in.UserID, true, w.now()); err != nil {
 		return BeginResult{}, err
 	}
-	clean, planned, hash, roster, err := w.prepareBegin(ctx, in)
+	clean, role, planned, hash, roster, err := w.prepareBegin(ctx, in)
 	if err != nil {
 		return BeginResult{}, err
 	}
@@ -77,30 +81,34 @@ func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
 	if err := w.checkCaps(ctx, in.UserID, in.ProjectID); err != nil {
 		return BeginResult{}, err
 	}
-	return w.create(ctx, in, clean, hash, planned, roster)
+	return w.create(ctx, in, clean, role, hash, planned, roster)
 }
 
 func (w *Works) prepareBegin(
 	ctx context.Context, in BeginInput,
-) (string, []string, string, Roster, error) {
+) (string, WorkRole, []string, string, Roster, error) {
 	summary := strings.TrimSpace(in.Summary)
 	if err := validateBeginInput(in, summary); err != nil {
-		return "", nil, "", Roster{}, domain.ErrBadRequest
+		return "", WorkRole{}, nil, "", Roster{}, domain.ErrBadRequest
 	}
 	if _, err := w.deps.Projects.Name(ctx, in.UserID, in.ProjectID); err != nil {
-		return "", nil, "", Roster{}, domain.ErrNoProject
+		return "", WorkRole{}, nil, "", Roster{}, domain.ErrNoProject
 	}
 	roster, err := w.roster(ctx, in.UserID)
 	if err != nil {
-		return "", nil, "", Roster{}, err
+		return "", WorkRole{}, nil, "", Roster{}, err
+	}
+	role, err := availableRoleInRoster(in.Role, roster)
+	if err != nil {
+		return "", WorkRole{}, nil, "", Roster{}, err
 	}
 	planned, err := normalizePlanned(in.PlannedRoles, roster)
 	if err != nil {
-		return "", nil, "", Roster{}, err
+		return "", WorkRole{}, nil, "", Roster{}, err
 	}
 	clean, _ := domain.Redact(summary)
-	hash, err := beginHash(clean, planned)
-	return clean, planned, hash, roster, err
+	hash, err := beginHash(clean, role.Key, planned)
+	return clean, role, planned, hash, roster, err
 }
 
 func validateBeginInput(in BeginInput, summary string) error {
@@ -129,69 +137,9 @@ func (w *Works) resume(ctx context.Context, in BeginInput, hash string) (domain.
 	return prior, true, nil
 }
 
-func (w *Works) create(
-	ctx context.Context, in BeginInput, summary, hash string, planned []string, roster Roster,
-) (BeginResult, error) {
-	taskID, err := w.deps.IDs.ID()
-	if err != nil {
-		return BeginResult{}, fmt.Errorf("new external task id: %w", err)
-	}
-	workID, err := w.deps.IDs.ID()
-	if err != nil {
-		return BeginResult{}, fmt.Errorf("new work id: %w", err)
-	}
-	now := w.now()
-	task := domain.Task{
-		ID: taskID, UserID: in.UserID, ProjectID: in.ProjectID, Source: in.Client,
-		Title: titleOf(summary), Summary: summary, Status: domain.StatusWorking,
-		WorkID: workID, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
-	}
-	work := domain.ExternalWork{
-		ID: workID, TaskID: taskID, UserID: in.UserID, ProjectID: in.ProjectID, Client: in.Client,
-		State: domain.WorkOpen, IdemKey: in.IdempotencyKey, IdemHash: hash,
-		CreatedAt: now, UpdatedAt: now, NextStep: 1,
-	}
-	event := domain.Event{
-		Kind: domain.EventRequest, Text: summary, Time: now,
-		Work: &domain.WorkRef{ID: workID, Actor: in.Client, PlannedRoles: planned},
-	}
-	created, err := w.store.CreateWork(ctx, WorkCreate{Task: task, Work: work, Event: event})
-	if err != nil {
-		return BeginResult{}, fmt.Errorf("create external work: %w", err)
-	}
-	if created.ID != workID {
-		if created.IdemHash != hash {
-			return BeginResult{}, domain.ErrKeyReused
-		}
-		return w.beginResult(created, true, roster), nil
-	}
-	w.notify(ctx, task)
-	return w.beginResult(created, false, roster), nil
-}
-
 func (w *Works) now() time.Time {
 	if w.deps.Now != nil {
 		return w.deps.Now()
 	}
 	return time.Now()
-}
-
-func beginHash(summary string, planned []string) (string, error) {
-	data, err := json.Marshal(struct {
-		Summary string
-		Roles   []string
-	}{summary, planned})
-	if err != nil {
-		return "", fmt.Errorf("encode begin request: %w", err)
-	}
-	digest := sha256.Sum256(data)
-	return hex.EncodeToString(digest[:]), nil
-}
-
-func validKey(key string) bool {
-	if key == "" {
-		return true
-	}
-	return utf8.RuneCountInString(key) >= domain.MinRequestID &&
-		utf8.RuneCountInString(key) <= domain.MaxRequestID
 }

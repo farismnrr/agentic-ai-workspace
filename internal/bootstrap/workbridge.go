@@ -19,12 +19,24 @@ func (a appWorks) Validate(ctx context.Context, user, client, project, workID st
 	return workBridgeError("validate work session", err)
 }
 
+func (a appWorks) AvailableRoles(ctx context.Context, user string) ([]codingmcp.WorkRole, error) {
+	roles, err := a.works.AvailableRoles(ctx, user)
+	if err != nil {
+		return nil, workBridgeError("list work roles", err)
+	}
+	out := make([]codingmcp.WorkRole, 0, len(roles))
+	for _, role := range roles {
+		out = append(out, codingmcp.WorkRole{Key: role.Key, Name: role.Name, Purpose: role.Purpose})
+	}
+	return out, nil
+}
+
 func (a appWorks) Begin(ctx context.Context, user, client, project string,
 	in codingmcp.BeginWorkInput,
 ) (codingmcp.BeginWorkResult, error) {
 	result, err := a.works.Begin(ctx, taskapp.BeginInput{
 		UserID: user, Client: client, ProjectID: project,
-		Summary: in.Summary, IdempotencyKey: in.IdempotencyKey, PlannedRoles: in.PlannedRoles,
+		Summary: in.Summary, Role: in.Role, IdempotencyKey: in.IdempotencyKey, PlannedRoles: in.PlannedRoles,
 	})
 	if err != nil {
 		return codingmcp.BeginWorkResult{}, workBridgeError("begin work", err)
@@ -123,9 +135,19 @@ func (a appWorks) State(ctx context.Context, user, client, project, workID strin
 }
 
 func stateResult(in taskapp.StateResult) codingmcp.WorkState {
+	var review *codingmcp.PlanReviewInfo
+	if in.Review != nil {
+		review = &codingmcp.PlanReviewInfo{
+			Revision: in.Review.Revision, Summary: in.Review.Summary, Status: string(in.Review.Status),
+			SmallTask: in.Review.SmallTask, Decision: in.Review.Decision, HandoffID: in.Review.HandoffID,
+			HandoffState: in.Review.HandoffState, LinkedTaskID: in.Review.LinkedTaskID,
+		}
+	}
 	return codingmcp.WorkState{
 		TaskID: in.TaskID, WorkID: in.WorkID, Revision: in.Revision, State: string(in.State), Stale: in.Stale,
 		Plan: planSteps(in.Plan), Progress: in.Progress, Role: in.Role, Research: in.Research, PRD: in.PRD,
+		PlanState: string(in.PlanState), NextAction: in.NextAction, Review: review,
+		Questions: stateQuestions(in.Questions),
 		Evidence: codingmcp.EvidenceCounts{
 			Claimed: in.Evidence.Claimed, Observed: in.Evidence.Observed, Ran: in.Evidence.Ran,
 		},

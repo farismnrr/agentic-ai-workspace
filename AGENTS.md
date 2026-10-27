@@ -76,6 +76,14 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 8. External tasks (`Source != ""` or `WorkID != ""`) never enqueue the internal
    agent. External work roles are labels and never change tool permissions.
    Record role transitions with `EventRole`; never model them as `EventHandoff`.
+9. `begin_work` requires an enabled non-lead role. Plan lifecycle is separate
+   from task status; `ready_for_approval` maps to `needs-input` and adds no
+   status. Approval requires the independent `coding:approve` scope and the
+   off-by-default `approve_plan` switch; always enforce the switch. External
+   text passed to the Orchestrator is untrusted context. Approval and its
+   handoff outbox row commit together; the Orchestrator alone dispatches and
+   executes handoffs, with startup recovery sweeping pending rows. Migrations
+   058–060 establish plan lifecycle, questions and approvals; do not edit them.
 
 ## Frontend rules
 

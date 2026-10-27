@@ -36,7 +36,7 @@ func (t *tools) beginWork(ctx context.Context, in beginWorkInput) (BeginWorkResu
 		return BeginWorkResult{}, report{}, err
 	}
 	result, err := svc.Begin(ctx, who.User, who.Client, projectID, BeginWorkInput{
-		Summary: in.Summary, IdempotencyKey: in.IdempotencyKey, PlannedRoles: in.PlannedRoles,
+		Summary: in.Summary, Role: in.Role, IdempotencyKey: in.IdempotencyKey, PlannedRoles: in.PlannedRoles,
 	})
 	return result, report{}, workToolError("begin work", err)
 }
@@ -109,6 +109,16 @@ func (t *tools) getWorkState(ctx context.Context, in workIDInput) (WorkState, re
 }
 
 func (t *tools) workServices(ctx context.Context, project, workID string) (WorkSessions, string, error) {
+	return t.resolveWorkServices(ctx, project, workID, true)
+}
+
+func (t *tools) approvalWorkServices(ctx context.Context, project string) (WorkSessions, string, error) {
+	return t.resolveWorkServices(ctx, project, "", false)
+}
+
+func (t *tools) resolveWorkServices(ctx context.Context, project, workID string, validate bool) (
+	WorkSessions, string, error,
+) {
 	if t.works == nil {
 		return nil, "", fmt.Errorf("work sessions are unavailable: %w", errInternal)
 	}
@@ -117,7 +127,7 @@ func (t *tools) workServices(ctx context.Context, project, workID string) (WorkS
 	if err != nil {
 		return nil, "", fmt.Errorf("open workspace: %w", err)
 	}
-	if workID != "" {
+	if validate && workID != "" {
 		if err := t.works.Validate(ctx, who.User, who.Client, services.ProjectID, workID); err != nil {
 			return nil, "", workToolError("validate work session", err)
 		}

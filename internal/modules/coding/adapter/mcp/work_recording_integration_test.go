@@ -66,7 +66,7 @@ func newRecordingMCP(t *testing.T) (
 func callRecordingWork(t *testing.T, session *sdk.ClientSession) string {
 	t.Helper()
 	begin, err := session.CallTool(t.Context(), &sdk.CallToolParams{Name: "begin_work", Arguments: map[string]any{
-		"summary": "Make a file", "idempotency_key": "integration-key",
+		"summary": "Make a file", "role": "developer", "idempotency_key": "integration-key",
 	}})
 	requireToolSuccess(t, begin, err)
 	workID := begin.StructuredContent.(map[string]any)["work_id"].(string)

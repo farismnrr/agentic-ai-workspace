@@ -42,7 +42,7 @@ func TestWorkLookupIsScopedAndStateSurvivesServiceReopen(t *testing.T) {
 	prior := store.works[created.WorkID]
 	prior.UpdatedAt = clock.Add(-31 * time.Minute)
 	store.works[created.WorkID] = prior
-	reopened := NewWorks(testDeps(store, clock), store)
+	reopened := NewWorks(testDeps(store, clock), store, store, nil)
 	state, err := reopened.State(context.Background(), "u1", "ChatGPT", "proj", created.WorkID)
 	if err != nil || !state.Stale || state.State != domain.WorkOpen {
 		t.Fatalf("reopened state = %+v, %v", state, err)

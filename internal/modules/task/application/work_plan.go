@@ -101,6 +101,9 @@ func (w *Works) savePlan(ctx context.Context, work domain.ExternalWork, task dom
 		taskPatch.Status = statusPtr(domain.StatusWorking)
 		patch.State = workStatePtr(domain.WorkOpen)
 	}
+	if diff.Changed {
+		patch, taskPatch, events = supersedePlanMutation(work, patch, taskPatch, events)
+	}
 	result := PlanResult{Steps: steps, Revision: nextRevision}
 	if err := w.commitPlan(ctx, work, requestID, hash, result, patch, taskPatch, events); err != nil {
 		return PlanResult{}, err

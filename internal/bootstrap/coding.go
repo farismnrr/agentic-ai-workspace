@@ -13,6 +13,10 @@ import (
 var codingScopes = []spacedomain.Scope{
 	{ID: codingdomain.ScopeRead, Description: "Read files and search code in the project made for this app"},
 	{
+		ID:          codingdomain.ScopeApprove,
+		Description: "Approve an external assistant's submitted plan and hand it to the Orchestrator",
+	},
+	{
 		ID: codingdomain.ScopeWrite,
 		Description: "Create, change, move and delete files in the project made for this app " +
 			"(every change can be undone in Settings)",

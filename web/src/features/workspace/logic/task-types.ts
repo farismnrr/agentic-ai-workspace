@@ -1,3 +1,5 @@
+import type { PlanReviewData } from './plan-review-types';
+
 export type TaskStatus = 'queued' | 'planning' | 'working' | 'needs-input' | 'review' | 'done' | 'failed';
 
 export type Risk = 'low' | 'medium' | 'high';
@@ -12,11 +14,16 @@ export interface WorkSummary {
   id: string;
   updatedAt: string;
   state: WorkState;
+  planState?: 'draft' | 'awaiting_clarification' | 'ready_for_approval' | 'approved' | 'handed_off';
   role?: string;
   roleName?: string;
   actor: string;
   revision: number;
+  currentRevision?: number;
   planRev: number;
+  decision?: string;
+  handoffState?: string;
+  linkedTaskId?: string;
   stale: boolean;
 }
 
@@ -83,6 +90,7 @@ export type TaskEvent =
   | (EventBase & { kind: 'prd'; text: string; technical: string })
   | (EventBase & { kind: 'research'; text: string; technical: string })
   | (EventBase & { kind: 'role'; text: string; technical?: string })
+  | (EventBase & { kind: 'plan_review'; text: string; planReview: PlanReviewData })
   | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string; effort?: string });
 
 /** How one question of a form is answered: pick one, pick several, or type. */

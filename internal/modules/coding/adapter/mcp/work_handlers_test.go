@@ -20,7 +20,7 @@ func exerciseWorkHandlers(t *testing.T, client string) {
 	tools := &tools{workspaces: fakeWorkspaces{}, works: works}
 	ctx := context.WithValue(t.Context(), identityKey{}, identity{User: "u1", Client: client})
 
-	begin, _, err := tools.beginWork(ctx, beginWorkInput{Summary: "Build feature"})
+	begin, _, err := tools.beginWork(ctx, beginWorkInput{Summary: "Build feature", Role: "developer"})
 	if err != nil || begin.WorkID != "work-1" || begin.TaskID != "task-1" {
 		t.Fatalf("begin = %+v, %v", begin, err)
 	}
@@ -88,16 +88,6 @@ func TestWorkIDValidationHidesOwnerClientAndProjectMismatches(t *testing.T) {
 	}
 }
 
-func TestLegacyTargetWithoutWorkIDSkipsWorkValidation(t *testing.T) {
-	works := &fakeWorkSessions{}
-	tools := &tools{workspaces: fakeWorkspaces{}, works: works}
-	ctx := context.WithValue(t.Context(), identityKey{}, identity{User: "u1", Client: "ChatGPT"})
-	services, err := tools.services(ctx)
-	if err != nil || services.ProjectID != "project-1" || works.validations != 0 {
-		t.Fatalf("legacy service resolution = %+v, validations %d, error %v", services, works.validations, err)
-	}
-}
-
 type fakeWorkspaces struct{}
 
 func (fakeWorkspaces) For(_ context.Context, _, _ string, project string) (Services, error) {
@@ -114,11 +104,15 @@ func (fakeWorkspaces) Projects(context.Context, string, string) ([]ProjectInfo, 
 //nolint:govet // fieldalignment: keep fake service fields grouped by recorded concern.
 type fakeWorkSessions struct {
 	WorkSessions
-	lastUser, lastClient, lastProject string
-	state                             WorkState
-	validations                       int
-	roles                             []string
-	research, requirements            string
+	lastUser      string
+	lastClient    string
+	lastProject   string
+	research      string
+	requirements  string
+	state         WorkState
+	roles         []string
+	validations   int
+	approvalCalls int
 }
 
 func (f *fakeWorkSessions) Validate(_ context.Context, user, client, project, workID string) error {
@@ -135,6 +129,21 @@ func (f *fakeWorkSessions) Begin(_ context.Context, _, _, _ string, _ BeginWorkI
 	return BeginWorkResult{TaskID: "task-1", WorkID: "work-1", State: "open", Warnings: []string{}}, nil
 }
 
+func (f *fakeWorkSessions) AvailableRoles(context.Context, string) ([]WorkRole, error) {
+	return []WorkRole{{Key: "developer", Name: "Developer"}, {Key: "researcher", Name: "Researcher"}}, nil
+}
+
+func (f *fakeWorkSessions) ApprovePlan(_ context.Context, user, client, project, workID string,
+	revision int64, _ string,
+) (PlanApprovalResult, error) {
+	f.approvalCalls++
+	f.lastUser, f.lastClient, f.lastProject = user, client, project
+	return PlanApprovalResult{
+		Decision: "approved", HandoffID: "handoff-1", HandoffState: "done",
+		InternalTaskID: "internal-1", Revision: revision,
+	}, nil
+}
+
 func (f *fakeWorkSessions) SetRole(_ context.Context, _, _, _, workID, role, _ string) (RoleWorkResult, error) {
 	f.state.Role = role
 	f.roles = append(f.roles, role)
@@ -148,6 +157,12 @@ func (f *fakeWorkSessions) UpdatePlan(
 	_ context.Context, _, _, _, workID string, in PlanWorkInput,
 ) (PlanWorkResult, error) {
 	f.state.Plan = in.Steps
+	if f.state.PlanState == "ready_for_approval" {
+		f.state.PlanState = "draft"
+		if f.state.Review != nil {
+			f.state.Review.Status = "superseded"
+		}
+	}
 	f.state.Revision++
 	return PlanWorkResult{
 		WorkID: workID, Revision: f.state.Revision, State: f.state.State,
@@ -171,16 +186,6 @@ func (f *fakeWorkSessions) Progress(
 	_ context.Context, _, _, _, workID string, _ ProgressWorkInput,
 ) (WorkMutation, error) {
 	return mutation(workID, f.state), nil
-}
-
-func (f *fakeWorkSessions) Complete(
-	_ context.Context, _, _, _, workID string, _ CompleteWorkInput,
-) (CompleteWorkResult, error) {
-	f.state.State = "completed"
-	return CompleteWorkResult{
-		WorkID: workID, Revision: f.state.Revision + 1, State: "completed",
-		TaskStatus: "done", Warnings: []string{},
-	}, nil
 }
 
 func (f *fakeWorkSessions) State(_ context.Context, _, _, _, workID string) (WorkState, error) {

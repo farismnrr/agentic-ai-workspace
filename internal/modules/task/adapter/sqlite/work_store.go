@@ -12,12 +12,15 @@ import (
 )
 
 const workColumns = `id, task_id, user_id, project_id, client, state, role_key, role_name,
-	rev, plan_rev, next_step, idem_key, idem_hash, created_at, updated_at, ended_at`
+	rev, plan_rev, next_step, idem_key, idem_hash, created_at, updated_at, ended_at, plan_state`
 
 // CreateWork atomically creates the task, work row, and initial request event.
 // A repeated idempotency key returns the existing row without creating a task.
 func (s *Store) CreateWork(ctx context.Context, create application.WorkCreate) (domain.ExternalWork, error) {
-	task, work, event := create.Task, create.Work, create.Event
+	task, work, events := create.Task, create.Work, create.Events
+	if work.PlanState == "" {
+		work.PlanState = domain.PlanDraft
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return domain.ExternalWork{}, fmt.Errorf("begin create work: %w", err)
@@ -28,32 +31,51 @@ func (s *Store) CreateWork(ctx context.Context, create application.WorkCreate) (
 	if insertErr := insertTask(ctx, tx, task); insertErr != nil {
 		return domain.ExternalWork{}, insertErr
 	}
-	result, err := tx.ExecContext(ctx, `INSERT INTO external_works (`+workColumns+`) VALUES
-		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(user_id, client, project_id, idem_key) WHERE idem_key <> '' DO NOTHING`,
-		work.ID, work.TaskID, work.UserID, work.ProjectID, work.Client, string(work.State), work.RoleKey, work.RoleName,
-		work.Rev, work.PlanRev, work.NextStep, work.IdemKey, work.IdemHash, work.CreatedAt.Unix(), work.UpdatedAt.Unix(),
-		nullUnix(work.EndedAt))
+	inserted, err := insertExternalWork(ctx, tx, work)
 	if err != nil {
-		return domain.ExternalWork{}, fmt.Errorf("insert work: %w", err)
+		return domain.ExternalWork{}, err
 	}
-	inserted, err := result.RowsAffected()
-	if err != nil {
-		return domain.ExternalWork{}, fmt.Errorf("count inserted work: %w", err)
-	}
-	if inserted == 0 {
+	if !inserted {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return domain.ExternalWork{}, fmt.Errorf("rollback duplicate work: %w", rollbackErr)
 		}
 		return s.findIdempotent(ctx, work)
 	}
-	if _, err := insertEvent(ctx, tx, s.ids, task.ID, event); err != nil {
+	if err := insertInitialWorkEvents(ctx, tx, s.ids, task.ID, events); err != nil {
 		return domain.ExternalWork{}, err
 	}
 	if err := tx.Commit(); err != nil {
 		return domain.ExternalWork{}, fmt.Errorf("commit create work: %w", err)
 	}
 	return work, nil
+}
+
+func insertExternalWork(ctx context.Context, tx *sql.Tx, work domain.ExternalWork) (bool, error) {
+	result, err := tx.ExecContext(ctx, `INSERT INTO external_works (`+workColumns+`) VALUES
+		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(user_id, client, project_id, idem_key) WHERE idem_key <> '' DO NOTHING`,
+		work.ID, work.TaskID, work.UserID, work.ProjectID, work.Client, string(work.State), work.RoleKey, work.RoleName,
+		work.Rev, work.PlanRev, work.NextStep, work.IdemKey, work.IdemHash, work.CreatedAt.Unix(), work.UpdatedAt.Unix(),
+		nullUnix(work.EndedAt), string(work.PlanState))
+	if err != nil {
+		return false, fmt.Errorf("insert work: %w", err)
+	}
+	inserted, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("count inserted work: %w", err)
+	}
+	return inserted != 0, nil
+}
+
+func insertInitialWorkEvents(ctx context.Context, tx *sql.Tx, ids application.IDs, taskID string,
+	events []domain.Event,
+) error {
+	for _, event := range events {
+		if _, err := insertEvent(ctx, tx, ids, taskID, event); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) findIdempotent(ctx context.Context, work domain.ExternalWork) (domain.ExternalWork, error) {

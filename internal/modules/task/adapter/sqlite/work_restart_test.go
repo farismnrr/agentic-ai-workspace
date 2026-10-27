@@ -48,7 +48,8 @@ func TestRestartKeepsRunningWorkCommandAndState(t *testing.T) {
 	if recoverErr := service.Recover(ctx); recoverErr != nil {
 		t.Fatal(recoverErr)
 	}
-	works := application.NewWorks(application.Deps{Tasks: reopened, Events: reopened, Now: now}, reopened)
+	works := application.NewWorks(application.Deps{Tasks: reopened, Events: reopened, Now: now},
+		reopened, reopened, reopened)
 	state, err := works.State(ctx, "u", "client", "p", work.ID)
 	if err != nil {
 		t.Fatal(err)

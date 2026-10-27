@@ -53,21 +53,42 @@ func newAgent(
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
 	service := taskapp.NewService(deps, scheduler)
-	works := taskapp.NewWorks(deps, store)
-	service.UseWorkServices(works, store)
+	works, handoffs := wireExternalWorkflows(service, store, hub, deps)
 
+	if err := handoffs.PrepareRecovery(context.Background()); err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("prepare plan handoff recovery: %w", err)
+	}
 	if err := service.Recover(context.Background()); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("recover interrupted tasks: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	scheduler.Start(ctx, cfg.AgentWorkers)
+	handoffDone := make(chan struct{})
+	go func() {
+		defer close(handoffDone)
+		handoffs.Run(ctx, time.Minute)
+	}()
 
 	stop := func() {
 		cancel()
 		scheduler.Stop()
+		<-handoffDone
 		hub.Close()
 	}
 
 	return service, works, taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
+}
+
+func wireExternalWorkflows(service *taskapp.Service, store *tasksqlite.Store, hub *taskapp.Hub,
+	deps taskapp.Deps,
+) (*taskapp.Works, *taskapp.Handoffs) {
+	works := taskapp.NewWorks(deps, store, store, store)
+	handoffs := taskapp.NewHandoffs(service, store)
+	reviews := taskapp.NewPlanReviews(store, opaque.Generator{}, time.Now, handoffs, hub)
+	works.UsePlanReviews(reviews)
+	service.UsePlanReviewServices(reviews, handoffs, store)
+	service.UseWorkServices(works, store)
+	service.UseExternalQuestionStore(store)
+	return works, handoffs
 }

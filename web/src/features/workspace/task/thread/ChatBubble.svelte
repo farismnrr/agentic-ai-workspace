@@ -8,9 +8,14 @@
     time: string;
     /** The teammate speaking, when it is not the lead. */
     agent?: string | undefined;
+    /** External provider that authored a reported message. */
+    reportedBy?: string | undefined;
   }
 
-  const { who, text, time, agent }: Props = $props();
+  const { who, text, time, agent, reportedBy }: Props = $props();
+  const heading = $derived(reportedBy === undefined
+    ? `Masih Awam${agent === undefined ? '' : ` · ${agent}`}`
+    : `Reported by ${reportedBy}${agent === undefined || agent === '' ? '' : ` · Agent role: ${agent}`}`);
 </script>
 
 {#if who === 'you'}
@@ -22,7 +27,7 @@
   <div class="flex gap-3">
     <LogoMark class="mt-0.5 size-6 shrink-0" />
     <div class="min-w-0">
-      <p class="text-xs text-[var(--brand-text-secondary)]">Masih Awam{agent === undefined ? '' : ` · ${agent}`} · {time}</p>
+      <p class="text-xs text-[var(--brand-text-secondary)]">{heading} · {time}</p>
       <DocText class="mt-0.5 text-[15px] leading-6" {text} />
     </div>
   </div>

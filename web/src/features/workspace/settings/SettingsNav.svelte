@@ -1,14 +1,13 @@
 <script lang="ts">
-  import type { SettingsTab } from '../../../app/router';
   import Icon from '../../../shared/ui/Icon.svelte';
-  import { visibleNavGroups } from './settings-nav';
+  import { visibleNavGroups, type SettingsNavId } from './settings-nav';
 
   interface Props {
-    tab: SettingsTab;
+    active: SettingsNavId;
     admin: boolean;
   }
 
-  const { tab, admin }: Props = $props();
+  const { active, admin }: Props = $props();
   const groups = $derived(visibleNavGroups(admin));
 </script>
 
@@ -18,8 +17,8 @@
     {#each group.items as item (item.id)}
       <a
         href={item.href}
-        aria-current={tab === item.id ? 'page' : undefined}
-        class="flex h-8 shrink-0 items-center gap-2 rounded-lg px-2 text-left transition-colors hover:bg-base-100/70 {tab === item.id ? 'bg-base-300/60 font-medium' : 'text-[var(--brand-text-secondary)]'}"
+        aria-current={active === item.id ? 'page' : undefined}
+        class="flex h-8 shrink-0 items-center gap-2 rounded-lg px-2 text-left transition-colors hover:bg-base-100/70 {active === item.id ? 'bg-base-300/60 font-medium' : 'text-[var(--brand-text-secondary)]'}"
       >
         <Icon name={item.icon} class="size-4 shrink-0" />{item.label}
       </a>

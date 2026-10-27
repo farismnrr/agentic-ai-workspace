@@ -6,6 +6,8 @@
   import ChatBubble from './ChatBubble.svelte';
   import { toBlocks } from './blocks';
   import EventItem from './EventItem.svelte';
+  import { shouldShowWorkingIndicator } from '../../logic/working-indicator';
+  import { journeySteps } from '../../logic/provenance';
 
   interface Props {
     task: Task;
@@ -19,7 +21,8 @@
 
   const { task, events, draft, actions, onretry, readOnly = false }: Props = $props();
   const allBlocks = $derived(toBlocks(events));
-  const working = $derived(['queued', 'planning', 'working'].includes(task.status));
+  const working = $derived(shouldShowWorkingIndicator(task.status, task.work));
+  const journey = $derived(journeySteps(events, task.work));
 
   // Only the latest messages are drawn; older ones are added as the person scrolls up to them.
   const pageSize = 40;
@@ -71,6 +74,14 @@
 
 <div bind:this={scroller} {onscroll} class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-6" role="log" aria-label="Conversation">
   <ol bind:this={content} class="mx-auto flex max-w-3xl flex-col gap-5 wrap-anywhere">
+    {#if journey.length > 0}
+      <li class="flex flex-wrap items-center gap-1.5 text-xs" aria-label="Work journey">
+        <span class="mr-1 text-[var(--brand-text-secondary)]">Journey</span>
+        {#each journey as step, index (index)}
+          <span class="badge badge-outline badge-sm">{step}</span>
+        {/each}
+      </li>
+    {/if}
     {#if hidden > 0}
       <li class="text-center text-sm text-[var(--brand-text-secondary)]"><button class="link link-hover" type="button" onclick={() => void showEarlier()}>Show {Math.min(hidden, pageSize)} earlier messages</button></li>
     {/if}
@@ -79,15 +90,15 @@
         {#if block.kind === 'actions'}
           <div class="ml-9"><ActionGroup items={block.items} onundo={actions.undo} {readOnly} /></div>
         {:else}
-          <EventItem event={block.event} taskId={task.id} projectId={task.projectId} {actions} proof={task.proof} {onretry} {readOnly} />
+          <EventItem event={block.event} taskId={task.id} projectId={task.projectId} provider={task.source} {actions} proof={task.proof} {onretry} {readOnly} />
         {/if}
       </li>
     {/each}
     {#if working && draft !== ''}
       <li><ChatBubble who="ai" text={draft} time="writing…" /></li>
     {:else if working}
-      <li class="ml-9 flex items-center gap-2 text-[var(--brand-text-secondary)]" aria-live="polite">
-        <span class="loading loading-dots loading-sm"></span>{task.status === 'queued' ? 'Waiting to start' : 'Working on it'}
+      <li class="ml-9 flex items-center gap-2 text-[var(--brand-text-secondary)]" role="status">
+        <span class="loading loading-sm motion-safe:loading-dots"></span>{task.status === 'queued' ? 'Waiting to start' : 'Working on it'}
       </li>
     {/if}
   </ol>

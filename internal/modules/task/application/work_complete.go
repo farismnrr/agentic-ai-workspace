@@ -37,6 +37,10 @@ func (w *Works) Complete(ctx context.Context, userID, client, projectID, workID,
 	if err != nil {
 		return Completion{}, err
 	}
+	if outcome == "completed" && (work.PlanState == domain.PlanReadyForApproval ||
+		work.PlanState == domain.PlanAwaitingClarification) {
+		return Completion{}, domain.ErrAwaitingPerson
+	}
 	if completionMatches(work, task, outcome, cleanSummary) {
 		return completionResult(outcome, task.Proof), nil
 	}

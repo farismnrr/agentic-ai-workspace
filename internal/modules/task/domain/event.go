@@ -30,6 +30,8 @@ const (
 	EventPRD EventKind = "prd"
 	// EventRole records an external assistant changing its working role.
 	EventRole EventKind = "role"
+	// EventPlanReview is the person's review card for an external plan revision.
+	EventPlanReview EventKind = "plan_review"
 )
 
 // Risk grades how careful the agent must be before a step.
@@ -59,18 +61,19 @@ type RunInfo struct {
 // Event is one entry of a task's thread. Fields beyond Kind and Text only
 // apply to some kinds, matching what the thread renders.
 type Event struct {
-	Time      time.Time `json:"time"`
-	Run       *RunInfo  `json:"run,omitempty"`
-	Work      *WorkRef  `json:"work,omitempty"`
-	ID        string    `json:"id"`
-	Kind      EventKind `json:"kind"`
-	Text      string    `json:"text"`
-	Technical string    `json:"technical,omitempty"`
-	Action    string    `json:"action,omitempty"`
-	Risk      Risk      `json:"risk,omitempty"`
-	Resolved  string    `json:"resolved,omitempty"`
-	Answered  string    `json:"answered,omitempty"`
-	Hint      string    `json:"hint,omitempty"`
+	Time       time.Time   `json:"time"`
+	Run        *RunInfo    `json:"run,omitempty"`
+	Work       *WorkRef    `json:"work,omitempty"`
+	PlanReview *PlanReview `json:"planReview,omitempty"`
+	ID         string      `json:"id"`
+	Kind       EventKind   `json:"kind"`
+	Text       string      `json:"text"`
+	Technical  string      `json:"technical,omitempty"`
+	Action     string      `json:"action,omitempty"`
+	Risk       Risk        `json:"risk,omitempty"`
+	Resolved   string      `json:"resolved,omitempty"`
+	Answered   string      `json:"answered,omitempty"`
+	Hint       string      `json:"hint,omitempty"`
 	// Model is the AI model a teammate works with, shown on its handoffs (EventHandoff only).
 	Model string `json:"model,omitempty"`
 	// Effort is how hard that model was asked to think, shown beside Model: the level it works at, or the one the

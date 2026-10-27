@@ -1,4 +1,4 @@
-import type { SettingsTab } from '../../../app/router';
+import type { Route, SettingsTab } from '../../../app/router';
 import type { IconName } from '../../../shared/ui/icon-names';
 
 export type SettingsNavId = SettingsTab | 'archive' | 'extensions';
@@ -44,9 +44,16 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
-export const currentLabel = (tab: SettingsTab): string => navGroups.flatMap((group) => group.items).find((item) => item.id === tab)?.label ?? 'Settings';
+export const currentLabel = (tab: SettingsNavId): string => navGroups.flatMap((group) => group.items).find((item) => item.id === tab)?.label ?? 'Settings';
 
 export const isAdminSettingsTab = (tab: SettingsNavId): boolean => tab === 'database';
+
+export const activeSettingsItem = (route: Route): SettingsNavId | undefined => {
+  if (route.name === 'settings') return route.tab;
+  if (route.name === 'archive') return 'archive';
+  if (route.name === 'extensions') return 'extensions';
+  return undefined;
+};
 
 export const visibleNavGroups = (admin: boolean): NavGroup[] => navGroups
   .map((group) => ({ ...group, items: group.items.filter((item) => admin || !item.adminOnly) }))

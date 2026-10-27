@@ -13,17 +13,38 @@ func (s *Service) withWindow(ctx context.Context, task domain.Task) domain.Task 
 	if task.ContextWindow == 0 && task.Model != "" && s.deps.Windows != nil {
 		task.ContextWindow = s.deps.Windows.ContextWindow(ctx, task.UserID, task.ProviderID, task.Model)
 	}
-	if task.WorkID != "" && s.workSummaries != nil {
-		work, err := s.workSummaries.ByTask(ctx, task.ID)
-		if err == nil {
-			task.Work = &domain.WorkSummary{
-				ID: work.ID, UpdatedAt: work.UpdatedAt, State: work.State, Role: work.RoleKey,
-				RoleName: work.RoleName, Actor: work.Client, Revision: work.Rev,
-				PlanRev: work.PlanRev,
-				Stale:   work.State == domain.WorkOpen && time.Since(work.UpdatedAt) > workIdleAfter,
-			}
-		}
+	if work := s.workSummary(ctx, task); work != nil {
+		task.Work = work
 	}
-
 	return task
+}
+
+func (s *Service) workSummary(ctx context.Context, task domain.Task) *domain.WorkSummary {
+	if task.WorkID == "" || s.workSummaries == nil {
+		return nil
+	}
+	work, err := s.workSummaries.ByTask(ctx, task.ID)
+	if err != nil {
+		return nil
+	}
+	currentRevision, decision, handoffState, linkedTaskID := s.currentWorkReview(ctx, work)
+	return &domain.WorkSummary{
+		ID: work.ID, UpdatedAt: work.UpdatedAt, State: work.State, PlanState: work.PlanState, Role: work.RoleKey,
+		RoleName: work.RoleName, Actor: work.Client, Revision: work.Rev,
+		CurrentRevision: currentRevision, PlanRev: work.PlanRev,
+		Decision: decision, HandoffState: handoffState, LinkedTaskID: linkedTaskID,
+		Stale: work.State == domain.WorkOpen && !waitingOnPerson(work.PlanState) &&
+			time.Since(work.UpdatedAt) > workIdleAfter,
+	}
+}
+
+func (s *Service) currentWorkReview(ctx context.Context, work domain.ExternalWork) (int64, string, string, string) {
+	if s.planSnapshots == nil {
+		return work.PlanRev, "", "", ""
+	}
+	review, found, err := s.planSnapshots.LatestPlanReview(ctx, work.ID)
+	if err != nil || !found {
+		return work.PlanRev, "", "", ""
+	}
+	return review.Revision, review.Decision, review.HandoffState, review.LinkedTaskID
 }

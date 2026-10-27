@@ -1,13 +1,12 @@
 package mcp
 
-//nolint:govet // fieldalignment: field order keeps the inferred MCP output schema readable.
 type saveOutput struct {
 	WorkID   string   `json:"work_id"`
-	Revision int64    `json:"revision"`
 	State    string   `json:"state"`
-	Saved    bool     `json:"saved"`
 	Path     string   `json:"path"`
 	Warnings []string `json:"warnings"`
+	Revision int64    `json:"revision"`
+	Saved    bool     `json:"saved"`
 }
 
 func savedOutput(result WorkMutation, path string, err error) (saveOutput, report, error) {

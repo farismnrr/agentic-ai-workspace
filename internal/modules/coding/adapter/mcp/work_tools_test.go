@@ -16,7 +16,7 @@ func TestExternalWorkToolsAreDiscoverableByConnectedClients(t *testing.T) {
 	server := NewServer(nil, Options{})
 	want := []string{
 		"begin_work", "set_role", "update_plan", "save_research", "save_requirements",
-		"report_progress", "complete_work", "get_work_state",
+		"report_progress", "complete_work", "get_work_state", "approve_plan",
 	}
 	for _, clientName := range []string{"ChatGPT", "Gemini"} {
 		clientTransport, serverTransport := sdk.NewInMemoryTransports()
@@ -75,13 +75,12 @@ func TestWorkLifecycleGuardUsesExistingSwitchThenReadScope(t *testing.T) {
 	}
 }
 
-//nolint:govet // fieldalignment: keep test cases grouped by their purpose.
 type workGuardCase struct {
 	name      string
-	info      domain.ToolInfo
-	allowed   bool
-	scopes    []string
 	wantError string
+	info      domain.ToolInfo
+	scopes    []string
+	allowed   bool
 }
 
 type testGate struct{ allowed bool }

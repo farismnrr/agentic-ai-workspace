@@ -110,6 +110,8 @@ func (g toolGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 		codingdomain.ToolBeginWork.Name, codingdomain.ToolSetRole.Name, codingdomain.ToolUpdatePlan.Name,
 		codingdomain.ToolSaveResearch.Name, codingdomain.ToolSaveRequirements.Name,
 		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name,
+		codingdomain.ToolSubmitPlan.Name,
+		codingdomain.ToolFinishResearch.Name, codingdomain.ToolAskQuestion.Name,
 	} {
 		states[site] = states[codingdomain.SwitchOf(site)]
 	}

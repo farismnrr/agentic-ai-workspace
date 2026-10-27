@@ -15,6 +15,15 @@ func TestExternalChatRouteRejectsCrossOriginPost(t *testing.T) {
 	if response.Status != 403 {
 		t.Fatalf("cross-origin external chat request status=%d body=%s", response.Status, response.Body)
 	}
+	approval := do(t, a.env.app, "POST", "/api/tasks/not-owned/plan/approve",
+		`{"revision":1}`, headers)
+	if approval.Status != 403 {
+		t.Fatalf("cross-origin plan approval status=%d body=%s", approval.Status, approval.Body)
+	}
+	if anonymous := do(t, a.env.app, "POST", "/api/tasks/not-owned/plan/approve",
+		`{"revision":1}`, jsonHeaders()); anonymous.Status != 401 {
+		t.Fatalf("anonymous plan approval status=%d body=%s", anonymous.Status, anonymous.Body)
+	}
 }
 
 func TestTaskNeedsAModelAndStaysPrivate(t *testing.T) {

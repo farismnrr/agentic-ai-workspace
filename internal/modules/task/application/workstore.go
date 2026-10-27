@@ -27,11 +27,11 @@ type WorkCallStore interface {
 	UpdateWorkCall(ctx context.Context, taskID, workID, eventID string, event domain.Event) (domain.Event, error)
 }
 
-// WorkCreate is one atomic task, work, and initial-event creation request.
+// WorkCreate is one atomic task, work, and ordered initial-event creation request.
 type WorkCreate struct {
-	Task  domain.Task
-	Event domain.Event
-	Work  domain.ExternalWork
+	Task   domain.Task
+	Events []domain.Event
+	Work   domain.ExternalWork
 }
 
 // WorkOp is the saved response for an idempotent operation on one work session.
@@ -46,12 +46,14 @@ type WorkOp struct {
 
 // WorkPatch contains optional changes to the external work record.
 type WorkPatch struct {
-	State    *domain.WorkState
-	RoleKey  *string
-	RoleName *string
-	PlanRev  *int64
-	NextStep *int64
-	EndedAt  *time.Time
+	State         *domain.WorkState
+	PlanState     *domain.PlanPhase
+	RoleKey       *string
+	RoleName      *string
+	PlanRev       *int64
+	NextStep      *int64
+	EndedAt       *time.Time
+	SupersedePlan bool
 }
 
 // TaskPatch contains optional changes to the task fields owned by work operations.

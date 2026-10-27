@@ -2,9 +2,10 @@ package domain
 
 // Scopes a client can be granted on the coding space.
 const (
-	ScopeRead  = "coding:read"
-	ScopeWrite = "coding:write"
-	ScopeExec  = "coding:exec"
+	ScopeRead    = "coding:read"
+	ScopeWrite   = "coding:write"
+	ScopeExec    = "coding:exec"
+	ScopeApprove = "coding:approve"
 )
 
 // Group clusters tools that share a risk level; the app shows them together.
@@ -61,11 +62,13 @@ var (
 		Name: "log_message", Title: "Save the conversation", Scope: ScopeRead, Group: GroupRead, DefaultOn: true,
 		Description: "Save a message of this conversation in the person's tasks, so they can read it later in the app. " +
 			"Call it with role \"user\" for what the person asked, then do the work, then with role \"assistant\" for " +
-			"a short summary of your answer. Never include passwords or keys.",
+			"a short summary of your answer. Without a work_id this records history only; use begin_work with a role " +
+			"for tracked work. Never include passwords or keys.",
 	}
 	// External work lifecycle tools share log_message's existing read switch.
-	ToolBeginWork = workTool("begin_work", "Begin work", "Start a separate tracked work session.")
-	ToolSetRole   = workTool("set_role", "Set work role",
+	ToolBeginWork = workTool("begin_work", "Begin work",
+		"Start a separate tracked work session. Supply role as an enabled non-lead role key; it is required.")
+	ToolSetRole = workTool("set_role", "Set work role",
 		"Label the role used for this work; this does not change permissions.")
 	ToolUpdatePlan       = workTool("update_plan", "Update work plan", "Save the steps for this work session.")
 	ToolSaveResearch     = workTool("save_research", "Save research", "Save research notes and their sources.")
@@ -74,6 +77,11 @@ var (
 	ToolCompleteWork     = workTool("complete_work", "Complete work",
 		"Finish or block this work and summarize verified evidence.")
 	ToolGetWorkState = workTool("get_work_state", "Get work state", "Read the compact state of a work session.")
+	ToolApprovePlan  = ToolInfo{
+		Name: "approve_plan", Title: "Approve plans", Scope: ScopeApprove, Group: GroupExec,
+		DefaultOn:   false,
+		Description: "Approve one submitted plan revision and send it to the Orchestrator.",
+	}
 
 	ToolEditFile = writeTool("edit_file", "Edit a file",
 		"Replace old_text with new_text in a file. Fails if old_text is missing or not unique unless replace_all is set.")
@@ -181,17 +189,12 @@ var (
 	}
 )
 
-// IsWebTool reports whether the tool looks something up outside the project.
-func IsWebTool(name string) bool {
-	return name == ToolWebSearch.Name || name == ToolFetchPage.Name || name == ToolSearchImages.Name ||
-		name == ToolDownloadAsset.Name
-}
-
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolListProjects,
 		ToolLogMessage,
 		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand, ToolScreenshotSession,
+		ToolApprovePlan,
 	}
 }

@@ -76,6 +76,58 @@ it('merges a changed event replayed after reconnect by id and version', async ()
   thread.stop();
 });
 
+it('keeps live text when event replay updates an existing event during reconnect', async () => {
+  const { createThread } = await import('./thread');
+  const thread = createThread('task-1');
+  const stream = FakeEventSource.instances[0];
+  if (stream === undefined) throw new Error('thread stream was not created');
+  stream.send('delta', { text: 'The result is still being written.' });
+  stream.send('update', { task: task(), events: [action(2, 'Running: check', 'running')] });
+
+  // Reconnect replays the same event with its newer persisted version.
+  stream.send('update', { task: task(), events: [action(3, 'check finished', 'finished')] });
+
+  expect(get(thread.draft)).toBe('The result is still being written.');
+  expect(get(thread.events)).toHaveLength(1);
+  expect(get(thread.events)[0]?.version).toBe(3);
+  thread.stop();
+});
+
+it('ignores duplicate and out-of-order event updates while keeping sequence order', async () => {
+  const { createThread } = await import('./thread');
+  const thread = createThread('task-1');
+  const stream = FakeEventSource.instances[0];
+  if (stream === undefined) throw new Error('thread stream was not created');
+  const later = { ...action(4, 'second', 'finished'), id: 'event-2', seq: 3 };
+  stream.send('update', { task: task(), events: [action(2, 'first', 'running'), later] });
+  stream.send('update', { task: task(), events: [action(3, 'first updated', 'finished'), action(1, 'old replay', 'running')] });
+  stream.send('update', { task: task(), events: [action(3, 'duplicate', 'finished')] });
+
+  expect(get(thread.events).map((event) => [event.id, event.version, event.text])).toEqual([
+    ['event-1', 3, 'first updated'], ['event-2', 4, 'second'],
+  ]);
+  thread.stop();
+});
+
+it('keeps one current plan review card when duplicate or late versions arrive', async () => {
+	const { createThread } = await import('./thread');
+	const thread = createThread('task-1');
+	const stream = FakeEventSource.instances[0];
+	if (stream === undefined) throw new Error('thread stream was not created');
+	const review = (version: number, status: string): TaskEvent => ({
+		id: 'review-1', seq: 4, version, time: '2026-10-27T00:00:00Z', kind: 'plan_review',
+		text: 'Plan ready for approval',
+		planReview: { revision: 2, summary: 'Build the page', status },
+	});
+	stream.send('update', { task: task('needs-input'), events: [review(2, 'submitted')] });
+	stream.send('update', { task: task('working'), events: [review(3, 'superseded')] });
+	stream.send('update', { task: task('working'), events: [review(2, 'submitted')] });
+
+	expect(get(thread.events)).toHaveLength(1);
+	expect(get(thread.events)[0]).toMatchObject({ version: 3, planReview: { status: 'superseded' } });
+	thread.stop();
+});
+
 it('closes the old stream and ignores a late refresh after switching tasks', async () => {
   let resolveTask: ((value: Task) => void) | undefined;
   loadTask.mockImplementation(() => new Promise<Task>((resolve) => { resolveTask = resolve; }));

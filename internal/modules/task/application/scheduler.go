@@ -69,6 +69,9 @@ func (s *Scheduler) Start(ctx context.Context, workers int) {
 func (s *Scheduler) Enqueue(taskID, projectID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.stopped {
+		return
+	}
 
 	queued := slices.ContainsFunc(s.queue, func(j job) bool { return j.taskID == taskID })
 
@@ -76,6 +79,19 @@ func (s *Scheduler) Enqueue(taskID, projectID string) {
 		return
 	}
 
+	s.queue = append(s.queue, job{taskID: taskID, projectID: projectID})
+	s.cond.Broadcast()
+}
+
+// EnqueueHandoff is idempotent for an outbox retry while ordinary continuations remain queueable.
+func (s *Scheduler) EnqueueHandoff(taskID, projectID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.stopped || s.running[taskID] != nil || slices.ContainsFunc(s.queue, func(j job) bool {
+		return j.taskID == taskID
+	}) {
+		return
+	}
 	s.queue = append(s.queue, job{taskID: taskID, projectID: projectID})
 	s.cond.Broadcast()
 }
@@ -106,31 +122,6 @@ func (s *Scheduler) Cancel(taskID string) CancelState {
 // Wait blocks until a running task has returned from its worker.
 func (s *Scheduler) Wait(taskID string) {
 	s.WaitContext(context.Background(), taskID)
-}
-
-// WaitContext waits for a running task until it finishes, ctx ends, or the
-// scheduler wait limit expires. It returns false when it stops waiting early.
-func (s *Scheduler) WaitContext(ctx context.Context, taskID string) bool {
-	waitCtx, cancel := context.WithTimeout(ctx, schedulerWaitTimeout)
-	defer cancel()
-	stop := context.AfterFunc(waitCtx, func() {
-		s.mu.Lock()
-		s.cond.Broadcast()
-		s.mu.Unlock()
-	})
-	defer stop()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for {
-		if _, running := s.running[taskID]; !running {
-			return true
-		}
-		if err := waitCtx.Err(); err != nil {
-			return false
-		}
-		s.cond.Wait()
-	}
 }
 
 // Stop cancels running tasks and waits for the workers to finish.

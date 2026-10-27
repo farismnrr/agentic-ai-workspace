@@ -15,7 +15,7 @@ func newWorksTest(t *testing.T) (*Works, *workFakeStore, *time.Time) {
 	store := newWorkFakeStore()
 	now := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
 	deps := testDeps(store, &now)
-	return NewWorks(deps, store), store, &now
+	return NewWorks(deps, store, store, nil), store, &now
 }
 
 func testDeps(store *workFakeStore, now *time.Time) Deps {
@@ -26,7 +26,7 @@ func testDeps(store *workFakeStore, now *time.Time) Deps {
 }
 
 func beginInput(summary string) BeginInput {
-	return BeginInput{UserID: "u1", Client: "ChatGPT", ProjectID: "proj", Summary: summary}
+	return BeginInput{UserID: "u1", Client: "ChatGPT", ProjectID: "proj", Summary: summary, Role: "developer"}
 }
 
 type workIDs struct {

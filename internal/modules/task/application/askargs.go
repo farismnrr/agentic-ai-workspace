@@ -83,6 +83,15 @@ func parseAsk(input json.RawMessage) ([]domain.Question, bool) {
 	return questions, true
 }
 
+// ParseWorkQuestionForm validates the persistent form using the existing ask_user rules.
+func ParseWorkQuestionForm(input json.RawMessage) ([]domain.Question, error) {
+	questions, ok := parseAsk(input)
+	if !ok || len(questions) == 0 || len(questions) > maxQuestions {
+		return nil, domain.ErrBadRequest
+	}
+	return questions, nil
+}
+
 func cleanQuestion(item questionArg) (domain.Question, bool) {
 	if item.Question == "" {
 		return domain.Question{}, false

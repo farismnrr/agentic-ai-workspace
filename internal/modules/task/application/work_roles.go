@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -19,48 +18,6 @@ func (w *Works) roster(ctx context.Context, userID string) (Roster, error) {
 		return Roster{}, fmt.Errorf("load team roster: %w", err)
 	}
 	return roster, nil
-}
-
-func publicRoles(roster Roster) []WorkRole {
-	roles := make([]WorkRole, 0, len(roster.Members))
-	for _, member := range roster.Members {
-		if !member.Lead {
-			roles = append(roles, WorkRole{Key: member.Key, Name: member.Name, Purpose: member.Purpose})
-		}
-	}
-	return roles
-}
-
-func normalizePlanned(names []string, roster Roster) ([]string, error) {
-	roles := publicRoles(roster)
-	planned := make([]string, 0, len(names))
-	seen := map[string]bool{}
-	for _, name := range names {
-		role, ok := matchRole(name, roster, roles)
-		if !ok {
-			return nil, domain.ErrBadRole
-		}
-		if !seen[role.Key] {
-			planned = append(planned, role.Key)
-			seen[role.Key] = true
-		}
-	}
-	return planned, nil
-}
-
-func matchRole(name string, roster Roster, roles []WorkRole) (WorkRole, bool) {
-	needle := strings.TrimSpace(name)
-	if needle == "" || strings.EqualFold(needle, "orchestrator") ||
-		(strings.EqualFold(needle, roster.Lead.Key) && roster.Lead.Key != "") ||
-		(strings.EqualFold(needle, roster.Lead.Name) && roster.Lead.Name != "") {
-		return WorkRole{}, false
-	}
-	for _, role := range roles {
-		if strings.EqualFold(needle, role.Key) || strings.EqualFold(needle, role.Name) {
-			return role, true
-		}
-	}
-	return WorkRole{}, false
 }
 
 // SetRole changes work attribution only. It does not participate in access checks.
@@ -114,11 +71,7 @@ func (w *Works) availableRole(ctx context.Context, userID, name string) (WorkRol
 	if err != nil {
 		return WorkRole{}, fmt.Errorf("load work roles: %w", err)
 	}
-	role, ok := matchRole(name, roster, publicRoles(roster))
-	if !ok {
-		return WorkRole{}, domain.ErrBadRole
-	}
-	return role, nil
+	return availableRoleInRoster(name, roster)
 }
 
 func roleChange(work domain.ExternalWork, userID string, role WorkRole, brief string, at time.Time) WorkChange {

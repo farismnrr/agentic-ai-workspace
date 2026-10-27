@@ -44,6 +44,9 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Get("/api/stream", auth, h.workspaceStream)
 		app.Post("/api/tasks/:id/messages", auth, sameOrigin, h.message)
 		app.Post("/api/tasks/:id/chat", auth, sameOrigin, h.externalChat)
+		app.Post("/api/tasks/:id/plan/approve", auth, sameOrigin, h.approvePlan)
+		app.Post("/api/tasks/:id/plan/request-changes", auth, sameOrigin, h.requestPlanChanges)
+		app.Get("/api/tasks/:id/plan/revisions/:rev", auth, h.planRevision)
 		app.Post("/api/tasks/:id/events/:event/answer", auth, sameOrigin, h.answer)
 		app.Post("/api/tasks/:id/events/:event/undo", auth, sameOrigin, h.undo)
 		app.Post("/api/tasks/:id/cancel", auth, sameOrigin, h.cancel)
@@ -70,6 +73,11 @@ var mapped = []statusError{
 	{domain.ErrNotWaiting, "not_waiting", fiber.StatusConflict},
 	{domain.ErrWrongState, "wrong_state", fiber.StatusConflict},
 	{domain.ErrUndoRefused, "undo_refused", fiber.StatusConflict},
+	{domain.ErrUnknownWork, "not_found", fiber.StatusNotFound},
+	{domain.ErrUnverifiedUser, "unverified_user", fiber.StatusForbidden},
+	{domain.ErrStaleRevision, "stale_revision", fiber.StatusConflict},
+	{domain.ErrKeyReused, "idempotency_key_reused", fiber.StatusConflict},
+	{domain.ErrTryAgain, "try_again", fiber.StatusServiceUnavailable},
 }
 
 func fail(c fiber.Ctx, err error) error {

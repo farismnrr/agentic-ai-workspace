@@ -45,14 +45,33 @@ func runWorkToolsForClient(t *testing.T, clientName string) {
 			t.Errorf("close MCP client session: %v", closeErr)
 		}
 	})
+	assertBeginWorkRoleSchema(t, session)
 	begin, err := session.CallTool(t.Context(), &sdk.CallToolParams{Name: "begin_work", Arguments: map[string]any{
-		"summary": "Build feature", "idempotency_key": "client-key-123",
+		"summary": "Build feature", "role": "developer", "idempotency_key": "client-key-123",
 	}})
 	requireToolSuccess(t, begin, err)
 	requireWorkFields(t, begin)
 	workID := works.state.WorkID
+	checkResearchAndQuestionTools(t, session, workID)
 	callResearchAndPlanning(t, session, workID)
+	submitted, err := session.CallTool(t.Context(), &sdk.CallToolParams{Name: "submit_plan", Arguments: map[string]any{
+		"work_id": workID, "base_revision": 1, "summary": "Plan is ready",
+	}})
+	requireToolSuccess(t, submitted, err)
+	stateResult, err := session.CallTool(t.Context(), &sdk.CallToolParams{
+		Name: "get_work_state", Arguments: map[string]any{"work_id": workID},
+	})
+	requireToolSuccess(t, stateResult, err)
+	stateBody, ok := stateResult.StructuredContent.(map[string]any)
+	if !ok || stateBody["plan_state"] != "ready_for_approval" || stateBody["review"] == nil {
+		t.Fatalf("work state omitted plan review: %#v", stateResult.StructuredContent)
+	}
+	callLifecycleTool(t, session, "update_plan", map[string]any{
+		"work_id": workID, "base_revision": 1,
+		"steps": []any{map[string]any{"title": "Build adjusted", "state": "pending"}},
+	})
 	callRolesAndState(t, session, workID)
+	assertRoleDoesNotGrantExecution(t, session, workID)
 	if completeWork(t, session, workID)["task_status"] != "done" {
 		t.Fatal("completed work task status is not done")
 	}
@@ -61,6 +80,26 @@ func runWorkToolsForClient(t *testing.T, clientName string) {
 		fmt.Sprint(works.roles) != "[Researcher Planner Developer QA]" || works.research != "Finding" ||
 		works.requirements != "Requirement" || works.state.State != "completed" {
 		t.Fatalf("lifecycle identity, roles, documents, or state incorrect: %+v", works)
+	}
+}
+
+func assertRoleDoesNotGrantExecution(t *testing.T, session *sdk.ClientSession, workID string) {
+	t.Helper()
+	for _, call := range []struct {
+		args map[string]any
+		name string
+	}{
+		{name: "write_file", args: map[string]any{
+			"work_id": workID, "path": "new.txt", "content": "no permission",
+		}},
+		{name: "run_command", args: map[string]any{
+			"work_id": workID, "command": "check", "timeout_seconds": 10,
+		}},
+	} {
+		result, err := session.CallTool(t.Context(), &sdk.CallToolParams{Name: call.name, Arguments: call.args})
+		if err != nil || result == nil || !result.IsError {
+			t.Fatalf("role unexpectedly granted %s: result=%+v error=%v", call.name, result, err)
+		}
 	}
 }
 

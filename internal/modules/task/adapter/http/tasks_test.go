@@ -15,7 +15,10 @@ func TestTaskPayloadIncludesExternalWorkSummary(t *testing.T) {
 		LinkedTaskID: "linked-1", OriginTaskID: "origin-1",
 		Work: &domain.WorkSummary{
 			ID: "work-1", State: domain.WorkBlocked, Role: "qa", RoleName: "QA",
-			Actor: "ChatGPT", PlanRev: 3, Stale: true, UpdatedAt: time.Unix(100, 0).UTC(),
+			Actor: "ChatGPT", PlanState: domain.PlanReadyForApproval,
+			Revision: 8, CurrentRevision: 3, PlanRev: 3, Decision: "approved",
+			HandoffState: "handed_off", LinkedTaskID: "internal-1", Stale: true,
+			UpdatedAt: time.Unix(100, 0).UTC(),
 		},
 	}
 	encoded, err := json.Marshal(toPayload(task))
@@ -29,6 +32,9 @@ func TestTaskPayloadIncludesExternalWorkSummary(t *testing.T) {
 		`"originTaskId":"origin-1"`,
 		`"role":"qa"`, `"roleName":"QA"`, `"actor":"ChatGPT"`,
 		`"planRev":3`, `"stale":true`, `"updatedAt":`,
+		`"planState":"ready_for_approval"`,
+		`"revision":8`, `"currentRevision":3`, `"decision":"approved"`,
+		`"handoffState":"handed_off"`, `"linkedTaskId":"internal-1"`,
 	} {
 		if !strings.Contains(body, field) {
 			t.Errorf("task payload is missing %s: %s", field, body)

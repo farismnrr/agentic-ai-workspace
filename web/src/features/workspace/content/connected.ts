@@ -30,6 +30,7 @@ export const toolCopy: Record<string, string> = {
   move_file: 'Move a file to another place, or give it a new name.',
   run_task: 'Run one of your checks, like the tests, and see if it passed.',
   run_command: 'Run commands in a safe, closed-off box so the AI can build and test things. This is also how it shows you the web app it makes.',
+  approve_plan: 'Let a connected AI approve a plan and send it to the AI that does the work.',
 };
 
 export const toolGroups = {

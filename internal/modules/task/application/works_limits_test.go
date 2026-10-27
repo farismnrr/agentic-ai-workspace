@@ -70,3 +70,22 @@ func TestBeginEnforcesUserOpenWorkCapAcrossProjects(t *testing.T) {
 		t.Fatalf("user cap error = %v", err)
 	}
 }
+
+func TestWaitingForPersonDoesNotBecomeStaleOrAbandoned(t *testing.T) {
+	works, store, now := newWorksTest(t)
+	created, err := works.Begin(context.Background(), beginInput("Review plan"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := store.works[created.WorkID]
+	work.PlanState = domain.PlanReadyForApproval
+	work.UpdatedAt = now.Add(-48 * time.Hour)
+	store.works[work.ID] = work
+	if abandonErr := works.abandonStale(context.Background(), "u1"); abandonErr != nil {
+		t.Fatal(abandonErr)
+	}
+	state, err := works.State(context.Background(), "u1", "ChatGPT", "proj", work.ID)
+	if err != nil || state.Stale || store.works[work.ID].State != domain.WorkOpen {
+		t.Fatalf("person review was treated as stale work: state=%+v work=%+v err=%v", state, store.works[work.ID], err)
+	}
+}

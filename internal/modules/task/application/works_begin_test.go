@@ -113,7 +113,7 @@ func TestBeginNotifiesTheUserTaskListAfterCommit(t *testing.T) {
 	defer sub.Close()
 	deps := testDeps(store, &now)
 	deps.Notify = hub
-	works := NewWorks(deps, store)
+	works := NewWorks(deps, store, store, nil)
 
 	result, err := works.Begin(context.Background(), beginInput("show up in the task list"))
 	if err != nil {

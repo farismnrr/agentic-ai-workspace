@@ -18,10 +18,14 @@ const (
 
 // Service holds the use cases people trigger from the app.
 type Service struct {
-	deps          Deps
-	dispatcher    Dispatcher
-	workStopper   WorkStopper
-	workSummaries WorkSummaries
+	deps              Deps
+	dispatcher        Dispatcher
+	workStopper       WorkStopper
+	workSummaries     WorkSummaries
+	externalQuestions QuestionAnswerStore
+	planReviews       *PlanReviews
+	handoffs          *Handoffs
+	planSnapshots     PlanSnapshotReader
 	// calls counts the calls of each connected app's thread that are under way, so the thread shows as working
 	// until the last one ends.
 	calls map[string]int

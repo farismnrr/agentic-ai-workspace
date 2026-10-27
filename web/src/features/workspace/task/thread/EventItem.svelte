@@ -18,18 +18,23 @@
   import ResultCard from './ResultCard.svelte';
   import ShotCard from './ShotCard.svelte';
   import SiteCard from './SiteCard.svelte';
+  import PlanReviewCard from './PlanReviewCard.svelte';
+  import DocText from '../../components/DocText.svelte';
+  import { eventProvenance, isExternalReceipt } from '../../logic/provenance';
 
   interface Props {
     event: TaskEvent;
     taskId: string;
     projectId: string;
+    provider?: string;
     actions: ThreadActions;
     proof?: Proof | undefined;
     onretry?: (() => void) | undefined;
     readOnly?: boolean;
   }
 
-  const { event, taskId, projectId, actions, proof, onretry, readOnly = false }: Props = $props();
+  const { event, taskId, projectId, provider = '', actions, proof, onretry, readOnly = false }: Props = $props();
+  const provenance = $derived(eventProvenance(event, provider));
 </script>
 
 {#if event.kind === 'request'}
@@ -44,9 +49,13 @@
     <div class="mt-2 flex justify-end"><a class="badge badge-outline link" href={rawUrl(projectId, event.documents[0])}>Download full message</a></div>
   {/if}
 {:else if event.kind === 'message'}
-  <ChatBubble who="ai" text={event.text} time={clock(event.time)} agent={event.agent} />
+  <ChatBubble who="ai" text={event.text} time={clock(event.time)} agent={provenance.role} reportedBy={provenance.provider || undefined} />
 {:else if event.kind !== 'action'}
   <div class="ml-9">
+    <p class="mb-1 flex flex-wrap gap-x-2 text-xs text-[var(--brand-text-secondary)]">
+      <span>{provenance.label}</span>
+      {#if provenance.role !== ''}<span>Agent role: {provenance.role}</span>{/if}
+    </p>
     {#if event.kind === 'question'}
       <QuestionCard questions={questionsOf(event)} answered={event.answered} agent={event.agent} {readOnly} onanswer={(answers: string[][]) => { actions.choose(event.id, answers); }} />
     {:else if event.kind === 'approval'}
@@ -61,14 +70,21 @@
       <HandoffCard text={event.text} detail={event.technical} state={event.action} agent={event.agent} model={event.model} effort={event.effort} />
     {:else if event.kind === 'role'}
       <RoleCard {event} />
+    {:else if event.kind === 'plan_review'}
+      <PlanReviewCard review={event.planReview} {taskId} {projectId} {readOnly} />
+    {:else if event.kind === 'receipt' && isExternalReceipt(event)}
+      <div class="rounded-lg border border-[var(--brand-border)] bg-base-100 p-3">
+        <p class="mb-1 text-xs text-[var(--brand-text-secondary)]">{provenance.label}</p>
+        <DocText class="text-[15px] leading-6" text={event.text} />
+      </div>
+    {:else if event.kind === 'receipt'}
+      <ResultCard kind="receipt" text={event.text} proven={proof?.proven ?? false} checks={proof?.checks ?? []} />
     {:else if event.kind === 'shot'}
       <ShotCard text={event.text} src={shotUrl(taskId, event.image)} agent={event.agent} />
     {:else if event.kind === 'extension'}
       <ExtensionCard text={event.text} url={event.url} />
-    {:else if event.kind === 'site'}
-      <SiteCard text={event.text} url={event.url} />
     {:else}
-      <ResultCard kind="receipt" text={event.text} proven={proof?.proven ?? false} checks={proof?.checks ?? []} />
+      <SiteCard text={event.text} url={event.url} />
     {/if}
   </div>
 {/if}

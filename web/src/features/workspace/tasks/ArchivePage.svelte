@@ -1,13 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import AppShell from '../shell/AppShell.svelte';
+  import SettingsFrame from '../settings/SettingsFrame.svelte';
   import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import SkeletonList from '../../../shared/ui/SkeletonList.svelte';
   import TaskSelection from './TaskSelection.svelte';
   import { loadArchivedTasks } from '../logic/tasks-api';
   import type { Task } from '../logic/task-types';
 
-  const crumbs = [{ label: 'Settings', href: '/app/settings' }, { label: 'Archive', href: '/app/archive' }];
   let archived = $state<Task[]>([]);
   let loaded = $state(false);
   let error = $state('');
@@ -33,7 +32,7 @@
 </script>
 
 <svelte:head><title>Archive · Masih Awam</title></svelte:head>
-<AppShell {crumbs} width="dense">
+<SettingsFrame crumbs={[{ label: 'Settings', href: '/app/settings' }, { label: 'Archive', href: '/app/archive' }]}>
   <header class="mb-4">
     <div class="flex items-baseline gap-2">
       <h1 class="text-xl font-semibold">Archive</h1>
@@ -50,4 +49,4 @@
   {:else}
     <TaskSelection tasks={archived} archived onchanged={changed} />
   {/if}
-</AppShell>
+</SettingsFrame>

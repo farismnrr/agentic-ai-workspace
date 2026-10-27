@@ -124,22 +124,22 @@ func (s *Store) EventByToolUse(ctx context.Context, taskID, toolUseID string) (d
 
 // UpdateEvent rewrites an entry, for example when an approval is answered.
 func (s *Store) UpdateEvent(ctx context.Context, taskID string, event domain.Event) error {
+	return updateEventIn(ctx, s.db, taskID, event)
+}
+
+func updateEventIn(ctx context.Context, exec eventExecutor, taskID string, event domain.Event) error {
 	body, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("encode event: %w", err)
 	}
 
-	result, err := s.db.ExecContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
-		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?) WHERE task_id = ? AND id = ?`,
-		string(body), event.Undo, taskID, taskID, event.ID)
+	err = exec.QueryRowContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
+		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?)
+		WHERE task_id = ? AND id = ? RETURNING version`, string(body), event.Undo, taskID, taskID, event.ID).
+		Scan(&event.Version)
 	if err != nil {
 		return fmt.Errorf("update event: %w", err)
 	}
-
-	if changed, err := result.RowsAffected(); err == nil && changed == 0 {
-		return domain.ErrNotFound
-	}
-
 	return nil
 }
 

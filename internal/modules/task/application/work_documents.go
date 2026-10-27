@@ -41,7 +41,8 @@ func (w *Works) SaveResearch(ctx context.Context, userID, client, projectID, wor
 	event := workEvent(work, domain.EventResearch, "Research saved", document, w.now())
 	taskPatch := &TaskPatch{Research: &updated}
 	eventList := []domain.Event{event}
-	return w.appendMutation(ctx, work, taskPatch, nil, eventList)
+	patch, taskPatch, eventList := supersedePlanMutation(work, nil, taskPatch, eventList)
+	return w.appendMutation(ctx, work, taskPatch, patch, eventList)
 }
 
 // SaveRequirements replaces the requirements document without changing research rounds.
@@ -64,7 +65,8 @@ func (w *Works) SaveRequirements(ctx context.Context, userID, client, projectID,
 		return nil
 	}
 	event := workEvent(work, domain.EventPRD, "Requirements saved", document, w.now())
-	return w.appendMutation(ctx, work, &TaskPatch{PRD: &document}, nil, []domain.Event{event})
+	patch, taskPatch, events := supersedePlanMutation(work, nil, &TaskPatch{PRD: &document}, []domain.Event{event})
+	return w.appendMutation(ctx, work, taskPatch, patch, events)
 }
 
 // Progress records only self-reported evidence from the external assistant.
@@ -125,7 +127,9 @@ func sameResearch(events []domain.Event, workID, document string) bool {
 	for i := len(events) - 1; i >= 0; i-- {
 		event := events[i]
 		if event.Kind == domain.EventResearch && event.Work != nil && event.Work.ID == workID {
-			return requestHash(event.Technical) == requestHash(document)
+			if requestHash(event.Technical) == requestHash(document) {
+				return true
+			}
 		}
 	}
 	return false

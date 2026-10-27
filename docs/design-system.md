@@ -131,7 +131,8 @@ flat and use shared empty states instead of nested cards.
 - **Sidebar:** icon rail on desktop, drawer on tablets.
 - **Phones:** below the `md` breakpoint, a bottom bar with Home, Inbox, Projects, Sites and Settings (daisyUI `dock`, with counts). The menu button still opens the sidebar.
 - **Task page:** the bottom bar steps aside, so the conversation keeps the whole screen.
-- **Status:** always an icon plus a text label, never color alone.
+- **Status:** every status has a distinct icon and readable label, never color
+  alone. Icon-only uses retain an accessible name.
 - **Approvals:** show the exact action, a risk label, and Allow or Don't allow.
 - **Task result:** summarizes verified checks and AI claims in plain language.
   "Proven to work" appears only for verified, passing checks.
@@ -142,6 +143,12 @@ flat and use shared empty states instead of nested cards.
 - Target WCAG AA contrast for normal text.
 - Keep focus indicators easy to see.
 - Never show success, warning or error by color alone. Add text, an icon or a label.
+- Status updates remain understandable without color, and working animations
+  honor reduced-motion preferences.
+- Timeline labels identify whether an action was performed by ChatGPT/Gemini,
+  recorded by Masih Awam, approved by you, or executed by the Orchestrator.
+- External assistant reports are labelled as reported. Only evidence observed
+  or run by the server can be presented as verified.
 
 ## Source of truth
 

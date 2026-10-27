@@ -106,8 +106,11 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"End it by calling log_message with role assistant and a short summary of the result. " +
 	"When the person names a project (such as sensio), call list_projects and give its id as project to the other " +
 	"tools; without a project you work in your own. For substantial requests, call begin_work first (small tasks may " +
-	"skip it), switch role labels as useful (Researcher, Planner, Developer, QA, Security), pass work_id to each " +
-	"work tool, and finish with complete_work. There is one assistant: roles are labels, no other agent is called, " +
+	"skip it) and provide the required initial enabled non-lead role key; switch role labels as useful (Researcher, " +
+	"Planner, Developer, QA, Security), pass work_id to each " +
+	"work tool, save the plan and requirements, then call submit_plan for the person's approval. Do not report " +
+	"completed until the person has reviewed the plan. There is one assistant: roles are labels, " +
+	"no other agent is called, " +
 	"and permissions do not change. Start a web app with start_site, never with a shell command."
 
 // NewServer builds the MCP server exposing the coding tools.
@@ -127,6 +130,8 @@ func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	t.addSiteTools(server)
 	t.addProjectTools(server)
 	t.addWorkTools(server)
+	t.addPlanTools(server)
+	t.addApprovalTools(server)
 
 	return server
 }
@@ -162,8 +167,10 @@ var knownErrors = []error{
 	domain.ErrDenied, domain.ErrNotFound, domain.ErrIsDir, domain.ErrNotDir, domain.ErrBinary, domain.ErrEmptyQuery,
 	domain.ErrTooLarge, domain.ErrExists, domain.ErrNotUnique, domain.ErrNoMatch, domain.ErrBadRange,
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
-	domain.ErrServerBusy, domain.ErrUnknownProject, errBadMessage,
+	domain.ErrServerBusy, domain.ErrUnknownProject, domain.ErrBadQuestion, errBadMessage,
 	taskdomain.ErrUnknownWork, taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused,
 	taskdomain.ErrBadRole, taskdomain.ErrTooMany, taskdomain.ErrRateLimited, taskdomain.ErrTooLarge,
 	taskdomain.ErrBadRequest, taskdomain.ErrNoProject,
+	taskdomain.ErrWrongState, taskdomain.ErrAwaitingPerson, taskdomain.ErrNoResearch,
+	taskdomain.ErrOpenQuestions, taskdomain.ErrTryAgain, taskdomain.ErrUnverifiedUser,
 }

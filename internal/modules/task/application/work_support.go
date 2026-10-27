@@ -50,6 +50,9 @@ func (w *Works) abandonIdleAtCap(ctx context.Context, userID string) error {
 		return fmt.Errorf("find idle work at project cap: %w", err)
 	}
 	for _, work := range works {
+		if waitingOnPerson(work.PlanState) {
+			continue
+		}
 		if w.hasRunningCall(ctx, work) {
 			continue
 		}
@@ -90,6 +93,9 @@ func (w *Works) abandonStale(ctx context.Context, userID string) error {
 		return fmt.Errorf("find abandoned work: %w", err)
 	}
 	for _, work := range works {
+		if waitingOnPerson(work.PlanState) {
+			continue
+		}
 		state, ended := domain.WorkAbandoned, w.now()
 		_, _, err := w.store.Commit(ctx, WorkChange{
 			WorkID: work.ID, UserID: userID, ExpectRev: work.Rev,
@@ -106,6 +112,10 @@ func (w *Works) abandonStale(ctx context.Context, userID string) error {
 		w.notify(ctx, domain.Task{ID: work.TaskID, UserID: userID})
 	}
 	return nil
+}
+
+func waitingOnPerson(state domain.PlanPhase) bool {
+	return state == domain.PlanReadyForApproval || state == domain.PlanAwaitingClarification
 }
 
 func abandonedEvent(workID string, at time.Time) domain.Event {

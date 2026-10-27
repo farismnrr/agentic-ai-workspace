@@ -4,6 +4,7 @@
   import type { ActionEvent } from '../../logic/task-types';
   import { clock } from '../../logic/time';
   import EvidenceBadge from './EvidenceBadge.svelte';
+  import { eventProvenance } from '../../logic/provenance';
 
   interface Props {
     items: ActionEvent[];
@@ -28,7 +29,9 @@
     {#each items as item (item.id)}
       <li>
         <p>
-          <DocText text={item.text} /> <EvidenceBadge work={item.work} exitCode={item.run?.exitCode} /> <span class="text-xs text-[var(--brand-text-tertiary)]">{clock(item.time)}</span>
+          <DocText text={item.text} /> <EvidenceBadge work={item.work} exitCode={item.run?.exitCode} />
+          {#if item.work !== undefined}<span class="badge badge-ghost badge-xs">{eventProvenance(item).label}</span>{/if}
+          <span class="text-xs text-[var(--brand-text-tertiary)]">{clock(item.time)}</span>
           {#if item.undone}<span class="badge badge-ghost badge-sm ml-1">Undone</span>
           {:else if item.canUndo && !readOnly}<button class="link link-hover ml-1 text-xs font-medium text-primary" type="button" onclick={() => { onundo(item.id); }}>Undo</button>{/if}
         </p>

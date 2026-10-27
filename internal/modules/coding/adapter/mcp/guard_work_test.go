@@ -105,13 +105,12 @@ func TestLegacyThreadStillUsesTaskLogWithoutWorkCalls(t *testing.T) {
 	}
 }
 
-//nolint:govet // fieldalignment: keep the fake's stored values and call counters together.
 type fakeWorkCalls struct {
-	finished  WorkCall
-	recorded  []WorkCall
 	recordErr error
 	finishErr error
 	WorkCalls
+	finished WorkCall
+	recorded []WorkCall
 	starts   int
 	finishes int
 	attempts int
