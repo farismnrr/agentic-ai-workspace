@@ -1,0 +1,326 @@
+# Implementasi External Multi-Role Workspace
+
+Repository: `farismnrr/agentic-ai-workspace`  
+Target branch: `dev`  
+Mode: **Automatic Multi-Role — Single External Assistant**
+NOTE: **BERSIHKAN WORKING TREE DULU AGAR HANYA ADA PRIMARY WORKTREE**
+
+## 1. Tujuan
+
+Implementasikan pengalaman kerja terstruktur untuk AI eksternal yang terhubung melalui Coding Space MCP, seperti ChatGPT, Gemini, dan MCP client lain.
+
+Saat ini aktivitas external assistant hanya dicatat sebagai timeline sederhana. Plan kosong, dokumen riset belum terstruktur, dan Team tidak mencerminkan peran yang dijalankan.
+
+Target akhir adalah membuat task eksternal memiliki pengalaman pencatatan dan monitoring yang setara dengan internal orchestrator:
+
+- Timeline
+- Plan
+- Documents
+- Team
+- Changes
+- Files
+- Research Notes
+- Requirements / PRD
+- Progress dan completion status
+
+**Perbedaan utama:** External assistant adalah satu-satunya AI yang bekerja. Tidak boleh mengaktifkan internal orchestrator atau memanggil agent lain secara otomatis.
+
+## 2. Aturan repository wajib
+
+Sebelum melakukan perubahan:
+
+1. Baca `AGENTS.md`, aturan di `agents/`, serta dokumentasi manusia yang relevan.
+2. Audit kode dan perilaku yang sudah ada.
+3. Riset dokumentasi resmi MCP, Go SDK, OAuth security, dan best practice terbaru.
+4. Periksa HEAD `origin/dev`, worktree, dan perubahan lokal.
+5. Gunakan isolated Git worktree yang bersih dari `origin/dev`, detached HEAD, tanpa membuat branch baru.
+6. Jangan checkout, reset, clean, stash, atau mengubah checkout utama.
+7. Lindungi seluruh data pengguna, `project-notes/`, `uploads/`, database, konfigurasi, dan kredensial.
+8. Jangan mengubah production, Docker host, atau deployment.
+9. Jangan mengubah `fast.yml` atau `full.yml` kecuali benar-benar diperlukan dan dibuktikan alasannya.
+10. Gunakan normal fast-forward push ke `origin/dev` setelah verifikasi. Tanpa force push.
+
+Audit kode existing terlebih dahulu, terutama:
+
+- `internal/modules/task/application/external.go`
+- `internal/bootstrap/threads.go`
+- `internal/modules/coding/adapter/mcp/`
+- `internal/modules/coding/domain/tools.go`
+- `internal/modules/task/domain/`
+- `internal/modules/task/application/notefiles.go`
+- `internal/modules/task/adapter/sqlite/`
+- `web/src/features/workspace/task/`
+- `web/src/features/workspace/logic/team.ts`
+
+## 3. Prinsip arsitektur
+
+**Reuse existing task system. Jangan membuat task system, database, atau UI kedua khusus external assistant.**
+
+Manfaatkan mekanisme yang sudah tersedia:
+
+- `Task`
+- `PlanStep`
+- `EventPlan`
+- `EventResearch`
+- `EventPRD`
+- `EventHandoff` jika sesuai semantiknya
+- Penyimpanan research dan PRD
+- Project document exporter
+- Task event history
+- Existing approval/security infrastructure
+
+Boleh memperluas domain dengan struktur baru jika memang diperlukan, tetapi pertahankan kompatibilitas dengan data dan API lama.
+
+Pisahkan execution identity dan working role:
+
+- Execution identity: ChatGPT, Gemini, atau MCP client asli.
+- Working role: Researcher, Planner, Architect, Designer, Developer, QA, Security, DevOps, Documentation, dan role lain dari katalog existing.
+- Role bukan agent baru, tidak mempunyai credential atau model terpisah.
+- Pergantian role tidak boleh memberikan permission tambahan.
+
+Katalog role harus menggunakan satu sumber kebenaran bersama konfigurasi role internal, bukan daftar statis baru yang bisa mengalami drift.
+
+## 4. Automatic Role Workflow
+
+Assistant eksternal otomatis menentukan role sesuai pekerjaan.
+
+Contoh alur:
+
+1. User meminta membuat landing page.
+2. Assistant membuka work session.
+3. Assistant memilih Researcher dan mengumpulkan referensi.
+4. Assistant menyimpan research notes.
+5. Assistant beralih menjadi Planner untuk membuat rencana dan PRD.
+6. Assistant beralih menjadi Developer untuk mengubah kode.
+7. Assistant beralih menjadi QA untuk menjalankan tests.
+8. Assistant beralih menjadi Security bila pemeriksaan keamanan relevan.
+9. Assistant melaporkan hasil dan mengakhiri work session.
+
+Tidak semua task wajib melewati semua role.
+
+Task sederhana boleh langsung memakai satu atau dua role. Pemilihan role harus didasarkan pada kebutuhan, risiko, dan jenis pekerjaan.
+
+**Tidak ada pemanggilan internal agent ataupun model tambahan.**
+
+Perpindahan role dicatat sebagai aktivitas satu assistant yang berganti peran, bukan delegasi palsu ke teammate lain.
+
+## 5. MCP tools yang dibutuhkan
+
+Desain tool minimal:
+
+### `begin_work`
+
+Membuat external work session yang persisten.
+
+Input: project, ringkasan permintaan, optional client-generated idempotency key.
+
+Output: server-issued `work_id`, task ID, status, dan daftar role yang tersedia.
+
+Jangan menyatukan pekerjaan yang berbeda hanya karena berasal dari client yang sama dalam jangka waktu 30 menit.
+
+### `set_role`
+
+Mengubah working role assistant.
+
+Input: `work_id`, role, tujuan/brief.
+
+Server menyimpan event pergantian role lengkap dengan execution identity yang sebenarnya.
+
+### `update_plan`
+
+Membuat atau memperbarui structured plan.
+
+Setiap step memiliki ID stabil, title, optional detail, dan status `pending`, `active`, `done`, atau `failed`.
+
+Revisi harus mempertahankan identitas dan status step yang relevan; hindari duplikasi akibat retry.
+
+### `save_research`
+
+Menyimpan research notes dalam Markdown, termasuk referensi sumber jika tersedia.
+
+Reuse existing research persistence, timeline event, dan `project-notes/` exporter.
+
+### `save_requirements`
+
+Menyimpan PRD atau specification. Jangan mencampur PRD dengan research notes.
+
+### `report_progress`
+
+Mencatat perkembangan fase/role saat ini beserta hasil yang dapat diverifikasi.
+
+### `complete_work`
+
+Mengakhiri work session sebagai completed, failed, atau blocked, disertai ringkasan dan evidence.
+
+Harus idempotent dan aman terhadap retry.
+
+### `get_work_state`
+
+Mengembalikan work, role aktif, plan, progress, dan ringkasan dokumen untuk melanjutkan pekerjaan setelah reconnect/restart.
+
+Tool dapat dikonsolidasikan jika lebih sederhana dan tetap jelas secara kontrak.
+
+**Penting:** Update server instructions agar external assistant mengetahui workflow otomatis ini.
+
+Jangan menganggap instruksi MCP cukup untuk menjamin client akan selalu mengikuti alur. Jika client tidak memanggil tool, tampilkan status yang jujur, tanpa membuat data palsu.
+
+## 6. Session dan lifecycle
+
+Gunakan `work_id` eksplisit yang dibuat server.
+
+Seluruh tool baru wajib menggunakan `work_id`.
+
+Tool Coding Space existing sebaiknya mendukung optional `work_id` untuk menghubungkan aktivitas file, command, dan test ke work session yang tepat.
+
+Backward compatibility wajib:
+
+- Client lama tetap dapat menggunakan `log_message`, `read_file`, `edit_file`, `run_command`, dan tool lainnya.
+- Activity recorder lama tetap berfungsi.
+- Tidak ada pemaksaan migrasi data lama.
+- Fallback legacy 30-minute grouping boleh tetap tersedia untuk client yang tidak mengirim `work_id`.
+
+Perhatikan concurrent tasks, reconnect, retry, server restart, stale sessions, dan task termination.
+
+Task tidak boleh otomatis ditandai berhasil hanya karena sebuah tool call selesai.
+
+## 7. Plan dan Documents
+
+Setiap update harus tersimpan secara durable dan muncul di existing UI.
+
+Plan tab menampilkan langkah serta status aktual.
+
+Documents tab mencakup research, PRD, dan dokumen hasil pekerjaan.
+
+Reuse existing project note exporter.
+
+Hindari menimpa atau menghapus research terdahulu tanpa alasan.
+
+Pastikan dokumen dapat dibuka setelah restart dan tetap terlindungi oleh project ownership.
+
+## 8. Team tab dan timeline
+
+Tujuannya tampilan setara dengan orchestrator internal, tetapi jujur terhadap siapa yang bekerja.
+
+Contoh:
+
+ChatGPT — External Assistant
+
+- Researcher: Done
+- Planner: Done
+- Developer: Done
+- QA: In progress
+- Security: Pending
+
+Tiap role menampilkan aktivitas, hasil, file, checks, dan laporan yang berhubungan.
+
+Reuse existing UI components bila memungkinkan.
+
+Jika `EventHandoff` tidak sesuai karena artinya benar-benar delegasi ke teammate lain, tambahkan event role transition dengan semantik jelas. Jangan menyalahgunakan existing event hanya untuk membuat Team tab terlihat terisi.
+
+Tampilkan identitas external assistant secara konsisten.
+
+Jangan membuat role seolah-olah agent atau model terpisah.
+
+## 9. Changes dan evidence
+
+Changes harus berasal dari operasi file yang benar-benar terjadi, bukan klaim assistant.
+
+Hubungkan existing file mutation recorder dan undo metadata ke `work_id` dan role yang aktif.
+
+Command/test results harus menyimpan exit code serta status aktual.
+
+Bedakan:
+
+- Self-reported progress
+- Server-observed file changes
+- Server-verified test results
+
+Jangan mengubah hasil self-reported menjadi verified secara otomatis.
+
+Hindari duplikasi action timeline, terutama pada long-running command yang memiliki begin/end events.
+
+## 10. Security
+
+Wajib mempertahankan:
+
+- OAuth scopes dan server-side permission enforcement.
+- Project ownership dan user isolation.
+- Client identity dari verified token, bukan request body.
+- Tidak ada akses silang antar `work_id` atau project.
+- Role switching tidak menambah hak eksekusi.
+- Tool mutasi membutuhkan permission yang sesuai.
+- Approval yang relevan tetap berlaku.
+- Bounded input size, jumlah plan steps, ukuran dokumen, rate limit, dan idempotency.
+- Perlindungan concurrent updates dan stale revisions.
+- Perlindungan secret leakage dalam research, PRD, logs, dan summaries.
+- Atomic persistence untuk perubahan state dan event jika diperlukan.
+- Tidak ada direct database access atau bypass melalui MCP.
+
+Existing security and regression tests tidak boleh dihapus atau dilemahkan.
+
+## 11. Testing
+
+Tambahkan unit, integration, HTTP/MCP, dan frontend tests, mengikuti aturan lokasi test repository.
+
+Minimal verifikasi:
+
+- ChatGPT external session dengan beberapa role.
+- Gemini external session dengan beberapa role.
+- Multiple projects dan multiple concurrent works.
+- Reconnect dan restart.
+- Role transitions.
+- Plan create/update/retry.
+- Research/PRD persistence dan document export.
+- Change tracking dan real command evidence.
+- Invalid `work_id`, wrong owner, wrong project, wrong scopes.
+- Unauthorized mutation dan attempted role-based privilege escalation.
+- Idempotency dan concurrent update conflicts.
+- Legacy MCP clients.
+- Existing internal orchestrator tidak mengalami regression.
+- Task status `done`, `working`, `blocked`, dan `failed`.
+- UI tab Plan, Documents, Team, Changes, Files.
+- Responsive desktop, tablet, mobile.
+
+Gunakan mock MCP client untuk automated black-box coverage. Jika live ChatGPT/Gemini tidak tersedia, tandai pemeriksaan live sebagai NOT RUN, jangan membuat hasil PASS palsu.
+
+Jalankan `make verify`, lalu pastikan Fast CI hijau.
+
+## 12. Dokumentasi
+
+Perbarui:
+
+- `docs/` untuk pengguna manusia, bahasa sederhana.
+- `agents/` untuk kontrak workflow dan pengetahuan agent.
+- `AGENTS.md` bila ada aturan permanen baru.
+
+Jelaskan bahwa external assistant memakai role otomatis tanpa memanggil orchestrator internal.
+
+Cantumkan keterbatasan: aktivitas di luar MCP dan pemikiran internal client tidak dapat direkam otomatis.
+
+## 13. Delivery
+
+Implementasi boleh dibagi menjadi beberapa commit kecil yang terverifikasi, tetapi targetnya fitur selesai end-to-end, bukan sekadar prototipe.
+
+Setelah selesai:
+
+- Push commit terverifikasi ke `origin/dev`.
+- Konfirmasi Fast CI.
+- Laporkan file utama yang berubah.
+- Jelaskan kontrak MCP tool baru.
+- Sertakan bukti E2E dan screenshot UI bila tersedia.
+- Konfirmasi backward compatibility.
+- Konfirmasi tidak ada perubahan production, data pengguna, atau workflow CI.
+
+**Jangan deploy production atau mengubah feature flag tanpa approval.**
+
+## Acceptance criteria
+
+Pekerjaan dianggap selesai jika satu external assistant, menggunakan Coding Space MCP, dapat:
+
+1. Membuat work session.
+2. Memilih dan berpindah role otomatis.
+3. Membuat dan memperbarui plan.
+4. Menyimpan research dan requirements.
+5. Menjalankan tool Coding Space sesuai permission.
+6. Mencatat changes dan hasil test aktual.
+7. Menyelesaikan task dengan status y

@@ -18,7 +18,7 @@ const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
 	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, ` +
-	`plan_first, follow_settings, pinned_at, archived_at, work_id`
+	`plan_first, follow_settings, pinned_at, archived_at, work_id, linked_task_id, origin_task_id`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -52,10 +52,11 @@ func insertTask(ctx context.Context, exec taskExecutor, t domain.Task) error {
 
 	_, err = exec.ExecContext(ctx,
 		`INSERT INTO tasks (id, project_id, user_id, title, summary, status, mode, provider_id, model, plan,
-		   created_at, updated_at, source, effort, team, plan_first, follow_settings, work_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		  created_at, updated_at, source, effort, team, plan_first, follow_settings, work_id, origin_task_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		t.ID, t.ProjectID, t.UserID, t.Title, t.Summary, string(t.Status), legacyMode, t.ProviderID, t.Model, string(plan),
-		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team, t.PlanFirst, t.FollowSettings, t.WorkID)
+		t.CreatedAt.Unix(), t.UpdatedAt.Unix(), t.Source, string(t.Effort), t.Team, t.PlanFirst, t.FollowSettings,
+		t.WorkID, nullableText(t.OriginTaskID))
 	if err != nil {
 		return fmt.Errorf("insert task: %w", err)
 	}
@@ -78,25 +79,11 @@ func (s *Store) Find(ctx context.Context, userID, id string) (domain.Task, error
 	return task, err
 }
 
-// Pin keeps the original pin time on repeated calls and hides tasks the person does not own.
-func (s *Store) Pin(ctx context.Context, userID, id string, at time.Time) (domain.Task, error) {
-	if _, err := s.db.ExecContext(ctx,
-		`UPDATE tasks SET pinned_at = COALESCE(pinned_at, ?) WHERE id = ? AND user_id = ?`,
-		at.Unix(), id, userID); err != nil {
-		return domain.Task{}, fmt.Errorf("pin task: %w", err)
+func nullableText(value string) any {
+	if value == "" {
+		return nil
 	}
-
-	return s.Find(ctx, userID, id)
-}
-
-// Unpin clears a pin and hides tasks the person does not own.
-func (s *Store) Unpin(ctx context.Context, userID, id string) (domain.Task, error) {
-	const query = `UPDATE tasks SET pinned_at = NULL WHERE id = ? AND user_id = ?`
-	if _, err := s.db.ExecContext(ctx, query, id, userID); err != nil {
-		return domain.Task{}, fmt.Errorf("unpin task: %w", err)
-	}
-
-	return s.Find(ctx, userID, id)
+	return value
 }
 
 // List returns a person's tasks, newest activity first.

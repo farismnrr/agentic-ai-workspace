@@ -84,6 +84,10 @@ type Task struct {
 	ID       string
 	// WorkID links a task to its persistent external work session.
 	WorkID string `json:"workId,omitempty"`
+	// LinkedTaskID points from an external task to its internal chat task.
+	LinkedTaskID string `json:"linkedTaskId,omitempty"`
+	// OriginTaskID attributes an internal chat task to the external task that started it.
+	OriginTaskID string `json:"originTaskId,omitempty"`
 	// Work is a read-only summary of the linked external work session.
 	Work  *WorkSummary `json:"work,omitempty"`
 	Model string

@@ -1,0 +1,90 @@
+ve task visible → role/progress events → complete.
+3. Long-running external command → running event → finished event, without page reload.
+4. External task → user sends chat → internal orchestrator responds.
+5. External work and internal linked conversation active concurrently.
+6. Stream disconnection → reconnect → correct event history.
+7. Browser refresh during active streaming.
+8. User changes tasks while updates continue.
+9. Server-side error or persistence failure.
+10. Legacy external task behavior.
+
+Use the existing test infrastructure and Playwright where practical.
+
+Inspect browser console errors and actual UI rendering, not only API responses.
+
+If live external token streaming cannot be tested because a client does not expose tokens, explicitly document the limitation and test the supported event-driven behavior instead.
+
+## 7. Engineering constraints
+
+- Follow Clean Architecture, SOLID, and existing module boundaries.
+- Keep task business logic in the task domain/application, not the UI.
+- Avoid god services and unnecessary cross-module imports.
+- Use strict TypeScript and existing Svelte patterns.
+- Reuse existing daisyUI components, semantic theme values, and chat components.
+- Respect repository file/function size limits.
+- Do not weaken test, lint, security, or CI guardrails.
+- Do not modify generated build artifacts manually.
+- Do not change consumer authentication flows.
+- Do not overwrite unrelated data.
+- Avoid unrelated refactoring.
+
+Update human-readable documentation in `docs/` and relevant agent-only knowledge in `agents/`.
+
+## 8. Verification and delivery
+
+Once implementation is complete:
+
+1. Run relevant focused tests.
+2. Run `make verify`.
+3. Run browser and integration regression tests.
+4. Inspect affected UI visually at desktop, tablet, and mobile sizes.
+5. Confirm the original error is resolved for the intended user-chat flow.
+6. Confirm external sessions never automatically enqueue an internal agent.
+7. Review the final diff for unrelated changes, regressions, and security concerns.
+8. Commit only task-related changes to `dev`.
+9. Push normally to `origin/dev`, without force.
+10. Wait for Fast CI on the exact commit.
+11. If CI fails, diagnose, fix, and verify again.
+12. Once CI is green, follow the repository's approved `make redeploy-dev` workflow when the target Docker runtime is available and safe to access.
+13. Verify `/api/health` and affected live behaviors after deployment.
+
+Do not claim a test, CI check, or deployment succeeded unless it was actually verified.
+
+If infrastructure prevents live verification, report the blocker and distinguish local test results from deployment verification.
+
+## 9. Final report
+
+Provide:
+
+- Root causes confirmed by file and line reference.
+- Architecture and routing decisions.
+- Files changed.
+- Explanation of the streaming synchronization fix.
+- Explanation of external task ↔ internal orchestrator linkage.
+- Test matrix with pass/fail/not-run.
+- CI run URL and status, if available.
+- Deployment and health-check status.
+- Commit SHA and push status.
+- Remaining limitations or risks.
+
+## Acceptance criteria
+
+The work is complete only when:
+
+- [ ] New tasks become visible promptly, including while actively running.
+- [ ] Internal streaming bubbles update without disappearing or duplicating.
+- [ ] External assistant messages retain correct user/assistant semantics.
+- [ ] External task progress remains independently visible.
+- [ ] Existing events update live without manual reload.
+- [ ] User chat from external tasks reaches the internal orchestrator.
+- [ ] External agent execution is not automatically hijacked or requeued.
+- [ ] Existing internal task behavior remains unchanged.
+- [ ] Authorization, persistence, and lifecycle invariants pass regression tests.
+- [ ] `make verify` passes.
+- [ ] Browser E2E passes where infrastructure permits.
+- [ ] Fast CI is green for the pushed commit.
+- [ ] Deployment is verified, or its blocker is explicitly reported.
+
+**Important: Fix the actual lifecycle and routing contracts, not merely the error message or bubble styling.**
+
+Proceed with implementation after the required preflight and research. Do not stop at analysis or a proposed design unless a genuine safety, architectural, or infrastructure blocker prevents proceeding.

@@ -94,15 +94,10 @@ func (h *Handler) push(out httpserver.SSE, userID, id string, cursor *int64, for
 	payload := make([]eventPayload, 0, len(events))
 	for _, event := range events {
 		payload = append(payload, eventPayload{Event: event, CanUndo: event.CanUndo()})
-		*cursor = max(*cursor, event.Seq)
+		*cursor = max(*cursor, event.Version)
 	}
 
-	last := int64(0)
-	if len(events) > 0 {
-		last = *cursor
-	}
-
-	return out.Event(last, "update", map[string]any{"task": toPayload(task), "events": payload})
+	return out.Event(*cursor, "update", map[string]any{"task": toPayload(task), "events": payload})
 }
 
 // workspaceStream tells a viewer that something they own changed, so lists can refresh at once.

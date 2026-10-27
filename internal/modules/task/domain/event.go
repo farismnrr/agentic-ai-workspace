@@ -92,8 +92,9 @@ type Event struct {
 	// Undo describes how to reverse the step; only the owning tools understand it.
 	Undo   []byte `json:"-"`
 	Undone bool   `json:"undone,omitempty"`
-	// Seq orders events within a task and is the cursor for polling.
-	Seq int64 `json:"seq"`
+	// Seq keeps the display order; Version advances when an event is inserted or updated.
+	Seq     int64 `json:"seq"`
+	Version int64 `json:"version"`
 }
 
 // CanUndo reports whether the step made a reversible change that still stands.

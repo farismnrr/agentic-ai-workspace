@@ -21,12 +21,23 @@ func (s *Store) LoadTranscript(ctx context.Context, taskID string) ([]domain.Mes
 }
 
 func (s *Store) appendIn(ctx context.Context, taskID, scope string, role domain.Role, block domain.Block) error {
+	return appendTranscript(ctx, s.db, taskID, role, block, scope)
+}
+
+func appendTranscript(
+	ctx context.Context,
+	exec taskExecutor,
+	taskID string,
+	role domain.Role,
+	block domain.Block,
+	scope string,
+) error {
 	encoded, err := json.Marshal(block)
 	if err != nil {
 		return fmt.Errorf("encode block: %w", err)
 	}
 
-	_, err = s.db.ExecContext(ctx,
+	_, err = exec.ExecContext(ctx,
 		`INSERT INTO task_transcript (task_id, seq, role, block, scope)
 		 VALUES (?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM task_transcript WHERE task_id = ?), ?, ?, ?)`,
 		taskID, taskID, string(role), string(encoded), scope)

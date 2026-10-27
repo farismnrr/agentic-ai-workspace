@@ -11,20 +11,21 @@ import (
 
 // Deps are the runner's collaborators.
 type Deps struct {
-	Notes      NoteFiles
-	Tasks      TaskStore
-	Events     EventStore
-	Transcript TranscriptStore
-	Usage      UsageStore
-	Models     Models
-	Windows    ContextWindows
-	Efforts    EffortLevels
-	Persona    PersonaSource
-	Projects   Projects
-	Tools      ToolSet
-	Gate       ToolGate
-	IDs        IDs
-	Notify     Notifier
+	Notes       NoteFiles
+	Tasks       TaskStore
+	LinkedTasks LinkedTaskStore
+	Events      EventStore
+	Transcript  TranscriptStore
+	Usage       UsageStore
+	Models      Models
+	Windows     ContextWindows
+	Efforts     EffortLevels
+	Persona     PersonaSource
+	Projects    Projects
+	Tools       ToolSet
+	Gate        ToolGate
+	IDs         IDs
+	Notify      Notifier
 	// Activity, when set, is told about the steps that change or run something; optional.
 	Activity ActivitySink
 	// Computer says what the agent's run_command can use; optional.

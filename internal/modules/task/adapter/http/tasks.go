@@ -23,15 +23,17 @@ type taskPayload struct {
 	// PRD is the requirements document the team's Planner wrote, in markdown; empty when there is none.
 	PRD string `json:"prd"`
 	// Research is what the team found out from the web and the project, in markdown; empty when none.
-	Research string              `json:"research"`
-	Status   domain.Status       `json:"status"`
-	ID       string              `json:"id"`
-	Model    string              `json:"model"`
-	Effort   string              `json:"effort"`
-	Source   string              `json:"source"`
-	WorkID   string              `json:"workId,omitempty"`
-	Work     *domain.WorkSummary `json:"work,omitempty"`
-	Plan     []domain.PlanStep   `json:"plan"`
+	Research     string              `json:"research"`
+	Status       domain.Status       `json:"status"`
+	ID           string              `json:"id"`
+	Model        string              `json:"model"`
+	Effort       string              `json:"effort"`
+	Source       string              `json:"source"`
+	WorkID       string              `json:"workId,omitempty"`
+	LinkedTaskID string              `json:"linkedTaskId,omitempty"`
+	OriginTaskID string              `json:"originTaskId,omitempty"`
+	Work         *domain.WorkSummary `json:"work,omitempty"`
+	Plan         []domain.PlanStep   `json:"plan"`
 	// ContextUsed and ContextWindow are tokens; both are zero before the first model call.
 	ContextUsed   int64 `json:"contextUsed"`
 	ContextWindow int64 `json:"contextWindow"`
@@ -45,7 +47,7 @@ func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
 		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Team: t.Team,
-		WorkID: t.WorkID, Work: t.Work,
+		WorkID: t.WorkID, Work: t.Work, LinkedTaskID: t.LinkedTaskID, OriginTaskID: t.OriginTaskID,
 		PlanFirst: t.PlanFirst,
 		PRD:       t.PRD, Research: t.Research, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
@@ -134,6 +136,22 @@ func (h *Handler) message(c fiber.Ctx) error {
 	}
 
 	return h.done(c, h.service.FollowUp(c.Context(), httpserver.UserID(c), c.Params("id"), body.Text))
+}
+
+func (h *Handler) externalChat(c fiber.Ctx) error {
+	var body struct {
+		Text string `json:"text"`
+	}
+	if err := c.Bind().JSON(&body); err != nil {
+		return badBody(c)
+	}
+	linkedID, err := h.service.ChatOnExternal(c.Context(), httpserver.UserID(c), c.Params("id"), body.Text)
+	if err != nil {
+		return fail(c, err)
+	}
+	return c.JSON(struct {
+		LinkedTaskID string `json:"linkedTaskId"`
+	}{LinkedTaskID: linkedID})
 }
 
 func (h *Handler) cancel(c fiber.Ctx) error {

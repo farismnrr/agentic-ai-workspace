@@ -68,8 +68,8 @@ func TestRecoverySkipsWorkAndLegacyCallsDoNotJoinIt(t *testing.T) {
 	if err := r.service.Recover(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := r.task(t, workTask.ID).Status; got != domain.StatusWorking {
-		t.Fatalf("recovery changed active work state to %s", got)
+	if got := r.task(t, workTask.ID).Status; got != domain.StatusWorking || len(r.disp.enqueued) != 0 {
+		t.Fatalf("recovery changed active work state to %s or enqueued it: %v", got, r.disp.enqueued)
 	}
 	first, err := r.service.Record(ctx, "u1", application.RecordInput{
 		ProjectID: "proj", Source: "ChatGPT", Event: domain.Event{Kind: domain.EventMessage, Text: "Legacy call"},
@@ -80,8 +80,9 @@ func TestRecoverySkipsWorkAndLegacyCallsDoNotJoinIt(t *testing.T) {
 	second, err := r.service.Record(ctx, "u1", application.RecordInput{
 		ProjectID: "proj", Source: "ChatGPT", Event: domain.Event{Kind: domain.EventMessage, Text: "Next legacy call"},
 	})
-	if err != nil || second != first {
-		t.Fatalf("legacy 30-minute grouping changed: first=%s second=%s err=%v", first, second, err)
+	if err != nil || second != first || len(r.disp.enqueued) != 0 {
+		t.Fatalf("legacy grouping or enqueue behavior changed: first=%s second=%s err=%v queue=%v",
+			first, second, err, r.disp.enqueued)
 	}
 }
 

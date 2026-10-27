@@ -15,7 +15,7 @@ type eventPayload struct {
 	CanUndo bool `json:"canUndo"`
 }
 
-// events returns the thread entries after a cursor, which is how the app follows a running task.
+// events returns the thread entries changed after a version cursor.
 func (h *Handler) events(c fiber.Ctx) error {
 	after := int64(fiber.Query[int](c, "after", 0))
 

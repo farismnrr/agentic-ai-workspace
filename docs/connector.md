@@ -36,6 +36,17 @@ Each connected-app conversation shows as a task beside the work done in the app.
 - The timeline shows conversation messages when the AI app saves them, plus
   work steps and results. An app that never calls the work tools still gets the
   simple timeline used before.
+- In a work session, saved user and assistant messages remain chat bubbles.
+  `saved` is returned only after the thread event commits.
+- You can message an external task to ask the workspace orchestrator for help.
+  It opens one linked internal chat in the same project; the external task's
+  timeline and lifecycle remain separate. The chat includes the external task's
+  request, plan, research, requirements and reported progress, with the external
+  assistant's claims labelled separately from server-recorded evidence. The
+  context is bounded and clearly separated from your message. If its linked chat
+  is archived, the next message opens a fresh conversation.
+- Running work steps update in place while the thread is open, including after
+  a reconnect. New work sessions appear in the task list as soon as they start.
 - Evidence labels what the server can support: the AI app's own progress report,
   file changes the server saw, and commands the server ran with their exit codes.
 - The server cannot see activity outside its tools or the AI app's private

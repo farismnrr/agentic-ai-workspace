@@ -50,3 +50,11 @@ id_rsa*
 # Local non-Go tooling caches (do not exclude source or migrations)
 __pycache__/
 .venv/
+node_modules
+.next
+.nuxt
+.output
+dist
+target
+__pycache__
+.venv

@@ -34,15 +34,8 @@ func (a appWorkCalls) Record(
 }
 
 func workEvent(call codingmcp.WorkCall) taskdomain.Event {
-	event := taskdomain.Event{
-		Kind: taskdomain.EventAction, Text: call.Note.Text, Technical: call.Note.Technical,
-		Files: call.Files, Undo: call.Undo, ToolUseID: call.CallID,
-		Work: &taskdomain.WorkRef{Evidence: taskdomain.EvidenceKind(call.Evidence), Phase: call.Phase},
-	}
-	if call.Note.Run != nil {
-		event.Run = &taskdomain.RunInfo{
-			Name: call.Note.Run.Name, ExitCode: call.Note.Run.ExitCode, TimedOut: call.Note.Run.TimedOut,
-		}
-	}
+	event := eventOf(call.Note)
+	event.Files, event.Undo, event.ToolUseID = call.Files, call.Undo, call.CallID
+	event.Work = &taskdomain.WorkRef{Evidence: taskdomain.EvidenceKind(call.Evidence), Phase: call.Phase}
 	return event
 }

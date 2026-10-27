@@ -43,6 +43,10 @@ func TestWorkCallsCaptureRoleAndUpdateLongCommandInOneEvent(t *testing.T) {
 	if _, updateErr := store.UpdateWorkCall(ctx, taskID, work.ID, event.ID, finished); updateErr != nil {
 		t.Fatal(updateErr)
 	}
+	changed, err := store.EventsChangedAfter(ctx, taskID, event.Version)
+	if err != nil || len(changed) != 1 || changed[0].ID != event.ID || changed[0].Version <= event.Version {
+		t.Fatalf("changed events = %+v, %v", changed, err)
+	}
 	events, err := store.EventsAfter(ctx, taskID, 0)
 	if err != nil || len(events) != 2 {
 		t.Fatalf("events = %d, %v", len(events), err)

@@ -16,9 +16,11 @@ func TestWorkFileEventOwnsUndoAndContainsChangedPaths(t *testing.T) {
 	g := &guard{workCalls: calls, recorder: activity}
 	entry := Entry{UserID: "u", Client: "ChatGPT", Project: "p", Summary: "move old to new", Undo: []byte("blob")}
 	ctx := context.WithValue(t.Context(), identityKey{}, identity{WorkID: "w"})
-	g.succeeded(ctx, domain.ToolMoveFile, &entry, report{
+	if err := g.succeeded(ctx, domain.ToolMoveFile, &entry, report{
 		detail: "moved", undo: []byte("blob"), files: []string{"old", "new"},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if len(calls.recorded) != 1 || len(calls.recorded[0].Files) != 2 ||
 		calls.recorded[0].Evidence != "observed" || string(calls.recorded[0].Undo) != "blob" {
 		t.Fatalf("work call = %+v", calls.recorded)
@@ -37,9 +39,11 @@ func TestWorkFileEventFailureRetainsActivityUndoAndWarns(t *testing.T) {
 	g := &guard{workCalls: calls, recorder: activity}
 	entry := Entry{UserID: "u", Client: "ChatGPT", Project: "p", Summary: "write page", Undo: []byte("blob")}
 	ctx := context.WithValue(t.Context(), identityKey{}, identity{WorkID: "w"})
-	g.succeeded(ctx, domain.ToolWriteFile, &entry, report{
+	if err := g.succeeded(ctx, domain.ToolWriteFile, &entry, report{
 		detail: "written", undo: []byte("blob"), files: []string{"page"},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if calls.attempts != 2 || len(activity.entries) != 1 ||
 		string(activity.entries[0].Undo) != "blob" ||
 		!strings.Contains(activity.entries[0].Detail, "recorded:false") ||
@@ -57,15 +61,33 @@ func TestWorkCommandUsesOneRunningEventAndRealExitCode(t *testing.T) {
 	state.begin("p")
 	ctx := context.WithValue(t.Context(), identityKey{}, identity{WorkID: "work-1"})
 	ctx = context.WithValue(ctx, stateKey{}, state)
-	g.succeeded(ctx, domain.ToolRunCommand, &entry, report{
+	if err := g.succeeded(ctx, domain.ToolRunCommand, &entry, report{
 		detail: "exit code 7", failed: true, note: &Note{Text: "All tests passed"},
 		run: &RunNote{Name: "go test", ExitCode: 7},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	if calls.starts != 1 || calls.finishes != 1 || len(calls.recorded) != 0 ||
 		calls.finished.Note.Text != "All tests passed" || calls.finished.Note.Run == nil ||
 		calls.finished.Note.Run.ExitCode != 7 ||
 		calls.finished.Evidence != "ran" || entry.Outcome != OutcomeFailed {
 		t.Fatalf("start=%d finish=%d call=%+v outcome=%s", calls.starts, calls.finishes, calls.finished, entry.Outcome)
+	}
+}
+
+func TestFailedRunningCallUpdateIsReturnedAndRecorded(t *testing.T) {
+	calls := &fakeWorkCalls{finishErr: errWorkCallTestFailure}
+	activity := &captureRecorder{}
+	g := &guard{workCalls: calls, recorder: activity}
+	entry := Entry{UserID: "u", Client: "ChatGPT", Project: "p", Summary: "command: go test"}
+	state := &callState{taskID: "task", eventID: "event", workID: "work"}
+	ctx := context.WithValue(t.Context(), identityKey{}, identity{WorkID: "work"})
+	ctx = context.WithValue(ctx, stateKey{}, state)
+	err := g.succeeded(ctx, domain.ToolRunCommand, &entry, report{detail: "finished"})
+	if err == nil || !strings.Contains(err.Error(), "workspace could not be used") ||
+		entry.Outcome != OutcomeFailed ||
+		len(activity.entries) != 1 || activity.entries[0].Outcome != OutcomeFailed {
+		t.Fatalf("finish error=%v entry=%+v activity=%+v", err, entry, activity.entries)
 	}
 }
 
@@ -75,7 +97,9 @@ func TestLegacyThreadStillUsesTaskLogWithoutWorkCalls(t *testing.T) {
 	g := &guard{tasks: legacy, workCalls: calls}
 	ctx := context.WithValue(t.Context(), identityKey{}, identity{User: "u", Client: "ChatGPT"})
 	entry := Entry{UserID: "u", Client: "ChatGPT", Project: "p", Summary: "read file"}
-	g.thread(ctx, domain.ToolReadFile, &entry, report{})
+	if err := g.thread(ctx, domain.ToolReadFile, &entry, report{}); err != nil {
+		t.Fatal(err)
+	}
 	if legacy.logs != 1 || calls.attempts != 0 || entry.Task != "legacy-task" {
 		t.Fatalf("legacy logs=%d work calls=%d task=%q", legacy.logs, calls.attempts, entry.Task)
 	}
@@ -86,6 +110,7 @@ type fakeWorkCalls struct {
 	finished  WorkCall
 	recorded  []WorkCall
 	recordErr error
+	finishErr error
 	WorkCalls
 	starts   int
 	finishes int
@@ -100,7 +125,7 @@ func (f *fakeWorkCalls) Start(context.Context, string, string, string, string, W
 func (f *fakeWorkCalls) Finish(_ context.Context, _, _, _ string, call WorkCall) error {
 	f.finishes++
 	f.finished = call
-	return nil
+	return f.finishErr
 }
 
 func (f *fakeWorkCalls) Record(_ context.Context, _, _, _, _ string, call WorkCall) (string, error) {
@@ -116,11 +141,14 @@ func (r *captureRecorder) Record(_ context.Context, entry Entry) error {
 	return nil
 }
 
-type fakeTaskLog struct{ logs, begins int }
+type fakeTaskLog struct {
+	logErr       error
+	logs, begins int
+}
 
 func (f *fakeTaskLog) Log(context.Context, string, string, string, Note) (string, error) {
 	f.logs++
-	return "legacy-task", nil
+	return "legacy-task", f.logErr
 }
 
 func (f *fakeTaskLog) Begin(context.Context, string, string, string, Note) (string, error) {

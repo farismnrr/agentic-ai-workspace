@@ -5,7 +5,7 @@ import type { TaskEvent } from './task-types';
 describe('changesOf', () => {
   it('derives undo and file data from external action events', () => {
     const events: TaskEvent[] = [{
-      id: 'change-1', seq: 1, time: '', kind: 'action', text: 'Updated page',
+      id: 'change-1', seq: 1, version: 1, time: '', kind: 'action', text: 'Updated page',
       files: ['src/page.svelte'], canUndo: true, undone: false,
       work: { id: 'work-1', actor: 'ChatGPT', role: 'developer', evidence: 'observed' },
     }];
@@ -18,7 +18,7 @@ describe('changesOf', () => {
 
   it('omits changes for external events without file edits', () => {
     const events: TaskEvent[] = [{
-      id: 'message-1', seq: 1, time: '', kind: 'message', text: 'Working',
+      id: 'message-1', seq: 1, version: 1, time: '', kind: 'message', text: 'Working',
       work: { id: 'work-1' },
     }];
 

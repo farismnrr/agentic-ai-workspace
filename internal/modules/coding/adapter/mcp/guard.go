@@ -94,7 +94,9 @@ func guarded[In, Out any](
 			return nil, none, g.failed(runCtx, info, &entry, err)
 		}
 
-		g.succeeded(runCtx, info, &entry, rep)
+		if err := g.succeeded(runCtx, info, &entry, rep); err != nil {
+			return nil, none, err
+		}
 
 		return nil, out, nil
 	}

@@ -1,0 +1,44 @@
+# # Fix Task Bubble Lifecycle, Live Streaming, and External Ta…
+
+Task: a4c3f733b96d6e0396ac72e2c102a4eb
+Status: working
+Updated: 2026-10-27T07:25:31Z
+
+Reference material; confirm applicability before reusing.
+
+Scope: **large**. It touches the task, MCP and SSE paths in Go, adds a migration, and changes the Svelte thread and composer. It needs a new link between an external task and an internal task, and the ordering must stay safe at every step.
+
+Out of scope:
+- Token-level streaming from ChatGPT/Gemini. The server never sees those tokens, so the UI shows an honest "working" indicator and updates as real events arrive.
+- Removing the external-task guard in `FollowUp` (`service.go:118`) or changing the external task's lifecycle.
+- Auto-forwarding user chat to the external assistant, or enqueueing the internal agent on external updates.
+- Changing consumer auth, adding a second server, or doing unrelated refactors.
+
+**Assumptions** (from the request and the research; none of them block the work):
+- **Stack:** Go Fiber v3, Svelte 5 and SQLite as already present. The look is the existing `masihawam-light` theme and the existing chat components. The audience is the project owner.
+- **Linked chat:** a normal internal task in the same project, referenced from the external task by a nullable, unique column added in a new migration after `055`. Because it is unique, retries, double-clicks and concurrent sends reuse one linked task. The task application service creates or reuses it.
+- **First message:** it creates the linked task and enqueues it. This is the person's own action, so it is allowed. Later messages use the normal `FollowUp` on the linked task, with its normal busy, needs-input and archived rules.
+- **Archived external task:** it rejects chat, as it does today.
+- **Context for the orchestrator:** the external task's request, plan, research, progress and results, built on the server. External claims are labelled "reported by the external assistant" and kept apart from server-verified evidence. The linked task gets no MCP or external-work privileges.
+- **Missed updates:** event updates are tracked with a per-event version marker (new column or `updated_at`). The stream and `/api/tasks/:id/events` return new events and changed events from the same cursor rule, on notification, on reconnect and on the existing 15-second heartbeat. The client replaces events by id and sorts by seq. No new polling.
+- **`log_message`:** it reports `saved` only after the thread write commits, and returns an error otherwise. A failed finish-update of a running action must not be hidden.
+- **Preflight:** `git fetch` failed with a read-only `.git`, so `origin/dev` was not refreshed. DevOps re-checks this before the push. The untracked `project-notes/`, `reference-bundle/` and ZIP files stay untouched.
+
+Done when:
+1. `make verify` passes. The new Go and Vitest tests cover: kind preservation, event-update delivery, linked-task idempotency under concurrency, cross-project and archived rejection, CSRF, persistence failure, and "external updates never enqueue".
+2. In the browser at desktop, tablet and mobile sizes with no console errors, an external task's running action turns finished without a reload. A message sent from that task gets an orchestrator reply in a clearly labelled linked chat. The external timeline is unchanged.
+3. Fast CI is green on the pushed `dev` commit. After `make redeploy-dev`, `/api/health` on 8081 is OK, and the "That is not possible right now" error no longer appears on external chat.
+
+Todo (each Developer step also updates the matching `docs/` page and `agents/` note in the same change):
+1. **Developer:** `user` and `assistant` messages from explicit `work_id` sessions show as chat bubbles, and `log_message` reports saved only after commit. This covers `workbridge_calls.go`, `work_calls.go` and `tools_log.go`. Verify with Go tests for the kinds, failed persistence and legacy-path regression.
+2. **Developer:** a running action changes to finished in an open thread, and a new external task appears in the list as soon as `begin_work` succeeds. This adds the version marker, the stream and `/events` change delivery, and upsert-by-id in `thread.ts`. Verify with Go stream and reconnect tests and a Vitest test covering running→finished, no duplicates, late responses, and no leak when switching tasks.
+3. **Developer:** the server accepts a chat message on an external task and routes it to a created-or-reused linked internal task. This adds the migration, the service method, the route with its context builder, and a stored state for the link. Verify with Go tests for concurrent sends, retry, cross-project, archived, stopped, failed and done states, CSRF, no-model error, "external lifecycle untouched" and "no enqueue on external updates".
+4. **Developer:** the external task's composer sends to the linked chat, says the internal orchestrator is replying, and links to that chat while external progress stays visible. A failed send keeps the typed text and attachments. Verify with Vitest tests for routing, attribution and failed-send preservation, and with `svelte-check` and ESLint.
+5. **QA:** walk the main flows in the browser at desktop, tablet and mobile sizes, and extend `e2e-thread` where practical. The flows are internal streaming, external work session, long action finishing, external task chat, disconnect then reconnect, and refresh during activity. Report pass, fail or not-run for each, plus console errors and screenshots.
+6. **DevOps:** run `make verify`, commit only the task's files to `dev`, push normally, wait for Fast CI, fix it if red, then run `make redeploy-dev` and check `/api/health`. Verify with the CI run URL, the commit SHA and the health response.
+
+Security is already a separate step in the team plan. It should review step 3's diff: ownership, cross-project and privilege separation.
+
+Open questions: none that block the work.
+
+I changed no files. I did not run any tests or commands, only read the request, the project index, `service.go`, `thread.ts` and the migration list.

@@ -69,8 +69,8 @@ func TestAnExistingDatabaseTakes052WithoutTouchingTheJournal(t *testing.T) {
 
 	if after["052_egress_grants.sql"] == "" || after["053_egress_audit.sql"] == "" ||
 		after["054_egress_actor_attribution.sql"] == "" || after["055_external_works.sql"] == "" ||
-		len(after) != len(before)+4 {
-		t.Fatalf("052 through 054 should have been added, journal has %d rows (was %d)", len(after), len(before))
+		len(after) != len(before)+6 {
+		t.Fatalf("052 through 057 should have been added, journal has %d rows (was %d)", len(after), len(before))
 	}
 }
 
@@ -134,7 +134,7 @@ func TestExistingAuditMigrationGetsAppendOnlyActorAttribution(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := journal(t, db)
-	if len(after) != len(before)+2 || after["054_egress_actor_attribution.sql"] == "" ||
+	if len(after) != len(before)+4 || after["054_egress_actor_attribution.sql"] == "" ||
 		after["055_external_works.sql"] == "" {
 		t.Fatalf("actor migration not appended: before=%d after=%d", len(before), len(after))
 	}

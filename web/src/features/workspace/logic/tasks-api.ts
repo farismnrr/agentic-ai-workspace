@@ -57,6 +57,9 @@ export const createTask = (input: NewTask): Promise<Task> => request<Task>('POST
 
 export const sendMessage = (id: string, text: string): Promise<undefined> => request<undefined>('POST', `${base(id)}/messages`, { text });
 
+export const chatOnExternalTask = (id: string, text: string): Promise<{ linkedTaskId: string }> =>
+  request<{ linkedTaskId: string }>('POST', `${base(id)}/chat`, { text });
+
 export const answerApproval = (id: string, eventId: string, allow: boolean): Promise<undefined> =>
   request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/answer`, { allow });
 

@@ -1,6 +1,9 @@
 import { writable, type Readable } from 'svelte/store';
 import { describeTaskError } from './task-errors';
-import { acceptTask, answerApproval, answerQuestion, cancelTask, retryTask, sendMessage, undoStep } from './tasks-api';
+import {
+  acceptTask, answerApproval, answerQuestion, cancelTask, chatOnExternalTask, retryTask,
+  sendMessage, undoStep,
+} from './tasks-api';
 import type { Thread } from './thread';
 import { refresh } from './workspace-store';
 
@@ -19,25 +22,24 @@ export interface TaskController {
   stop: () => void;
   retry: () => void;
   /** Resolves true when the message was accepted. */
-  follow: (text: string) => Promise<boolean>;
+  follow: (text: string, external: boolean) => Promise<{ accepted: boolean; linkedTaskId?: string }>;
 }
 
 /** Runs the buttons of one task and refreshes the thread and lists afterwards. */
 export function createController(taskId: string, thread: Thread): TaskController {
   const error = writable('');
 
-  const act = async (run: () => Promise<unknown>): Promise<boolean> => {
+  const act = async <T>(run: () => Promise<T>): Promise<T | undefined> => {
     error.set('');
-    let ok = true;
+    let result: T | undefined;
     try {
-      await run();
+      result = await run();
     } catch (failure) {
-      ok = false;
       error.set(describeTaskError(failure));
     } finally {
       await Promise.all([thread.refresh(), refresh()]);
     }
-    return ok;
+    return result;
   };
 
   return {
@@ -50,6 +52,15 @@ export function createController(taskId: string, thread: Thread): TaskController
     accept: () => void act(() => acceptTask(taskId)),
     stop: () => void act(() => cancelTask(taskId)),
     retry: () => void act(() => retryTask(taskId)),
-    follow: (text) => act(() => sendMessage(taskId, text)),
+    follow: async (text, external) => {
+      const result = await act(async (): Promise<{ linkedTaskId?: string }> => {
+        if (external) return chatOnExternalTask(taskId, text);
+        await sendMessage(taskId, text);
+        return {};
+      });
+      return result === undefined
+        ? { accepted: false }
+        : { accepted: true, ...result };
+    },
   };
 }
