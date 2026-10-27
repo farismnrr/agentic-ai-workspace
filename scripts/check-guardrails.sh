@@ -10,6 +10,21 @@ case "$limit" in
     ;;
 esac
 
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  worktree_count="$(git worktree list --porcelain | awk '/^worktree / { count++ } END { print count + 0 }')"
+  if [ "$worktree_count" -gt 1 ]; then
+    echo "Git worktree guardrail failed: expected one worktree, found ${worktree_count}." >&2
+    exit 1
+  fi
+
+  stage_directories="$(find . -maxdepth 1 -type d -name '.stage*' -print)"
+  if [ -n "$stage_directories" ]; then
+    echo "Git worktree guardrail failed: staging checkout directories are not allowed:" >&2
+    echo "$stage_directories" >&2
+    exit 1
+  fi
+fi
+
 file_violations="$(
   find . -type f \
     \( -name '*.go' -o -name '*.ts' -o -name '*.svelte' -o -name '*.css' \
