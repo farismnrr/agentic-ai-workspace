@@ -111,11 +111,14 @@ func (fakeWorkspaces) Projects(context.Context, string, string) ([]ProjectInfo, 
 	return nil, nil
 }
 
+//nolint:govet // fieldalignment: keep fake service fields grouped by recorded concern.
 type fakeWorkSessions struct {
 	WorkSessions
 	lastUser, lastClient, lastProject string
 	state                             WorkState
 	validations                       int
+	roles                             []string
+	research, requirements            string
 }
 
 func (f *fakeWorkSessions) Validate(_ context.Context, user, client, project, workID string) error {
@@ -134,6 +137,7 @@ func (f *fakeWorkSessions) Begin(_ context.Context, _, _, _ string, _ BeginWorkI
 
 func (f *fakeWorkSessions) SetRole(_ context.Context, _, _, _, workID, role, _ string) (RoleWorkResult, error) {
 	f.state.Role = role
+	f.roles = append(f.roles, role)
 	return RoleWorkResult{
 		WorkID: workID, Revision: f.state.Revision, State: f.state.State,
 		Role: WorkRole{Key: "developer", Name: role}, Changed: true, Warnings: []string{},
@@ -152,12 +156,14 @@ func (f *fakeWorkSessions) UpdatePlan(
 }
 
 func (f *fakeWorkSessions) SaveResearch(
-	_ context.Context, _, _, _, workID string, _ ResearchWorkInput,
+	_ context.Context, _, _, _, workID string, input ResearchWorkInput,
 ) (WorkMutation, error) {
+	f.research = input.Markdown
 	return mutation(workID, f.state), nil
 }
 
-func (f *fakeWorkSessions) SaveRequirements(_ context.Context, _, _, _, workID, _ string) (WorkMutation, error) {
+func (f *fakeWorkSessions) SaveRequirements(_ context.Context, _, _, _, workID, markdown string) (WorkMutation, error) {
+	f.requirements = markdown
 	return mutation(workID, f.state), nil
 }
 

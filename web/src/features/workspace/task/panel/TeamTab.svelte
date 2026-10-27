@@ -3,7 +3,7 @@
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import type { TaskEvent, WorkSummary } from '../../logic/task-types';
-  import { teamJobs, type JobState } from '../../logic/team';
+  import { hasExternalTeam, teamJobs, type JobState } from '../../logic/team';
   import ExternalTeam from './ExternalTeam.svelte';
 
   interface Props {
@@ -20,9 +20,10 @@
   const tones: Record<JobState, string> = { working: 'badge-info', waiting: 'badge-warning', done: 'badge-success', failed: 'badge-error' };
   const stateOf = (state: JobState): JobState => (state === 'waiting' && !waiting ? 'working' : state);
   const count = (n: number, one: string, many: string): string => `${String(n)} ${n === 1 ? one : many}`;
+  const external = $derived(hasExternalTeam(source, work));
 </script>
 
-{#if work !== undefined || source !== ''}
+{#if external}
   <ExternalTeam {events} {work} actor={work?.actor ?? source} />
 {:else if jobs.length === 0}
   <EmptyState compact bordered icon="user" title="No one has been called in yet" body="When the lead hands a job to a teammate, who is doing what shows up here." />

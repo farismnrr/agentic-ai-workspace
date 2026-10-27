@@ -28,6 +28,33 @@ func TestRetryAndAnswerRefuseConnectedAppTasks(t *testing.T) {
 	}
 }
 
+func TestRetryAnswerAndContinueStillQueueInternalTasks(t *testing.T) {
+	r := newRig(nil)
+	ctx := context.Background()
+	failed := r.start(t, "Retry this")
+	_ = r.mem.SetStatus(ctx, failed.ID, domain.StatusFailed, time.Now())
+	if err := r.service.Retry(ctx, "u1", failed.ID); err != nil {
+		t.Fatalf("retry internal task: %v", err)
+	}
+	questionTask := r.start(t, "Answer this")
+	question, err := r.mem.AppendEvent(ctx, questionTask.ID, domain.Event{Kind: domain.EventQuestion, Text: "Choose"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = r.mem.SetStatus(ctx, questionTask.ID, domain.StatusNeedsInput, time.Now())
+	if err := r.service.Answer(ctx, "u1", questionTask.ID, question.ID, application.Answer{Choice: "Yes"}); err != nil {
+		t.Fatalf("answer internal task: %v", err)
+	}
+	review := r.start(t, "Continue this")
+	_ = r.mem.SetStatus(ctx, review.ID, domain.StatusReview, time.Now())
+	if err := r.service.FollowUp(ctx, "u1", review.ID, "One more thing"); err != nil {
+		t.Fatalf("continue internal task: %v", err)
+	}
+	if len(r.disp.enqueued) != 6 {
+		t.Fatalf("internal operations were not all enqueued; queue=%v", r.disp.enqueued)
+	}
+}
+
 func TestRecoverySkipsWorkAndLegacyCallsDoNotJoinIt(t *testing.T) {
 	r := newRig(nil)
 	ctx := context.Background()

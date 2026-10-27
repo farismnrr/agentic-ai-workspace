@@ -66,6 +66,48 @@ func TestCompleteReportsServerRunsAndFileChanges(t *testing.T) {
 	}
 }
 
+func TestCompleteFailedAndBlockedOutcomesSetTaskAndWorkState(t *testing.T) {
+	t.Run("failed", func(t *testing.T) {
+		assertCompletionOutcome(t, "failed", domain.StatusFailed, domain.WorkFailed, domain.EventError)
+	})
+	t.Run("blocked", func(t *testing.T) {
+		works, store, begun := completeOutcome(t, "blocked", domain.StatusNeedsInput, domain.WorkBlocked, domain.EventMessage)
+		if _, err := works.SetRole(context.Background(), "u1", "ChatGPT", "proj", begun.WorkID, "Developer"); err != nil {
+			t.Fatalf("blocked work did not resume: %v", err)
+		}
+		if store.works[begun.WorkID].State != domain.WorkOpen {
+			t.Fatal("resumed work is not open")
+		}
+	})
+}
+
+func assertCompletionOutcome(t *testing.T, outcome string, status domain.Status,
+	workState domain.WorkState, eventKind domain.EventKind,
+) {
+	t.Helper()
+	completeOutcome(t, outcome, status, workState, eventKind)
+}
+
+func completeOutcome(t *testing.T, outcome string, status domain.Status, workState domain.WorkState,
+	eventKind domain.EventKind,
+) (*Works, *workFakeStore, BeginResult) {
+	t.Helper()
+	works, store, begun := begunWork(t)
+	_, err := works.Complete(context.Background(), "u1", "ChatGPT", "proj", begun.WorkID,
+		outcome, "Needs attention", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	work := store.works[begun.WorkID]
+	task := store.tasks[work.TaskID]
+	events := store.events[work.TaskID]
+	last := events[len(events)-1]
+	if task.Status != status || work.State != workState || last.Kind != eventKind {
+		t.Fatalf("outcome state: task=%s work=%s event=%s", task.Status, work.State, last.Kind)
+	}
+	return works, store, begun
+}
+
 func TestBlockedWorkResumesWithProgress(t *testing.T) {
 	works, store, begun := begunWork(t)
 	ctx := context.Background()
