@@ -15,9 +15,11 @@ import (
 // the program's own WebFetch runs in its container, which reaches package registries only and so refuses every
 // page, while these run on the server (SearXNG for the search, a public-only fetch for the page). The screenshot runs
 // there too, because a program has no browser; the picture cannot cross the bridge, so it gets the report of the page.
+// CI logs are served here as well: GitHub sends them from a storage host the program's container cannot reach, so the
+// server downloads them with the project owner's GitHub connection and passes on the text.
 var siteToolNames = []string{
 	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
-	"screenshot", toolRequestEgress,
+	"screenshot", toolRequestEgress, "ci_logs",
 }
 
 // siteSession serves the site tools to a teammate's program. Each call goes through the same code as a call of the
