@@ -21,6 +21,7 @@ const SharedSandboxName = "agentic-sandbox"
 
 const (
 	cleanupTimeout = 30 * time.Second
+	staleAge       = 5 * time.Minute
 	ownerTagLen    = 6
 )
 
@@ -132,7 +133,8 @@ func (d *Docker) removeLeftovers(ctx context.Context) {
 	}
 
 	for _, item := range list.Items {
-		if item.Labels[taskLabel] == d.cfg.Owner || item.State != "running" {
+		stale := item.State != "running" && time.Since(time.Unix(item.Created, 0)) > staleAge
+		if item.Labels[taskLabel] == d.cfg.Owner || stale {
 			d.remove(ctx, item.ID)
 		}
 	}
