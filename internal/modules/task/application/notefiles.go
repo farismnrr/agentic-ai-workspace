@@ -101,7 +101,7 @@ func taskNoteFiles(task domain.Task, events []domain.Event) []NoteFile {
 	if len(task.Plan) > 0 {
 		var plan strings.Builder
 		for _, step := range task.Plan {
-			fmt.Fprintf(&plan, "- [%s] %s\n  %s\n", step.State, stripControls(step.Title), step.Detail)
+			fmt.Fprintf(&plan, "- [%s] %s\n  %s\n", step.State, stripControls(step.Title), stripControls(step.Detail))
 		}
 		files = append(files, NoteFile{Path: base + "plan.md", Content: header + plan.String()})
 	}

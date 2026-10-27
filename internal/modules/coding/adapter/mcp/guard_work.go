@@ -2,12 +2,18 @@ package mcp
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"slices"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
-const workUndoRecordAttempts = 2
+const (
+	workUndoRecordAttempts = 2
+	workCallIDSize         = 16
+)
 
 func workIDFrom(ctx context.Context) string {
 	who, _ := ctx.Value(identityKey{}).(identity)
@@ -67,6 +73,12 @@ func (g *guard) finishWorkCall(ctx context.Context, entry *Entry, state *callSta
 }
 
 func (g *guard) recordWorkCall(ctx context.Context, entry *Entry, workID string, call WorkCall) {
+	callID, err := workCallID()
+	if err != nil {
+		entry.Detail += "; recorded:false: could not prepare a retry-safe event"
+		return
+	}
+	call.CallID = callID
 	for attempt := 0; attempt < recordAttempts(call); attempt++ {
 		taskID, err := g.workCalls.Record(ctx, entry.UserID, entry.Client, entry.Project, workID, call)
 		if err == nil {
@@ -79,6 +91,14 @@ func (g *guard) recordWorkCall(ctx context.Context, entry *Entry, workID string,
 		}
 	}
 	entry.Detail += "; recorded:false: undo remains in the activity log"
+}
+
+func workCallID() (string, error) {
+	bytes := make([]byte, workCallIDSize)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("create connected-app call ID: %w", err)
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 func recordAttempts(call WorkCall) int {

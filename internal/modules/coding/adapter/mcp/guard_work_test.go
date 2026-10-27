@@ -42,7 +42,9 @@ func TestWorkFileEventFailureRetainsActivityUndoAndWarns(t *testing.T) {
 	})
 	if calls.attempts != 2 || len(activity.entries) != 1 ||
 		string(activity.entries[0].Undo) != "blob" ||
-		!strings.Contains(activity.entries[0].Detail, "recorded:false") {
+		!strings.Contains(activity.entries[0].Detail, "recorded:false") ||
+		len(calls.recorded) != 2 || calls.recorded[0].CallID == "" ||
+		calls.recorded[0].CallID != calls.recorded[1].CallID {
 		t.Fatalf("attempts=%d activity=%+v", calls.attempts, activity.entries)
 	}
 }
