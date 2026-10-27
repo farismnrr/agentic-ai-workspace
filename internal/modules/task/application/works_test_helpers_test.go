@@ -55,5 +55,6 @@ type workRoster struct{}
 func (workRoster) Roster(context.Context, string) (Roster, error) {
 	return Roster{Lead: AgentRole{Key: "orchestrator", Name: "Orchestrator", Lead: true}, Members: []AgentRole{
 		{Key: "developer", Name: "Developer", Purpose: "Writes code.", Prompt: "private prompt"},
+		{Key: "researcher", Name: "Researcher", Purpose: "Finds information.", Prompt: "research prompt"},
 	}}, nil
 }
