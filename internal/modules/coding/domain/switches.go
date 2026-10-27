@@ -6,9 +6,19 @@ var followsRunCommand = map[string]bool{
 	ToolRequestEgress.Name: true,
 }
 
+var followsLogMessage = map[string]bool{
+	ToolBeginWork.Name: true, ToolSetRole.Name: true, ToolUpdatePlan.Name: true, ToolSaveResearch.Name: true,
+	ToolSaveRequirements.Name: true, ToolReportProgress.Name: true,
+	ToolCompleteWork.Name: true, ToolGetWorkState.Name: true,
+}
+
 // SwitchOf names the switch that governs a tool. Most tools have their own; starting and stopping the web
 // app follow run_command.
 func SwitchOf(tool string) string {
+	if followsLogMessage[tool] {
+		return ToolLogMessage.Name
+	}
+
 	if followsRunCommand[tool] {
 		return ToolRunCommand.Name
 	}

@@ -101,7 +101,7 @@
       </div>
       <div class="flex min-h-0 flex-1">
         <section class="min-w-0 flex-1 flex-col lg:flex {view === 'chat' ? 'flex' : 'hidden'}" aria-label="Conversation">
-          <TaskThread task={$task} events={$events} draft={$draft} actions={controller.actions} onretry={controller.retry} readOnly={archived} />
+          <TaskThread task={$task} events={$events} draft={$draft} actions={controller.actions} onretry={$task.source === '' ? controller.retry : undefined} readOnly={archived} />
           {#if !archived && $task.status === 'review'}
             <ReviewBar proven={$task.proof?.proven ?? false} onaccept={controller.accept} onchanges={focusFollowUp} />
           {/if}

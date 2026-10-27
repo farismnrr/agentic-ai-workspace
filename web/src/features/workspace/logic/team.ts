@@ -1,4 +1,7 @@
-import type { TaskEvent } from './task-types';
+import type { TaskEvent, WorkSummary } from './task-types';
+
+/** External task metadata selects the external team view; otherwise show internal handoffs. */
+export const hasExternalTeam = (source: string, work?: WorkSummary): boolean => work !== undefined || source !== '';
 
 export type JobState = 'working' | 'waiting' | 'done' | 'failed';
 

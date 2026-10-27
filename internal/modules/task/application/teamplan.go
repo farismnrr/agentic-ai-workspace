@@ -95,21 +95,8 @@ func (r *Runner) keepResearch(ctx context.Context, taskID, document string) erro
 		return fmt.Errorf("read research: %w", err)
 	}
 
-	all := document
-	if current.Research != "" {
-		all = current.Research + researchBreak + document
-	}
-
-	for len([]rune(all)) > maxResearch {
-		cut := strings.Index(all, researchBreak)
-		if cut < 0 {
-			break
-		}
-
-		all = all[cut+len(researchBreak):]
-	}
-
-	if err := r.deps.Tasks.SaveResearch(ctx, taskID, truncate(all, maxResearch), r.deps.Now()); err != nil {
+	updated := appendResearch(current.Research, document)
+	if err := r.deps.Tasks.SaveResearch(ctx, taskID, updated, r.deps.Now()); err != nil {
 		return fmt.Errorf("save research: %w", err)
 	}
 	return nil

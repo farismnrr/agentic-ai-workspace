@@ -31,6 +31,8 @@ Three audiences, three places. Never mix them.
 5. Do not add hot reload or a dev-server workflow. Supported execution is `build -> run binary`.
 6. `make run` always verifies and rebuilds before running, so the binary never goes stale.
 7. `backend-build` always uses `CGO_ENABLED=0`, so local binaries and the image's binary are the same static, single-file artifact. `make image` builds the image.
+8. Do not wrap AGY's consumer OAuth/headless mode inside this third-party orchestrator: Google's FAQ explicitly disallows it. Use independently issued Gemini API/Enterprise credentials instead; do not copy login tokens or automate account rotation. Keep legacy 9router relays disabled without deleting user data.
+9. ZIP uploads are stored as inert attachments only; validate contents and sizes before saving and never automatically unpack on the server.
 
 ## Clean Architecture dependency rule
 
@@ -71,6 +73,9 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 5. Runtime environment access belongs in `internal/platform/config`.
 6. Register API routes before the SPA fallback.
 7. Prefer explicit constructor/function injection over package globals.
+8. External tasks (`Source != ""` or `WorkID != ""`) never enqueue the internal
+   agent. External work roles are labels and never change tool permissions.
+   Record role transitions with `EventRole`; never model them as `EventHandoff`.
 
 ## Frontend rules
 

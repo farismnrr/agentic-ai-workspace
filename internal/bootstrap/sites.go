@@ -77,37 +77,38 @@ func newAgentAndSites(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
 	folders *folder.Folders, gate taskapp.ToolGate, steps taskapp.ActivitySink, sess sessions,
 	auth, sameOrigin fiber.Handler, agentSessions siteapp.AgentSessions,
-) (*taskapp.Service, *siteapp.Service, []httpserver.Mount, func(), error) {
+) (*taskapp.Service, *taskapp.Works, *siteapp.Service, []httpserver.Mount, func(), error) {
 	hub := taskapp.NewHub()
 
 	granted, gatewayMount, err := newReach(db, cfg, models.providers, projects, auth, sameOrigin)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	tools.reach, tools.plans.reach = granted, granted
 
 	sites, siteMount, err := newSites(db, cfg, tools, folders, projects, hub, sess, auth, sameOrigin, agentSessions)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	tools.sites = sites
 
 	extensions, extensionMount, err := newExtensions(db, cfg, folders, projects, hub, auth, sameOrigin)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	tools.extensions = extensions
 
-	tasks, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, steps, hub, auth,
+	tasks, works, agentMount, stop, err := newAgent(db, cfg, models, projects, tools, gate, steps, hub, auth,
 		sameOrigin, agentSessions)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	filesMount := newFiles(projects, tools, hub, sess, auth, sameOrigin)
 
-	return tasks, sites, []httpserver.Mount{siteMount, extensionMount, agentMount, filesMount, gatewayMount}, stop, nil
+	mounts := []httpserver.Mount{siteMount, extensionMount, agentMount, filesMount, gatewayMount}
+	return tasks, works, sites, mounts, stop, nil
 }

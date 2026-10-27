@@ -24,6 +24,9 @@ func (s *Service) Answer(ctx context.Context, userID, taskID, eventID string, an
 	if task.ArchivedAt != nil {
 		return domain.ErrWrongState
 	}
+	if task.Source != "" {
+		return domain.ErrWrongState
+	}
 
 	event, err := s.deps.Events.FindEvent(ctx, taskID, eventID)
 	if err != nil {
@@ -70,6 +73,15 @@ func (s *Service) Cancel(ctx context.Context, userID, taskID string) error {
 	}
 	if task.ArchivedAt != nil {
 		return domain.ErrWrongState
+	}
+	if task.WorkID != "" {
+		if s.workStopper == nil {
+			return domain.ErrWrongState
+		}
+		if err := s.workStopper.Stop(ctx, userID, task.Source, task.ProjectID, task.WorkID); err != nil {
+			return fmt.Errorf("stop external work: %w", err)
+		}
+		return nil
 	}
 
 	switch s.dispatcher.Cancel(task.ID) {
@@ -150,7 +162,7 @@ func (s *Service) UndoChange(ctx context.Context, userID, taskID, eventID string
 		return domain.ErrWrongState
 	}
 
-	if task.Status.Running() {
+	if task.Status.Running() && task.Source == "" {
 		return domain.ErrBusy
 	}
 

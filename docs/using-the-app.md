@@ -48,9 +48,13 @@ You can attach up to 10 files to one message. Remove a file with its button
 before sending. After sending, photos appear in your message bubble and other
 files show as chips; select one to open it.
 
-Photos (PNG, JPEG, WebP, GIF, SVG), PDF and text files (TXT, Markdown, CSV,
-JSON, LOG) can be up to 25 MB each. Videos (MP4, WebM, MOV) can be up to
-100 MB. The app checks file contents as well as the filename.
+Photos (PNG, JPEG, WebP, GIF, SVG), PDF, ZIP and text files (TXT, Markdown,
+CSV, JSON, LOG) can be up to 25 MB each. Videos (MP4, WebM, MOV) can be up
+to 100 MB. The app checks file contents as well as the filename.
+
+ZIP files are stored without extraction. Unsafe paths, links, encrypted archives,
+nested archives and decompression bombs are rejected. A ZIP may contain up to
+256 entries and 100 MB of uncompressed data. Treat archive contents as untrusted.
 
 Files are saved in the project's `uploads/` folder and appear in the Files tab.
 Videos can play and seek there, but the AI cannot watch or understand them.
@@ -144,7 +148,7 @@ the project's own SQLite file. Choose PostgreSQL, MySQL or MongoDB to create
 an isolated connection from details saved under **Settings → Database**.
 PostgreSQL and MySQL use `DATABASE_URL`; MongoDB uses `MONGODB_URL`.
 The AI's commands and your running app can reach that database, and only that one.
-The **Model gateway** section below it lets the project call a gateway on this computer, such as 9router.
+The **Model gateway** section lets the project call an OpenAI-compatible API on this computer using your own API key. Account-sharing relays such as 9router are not supported.
 The code then gets `OPENAI_BASE_URL` and, if the provider has a key, `OPENAI_API_KEY`.
 When configured, the public CA is provided as `DATABASE_SSL_CA`.
 
@@ -223,13 +227,14 @@ database migrations or backups.
 
 ## Models
 
-You can add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https://aistudio.google.com/apikey)), or an OpenAI-compatible gateway such as 9router.
+You can add Anthropic, OpenAI, Google Gemini (key from [Google AI Studio](https://aistudio.google.com/apikey)), or a legitimate local OpenAI-compatible API using your own API key. Account relays are unsupported.
 
 - A gateway must run on the same computer as the app (`localhost`). The app refuses any other address, so nobody can point it at your internal network.
 - Keys are stored encrypted and checked right away.
 - Models are grouped by provider.
 - With a gateway, each provider it serves is its own group. Codex, Claude Code and OpenCode have names. Others show the gateway's short name, such as `kr`.
 - A provider added in the gateway appears within about 30 seconds, or at once when you press Refresh.
+- Legacy 9router providers cannot make requests or be enabled. They remain listed as disabled so you can delete them yourself, without losing unrelated data.
 
 ### Three model tiers
 

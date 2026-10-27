@@ -23,6 +23,8 @@ type Gate interface {
 type Entry struct {
 	UserID string
 	Client string
+	// WorkID marks calls whose stored activity text must follow work redaction rules.
+	WorkID string
 	// Project is where the call worked, so an undo can find it again.
 	Project string
 	Tool    string
@@ -72,4 +74,23 @@ type TaskLog interface {
 	Begin(ctx context.Context, userID, client, projectID string, note Note) (string, error)
 	// End says the call that Begin started is over.
 	End(ctx context.Context, taskID string)
+}
+
+// WorkCalls records tool activity in an explicit work session.
+type WorkCalls interface {
+	Start(ctx context.Context, userID, client, projectID, workID string, call WorkCall) (string, string, error)
+	Finish(ctx context.Context, taskID, workID, eventID string, call WorkCall) error
+	Record(ctx context.Context, userID, client, projectID, workID string, call WorkCall) (string, error)
+}
+
+// WorkCall is one server-observed connected-app action.
+//
+//nolint:govet // fieldalignment: keep the event payload fields grouped by meaning.
+type WorkCall struct {
+	CallID   string
+	Note     Note
+	Files    []string
+	Undo     []byte
+	Phase    string
+	Evidence string
 }

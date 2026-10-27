@@ -34,6 +34,11 @@ func Classify(given string, head []byte) (Upload, Check, error) {
 		return Upload{}, nil, ErrEmpty
 	}
 
+	if strings.EqualFold(extension(given), ".zip") && bytes.HasPrefix(head, []byte("PK\x03\x04")) {
+		return Upload{Kind: "archive", Ext: ".zip", Media: "application/zip", Limit: MaxUploadBytes},
+			newContentCheck("archive", ".zip"), nil
+	}
+
 	if upload, ok := classifyBinary(head); ok {
 		return upload, newContentCheck(upload.Kind, upload.Ext), nil
 	}

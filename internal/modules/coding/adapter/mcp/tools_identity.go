@@ -8,6 +8,7 @@ type identity struct {
 	Client string
 	// Project is the Project ID the call asked for; empty means the app's own project.
 	Project string
+	WorkID  string
 }
 
 // whoami needs the token's user, which the guard has already verified; the

@@ -9,6 +9,7 @@ import (
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 // Services are the use cases the tools call.
@@ -28,6 +29,10 @@ type Options struct {
 	Recorder Recorder
 	// Tasks, when set, keeps what the app does as a thread the person can read.
 	Tasks TaskLog
+	// Works backs the explicit connected-app work lifecycle tools.
+	Works WorkSessions
+	// WorkCalls records file, read and command activity under an explicit work ID.
+	WorkCalls WorkCalls
 	// ResourceMetadataURL is advertised in scope challenges.
 	ResourceMetadataURL string
 }
@@ -45,6 +50,7 @@ type Workspaces interface {
 type tools struct {
 	workspaces Workspaces
 	guard      *guard
+	works      WorkSessions
 }
 
 // services returns the workspace of the person whose token made this call.
@@ -57,6 +63,14 @@ func (t *tools) services(ctx context.Context) (Services, error) {
 	services, err := t.workspaces.For(ctx, who.User, who.Client, who.Project)
 	if err != nil {
 		return Services{}, fmt.Errorf("open workspace: %w", err)
+	}
+	if who.WorkID != "" {
+		if t.works == nil {
+			return Services{}, taskdomain.ErrUnknownWork
+		}
+		if err := t.works.Validate(ctx, who.User, who.Client, services.ProjectID, who.WorkID); err != nil {
+			return Services{}, workToolError("validate work session", err)
+		}
 	}
 
 	if state, ok := ctx.Value(stateKey{}).(*callState); ok {
@@ -71,20 +85,40 @@ func (t *tools) services(ctx context.Context) (Services, error) {
 	return services, nil
 }
 
+func (t *tools) recheckWork(ctx context.Context, projectID string) error {
+	who, _ := ctx.Value(identityKey{}).(identity)
+	if who.WorkID == "" {
+		return nil
+	}
+	if t.works == nil {
+		return taskdomain.ErrUnknownWork
+	}
+	if err := t.works.Validate(ctx, who.User, who.Client, projectID, who.WorkID); err != nil {
+		return workToolError("validate work session", err)
+	}
+	return nil
+}
+
 // serverInstructions are shown to the app's model when it connects. The person follows the work in their own
 // workspace, and only what the model writes down tells them what they asked for.
 const serverInstructions = "These tools work in the person's own workspace, where they follow your work in a thread. " +
 	"Start each request by calling log_message with role user and what the person asked, in their words. " +
 	"End it by calling log_message with role assistant and a short summary of the result. " +
 	"When the person names a project (such as sensio), call list_projects and give its id as project to the other " +
-	"tools; without a project you work in your own. Start a web app with start_site, never with a shell command."
+	"tools; without a project you work in your own. For substantial requests, call begin_work first (small tasks may " +
+	"skip it), switch role labels as useful (Researcher, Planner, Developer, QA, Security), pass work_id to each " +
+	"work tool, and finish with complete_work. There is one assistant: roles are labels, no other agent is called, " +
+	"and permissions do not change. Start a web app with start_site, never with a shell command."
 
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"},
 		&sdk.ServerOptions{Instructions: serverInstructions})
-	g := &guard{gate: opts.Gate, recorder: opts.Recorder, tasks: opts.Tasks, metadataURL: opts.ResourceMetadataURL}
-	t := &tools{workspaces: workspaces, guard: g}
+	g := &guard{
+		gate: opts.Gate, recorder: opts.Recorder, tasks: opts.Tasks,
+		workCalls: opts.WorkCalls, metadataURL: opts.ResourceMetadataURL,
+	}
+	t := &tools{workspaces: workspaces, guard: g, works: opts.Works}
 
 	t.addReadTools(server)
 	t.addWriteTools(server)
@@ -92,6 +126,7 @@ func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	t.addLogTools(server)
 	t.addSiteTools(server)
 	t.addProjectTools(server)
+	t.addWorkTools(server)
 
 	return server
 }
@@ -128,4 +163,7 @@ var knownErrors = []error{
 	domain.ErrTooLarge, domain.ErrExists, domain.ErrNotUnique, domain.ErrNoMatch, domain.ErrBadRange,
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
 	domain.ErrServerBusy, domain.ErrUnknownProject, errBadMessage,
+	taskdomain.ErrUnknownWork, taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused,
+	taskdomain.ErrBadRole, taskdomain.ErrTooMany, taskdomain.ErrRateLimited, taskdomain.ErrTooLarge,
+	taskdomain.ErrBadRequest, taskdomain.ErrNoProject,
 }

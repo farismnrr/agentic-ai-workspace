@@ -19,6 +19,21 @@ func TestDefaultGoModuleEgressIncludesRedirectStorage(t *testing.T) {
 	}
 }
 
+func TestClaudeSignInHostIsVendorScoped(t *testing.T) {
+	t.Setenv("CLAUDE_EGRESS_HOSTS", "")
+	t.Setenv("SANDBOX_EGRESS_HOSTS", "")
+
+	cfg := Load()
+	for _, host := range []string{"claude.ai", "claude.com", "platform.claude.com", "api.anthropic.com"} {
+		if !slices.Contains(cfg.ClaudeEgress, host) {
+			t.Errorf("Claude sign-in host %q missing", host)
+		}
+		if slices.Contains(cfg.SandboxEgress, host) {
+			t.Errorf("Claude host %q must not be globally exposed", host)
+		}
+	}
+}
+
 func TestOriginsDefaultToLocalhostAndLoopback(t *testing.T) {
 	t.Setenv("PORT", "8081")
 	t.Setenv("ALLOWED_ORIGINS", "")

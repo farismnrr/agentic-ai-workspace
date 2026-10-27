@@ -29,6 +29,8 @@ describe('attachment rules', () => {
   it('accepts supported extensions with matching, missing, or generic browser MIME', () => {
     expect(validateFile(file('photo.png', 2, 'image/png'))).toBeUndefined();
     expect(validateFile(file('notes.md'))).toBeUndefined();
+    expect(validateFile(file('bundle.zip', 2, 'application/zip'))).toBeUndefined();
+    expect(validateFile(file('archive.zip', 2, 'application/x-zip-compressed'))).toBeUndefined();
     expect(validateFile(file('clip.mov', 2, 'application/octet-stream'))).toBeUndefined();
   });
 
@@ -43,6 +45,8 @@ describe('attachment rules', () => {
     expect(validateFile(file('clip.mp4', 100 * 1024 * 1024))).toBeUndefined();
     expect(validateFile(file('clip.webm', 100 * 1024 * 1024 + 1))).toContain('100 MB');
     expect(validateFile(file('book.pdf', 25 * 1024 * 1024 + 1))).toContain('25 MB');
+    expect(validateFile(file('archive.zip', 25 * 1024 * 1024 + 1))).toContain('25 MB');
+    expect(validateFile(file('fake.zip', 10, 'application/pdf'))).toContain('does not match');
   });
 
   it('limits a message to ten accepted files', () => {

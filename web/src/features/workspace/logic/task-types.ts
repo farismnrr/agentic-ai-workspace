@@ -6,6 +6,34 @@ export type Risk = 'low' | 'medium' | 'high';
 export type HandoffState = 'assigned' | 'reported' | 'failed';
 
 export type PlanState = 'done' | 'active' | 'pending' | 'failed';
+export type WorkState = 'open' | 'blocked' | 'completed' | 'failed' | 'stopped' | 'abandoned';
+
+export interface WorkSummary {
+  id: string;
+  updatedAt: string;
+  state: WorkState;
+  role?: string;
+  roleName?: string;
+  actor: string;
+  revision: number;
+  planRev: number;
+  stale: boolean;
+}
+
+export type WorkEvidence = 'claimed' | 'observed' | 'ran';
+
+export interface WorkEventRef {
+  id: string;
+  actor?: string;
+  role?: string;
+  roleName?: string;
+  from?: string;
+  evidence?: WorkEvidence;
+  outcome?: string;
+  callId?: string;
+  phase?: string;
+  plannedRoles?: string[];
+}
 
 export interface PlanStep {
   id: string;
@@ -21,6 +49,7 @@ interface EventBase {
   time: string;
   /** The teammate who did it; absent for the lead and for tasks without a team. */
   agent?: string;
+  work?: WorkEventRef;
 }
 
 export interface RunInfo {
@@ -31,7 +60,7 @@ export interface RunInfo {
 
 export type TaskEvent =
   | (EventBase & { kind: 'request'; text: string; documents?: string[] })
-  | (EventBase & { kind: 'message'; text: string })
+  | (EventBase & { kind: 'message'; text: string; technical?: string })
   | (EventBase & {
       kind: 'action';
       text: string;
@@ -51,6 +80,7 @@ export type TaskEvent =
   | (EventBase & { kind: 'plan'; text: string; technical: string })
   | (EventBase & { kind: 'prd'; text: string; technical: string })
   | (EventBase & { kind: 'research'; text: string; technical: string })
+  | (EventBase & { kind: 'role'; text: string; technical?: string })
   | (EventBase & { kind: 'handoff'; text: string; technical?: string; action: HandoffState; model?: string; effort?: string });
 
 /** How one question of a form is answered: pick one, pick several, or type. */
@@ -120,6 +150,10 @@ export interface Task {
   pinnedAt: string | null;
   /** ISO timestamp when this task was archived; null while it is active. */
   archivedAt: string | null;
+  /** The connected app that created this task; empty for internal tasks. */
+  source: string;
+  workId?: string;
+  work?: WorkSummary;
 }
 
 export interface Project {
@@ -140,4 +174,6 @@ export interface Change {
   files: string[];
   canUndo: boolean;
   undone: boolean;
+  work?: WorkEventRef;
+  exitCode?: number;
 }
