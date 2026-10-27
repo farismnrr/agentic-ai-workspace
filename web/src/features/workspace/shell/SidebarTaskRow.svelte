@@ -5,6 +5,8 @@
   import type { Task } from '../logic/task-types';
   import { setTaskPinned } from '../logic/workspace-store';
   import { timeAgo } from '../logic/time';
+  import { workStatusPresentation } from '../logic/work-status';
+  import { statusMeta } from '../content/status';
 
   interface Props {
     task: Task;
@@ -17,6 +19,8 @@
   const active = $derived($route.name === 'task' && $route.taskId === task.id);
   const pinned = $derived(task.pinnedAt !== null);
   const pinLabel = $derived(pinned ? 'Unpin task' : 'Pin task');
+  const workStatus = $derived(workStatusPresentation(task.status, task.work));
+  const statusLabel = $derived(workStatus.label || statusMeta[task.status].label);
 
   async function togglePin(): Promise<void> {
     saving = true;
@@ -37,10 +41,12 @@
     aria-current={active ? 'page' : undefined}
     class="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5"
   >
-    <StatusDot status={task.status} />
+    <StatusDot status={workStatus.iconStatus} label={statusLabel} />
     <span class="min-w-0 flex-1">
       <span class="block truncate">{task.title}</span>
-      {#if projectName}<span class="block truncate text-xs font-normal text-[var(--brand-text-tertiary)]">{projectName}</span>{/if}
+      <span class="block truncate text-xs font-normal text-[var(--brand-text-tertiary)]">
+        {statusLabel}{#if projectName} · {projectName}{/if}
+      </span>
     </span>
     <span class="shrink-0 text-xs font-normal text-[var(--brand-text-tertiary)]">
       {timeAgo(task.pinnedAt ?? task.updatedAt).replace(' ago', '')}

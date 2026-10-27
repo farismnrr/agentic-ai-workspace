@@ -13,7 +13,7 @@ describe('plan review snapshot sections', () => {
     });
 
     expect(sections).toEqual([
-      { label: 'PRD', content: '<script>alert("text only")</script>' },
+      { label: 'Requirements', content: '<script>alert("text only")</script>' },
       { label: 'Research', content: 'Source: https://example.test/research' },
       { label: 'Questions and answers', content: '[{"question":"Which option?","answer":"A"}]' },
     ]);
@@ -23,7 +23,7 @@ describe('plan review snapshot sections', () => {
     const sections = planReviewSnapshotSections({ revision: 1, summary: 'Small task', steps: [] });
 
     expect(sections.map(({ content }) => content)).toEqual([
-      'No PRD was supplied.',
+      'No requirements were supplied.',
       'No research was supplied.',
       'No questions or answers were supplied.',
     ]);

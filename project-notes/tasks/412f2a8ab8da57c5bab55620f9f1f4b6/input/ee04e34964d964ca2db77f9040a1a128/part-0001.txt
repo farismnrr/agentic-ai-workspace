@@ -1,0 +1,284 @@
+# MASTER IMPLEMENTATION — Unified External Agent Workflow, Role Enforcement, Planning, Handoff & UI Consistency
+
+## Project context
+
+Repository: `farismnrr/agentic-ai-workspace`  
+Target branch: `dev`  
+Audited baseline: `8709fb4` (verify current HEAD before beginning)
+
+You are the implementation agent. Take ownership of completing the following changes, including research, architecture, implementation, tests, documentation, CI verification, and deployment where permitted.
+
+This specification is based on a preliminary read-only repository audit. **Validate all findings against the current codebase before changing anything.** Do not blindly implement assumptions from this document.
+
+The objective is to unify internal and external AI work into a consistent, observable, secure lifecycle.
+
+External AI integrations include ChatGPT, Gemini, and other supported MCP clients. The internal Masih Awam Orchestrator must remain the sole owner of implementation after a user approves an external implementation plan.
+
+**Do not build a second orchestration engine. Do not turn external role labels into new internally spawned agents. Reuse the existing domain, application, persistence, event, and dispatch mechanisms.**
+
+---
+
+# Phase 0 — Mandatory preflight, research and architecture audit
+
+## 0.1 Repository safety
+
+Before any changes:
+
+1. Read `AGENTS.md` completely.
+2. Read relevant `agents/` policies, especially `agents/git-safety.md`.
+3. Read the relevant `docs/` architecture, connector, design system, and usage documentation.
+4. Inspect branch, HEAD, worktrees, dirty files, and `origin/dev`.
+5. Fetch and compare safely as required by repository rules.
+6. Use the single existing checkout on `dev`. Do not create additional worktrees or branches.
+
+The previous audit found pre-existing uncommitted changes in:
+
+- `project-notes/tasks/a4c3f733b96d6e0396ac72e2c102a4eb/plan.md`
+- `project-notes/tasks/a4c3f733b96d6e0396ac72e2c102a4eb/requirements.md`
+- `project-notes/tasks/a4c3f733b96d6e0396ac72e2c102a4eb/research.md`
+- `project-notes/tasks/a4c3f733b96d6e0396ac72e2c102a4eb/prd/23.md`
+- `project-notes/tasks/a4c3f733b96d6e0396ac72e2c102a4eb/research/20.md`
+- `project-notes/tasks/a4c3f733b96d6e0396ac72e2c102a4eb/research/37.md`
+
+**User decision for these known dirty files: KEEP THEM UNTOUCHED.**
+
+Do not reset, clean, stash, overwrite, regenerate, stage, or commit those changes. If implementation or tests would modify them, isolate that behavior safely or report a blocker.
+
+If additional unexpected dirty files, branch divergence, or conflicts are discovered, follow the repository's stop-and-report policy.
+
+Never use force push or destructive Git cleanup.
+
+## 0.2 Official resource gathering
+
+Research current official documentation before implementation.
+
+At minimum investigate:
+
+- Model Context Protocol lifecycle, tools, task support, and authorization
+- MCP Streamable HTTP, session behavior, and notifications
+- OpenAI Apps/Connectors and ChatGPT MCP tool invocation behavior
+- OpenAI MCP Events availability and client limitations
+- MCP task-based interactions, `input_required`, and elicitation where applicable
+- Gemini API function calling and supported MCP integrations
+- Go MCP SDK capabilities and current compatibility
+- Svelte 5, TypeScript and daisyUI accessibility patterns
+- WCAG 2.2 status identification, non-color cues and reduced motion
+- Reliable event processing, optimistic concurrency, idempotency and transactional outbox patterns where relevant
+
+Use current primary sources rather than assumptions.
+
+Build a capability matrix identifying:
+
+| Capability | Masih Awam | ChatGPT | Gemini | Generic MCP client |
+|---|---|---|---|---|
+| Start external work | | | | |
+| Declare or transition roles | | | | |
+| Save research notes | | | | |
+| Persist an implementation plan | | | | |
+| Ask the user a question | | | | |
+| Receive a question answer | | | | |
+| Request plan approval | | | | |
+| Explicitly approve a plan | | | | |
+| Receive a server notification | | | | |
+| Resume after reconnect | | | | |
+| Trigger Orchestrator handoff | | | | |
+
+Distinguish supported, unsupported, conditional, and unverified capabilities.
+
+**Never claim that ChatGPT or Gemini exposes private thinking, streaming tokens, or internal planning events when it does not.**
+
+Do not introduce new server infrastructure without demonstrating that existing infrastructure is insufficient.
+
+## 0.3 Verify the previously discovered architecture
+
+Inspect these areas before designing modifications:
+
+Backend:
+
+- `internal/modules/task/domain/work.go`
+- `internal/modules/task/domain/event.go`
+- `internal/modules/task/application/works.go`
+- `internal/modules/task/application/work_roles.go`
+- `internal/modules/task/application/work_plan.go`
+- `internal/modules/task/application/work_complete.go`
+- `internal/modules/task/application/work_documents.go`
+- `internal/modules/task/application/work_state.go`
+- `internal/modules/task/application/work_mutation.go`
+- `internal/modules/task/application/external_chat.go`
+- `internal/modules/task/application/researchfirst.go`
+- `internal/modules/task/application/teamplan.go`
+- `internal/modules/task/application/actions.go`
+- `internal/modules/task/adapter/http/stream.go`
+- `internal/modules/coding/adapter/mcp/`
+- `internal/bootstrap/coding.go`
+
+Frontend:
+
+- `web/src/features/workspace/components/StatusDot.svelte`
+- `web/src/features/workspace/components/StatusBadge.svelte`
+- `web/src/features/workspace/content/status.ts`
+- `web/src/features/workspace/shell/SidebarTaskRow.svelte`
+- `web/src/features/workspace/task/thread/TaskThread.svelte`
+- `web/src/features/workspace/settings/`
+- `web/src/app/router.ts`
+- `web/src/features/workspace/logic/thread.ts`
+- `web/src/features/workspace/logic/workspace-store.ts`
+
+Also inspect relevant SQLite migrations, existing integration tests, the current task bubble implementation, and existing approval services.
+
+Identify the actual dependencies and affected interfaces.
+
+---
+
+# Phase 1 — Accessible task status indicators
+
+## Problem
+
+Some task indicators still rely on colored dots. People with color-vision deficiencies cannot reliably interpret their meaning.
+
+The previous audit found:
+
+- `StatusDot.svelte` already renders accessible icons.
+- `StatusBadge.svelte` already uses icon plus label.
+- `SidebarTaskRow.svelte` still renders a colored status dot.
+- Some sidebar task states do not display a visible status indicator at all.
+
+Avoid creating another redundant status component.
+
+## Required behavior
+
+Use consistent icon-based status semantics:
+
+| Status | Visual indicator |
+|---|---|
+| Queued | Clock |
+| Planning | Document or planning indicator |
+| Working | Animated loader |
+| Needs input | Question mark |
+| Review | Review/attention indicator |
+| Completed | Check |
+| Failed | Cross/error |
+| Cancelled/stopped | Cancellation indicator, if supported by the actual domain model |
+
+The existing domain statuses are authoritative. Do not fabricate additional statuses purely for appearance.
+
+Requirements:
+
+1. Reuse the centralized `statusMeta` mapping.
+2. Reuse shared status components.
+3. Replace remaining color-only indicators.
+4. Ensure icon shapes remain distinguishable without color.
+5. Provide accessible names and screen-reader support.
+6. Preserve appropriate semantic colors as supplementary information.
+7. Respect `prefers-reduced-motion`.
+8. Avoid unnecessary animations.
+9. Display status meaning consistently across sidebar, task lists, inbox, project views, task headers and bubbles.
+10. Include a visible indicator for terminal states where the design calls for it.
+
+## Task bubbles during streaming
+
+Investigate and fix task bubble visibility during active streaming.
+
+Requirements:
+
+- Create or expose the task record immediately when the authoritative task starts.
+- Show the bubble before completion.
+- Update it when task events are committed.
+- Keep it visible through streaming, reconnection and role transitions.
+- Stop the loading indicator after an authoritative terminal transition.
+- Do not assume a disconnected external model has finished merely because updates are silent.
+- Do not invent partial ChatGPT/Gemini output when that content was not emitted through supported tools.
+
+Cover both internal Orchestrator tasks and external work sessions.
+
+## Acceptance tests
+
+Verify queued, planning, running, blocked, review, done, failed, and applicable stopped states.
+
+Test desktop/mobile rendering, screen-reader labels, reduced motion, browser refresh, SSE reconnect, and external streaming activity.
+
+---
+
+# Phase 2 — Mandatory role assignment for external work
+
+## Problem
+
+Every external agent activity should have a role, but the current creation contract permits role-less work.
+
+Previous findings:
+
+- `begin_work` accepts optional `planned_roles`.
+- `ExternalWork` is created with an empty active `RoleKey`.
+- `set_role` happens separately.
+- `log_message` can create legacy external timelines without an explicit work session.
+- Its `role: user/assistant` means message author, not agent role.
+
+This inconsistency must be fixed at the authoritative backend boundary.
+
+## Required architecture
+
+Every new executable external work request must have one valid active role before execution or work-event persistence.
+
+Do not confuse these concepts:
+
+- Provider identity: ChatGPT, Gemini, another MCP client
+- Message author: user or assistant
+- Agent role: Researcher, Planner, Developer, QA, Security or another enabled roster role
+- Authorization: OAuth scope, tool permission, project ownership and server policy
+
+These are separate dimensions.
+
+## Required behavior
+
+1. Inspect the existing agent roster and role-routing conventions.
+2. Make initial role assignment part of the work-session creation contract.
+3. Choose the initial role through a validated role-selection flow.
+4. Require the external client to provide a valid initial role or an equivalent server-supported selection contract.
+5. Validate against the user's enabled roster.
+6. Persist the work session, initial role, and initial role event atomically.
+7. Reject unknown, disabled, missing or unauthorized role assignments.
+8. Never silently assign a powerful default role.
+9. Forbid external clients from claiming to be the internal Orchestrator.
+10. Preserve role changes through the existing `EventRole` contract.
+11. Do not model external role transitions as internal `EventHandoff`.
+12. Role changes must never expand tool permissions.
+13. Keep provider identity independently visible in the UI.
+
+Investigate whether server-side role auto-selection can be reliably implemented with existing routing machinery. If it cannot, provide a discoverable role-selection contract with strict server validation rather than a guessed role.
+
+## Legacy compatibility
+
+Legacy `log_message` workflows must not create new role-less executable requests.
+
+Determine a safe migration or compatibility strategy that:
+
+- Preserves historical activity records.
+- Does not fabricate historical role attribution.
+- Keeps read-only discovery and OAuth behavior operational.
+- Does not incorrectly treat a `user` message as an agent role.
+- Returns actionable compatibility errors for old clients when necessary.
+- Prevents untracked execution from bypassing mandatory role attribution.
+
+Also verify role attribution for general MCP file and command tools, not only specialized work tools.
+
+If legacy mode is retained, it must be explicitly bounded and must not bypass the new requirement for executable work.
+
+## Acceptance tests
+
+- Missing initial role is rejected.
+- Unknown role is rejected.
+- Disabled role is rejected.
+- External Orchestrator role is rejected.
+- Role cannot increase privileges.
+- Concurrent work sessions remain isolated.
+- Role changes are accurately recorded.
+- Existing historical records remain readable.
+- No new executable external task is created without validated attribution.
+
+---
+
+# Phase 3 — Restore Settings sidebar consistency
+
+## Problem
+
+Archive

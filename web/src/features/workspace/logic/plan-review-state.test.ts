@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canDecidePlan, planReviewLabel } from './plan-review-state';
+import { canDecidePlan, planReviewDisplay, planReviewLabel } from './plan-review-state';
 
 describe('plan review state', () => {
   it('allows a decision only for an editable submitted revision', () => {
@@ -14,5 +14,32 @@ describe('plan review state', () => {
     expect(planReviewLabel('approved')).toBe('Approved');
     expect(planReviewLabel('changes_requested')).toBe('Changes requested');
     expect(planReviewLabel('superseded')).toBe('Plan changed');
+  });
+
+  it('uses a local decision only until the stream reports a later review state', () => {
+    const local = {
+      decision: 'approved',
+      source: 'app',
+      handoffState: 'created',
+      linkedTaskId: 'build-task',
+    };
+    const waiting = planReviewDisplay({ status: 'submitted' }, local);
+    expect(waiting).toMatchObject({ status: 'approved', handoffState: 'created', linkedTaskId: 'build-task' });
+
+    const failed = planReviewDisplay({
+      status: 'approved',
+      source: 'app',
+      handoffState: 'failed',
+    }, local);
+    expect(failed).toEqual({ status: 'approved', source: 'app', handoffState: 'failed' });
+
+    const complete = planReviewDisplay({
+      status: 'approved',
+      source: 'app',
+      handoffState: 'done',
+      linkedTaskId: 'build-task',
+    }, local);
+    expect(complete.handoffState).toBe('done');
+    expect(planReviewDisplay({ status: 'approved' }, local)).toEqual({ status: 'approved' });
   });
 });

@@ -165,6 +165,8 @@ export interface Task {
   workId?: string;
   /** Internal conversation created from an external task. */
   linkedTaskId?: string;
+  /** Current status of the linked internal conversation, when returned by the API. */
+  linkedTaskStatus?: TaskStatus;
   /** External task whose context started this internal conversation. */
   originTaskId?: string;
   work?: WorkSummary;

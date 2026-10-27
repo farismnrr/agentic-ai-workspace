@@ -5,6 +5,8 @@
   import { effortLabel } from '../logic/effort';
   import { isExternalTask } from '../logic/task-links';
   import { timeAgo } from '../logic/time';
+  import { workStatusPresentation } from '../logic/work-status';
+  import { statusMeta } from '../content/status';
 
   interface Props {
     task: Task;
@@ -17,6 +19,8 @@
   const external = $derived(isExternalTask(task.source, task.workId ?? ''));
   const running = $derived(['queued', 'planning', 'working'].includes(task.status));
   const workRunning = $derived(task.work?.state === 'open' || task.work?.state === 'blocked');
+  const workStatus = $derived(workStatusPresentation(task.status, task.work));
+  const statusLabel = $derived(workStatus.label || statusMeta[task.status].label);
   const idleMinutes = $derived(task.work === undefined
     ? 0 : Math.max(0, Math.floor((Date.now() - Date.parse(task.work.updatedAt)) / 60000)));
 </script>
@@ -24,7 +28,7 @@
 <header class="border-b border-[var(--brand-border)] bg-base-100 px-4 sm:px-6">
   <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 sm:min-h-12 sm:flex-nowrap sm:py-0">
     <h1 class="line-clamp-2 w-full min-w-0 text-[15px] font-semibold leading-snug sm:line-clamp-1 sm:w-auto">{task.title}</h1>
-    <StatusBadge status={task.status} />
+    <StatusBadge status={workStatus.iconStatus} label={statusLabel} />
     {#if task.work?.state === 'blocked'}<span class="badge badge-warning badge-sm">Blocked</span>{/if}
     {#if task.team}<span class="badge badge-soft badge-sm">Team</span>{/if}
     <p class="hidden min-w-0 flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">

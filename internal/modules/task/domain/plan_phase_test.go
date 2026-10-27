@@ -8,6 +8,7 @@ func TestPlanPhaseTransitions(t *testing.T) {
 		{PlanDraft, PlanAwaitingClarification},
 		{PlanReadyForApproval, PlanDraft},
 		{PlanReadyForApproval, PlanAwaitingClarification},
+		{PlanReadyForApproval, PlanApproved},
 		{PlanAwaitingClarification, PlanDraft},
 		{PlanAwaitingClarification, PlanReadyForApproval},
 		{PlanApproved, PlanHandedOff},

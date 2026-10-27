@@ -1,7 +1,7 @@
 <script lang="ts">
   import { rawUrl } from '../../logic/files-api';
   import { clock } from '../../logic/time';
-  import type { Proof, TaskEvent } from '../../logic/task-types';
+  import type { Proof, TaskEvent, TaskStatus } from '../../logic/task-types';
   import { splitAttachments } from '../../logic/message-attachments';
   import { questionsOf } from '../../logic/question-form';
   import { shotUrl } from '../../logic/tasks-api';
@@ -27,14 +27,15 @@
     taskId: string;
     projectId: string;
     provider?: string;
+    linkedTaskStatus?: TaskStatus | undefined;
     actions: ThreadActions;
     proof?: Proof | undefined;
     onretry?: (() => void) | undefined;
     readOnly?: boolean;
   }
 
-  const { event, taskId, projectId, provider = '', actions, proof, onretry, readOnly = false }: Props = $props();
-  const provenance = $derived(eventProvenance(event, provider));
+  const { event, taskId, projectId, provider = '', linkedTaskStatus, actions, proof, onretry, readOnly = false }: Props = $props();
+  const provenance = $derived(eventProvenance(event, provider, linkedTaskStatus));
 </script>
 
 {#if event.kind === 'request'}
