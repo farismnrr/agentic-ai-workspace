@@ -12,6 +12,7 @@ import (
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
 	spacedomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/domain"
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 // The bridges below are the only place features meet: each adapts one
@@ -112,6 +113,10 @@ type recorder struct {
 }
 
 func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
+	if entry.WorkID != "" {
+		entry.Summary, _ = taskdomain.Redact(entry.Summary)
+		entry.Detail, _ = taskdomain.Redact(entry.Detail)
+	}
 	_, err := r.log.Record(ctx, spacedomain.Activity{
 		UserID: entry.UserID, Space: "coding", Client: entry.Client, Tool: entry.Tool, Summary: entry.Summary,
 		Detail: entry.Detail, Outcome: spacedomain.Outcome(entry.Outcome), Undo: wrapUndo(entry.Project, entry.Undo),

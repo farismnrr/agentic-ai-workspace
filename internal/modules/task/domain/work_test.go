@@ -37,16 +37,16 @@ func TestReconcilePlanIdenticalIsNoop(t *testing.T) {
 }
 
 func TestRedactCredentials(t *testing.T) {
-	input := "Authorization: Bearer abc password=hunter2 sk-12345 ghu_12345 " +
+	input := "Authorization: Bearer abc password=hunter2 DATABASE_PASSWORD=db-secret sk-12345 ghu_12345 " +
 		"github_pat_12345 AKIA12345678 xoxb-12345 " +
 		"eyJhbGci.eyJzdWI.signature -----BEGIN PRIVATE KEY-----secret-----END PRIVATE KEY----- " +
 		"https://user:pass@example.test"
 	clean, count := Redact(input)
-	if count != 10 {
-		t.Fatalf("redaction count = %d, want 10: %s", count, clean)
+	if count != 11 {
+		t.Fatalf("redaction count = %d, want 11: %s", count, clean)
 	}
 	secrets := []string{
-		"abc", "hunter2", "sk-12345", "ghu_12345", "github_pat_12345",
+		"abc", "hunter2", "db-secret", "sk-12345", "ghu_12345", "github_pat_12345",
 		"AKIA12345678", "xoxb-12345", "eyJhbGci", "user:pass",
 	}
 	for _, secret := range secrets {

@@ -15,7 +15,7 @@ const planFieldsPerStep = 3
 type appWorks struct{ works *taskapp.Works }
 
 func (a appWorks) Validate(ctx context.Context, user, client, project, workID string) error {
-	_, err := a.works.State(ctx, user, client, project, workID)
+	err := a.works.Validate(ctx, user, client, project, workID)
 	return workBridgeError("validate work session", err)
 }
 
