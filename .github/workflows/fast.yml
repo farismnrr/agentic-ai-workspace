@@ -101,6 +101,9 @@ jobs:
       matrix:
         scenario: [01-auth-session, 02-cross-user-isolation, 03-mcp-token-scope, 04-secrets-never-returned, 05-restart-keeps-data, 06-single-instance-clean-shutdown]
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/blackbox
         with:
           scenario: ${{ matrix.scenario }}
@@ -159,6 +162,9 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/publish-image
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
