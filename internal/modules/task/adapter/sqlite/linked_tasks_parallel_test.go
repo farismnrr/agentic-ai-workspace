@@ -11,7 +11,7 @@ import (
 
 func newConcurrentWorkStore(t *testing.T) (context.Context, *sql.DB, *Store) {
 	t.Helper()
-	dbPath := filepath.Join(t.TempDir(), "linked-tasks.sqlite")
+	dbPath := filepath.Join(t.TempDir(), "linked-tasks.sqlite") + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatal(err)
