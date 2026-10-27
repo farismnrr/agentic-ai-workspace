@@ -48,10 +48,9 @@ image:
 sandbox-image:
 	docker build -f sandbox/Dockerfile -t $(IMAGE)-sandbox:latest .
 
-# Pull only the app image, recreate its container and wait until it is healthy. The sandbox image is left
-# alone on purpose: only Full publishes it, so pulling it would replace the one `make sandbox-image` built.
+# Pull the app and sandbox images published from dev, recreate the app container and wait until it is healthy.
 redeploy-dev:
-	docker compose -f compose.dev.yaml pull app
+	docker compose -f compose.dev.yaml pull
 	docker compose -f compose.dev.yaml up -d --wait app
 
 # Browser end-to-end check of sites; not part of verify because it needs Docker and Playwright.
