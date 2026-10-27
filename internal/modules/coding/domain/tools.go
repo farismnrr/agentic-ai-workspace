@@ -80,7 +80,7 @@ var (
 	ToolApprovePlan  = ToolInfo{
 		Name: "approve_plan", Title: "Approve plans", Scope: ScopeApprove, Group: GroupExec,
 		DefaultOn:   false,
-		Description: "Approve one submitted plan revision and send it to the Orchestrator.",
+		Description: "Lets a connected assistant approve plans and start the Orchestrator without asking the person.",
 	}
 
 	ToolEditFile = writeTool("edit_file", "Edit a file",
@@ -156,8 +156,7 @@ var ToolScreenshotSession = ToolInfo{
 		"agent's local session. This does not share your browser login.",
 }
 
-// ToolViewImage shows the agent a PNG or JPEG of the project, such as a page of a document it rendered. Like the web
-// tools it follows read_file (see SwitchOf).
+// ToolViewImage displays project images and follows read_file (see SwitchOf).
 var ToolViewImage = ToolInfo{
 	Name: "view_image", Title: "Look at a picture", Scope: ScopeRead, Group: GroupRead, ReadOnly: true,
 	Description: "Look at a PNG or JPEG picture in the project (up to 4 MB), such as a page of a document turned " +

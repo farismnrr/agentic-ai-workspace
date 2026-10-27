@@ -115,13 +115,29 @@ func storeQuestion(ctx context.Context, tx *sql.Tx, ids application.IDs,
 }
 
 func advanceQuestionWork(ctx context.Context, tx *sql.Tx, in application.QuestionCreate) error {
-	if _, err := tx.ExecContext(ctx, `UPDATE external_works SET plan_state = 'awaiting_clarification',
-		rev = rev + 1, updated_at = unixepoch() WHERE id = ? AND user_id = ?`, in.WorkID, in.UserID); err != nil {
+	result, err := tx.ExecContext(ctx, `UPDATE external_works SET plan_state = 'awaiting_clarification',
+		rev = rev + 1, updated_at = unixepoch() WHERE id = ? AND user_id = ? AND state = 'open'`, in.WorkID, in.UserID)
+	if err != nil {
 		return mapBusy(err)
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE tasks SET status = 'needs-input', updated_at = unixepoch() WHERE id = ?`,
-		in.TaskID); err != nil {
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count question work update: %w", err)
+	}
+	if updated != 1 {
+		return domain.ErrWrongState
+	}
+	result, err = tx.ExecContext(ctx, `UPDATE tasks SET status = 'needs-input', updated_at = unixepoch()
+		WHERE id = ? AND status IN ('queued', 'planning', 'working', 'needs-input')`, in.TaskID)
+	if err != nil {
 		return mapBusy(err)
+	}
+	updated, err = result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count question task update: %w", err)
+	}
+	if updated != 1 {
+		return domain.ErrWrongState
 	}
 	return nil
 }

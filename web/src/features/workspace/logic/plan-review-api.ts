@@ -5,6 +5,9 @@ export interface PlanRevisionSnapshot {
   revision: number;
   summary: string;
   steps: PlanStep[];
+  prd?: string;
+  research?: string;
+  qa?: string;
 }
 
 export interface PlanDecisionResponse {
