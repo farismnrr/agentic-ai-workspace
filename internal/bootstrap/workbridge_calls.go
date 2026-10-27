@@ -36,7 +36,7 @@ func (a appWorkCalls) Record(
 func workEvent(call codingmcp.WorkCall) taskdomain.Event {
 	event := taskdomain.Event{
 		Kind: taskdomain.EventAction, Text: call.Note.Text, Technical: call.Note.Technical,
-		Files: call.Files, Undo: call.Undo,
+		Files: call.Files, Undo: call.Undo, ToolUseID: call.CallID,
 		Work: &taskdomain.WorkRef{Evidence: taskdomain.EvidenceKind(call.Evidence), Phase: call.Phase},
 	}
 	if call.Note.Run != nil {

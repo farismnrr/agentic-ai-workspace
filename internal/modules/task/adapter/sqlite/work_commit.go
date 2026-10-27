@@ -38,7 +38,7 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 	if err != nil {
 		return nil, 0, err
 	}
-	events, err := insertWorkEvents(ctx, tx, s.ids, taskID, change.Events)
+	events, err := insertWorkEvents(ctx, tx, s.ids, taskID, change.Events, closesWork(change))
 	if err != nil {
 		return nil, 0, err
 	}
@@ -49,10 +49,12 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 }
 
 func insertWorkEvents(ctx context.Context, tx *sql.Tx, ids application.IDs, taskID string,
-	events []domain.Event,
+	events []domain.Event, terminal bool,
 ) ([]domain.Event, error) {
-	if err := checkWorkEventLimit(ctx, tx, taskID, len(events)); err != nil {
-		return nil, err
+	if !terminal {
+		if err := checkWorkEventLimit(ctx, tx, taskID, len(events)); err != nil {
+			return nil, err
+		}
 	}
 	storedEvents := make([]domain.Event, 0, len(events))
 	for _, event := range events {

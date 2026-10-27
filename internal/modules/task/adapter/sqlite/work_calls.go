@@ -24,6 +24,13 @@ func (s *Store) AppendWorkCall(
 	if err != nil {
 		return "", domain.Event{}, err
 	}
+	prior, found, findErr := existingWorkCall(ctx, tx, taskID, workID, event.ToolUseID)
+	if findErr != nil {
+		return "", domain.Event{}, findErr
+	}
+	if found {
+		return taskID, prior, nil
+	}
 	err = checkWorkEventLimit(ctx, tx, taskID, 1)
 	if err != nil {
 		return "", domain.Event{}, err
@@ -44,6 +51,24 @@ func (s *Store) AppendWorkCall(
 		return "", domain.Event{}, fmt.Errorf("commit work call: %w", err)
 	}
 	return taskID, stored, nil
+}
+
+func existingWorkCall(ctx context.Context, tx *sql.Tx, taskID, workID, callID string) (domain.Event, bool, error) {
+	if callID == "" {
+		return domain.Event{}, false, nil
+	}
+	event, err := scanEvent(tx.QueryRowContext(ctx,
+		`SELECT `+eventColumns+` FROM task_events WHERE task_id = ? AND tool_use_id = ?`, taskID, callID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.Event{}, false, nil
+	}
+	if err != nil {
+		return domain.Event{}, false, fmt.Errorf("find connected-app call event: %w", err)
+	}
+	if event.Work == nil || event.Work.ID != workID {
+		return domain.Event{}, false, domain.ErrBadRequest
+	}
+	return event, true, nil
 }
 
 func touchWorkCall(

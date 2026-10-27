@@ -67,6 +67,22 @@ func TestRedactStructuredAndAdditionalCredentials(t *testing.T) {
 		{name: "json password", input: `{"password":"hunter2hunter2"}`, secret: "hunter2hunter2"},
 		{name: "quoted api key", input: `"api_key":"api-secret-value"`, secret: "api-secret-value"},
 		{name: "spaced password", input: `password: "my long passphrase"`, secret: "my long passphrase"},
+		{name: "passwd key", input: `{"passwd":"hunter2"}`, secret: "hunter2"},
+		{name: "pwd key", input: `pwd='my password'`, secret: "my password"},
+		{
+			name: "quoted JSON basic", input: `{"Authorization": "Basic ` + basicCredential + `"}`,
+			secret: basicCredential,
+		},
+		{
+			name: "quoted JSON bearer token", input: `{"authorization": "Bearer token-value"}`,
+			secret: "token-value",
+		},
+		{
+			name: "escaped quote password", input: `{"password":"abc\\\"secret\\\"xyz"}`,
+			secret: `abc\\\"secret\\\"xyz`,
+		},
+		{name: "curl user flag", input: `curl -u user:pass https://example.test`, secret: "user:pass"},
+		{name: "curl user option", input: `curl --user 'user:pass' https://example.test`, secret: "user:pass"},
 		{name: "basic authorization", input: "Authorization: Basic " + basicCredential, secret: basicCredential},
 		{name: "live key", input: "sk_live_abcdefghijk", secret: "sk_live_abcdefghijk"},
 		{name: "google key", input: "AIza0123456789abcdefgh", secret: "AIza0123456789abcdefgh"},
@@ -85,6 +101,14 @@ func TestRedactStructuredAndAdditionalCredentials(t *testing.T) {
 
 func TestRedactLeavesNonSecretLookalikes(t *testing.T) {
 	input := `keynote=opening passwordless=true token_count=3 api_key_name=public`
+	clean, count := Redact(input)
+	if count != 0 || clean != input {
+		t.Fatalf("Redact(%q) = %q, %d; want unchanged", input, clean, count)
+	}
+}
+
+func TestRedactLeavesSafeValuesAndCurlWithoutCredentials(t *testing.T) {
+	input := `keynote=opening passwordless=true token_count=3 api_key_name=public curl -u user https://example.test`
 	clean, count := Redact(input)
 	if count != 0 || clean != input {
 		t.Fatalf("Redact(%q) = %q, %d; want unchanged", input, clean, count)

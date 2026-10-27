@@ -87,6 +87,7 @@ type WorkCalls interface {
 //
 //nolint:govet // fieldalignment: keep the event payload fields grouped by meaning.
 type WorkCall struct {
+	CallID   string
 	Note     Note
 	Files    []string
 	Undo     []byte
