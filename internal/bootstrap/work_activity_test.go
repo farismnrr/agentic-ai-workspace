@@ -6,31 +6,39 @@ import (
 	"time"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
 	spacedomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/domain"
 )
 
-func TestRecorderRedactsExplicitWorkActivityOnly(t *testing.T) {
+func TestRecorderRedactsExternalWorkToolActivityWithoutWorkID(t *testing.T) {
 	store := &captureActivities{}
 	log := spaceapp.NewActivityLog(store, fixedActivityID{}, nil, time.Now)
 	activityRecorder := recorder{log: log}
-	if err := activityRecorder.Record(context.Background(), codingmcp.Entry{
-		UserID: "u", WorkID: "work-1", Summary: "command token=secret-value",
-		Detail: "DATABASE_PASSWORD=hunter2",
-	}); err != nil {
-		t.Fatal(err)
+	workTools := []string{
+		codingdomain.ToolBeginWork.Name, codingdomain.ToolSetRole.Name, codingdomain.ToolUpdatePlan.Name,
+		codingdomain.ToolSaveResearch.Name, codingdomain.ToolSaveRequirements.Name,
+		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name,
 	}
-	if len(store.entries) != 1 || store.entries[0].Summary == "command token=secret-value" ||
-		store.entries[0].Detail == "DATABASE_PASSWORD=hunter2" {
-		t.Fatalf("work activity was not redacted: %+v", store.entries)
+	for _, name := range workTools {
+		if err := activityRecorder.Record(context.Background(), codingmcp.Entry{
+			UserID: "u", Tool: name, Summary: "token=secret-value", Detail: "DATABASE_PASSWORD=hunter2",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i, entry := range store.entries {
+		if entry.Summary == "token=secret-value" || entry.Detail == "DATABASE_PASSWORD=hunter2" {
+			t.Errorf("%s activity was not redacted: %+v", workTools[i], entry)
+		}
 	}
 
 	if err := activityRecorder.Record(context.Background(), codingmcp.Entry{
-		UserID: "u", Summary: "legacy token=secret-value",
+		UserID: "u", Tool: "read_file", Summary: "legacy token=secret-value",
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if got := store.entries[1].Summary; got != "legacy token=secret-value" {
+	if got := store.entries[len(workTools)].Summary; got != "legacy token=secret-value" {
 		t.Fatalf("legacy activity changed: %q", got)
 	}
 }

@@ -29,25 +29,53 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 		return nil, 0, err
 	}
 	if change.Op != nil {
-		if err := insertWorkOp(ctx, tx, *change.Op); err != nil {
-			return nil, 0, err
-		}
-	}
-	if err := patchChangedTask(ctx, tx, taskID, change.Task); err != nil {
-		return nil, 0, err
-	}
-	events := make([]domain.Event, 0, len(change.Events))
-	for _, event := range change.Events {
-		stored, err := insertEvent(ctx, tx, s.ids, taskID, event)
+		err = insertWorkOp(ctx, tx, *change.Op)
 		if err != nil {
 			return nil, 0, err
 		}
-		events = append(events, stored)
+	}
+	err = patchChangedTask(ctx, tx, taskID, change.Task)
+	if err != nil {
+		return nil, 0, err
+	}
+	events, err := insertWorkEvents(ctx, tx, s.ids, taskID, change.Events)
+	if err != nil {
+		return nil, 0, err
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, 0, fmt.Errorf("commit work changes: %w", err)
 	}
 	return events, revision, nil
+}
+
+func insertWorkEvents(ctx context.Context, tx *sql.Tx, ids application.IDs, taskID string,
+	events []domain.Event,
+) ([]domain.Event, error) {
+	if err := checkWorkEventLimit(ctx, tx, taskID, len(events)); err != nil {
+		return nil, err
+	}
+	storedEvents := make([]domain.Event, 0, len(events))
+	for _, event := range events {
+		stored, err := insertEvent(ctx, tx, ids, taskID, event)
+		if err != nil {
+			return nil, err
+		}
+		storedEvents = append(storedEvents, stored)
+	}
+	return storedEvents, nil
+}
+
+func checkWorkEventLimit(ctx context.Context, tx *sql.Tx, taskID string, additional int) error {
+	var count int
+	// Each external work owns one task, so its monotonic sequence is the event count.
+	err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(seq), 0) FROM task_events WHERE task_id = ?`, taskID).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("count work events: %w", err)
+	}
+	if count+additional > domain.MaxWorkEvents {
+		return domain.ErrTooLarge
+	}
+	return nil
 }
 
 func patchChangedTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch) error {

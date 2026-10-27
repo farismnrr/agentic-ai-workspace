@@ -55,3 +55,38 @@ func TestRedactCredentials(t *testing.T) {
 		}
 	}
 }
+
+func TestRedactStructuredAndAdditionalCredentials(t *testing.T) {
+	//nolint:gosec // synthetic value verifies the Basic authorization redaction pattern.
+	basicCredential := "dXNlcjpwYXNzd29yZA=="
+	cases := []struct {
+		name   string
+		input  string
+		secret string
+	}{
+		{name: "json password", input: `{"password":"hunter2hunter2"}`, secret: "hunter2hunter2"},
+		{name: "quoted api key", input: `"api_key":"api-secret-value"`, secret: "api-secret-value"},
+		{name: "spaced password", input: `password: "my long passphrase"`, secret: "my long passphrase"},
+		{name: "basic authorization", input: "Authorization: Basic " + basicCredential, secret: basicCredential},
+		{name: "live key", input: "sk_live_abcdefghijk", secret: "sk_live_abcdefghijk"},
+		{name: "google key", input: "AIza0123456789abcdefgh", secret: "AIza0123456789abcdefgh"},
+		{name: "npm token", input: "npm_abcdefghijklmno", secret: "npm_abcdefghijklmno"},
+		{name: "gitlab token", input: "glpat-abcdefghijklmno", secret: "glpat-abcdefghijklmno"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			clean, count := Redact(tc.input)
+			if count == 0 || strings.Contains(clean, tc.secret) {
+				t.Fatalf("Redact(%q) = %q, %d; secret remains", tc.input, clean, count)
+			}
+		})
+	}
+}
+
+func TestRedactLeavesNonSecretLookalikes(t *testing.T) {
+	input := `keynote=opening passwordless=true token_count=3 api_key_name=public`
+	clean, count := Redact(input)
+	if count != 0 || clean != input {
+		t.Fatalf("Redact(%q) = %q, %d; want unchanged", input, clean, count)
+	}
+}

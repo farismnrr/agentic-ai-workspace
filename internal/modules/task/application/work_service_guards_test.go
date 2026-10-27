@@ -83,3 +83,24 @@ func TestCancelDelegatesWorkTasksToWorkStop(t *testing.T) {
 		t.Fatalf("cancel did not target linked work: %+v", stop)
 	}
 }
+
+func TestUndoAllowsSafeExternalChangeWhileWorkIsOpen(t *testing.T) {
+	r := newRig(nil)
+	ctx := context.Background()
+	task := domain.Task{
+		ID: "work-task", UserID: "u1", ProjectID: "proj", Source: "ChatGPT",
+		WorkID: "work-id", Status: domain.StatusWorking, Plan: []domain.PlanStep{},
+	}
+	if err := r.mem.Create(ctx, task); err != nil {
+		t.Fatal(err)
+	}
+	event, err := r.mem.AppendEvent(ctx, task.ID, domain.Event{
+		Kind: domain.EventAction, Undo: []byte("safe change"), Work: &domain.WorkRef{ID: task.WorkID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.service.UndoChange(ctx, "u1", task.ID, event.ID); err != nil || len(r.tools.undone) != 1 {
+		t.Fatalf("open external work change was not offered to guarded undo: err=%v undo=%q", err, r.tools.undone)
+	}
+}

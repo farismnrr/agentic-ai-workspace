@@ -162,7 +162,7 @@ func (s *Service) UndoChange(ctx context.Context, userID, taskID, eventID string
 		return domain.ErrWrongState
 	}
 
-	if task.Status.Running() {
+	if task.Status.Running() && task.Source == "" {
 		return domain.ErrBusy
 	}
 

@@ -24,6 +24,10 @@ func (s *Store) AppendWorkCall(
 	if err != nil {
 		return "", domain.Event{}, err
 	}
+	err = checkWorkEventLimit(ctx, tx, taskID, 1)
+	if err != nil {
+		return "", domain.Event{}, err
+	}
 	if event.Work == nil {
 		event.Work = &domain.WorkRef{}
 	}

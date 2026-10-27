@@ -87,6 +87,7 @@ const (
 	MinRequestID        = 8
 	MaxRequestID        = 64
 	MaxPlannedRoles     = 10
+	MaxWorkEvents       = 2000
 	MaxOpenWorksUser    = 20
 	MaxOpenWorksProject = 10
 	BeginWorkPerMinute  = 10

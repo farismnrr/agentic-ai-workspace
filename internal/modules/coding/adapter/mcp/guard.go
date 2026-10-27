@@ -84,16 +84,17 @@ func guarded[In, Out any](
 			User: token.UserID, Client: client, Project: projectOf(in), WorkID: workIDOf(in),
 		})
 
-		out, rep, err := run(context.WithValue(who, stateKey{}, state), in)
-		defer g.end(ctx, state)
+		runCtx := context.WithValue(who, stateKey{}, state)
+		out, rep, err := run(runCtx, in)
+		defer g.end(runCtx, state)
 
 		entry.Project = state.project
 
 		if err != nil {
-			return nil, none, g.failed(ctx, info, &entry, err)
+			return nil, none, g.failed(runCtx, info, &entry, err)
 		}
 
-		g.succeeded(ctx, info, &entry, rep)
+		g.succeeded(runCtx, info, &entry, rep)
 
 		return nil, out, nil
 	}

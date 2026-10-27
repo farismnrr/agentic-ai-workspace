@@ -91,6 +91,21 @@ func TestWorkCallChangeKeepsOneUndoRecordAndCanBeUndoneOnce(t *testing.T) {
 	}
 }
 
+func TestWorkCallsStopAtPerWorkEventLimit(t *testing.T) {
+	ctx, _, store := newWorkStore(t)
+	work := createTestWork(t, ctx, store, "w-capped", "t1", "")
+	for range domain.MaxWorkEvents - 1 {
+		if _, _, err := store.AppendWorkCall(ctx, "u", "client", "p", work.ID,
+			domain.Event{Kind: domain.EventAction, Work: &domain.WorkRef{ID: work.ID}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, _, err := store.AppendWorkCall(ctx, "u", "client", "p", work.ID,
+		domain.Event{Kind: domain.EventAction, Work: &domain.WorkRef{ID: work.ID}}); !errors.Is(err, domain.ErrTooLarge) {
+		t.Fatalf("over-limit work event error = %v", err)
+	}
+}
+
 func TestConcurrentWorkCallsKeepTheirOwnTaskAndRole(t *testing.T) {
 	ctx, _, store := newWorkStore(t)
 	works := []domain.ExternalWork{
