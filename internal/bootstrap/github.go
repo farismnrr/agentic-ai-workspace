@@ -34,7 +34,7 @@ func newGitHub(
 	conf := cfg.GitHub
 	client := githubapi.New(conf.ClientID, conf.ClientSecret, cfg.PublicURL+githubCallback, time.Now)
 	service := githubapp.NewService(
-		githubsqlite.NewStore(db), client, sealer, opaque.Generator{}, time.Now, conf.Enabled())
+		githubsqlite.NewStore(db), client, sealer, opaque.Generator{}, time.Now, conf.Enabled()).WithLogs(client)
 	mount := githubhttp.NewHandler(service, conf.AppSlug).Mount(auth, sameOrigin, githubLimits())
 
 	return service, mount, nil
@@ -69,6 +69,7 @@ type projectOwners interface {
 // ever act as the person who owns the project it runs in.
 func (a *agentTools) useGitHub(github *githubapp.Service, projects projectOwners) {
 	a.github = github
+	a.owners = projects
 	a.git = func(projectID string) codingrunner.GitSource {
 		return func(ctx context.Context) (codingrunner.Git, bool) {
 			owner, _, err := projects.Owner(ctx, projectID)

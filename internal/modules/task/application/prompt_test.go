@@ -34,7 +34,7 @@ func TestLeadKnowsTheSandboxAndWhereCILogsComeFrom(t *testing.T) {
 	prompt := teamPrompt(Roster{})
 
 	wanted := []string{
-		"no Docker", "never as a rule of the person's repository", ".env", "gh\nrun list", "--log-failed", "unverified",
+		"no Docker", "never as a rule of the person's repository", ".env", "ci_logs", "owner/name", "unverified",
 	}
 	for _, want := range wanted {
 		if !strings.Contains(prompt, want) {

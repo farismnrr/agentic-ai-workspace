@@ -40,6 +40,7 @@ type agentTools struct {
 	cache      map[string]codingmcp.Services
 	handlers   map[string]toolHandler
 	github     *githubapp.Service
+	owners     projectOwners
 	plans      *plans
 	egress     *egressRuntime
 	git        func(projectID string) codingrunner.GitSource
@@ -117,7 +118,7 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 	}
 
 	defs = append(defs, siteDefinitions()...)
-	defs = append(defs, extensionDefinition())
+	defs = append(defs, extensionDefinition(), ciLogsDefinition())
 	defs = append(defs, screenshotDefinition(), screenshotSessionDefinition(), viewImageDefinition())
 
 	return append(append(defs, a.webDefinitions()...), a.egressDefinitions()...)

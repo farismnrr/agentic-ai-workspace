@@ -10,6 +10,7 @@ package egressproxy
 import (
 	"context"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -90,6 +91,9 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case p.task.grants != nil:
 		p.serveGrant(w, r, host, port)
 	default:
+		// The reply only reaches the tool inside the sandbox, which often shows a bare 403, so the server
+		// records which host was refused: this is how a missing allowlist entry is found.
+		slog.Warn("egress refused a host", "host", host, "port", port)
 		http.Error(w, blockedText, http.StatusForbidden)
 	}
 }
