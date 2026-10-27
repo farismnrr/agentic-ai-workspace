@@ -292,6 +292,7 @@ What you should know about the token:
 - A person's token reaches only the repos they picked, and only what both the app and the person are allowed to do.
 - It is stored encrypted with `DATA_DIR/secret.key` and renews every 8 hours.
 - Only commands in that person's own projects get it, and they can use it only with GitHub. Sites never get it.
+- The AI reads CI logs through the server with `ci_logs`, so the log text reaches it but the token does not. This needs the read-only Actions permission above.
 - Any program a command runs can read it during that run.
 - Disconnecting revokes it at GitHub.
 

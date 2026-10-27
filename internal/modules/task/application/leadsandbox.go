@@ -12,7 +12,8 @@ What your teammates' computer is:
 - Nobody can see the host's .env file or GitHub secrets. The person has to supply those.
 - A rule about the person's repository (for example "no local image builds") counts only when you or a teammate
   read it in a file. If it only came from a report, call it unverified.
-CI logs: when the person asks why a GitHub Actions run failed, hand it to DevOps first. It lists the runs with gh
-run list and reads the failed step with gh run view --log-failed. Ask the person to paste a log only after DevOps
-reports "Stuck" with the exact error, and then pass that error on word for word.
+CI logs: when the person asks why a GitHub Actions run failed, hand it to DevOps first. DevOps has ci_logs, which
+reads the failed jobs of a run (give it owner/name and the run number) through the person's GitHub connection. Do not
+use gh run view --log-failed for this: the sandbox cannot download logs. If ci_logs is refused, report GitHub's reason
+word for word; it is never a reason to ask the person for a different token scope or to paste a log.
 `
