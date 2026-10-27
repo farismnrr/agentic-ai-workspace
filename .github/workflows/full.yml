@@ -20,7 +20,10 @@ jobs:
   verify:
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
+    env:
+      SANDBOX_TEST_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
+      STAGE7_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -28,9 +31,12 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-go
       - uses: ./.github/actions/setup-frontend
-      - run: make verify
-      - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
-      - run: sh scripts/smoke-test.sh bin/agentic-ai-workspace
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Install Chromium for the pinned Playwright version
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - run: docker pull "$SANDBOX_TEST_IMAGE"
+      - run: make verify-full
 
   publish:
     needs: [verify]
@@ -75,7 +81,7 @@ jobs:
         with:
           suffix: -sandbox
           dockerfile: sandbox/Dockerfile
-          smoke: scripts/smoke-test-sandbox.sh
+          smoke: test/smoke/sandbox.test.sh
           channel: latest
           push: "true"
           token: ${{ secrets.GITHUB_TOKEN }}

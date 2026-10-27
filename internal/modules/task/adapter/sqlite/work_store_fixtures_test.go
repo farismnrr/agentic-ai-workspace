@@ -12,40 +12,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func assertWorkQueries(t *testing.T, ctx context.Context, store *Store, workID string) {
-	t.Helper()
-	if _, found, err := store.FindOp(ctx, workID, "saved"); err != nil || !found {
-		t.Fatalf("saved operation missing: found=%v err=%v", found, err)
-	}
-	assertOpenWorkCounts(t, ctx, store)
-	assertStaleWorks(t, ctx, store)
-	linked, err := store.ByTask(ctx, "t1")
-	if err != nil || linked.ID != workID {
-		t.Fatalf("work linked to task: %+v, %v", linked, err)
-	}
-}
-
-func assertOpenWorkCounts(t *testing.T, ctx context.Context, store *Store) {
-	t.Helper()
-	for _, row := range []struct {
-		user, project string
-		want          int
-	}{{"u", "p", 1}, {"other", "", 1}} {
-		count, err := store.CountOpen(ctx, row.user, row.project)
-		if err != nil || count != row.want {
-			t.Fatalf("open works for %s: got=%d want=%d err=%v", row.user, count, row.want, err)
-		}
-	}
-}
-
-func assertStaleWorks(t *testing.T, ctx context.Context, store *Store) {
-	t.Helper()
-	works, err := store.StaleOpen(ctx, "u", time.Now().Add(time.Hour))
-	if err != nil || len(works) != 1 {
-		t.Fatalf("stale open works = %d, %v", len(works), err)
-	}
-}
-
 func newWorkStore(t *testing.T) (context.Context, *sql.DB, *Store) {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")

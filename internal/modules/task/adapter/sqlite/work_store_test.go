@@ -3,7 +3,6 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"testing"
 	"time"
 
@@ -11,26 +10,6 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	_ "modernc.org/sqlite"
 )
-
-func TestWorkStoreCommitUsesRevisionCAS(t *testing.T) {
-	ctx, _, store := newWorkStore(t)
-	work := createTestWork(t, ctx, store, "w1", "t1", "key")
-	event := domain.Event{Kind: domain.EventRole, Text: "Developer"}
-	op := application.WorkOp{
-		WorkID: work.ID, OpKey: "saved", Tool: "set_role", ReqHash: "hash",
-		Response: `{"ok":true}`, At: time.Now().Unix(),
-	}
-	events, rev, err := store.Commit(ctx, application.WorkChange{
-		WorkID: work.ID, UserID: "u", ExpectRev: 0, Op: &op, Events: []domain.Event{event},
-	})
-	if err != nil || rev != 1 || len(events) != 1 {
-		t.Fatalf("commit: events=%d rev=%d err=%v", len(events), rev, err)
-	}
-	staleChange := application.WorkChange{WorkID: work.ID, UserID: "u", ExpectRev: 0}
-	if _, _, staleErr := store.Commit(ctx, staleChange); !errors.Is(staleErr, domain.ErrStaleRevision) {
-		t.Fatalf("stale revision error = %v", staleErr)
-	}
-}
 
 func TestWorkStoreCommitRollsBackAllChangesOnEventFailure(t *testing.T) {
 	ctx, db, store := newWorkStore(t)
@@ -109,73 +88,5 @@ func assertNoCreatedWork(t *testing.T, ctx context.Context, db *sql.DB, work dom
 	}
 	if events != 0 {
 		t.Fatal("initial request event escaped role-event rollback")
-	}
-}
-
-func TestWorkStoreIdempotencyAndQueries(t *testing.T) {
-	ctx, _, store := newWorkStore(t)
-	first := createTestWork(t, ctx, store, "w1", "t1", "same-key")
-	assertAtomicWorkCreate(t, ctx, store, first)
-	duplicate := createTestWork(t, ctx, store, "w2", "t3", "same-key")
-	if duplicate.ID != first.ID {
-		t.Fatalf("duplicate key returned work %q, want %q", duplicate.ID, first.ID)
-	}
-	if _, err := store.Find(ctx, "u", "t3"); !errors.Is(err, domain.ErrNotFound) {
-		t.Fatalf("idempotent replay left a duplicate task: %v", err)
-	}
-	createTestWork(t, ctx, store, "w3", "t2", "")
-	op := application.WorkOp{
-		WorkID: first.ID, OpKey: "saved", Tool: "set_role", ReqHash: "hash",
-		Response: `{"ok":true}`, At: time.Now().Unix(),
-	}
-	if _, _, err := store.Commit(ctx, application.WorkChange{WorkID: first.ID, UserID: "u", Op: &op}); err != nil {
-		t.Fatal(err)
-	}
-	assertWorkQueries(t, ctx, store, first.ID)
-}
-
-func assertAtomicWorkCreate(t *testing.T, ctx context.Context, store *Store, work domain.ExternalWork) {
-	t.Helper()
-	task, err := store.Find(ctx, "u", work.TaskID)
-	if err != nil || task.WorkID != work.ID || task.Status != domain.StatusWorking || task.Source != "client" {
-		t.Fatalf("created task link: %+v, %v", task, err)
-	}
-	events, err := store.EventsAfter(ctx, work.TaskID, 0)
-	if err != nil || len(events) != 1 || events[0].Kind != domain.EventRequest {
-		t.Fatalf("initial request event: %+v, %v", events, err)
-	}
-}
-
-func TestWorkStoreOwnerIsolationAndCascade(t *testing.T) {
-	ctx, db, store := newWorkStore(t)
-	first := createTestWork(t, ctx, store, "w1", "t1", "")
-	op := application.WorkOp{
-		WorkID: first.ID, OpKey: "saved", Tool: "set_role", ReqHash: "hash",
-		Response: `{"ok":true}`, At: time.Now().Unix(),
-	}
-	if _, _, err := store.Commit(ctx, application.WorkChange{WorkID: first.ID, UserID: "u", Op: &op}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := store.FindWork(ctx, "other", "client", "p2", first.ID); !errors.Is(err, domain.ErrUnknownWork) {
-		t.Fatalf("wrong owner must not see work: %v", err)
-	}
-	change := application.WorkChange{WorkID: first.ID, UserID: "other", ExpectRev: 0}
-	if _, _, ownerErr := store.Commit(ctx, change); !errors.Is(ownerErr, domain.ErrUnknownWork) {
-		t.Fatalf("wrong owner commit error = %v", ownerErr)
-	}
-	if _, err := db.ExecContext(ctx, `DELETE FROM tasks WHERE id='t1'`); err != nil {
-		t.Fatal(err)
-	}
-	var works, ops int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_works WHERE id=?`, first.ID).
-		Scan(&works); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_work_ops WHERE work_id=?`, first.ID).
-		Scan(&ops); err != nil {
-		t.Fatal(err)
-	}
-	if works != 0 || ops != 0 {
-		t.Fatalf("task delete did not cascade: works=%d ops=%d", works, ops)
 	}
 }

@@ -30,7 +30,7 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 
 ## Stages
 
-1. Domain model, migration `052_egress_grants.sql`, unit tests. (done)
+1. Domain model, migration `052_egress_grants.sql`, and only registered critical white-box checks where public boundaries cannot exercise the invariant. (done)
 2. Application use cases and ports (`Request`, `Approve`, `Deny`, `Revoke`, `Active`, `List`), sqlite adapter, tests. (done)
 3. `egressproxy.Grants`: registry, normalized match, resolve-then-dial, SNI check, tunnel tracking, revoke/expiry. Security tests below. (done)
 4. Wiring behind `EGRESS_GRANTS`: per-task socket, verifier, startup rebuild, sweep. (done; `reach` untouched)

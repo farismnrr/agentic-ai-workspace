@@ -59,7 +59,7 @@ pipeline {
           docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e CI=true -e VERSION \
             -v "$WORKSPACE:$WORKSPACE" -w "$WORKSPACE" "$GO_IMAGE" sh -ec '
               CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
-              sh scripts/smoke-test.sh bin/agentic-ai-workspace
+              sh test/smoke/binary.test.sh bin/agentic-ai-workspace
             '
         '''
       }
@@ -73,9 +73,9 @@ pipeline {
           # The smoke test curls 127.0.0.1, so it runs on the daemon's network, next to the published port.
           docker run --rm --network host -v /var/run/docker.sock:/var/run/docker.sock \
             -v "$WORKSPACE:$WORKSPACE" -w "$WORKSPACE" "$DOCKER_CLI_IMAGE" \
-            sh -ec 'apk add --no-cache curl >/dev/null; sh scripts/smoke-test-image.sh "$0"' "$IMAGE:sha-$SHORT_SHA"
+            sh -ec 'apk add --no-cache curl >/dev/null; sh test/smoke/image.test.sh "$0"' "$IMAGE:sha-$SHORT_SHA"
           docker build -f sandbox/Dockerfile -t "$IMAGE-sandbox:sha-$SHORT_SHA" .
-          sh scripts/smoke-test-sandbox.sh "$IMAGE-sandbox:sha-$SHORT_SHA"
+          sh test/smoke/sandbox.test.sh "$IMAGE-sandbox:sha-$SHORT_SHA"
           docker images "$IMAGE"
         '''
       }

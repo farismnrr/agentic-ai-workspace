@@ -5,6 +5,9 @@ description: How to build a browser extension (Chrome and Edge, manifest version
 
 # Browser extension (Chrome and Edge)
 
+Before adding tests, follow the repository's `AGENTS.md` testing rule and
+`agents/testing.md`; do not add non-critical white-box unit tests here.
+
 Use this when the request is a browser extension: a button in the toolbar, a popup, something that changes the pages
 people visit, or a small tool that lives in the browser. The person installs it from Extensions in the sidebar, not
 from Sites; DevOps packages it with `deploy_extension` after you build it. You never start a server for it.
@@ -50,5 +53,6 @@ guard calls (`typeof chrome !== 'undefined'`) if the Designer is to look at `.ou
 DevOps.
 
 ## Before you report
-`bun --bun run typecheck`, the tests of what you wrote, and `bun --bun run build` must pass. Report the build folder
+`bun --bun run typecheck`, relevant public-boundary scenarios, and `bun --bun run build` must pass. Follow
+`agents/testing.md` for any retained white-box exception. Report the build folder
 (`.output/chrome-mv3`), the version, and every permission with the reason for it, in one line each. DevOps packages it.

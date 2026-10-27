@@ -6,6 +6,10 @@ always: true
 
 # Building an app: the default stack
 
+Before adding tests, follow the repository's `AGENTS.md` testing rule and
+`agents/testing.md`. In this repository black-box scenarios are the default;
+the unit-test workflow below applies only where project policy permits it.
+
 This is how every new app is built, unless the person or the PRD asks for something else (then do that) or the
 project already has a stack (then keep it). The person may not be technical: make the safe choice yourself and
 never ask them about libraries.
@@ -129,9 +133,10 @@ the HTTP methods a route needs. Limit file uploads by size and type. Show errors
 ## 6. Build and start
 Check with `run_command`, one step per call (a command has about 2 GB of memory, and an install followed by a type
 check in the same call can run out). In a slice that is not the last (the brief says which), run only
-`bun install` when you added packages, `bun --bun run typecheck` and the tests of what you touched
-(`bun test <path>`): that is enough to hand the slice on. In the last slice, or when the brief asks for the full
-check, run `bun --bun run typecheck`, `bun --bun run lint`, `bun test` and `bun --bun run build`; every one must pass
+`bun install` when you added packages, `bun --bun run typecheck` and the relevant public-boundary scenario: that is
+enough to hand the slice on. In the last slice, or when the brief asks for the full
+check, run `bun --bun run typecheck`, `bun --bun run lint`, the prescribed test suite (if the project policy permits
+it), and `bun --bun run build`; every one must pass
 before you report. The app then runs from `.output`. You do not start it: the DevOps teammate does, and your report says so.
 Give it the start command, port 3000: `bun /usr/local/share/serve/site-serve.ts bun .output/server/index.mjs`.
 `site-serve` makes Nuxt work under the address prefix the sites proxy uses; do not run `.output` directly.

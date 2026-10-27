@@ -15,8 +15,6 @@ import (
 var (
 	publicIP = netip.MustParseAddr("93.184.216.34")
 	scopeA   = Scope{Project: "p1", Task: "t1"}
-	scopeB   = Scope{Project: "p1", Task: "t2"}
-	scopeC   = Scope{Project: "p2", Task: "t1"}
 )
 
 // rig is a task-socket proxy whose network is replaced: names resolve to answers, and every connection to an
@@ -42,13 +40,6 @@ func (r *sink) write(p []byte) {
 	defer r.mu.Unlock()
 
 	r.buf.Write(p)
-}
-
-func (r *sink) len() int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	return r.buf.Len()
 }
 
 func newRig(t *testing.T, limits Limits, verify Verifier) *rig {
@@ -127,16 +118,4 @@ func (r *rig) allow(id string, scope Scope, life time.Duration) {
 	if err := r.grants.Allow(id, scope, goodHost, time.Now().Add(life)); err != nil {
 		r.t.Fatal(err)
 	}
-}
-
-func eventually(t *testing.T, what string, ok func() bool) {
-	t.Helper()
-
-	for deadline := time.Now().Add(3 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
-		if ok() {
-			return
-		}
-	}
-
-	t.Fatalf("timed out waiting for %s", what)
 }

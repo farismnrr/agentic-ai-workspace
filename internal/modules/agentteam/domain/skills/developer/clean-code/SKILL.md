@@ -44,5 +44,8 @@ clock. A tiny app is still layered, but with few files. No folders named utils, 
 unrelated things; name a folder for what it holds.
 
 ## Tests and report
-Test the domain and the use cases with fakes for the ports, with no server and no database (in a Bun project: `bun test`). Say in your report
-which layers you made and which ports they use, so the Architect can check them quickly.
+Follow the repository's test policy. Here, black-box scenarios are the default;
+do not add non-critical white-box unit tests. Retain only explicitly justified,
+registered critical Go tests that cannot be exercised at a public boundary.
+Say in your report which layers you made and which ports they use, so the
+Architect can check them quickly.

@@ -108,6 +108,19 @@ if [ -n "$svelte_violations" ]; then
   exit 1
 fi
 
+test_source_violations="$(
+  find test -type f \
+    \( -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) -print
+  find test -type f -name '*.go' ! -name '*_test.go' -print
+)"
+if [ -n "$test_source_violations" ]; then
+  echo "Tests use Bash and TypeScript; JavaScript and non-test Go files are forbidden under test/:" >&2
+  echo "$test_source_violations" >&2
+  exit 1
+fi
+
+REGISTRY_ENFORCE="${REGISTRY_ENFORCE:-1}" bash ./test/whitebox/check-registry.sh
+
 # Import direction: app -> features -> shared. Features never import other
 # features, and shared never imports features or app. The router store in
 # app/router is the one allowed inward import for features.

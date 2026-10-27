@@ -142,7 +142,43 @@ A hotfix must be fast and easy to undo.
 - **Survives recreates:** unlike `docker cp`, the binary survives a container recreate and is never overwritten while it runs.
 - **Trade-off:** the binary can be newer than the image tag, so each build reports its own version.
 
-## Jenkins pipeline
+## CI pipelines
+
+### GitHub workflows
+
+GitHub Fast and Full protect `dev` and the release merge. Their required checks are:
+
+| Workflow | Checks |
+| --- | --- |
+| Fast | Format/lint, types, build, essential white-box tests, black-box scenarios, and smoke checks |
+| Full | Fast checks plus broader black-box, Playwright e2e, Docker isolation, security regressions, and `-race` |
+
+Fast runs on pushes and pull requests to `dev`; only pushes publish images.
+Full is manual and merges only after every check passes.
+
+### When a check fails
+
+- A failed check blocks image publishing and the release merge.
+- A failed smoke check means the built binary or image is not shipped.
+- A failed browser or isolation check blocks Full; fix the behavior or report
+  the exact failure before retrying the workflow.
+- Documentation-only changes skip Fast when its path filters match.
+
+### Test folders
+
+| Folder | Contents |
+| --- | --- |
+| `test/blackbox/` | Bash HTTP and MCP scenarios against the built binary |
+| `test/e2e/` | Playwright TypeScript flows, started by a Bash runner |
+| `test/smoke/` | Binary, image, and sandbox smoke scenarios |
+| `test/lib/` | Shared Bash startup, HTTP, MCP, and assertion functions |
+| `test/fixtures/` | Static inputs for scenarios |
+| `test/whitebox/` | Registry for justified Go tests beside their code |
+
+`make blackbox` runs the black-box scenarios. `make smoke`, `make e2e`, and
+`make whitebox-check` run their named suites.
+
+### Jenkins pipeline
 
 The Jenkinsfile runs six stages, in this order:
 

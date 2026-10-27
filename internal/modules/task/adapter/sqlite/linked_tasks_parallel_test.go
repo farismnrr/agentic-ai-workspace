@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"path/filepath"
 	"testing"
-
-	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 func newConcurrentWorkStore(t *testing.T) (context.Context, *sql.DB, *Store) {
@@ -51,21 +49,5 @@ func assertMultipleSQLiteConnections(t *testing.T, ctx context.Context, db *sql.
 	defer func() { _ = second.Close() }()
 	if db.Stats().OpenConnections < 2 {
 		t.Fatal("concurrency fixture did not open multiple SQLite connections")
-	}
-}
-
-func assertLinkedTaskPayloadSource(t *testing.T, tasks []domain.Task, linkedID string) {
-	t.Helper()
-	var external, linked bool
-	for _, task := range tasks {
-		if task.ID == "t1" {
-			external = task.LinkedTaskID == linkedID
-		}
-		if task.ID == linkedID {
-			linked = task.OriginTaskID == "t1"
-		}
-	}
-	if !external || !linked {
-		t.Fatalf("reloaded task list relationships: external link=%v, linked origin=%v", external, linked)
 	}
 }

@@ -149,43 +149,6 @@ func TestWhoamiReturnsAccountID(t *testing.T) {
 	mustContain(t, who.Body, me)
 }
 
-func TestMissingScopeGetsInsufficientScope(t *testing.T) {
-	t.Parallel()
-
-	app := newApp(t)
-	cookie, clientID := signedInClient(t, app)
-	narrow := connect(t, app, cookie, clientID, "openid")
-
-	denied := do(t, app, "POST", "/api/coding", rpc("tools/list", "{}"), mcpHeaders(narrow))
-	if denied.Status != 403 || !strings.Contains(denied.Header.Get("WWW-Authenticate"), `error="insufficient_scope"`) {
-		t.Fatalf("expected 403 insufficient_scope, got %d %v", denied.Status, denied.Header)
-	}
-}
-
-func TestRevokedGrantStopsWorkingAtOnce(t *testing.T) {
-	t.Parallel()
-
-	app := newApp(t)
-	cookie, clientID := signedInClient(t, app)
-	token := connect(t, app, cookie, clientID, "coding:read")
-	headers := map[string]string{"Cookie": cookie}
-
-	var grants []map[string]any
-	listed := do(t, app, "GET", "/api/oauth/grants", "", headers)
-	if err := json.Unmarshal(listed.Body, &grants); err != nil || len(grants) != 1 {
-		t.Fatalf("the connection should be listed: %v %v", grants, err)
-	}
-
-	id, _ := grants[0]["id"].(string)
-	if removed := do(t, app, "DELETE", "/api/oauth/grants/"+id, "", headers); removed.Status != 204 {
-		t.Fatalf("revoke failed: %d", removed.Status)
-	}
-
-	if after := do(t, app, "POST", "/api/coding", rpc("tools/list", "{}"), mcpHeaders(token)); after.Status != 401 {
-		t.Fatalf("revoked grants must get 401, got %d", after.Status)
-	}
-}
-
 func TestUnknownAPIPathIs404JSONNotSPA(t *testing.T) {
 	t.Parallel()
 
