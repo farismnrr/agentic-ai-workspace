@@ -25,12 +25,27 @@ Each connected app works in its own project, named after it (ChatGPT works in "C
 
 ## Following the AI app's work
 
-Each conversation of a connected app shows up as a task, next to the ones the AI team ran.
+Each connected-app conversation shows as a task beside the work done in the app.
 
-- Every step is written down: reading, searching, editing and running commands.
-- A command that takes a while shows as "Running: …" while it runs, and the task shows as working until it ends.
-- Your request and the app's answer appear only if the app saves them. The server asks it to, but ChatGPT and Gemini may skip it.
-- Settings, Activity lists every call, whether or not the app saved the conversation.
+- For substantial work, the AI app can start a separate work session and choose
+  the roles it uses. These names describe its work; no other AI agent is started.
+- Plan shows its steps. Documents separates research from requirements.
+  Team shows only roles it declared or used.
+- Changes shows edited files and offers Undo when the server saved a reversible
+  change. Files shows the project's current files.
+- The timeline shows conversation messages when the AI app saves them, plus
+  work steps and results. An app that never calls the work tools still gets the
+  simple timeline used before.
+- Evidence labels what the server can support: the AI app's own progress report,
+  file changes the server saw, and commands the server ran with their exit codes.
+- The server cannot see activity outside its tools or the AI app's private
+  thinking. It asks the app to save your request and its answer, but the app may
+  skip either message.
+- Stop ends a work session, but cannot interrupt a command already running.
+- “Proven to work” means a command exited with code 0 after the last change. It
+  does not mean the work itself is correct.
+- Settings, Activity lists every tool call, even when the app did not save a
+  conversation message.
 
 ## Working in your other projects
 

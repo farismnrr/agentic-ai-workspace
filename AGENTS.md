@@ -73,6 +73,9 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 5. Runtime environment access belongs in `internal/platform/config`.
 6. Register API routes before the SPA fallback.
 7. Prefer explicit constructor/function injection over package globals.
+8. External tasks (`Source != ""` or `WorkID != ""`) never enqueue the internal
+   agent. External work roles are labels and never change tool permissions.
+   Record role transitions with `EventRole`; never model them as `EventHandoff`.
 
 ## Frontend rules
 
