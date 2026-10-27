@@ -31,6 +31,8 @@ type Options struct {
 	Tasks TaskLog
 	// Works backs the explicit connected-app work lifecycle tools.
 	Works WorkSessions
+	// WorkCalls records file, read and command activity under an explicit work ID.
+	WorkCalls WorkCalls
 	// ResourceMetadataURL is advertised in scope challenges.
 	ResourceMetadataURL string
 }
@@ -98,7 +100,10 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"},
 		&sdk.ServerOptions{Instructions: serverInstructions})
-	g := &guard{gate: opts.Gate, recorder: opts.Recorder, tasks: opts.Tasks, metadataURL: opts.ResourceMetadataURL}
+	g := &guard{
+		gate: opts.Gate, recorder: opts.Recorder, tasks: opts.Tasks,
+		workCalls: opts.WorkCalls, metadataURL: opts.ResourceMetadataURL,
+	}
 	t := &tools{workspaces: workspaces, guard: g, works: opts.Works}
 
 	t.addReadTools(server)

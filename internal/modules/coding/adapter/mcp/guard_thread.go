@@ -12,10 +12,17 @@ import (
 
 // newState starts what a call learns about itself. A call that takes a while writes its step into the thread as
 // soon as its project is known.
-func (g *guard) newState(ctx context.Context, info domain.ToolInfo, entry *Entry, req *sdk.CallToolRequest) *callState {
-	state := &callState{}
-	if info.Group == domain.GroupExec && g.tasks != nil {
-		state.begin = func(project string) { g.begin(ctx, entry, state, project, metaKeys(req)) }
+func (g *guard) newState(
+	ctx context.Context, info domain.ToolInfo, entry *Entry, req *sdk.CallToolRequest, workID string,
+) *callState {
+	state := &callState{workID: workID}
+	if info.Group == domain.GroupExec {
+		switch {
+		case workID != "" && g.workCalls != nil:
+			state.begin = func(project string) { g.beginWork(ctx, entry, state, project, metaKeys(req)) }
+		case workID == "" && g.tasks != nil:
+			state.begin = func(project string) { g.begin(ctx, entry, state, project, metaKeys(req)) }
+		}
 	}
 
 	return state
@@ -57,6 +64,9 @@ func (g *guard) begin(ctx context.Context, entry *Entry, state *callState, proje
 
 // end says a call that begin started is over.
 func (g *guard) end(ctx context.Context, state *callState) {
+	if state.eventID != "" {
+		return
+	}
 	if state.taskID != "" {
 		g.tasks.End(context.WithoutCancel(ctx), state.taskID)
 	}
@@ -88,6 +98,16 @@ var quiet = []string{domain.ToolWhoami.Name, domain.ToolListProjects.Name, domai
 // thread writes the call into the app's thread, so the person can read what the app did, reading included. A
 // failure to write never turns a finished call into an error.
 func (g *guard) thread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) {
+	if workID := workIDFrom(ctx); workID != "" {
+		if g.workCalls != nil {
+			g.workThread(ctx, info, entry, rep, workID)
+		}
+		return
+	}
+	g.legacyThread(ctx, info, entry, rep)
+}
+
+func (g *guard) legacyThread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) {
 	note := rep.note
 	if note == nil && !slices.Contains(quiet, info.Name) {
 		note = &Note{Kind: NoteAction, Text: entry.Summary, Technical: entry.Detail, Run: rep.run}

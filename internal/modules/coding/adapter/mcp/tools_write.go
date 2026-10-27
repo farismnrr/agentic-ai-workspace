@@ -52,20 +52,27 @@ func (t *tools) addWriteTools(server *sdk.Server) {
 }
 
 // changed turns a finished modification into the tool output and the log report.
-func changed(project, path string, applied application.Applied, err error) (changeOutput, report, error) {
+func changed(
+	project, path string, applied application.Applied, err error, files ...string,
+) (changeOutput, report, error) {
 	if err != nil {
 		return changeOutput{}, report{}, fmt.Errorf("change %s: %w", path, err)
 	}
 
+	if len(files) == 0 {
+		files = []string{path}
+	}
 	var undo []byte
 	if applied.Change.Op != "" {
 		undo, err = applied.Change.Encode()
 		if err != nil {
 			return changeOutput{}, report{}, fmt.Errorf("record change: %w", err)
 		}
+	} else {
+		files = nil
 	}
 
-	done := report{detail: applied.Detail, undo: undo, project: project}
+	done := report{detail: applied.Detail, undo: undo, project: project, files: files}
 
 	return changeOutput{Path: path, Result: applied.Detail}, done, nil
 }
@@ -111,5 +118,5 @@ func (t *tools) moveFile(ctx context.Context, in moveInput) (changeOutput, repor
 
 	applied, err := svc.Editor.Move(in.From, in.To)
 
-	return changed(svc.ProjectID, in.To, applied, err)
+	return changed(svc.ProjectID, in.To, applied, err, in.From, in.To)
 }

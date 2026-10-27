@@ -19,6 +19,14 @@ type WorkStore interface {
 	ByTask(ctx context.Context, taskID string) (domain.ExternalWork, error)
 }
 
+// WorkCallStore records MCP calls with the work role read in the same transaction as the event.
+type WorkCallStore interface {
+	AppendWorkCall(
+		ctx context.Context, userID, client, projectID, workID string, event domain.Event,
+	) (string, domain.Event, error)
+	UpdateWorkCall(ctx context.Context, taskID, workID, eventID string, event domain.Event) (domain.Event, error)
+}
+
 // WorkCreate is one atomic task, work, and initial-event creation request.
 type WorkCreate struct {
 	Task  domain.Task

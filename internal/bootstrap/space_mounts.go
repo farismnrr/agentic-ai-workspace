@@ -26,7 +26,7 @@ func newSpaceMounts(
 	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
 	handler := codingHandler(appWorkspaces{projects: projects, tools: tools}, codingmcp.Options{
 		Gate: gate{permissions: permissions}, Recorder: recorder{log: log}, Tasks: appThreads{tasks: tasks},
-		Works:               appWorks{works: works},
+		Works: appWorks{works: works}, WorkCalls: appWorkCalls{works: works},
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 

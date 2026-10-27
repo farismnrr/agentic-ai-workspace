@@ -25,6 +25,8 @@ type report struct {
 	project string
 	// run says how a command ended, for the thread.
 	run *RunNote
+	// files are the project-relative paths changed by this call.
+	files []string
 	// note, when set, is what the call writes into the thread instead of the usual action line.
 	note   *Note
 	undo   []byte
@@ -38,6 +40,8 @@ type callState struct {
 	project string
 	// taskID is the thread begin wrote into, so end can mark the call over.
 	taskID  string
+	eventID string
+	workID  string
 	started bool
 }
 
@@ -47,6 +51,7 @@ type guard struct {
 	gate        Gate
 	recorder    Recorder
 	tasks       TaskLog
+	workCalls   WorkCalls
 	metadataURL string
 }
 
@@ -65,7 +70,8 @@ func guarded[In, Out any](
 		}
 
 		client, _ := token.Extra[clientKey].(string)
-		entry := Entry{UserID: token.UserID, Client: client, Tool: info.Name, Summary: clip(describe(in))}
+		workID := workIDOf(in)
+		entry := Entry{UserID: token.UserID, Client: client, WorkID: workID, Tool: info.Name, Summary: clip(describe(in))}
 
 		if refusal := g.refuse(ctx, info, token.Scopes, &entry); refusal != nil {
 			g.record(ctx, entry)
@@ -73,7 +79,7 @@ func guarded[In, Out any](
 			return refusal, none, nil
 		}
 
-		state := g.newState(ctx, info, &entry, req)
+		state := g.newState(ctx, info, &entry, req, workID)
 		who := context.WithValue(ctx, identityKey{}, identity{
 			User: token.UserID, Client: client, Project: projectOf(in), WorkID: workIDOf(in),
 		})
