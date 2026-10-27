@@ -99,6 +99,8 @@ jobs:
           export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
           # The publish step tags the image with the commit this run was started on.
           export APP_TAG="sha-$(printf '%s' '${{ github.sha }}' | cut -c1-7)"
+          docker pull ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
+          docker rm -f agentic-sandbox 2>/dev/null || true
           docker compose -f compose.prod.yaml --env-file "$env_file" pull
           docker compose -f compose.prod.yaml --env-file "$env_file" up -d --remove-orphans
 
