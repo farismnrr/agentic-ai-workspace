@@ -149,3 +149,36 @@ func TestPlanApprovalRejectsWrongOwnerAndStaleRevision(t *testing.T) {
 		})
 	}
 }
+
+func TestPlanApprovalReusedKeyOnLaterRevisionReturnsKeyReused(t *testing.T) {
+	ctx, _, store := newWorkStore(t)
+	work := createTestWork(t, ctx, store, "w-key-reuse", "t-key-reuse", "")
+	firstRevision := submitStorePlan(t, ctx, store, work)
+	first := approvalWrite(work, firstRevision.RevNo, time.Unix(20, 0))
+	first.Decision.Kind = domain.PlanDecisionChangesRequested
+	if _, err := store.DecidePlan(ctx, first); err != nil {
+		t.Fatal(err)
+	}
+
+	secondRevision, err := store.SubmitPlan(ctx, application.PlanSubmission{
+		WorkID: work.ID, UserID: work.UserID, ExpectRev: work.Rev + 2,
+		Revision: domain.PlanRevision{
+			ID: "revision-second", WorkID: work.ID, TaskID: work.TaskID, PlanRev: 2,
+			Steps: []domain.PlanStep{{ID: "step-2", Title: "Update"}}, Summary: "Updated plan",
+		},
+		Event: domain.Event{
+			Kind: domain.EventPlanReview, Text: "Updated plan ready",
+			PlanReview: &domain.PlanReview{Summary: "Updated plan", Status: domain.PlanRevisionSubmitted},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reused := approvalWrite(work, secondRevision.RevNo, time.Unix(30, 0))
+	reused.Decision.ID = "decision-second"
+	reused.Decision.ReqHash = "second-revision-hash"
+	if _, err := store.DecidePlan(ctx, reused); !errors.Is(err, domain.ErrKeyReused) {
+		t.Fatalf("later revision reuse error = %v, want ErrKeyReused", err)
+	}
+}

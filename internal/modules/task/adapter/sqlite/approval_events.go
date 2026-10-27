@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -17,7 +18,27 @@ func insertDecision(ctx context.Context, tx *sql.Tx, decision domain.PlanDecisio
 		string(decision.Kind), decision.Source, decision.Client, decision.IdemKey, decision.ReqHash,
 		decision.Note, decision.DecidedAt.Unix())
 	if err != nil {
+		keyErr := reusedDecisionKey(ctx, tx, decision)
+		if keyErr != nil {
+			return keyErr
+		}
 		return fmt.Errorf("insert plan decision: %w", err)
+	}
+	return nil
+}
+
+func reusedDecisionKey(ctx context.Context, tx *sql.Tx, decision domain.PlanDecision) error {
+	if decision.IdemKey == "" {
+		return nil
+	}
+	var exists int
+	err := tx.QueryRowContext(ctx, `SELECT 1 FROM external_plan_decisions
+		WHERE work_id = ? AND idem_key = ?`, decision.WorkID, decision.IdemKey).Scan(&exists)
+	if err == nil {
+		return domain.ErrKeyReused
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("check reused plan decision key: %w", err)
 	}
 	return nil
 }

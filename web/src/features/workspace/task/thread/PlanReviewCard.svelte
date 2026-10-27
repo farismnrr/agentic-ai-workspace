@@ -1,7 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { taskHref } from '../../logic/task-links';
-  import { approvePlan, loadPlanRevision, requestPlanChanges, type PlanDecisionResponse } from '../../logic/plan-review-api';
+  import {
+    approvePlan,
+    loadPlanRevision,
+    requestPlanChanges,
+    type PlanDecisionResponse,
+    type PlanRevisionSnapshot,
+  } from '../../logic/plan-review-api';
+  import { planReviewSnapshotSections } from '../../logic/plan-review-snapshot';
   import { canDecidePlan, newPlanDecisionKey, planReviewLabel } from '../../logic/plan-review-state';
   import type { PlanStep } from '../../logic/task-types';
 
@@ -26,6 +33,7 @@
 
   const { review, taskId, projectId, readOnly = false }: Props = $props();
   let steps = $state<PlanStep[]>([]);
+  let snapshot = $state<PlanRevisionSnapshot>();
   let inFlight = $state(false);
   let result = $state<PlanDecisionResponse | undefined>();
   let error = $state('');
@@ -39,15 +47,15 @@
   const handoffState = $derived(result?.handoffState ?? review.handoffState);
   const decisionSource = $derived(result?.source ?? review.source);
   const decisionTime = $derived(result?.decidedAt ?? review.decidedAt ?? '');
+  const snapshotSections = $derived(snapshot ? planReviewSnapshotSections(snapshot) : []);
 
   onMount(() => {
-    if (review.steps !== undefined) {
-      steps = review.steps;
-      return;
-    }
-    if (steps.length > 0) return;
+    if (review.steps !== undefined) steps = review.steps;
     void loadPlanRevision(taskId, review.revision)
-      .then((snapshot) => (steps = snapshot.steps))
+      .then((loaded) => {
+        snapshot = loaded;
+        if (review.steps === undefined) steps = loaded.steps;
+      })
       .catch(() => (error = 'The plan details could not be loaded.'));
   });
 
@@ -86,6 +94,23 @@
       {/each}
     </ol>
   {/if}
+  <details class="collapse collapse-arrow mt-3 rounded-lg border border-[var(--brand-border)] bg-base-100">
+    <summary class="collapse-title min-h-0 py-3 text-sm font-medium">
+      Show everything the Orchestrator will get
+    </summary>
+    <div class="collapse-content space-y-4 text-sm">
+      {#if snapshot}
+        {#each snapshotSections as section (section.label)}
+          <section>
+            <h3 class="font-semibold">{section.label}</h3>
+            <pre class="mt-1 whitespace-pre-wrap break-words font-sans">{section.content}</pre>
+          </section>
+        {/each}
+      {:else}
+        <p role="status">Loading the approved snapshot…</p>
+      {/if}
+    </div>
+  </details>
   {#if status === 'submitted' && !readOnly}
     <label class="form-control mt-3">
       <span class="label-text text-sm">What should change? <span class="text-base-content/60">(optional)</span></span>

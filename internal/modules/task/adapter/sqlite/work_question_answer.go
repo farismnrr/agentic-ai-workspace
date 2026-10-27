@@ -93,13 +93,29 @@ func resumeWhenQuestionsClear(ctx context.Context, tx *sql.Tx, workID, taskID st
 	if open != 0 {
 		return false, nil
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE external_works SET plan_state = 'draft', rev = rev + 1,
-		updated_at = unixepoch() WHERE id = ? AND plan_state = 'awaiting_clarification'`, workID); err != nil {
+	result, err := tx.ExecContext(ctx, `UPDATE external_works SET plan_state = 'draft', rev = rev + 1,
+		updated_at = unixepoch() WHERE id = ? AND state = 'open' AND plan_state = 'awaiting_clarification'`, workID)
+	if err != nil {
 		return false, mapBusy(err)
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE tasks SET status = 'working', updated_at = unixepoch() WHERE id = ?`,
-		taskID); err != nil {
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("count resumed work update: %w", err)
+	}
+	if updated != 1 {
+		return false, domain.ErrWrongState
+	}
+	result, err = tx.ExecContext(ctx, `UPDATE tasks SET status = 'working', updated_at = unixepoch()
+		WHERE id = ? AND status = 'needs-input'`, taskID)
+	if err != nil {
 		return false, mapBusy(err)
+	}
+	updated, err = result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("count resumed task update: %w", err)
+	}
+	if updated != 1 {
+		return false, domain.ErrWrongState
 	}
 	return true, nil
 }

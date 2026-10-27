@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -12,6 +13,8 @@ const (
 	externalEventLimit = 60
 	externalLineLimit  = 500
 )
+
+var externalReportDelimiter = regexp.MustCompile(`(?i)<\s*/?\s*external_report[^>]*>`)
 
 func (s *Service) externalContext(ctx context.Context, task domain.Task, message string) (string, error) {
 	events, err := s.deps.Events.EventsAfter(ctx, task.ID, 0)
@@ -97,6 +100,7 @@ func boundedExternalText(value string) string {
 }
 
 func escapeExternalDelimiters(value string) string {
-	value = strings.ReplaceAll(value, "<external_report>", "&lt;external_report&gt;")
-	return strings.ReplaceAll(value, "</external_report>", "&lt;/external_report&gt;")
+	return externalReportDelimiter.ReplaceAllStringFunc(value, func(delimiter string) string {
+		return strings.ReplaceAll(strings.ReplaceAll(delimiter, "<", "&lt;"), ">", "&gt;")
+	})
 }
