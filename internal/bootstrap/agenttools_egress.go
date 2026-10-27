@@ -52,6 +52,7 @@ func (a *agentTools) otherTools() map[string]func(context.Context, taskapp.ToolS
 		toolDeployExtension: func(ctx context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {
 			return a.executeExtension(ctx, scope.ProjectID, call)
 		},
+		toolCILogs: a.executeCILogs,
 		toolViewImage: func(_ context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {
 			return a.executeView(scope.ProjectID, call)
 		},

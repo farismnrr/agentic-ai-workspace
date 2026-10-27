@@ -29,6 +29,7 @@ var errUnavailable = errors.New("github is unavailable")
 // Client is the GitHub App the server signs people in with.
 type Client struct {
 	http     *http.Client
+	logs     *http.Client
 	now      func() time.Time
 	id       string
 	secret   string
@@ -44,6 +45,7 @@ func New(clientID, clientSecret, callback string, now func() time.Time) *Client 
 		http: &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		}},
+		logs: logDownloads(),
 	}
 }
 
@@ -166,9 +168,7 @@ func (c *Client) Revoke(ctx context.Context, access string) error {
 
 // do sends the request with GitHub's headers and decodes a JSON answer into out.
 func (c *Client) do(req *http.Request, out any) (int, error) {
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", apiVersion)
-	req.Header.Set("User-Agent", "agentic-ai-workspace")
+	setHeaders(req)
 
 	res, err := c.http.Do(req)
 	if err != nil {
@@ -187,4 +187,10 @@ func (c *Client) do(req *http.Request, out any) (int, error) {
 	}
 
 	return res.StatusCode, nil
+}
+
+func setHeaders(req *http.Request) {
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", apiVersion)
+	req.Header.Set("User-Agent", "agentic-ai-workspace")
 }

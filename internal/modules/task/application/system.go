@@ -56,6 +56,7 @@ func teamPrompt(roster Roster) string {
 	}
 
 	out.WriteString(leadRules)
+	out.WriteString(leadSandbox)
 
 	if !canChange(roster.Members) {
 		out.WriteString("\nNo one on your team can change files right now. Tell the person to turn on the Developer in " +
