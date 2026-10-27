@@ -85,6 +85,20 @@ func (t *tools) services(ctx context.Context) (Services, error) {
 	return services, nil
 }
 
+func (t *tools) recheckWork(ctx context.Context, projectID string) error {
+	who, _ := ctx.Value(identityKey{}).(identity)
+	if who.WorkID == "" {
+		return nil
+	}
+	if t.works == nil {
+		return taskdomain.ErrUnknownWork
+	}
+	if err := t.works.Validate(ctx, who.User, who.Client, projectID, who.WorkID); err != nil {
+		return workToolError("validate work session", err)
+	}
+	return nil
+}
+
 // serverInstructions are shown to the app's model when it connects. The person follows the work in their own
 // workspace, and only what the model writes down tells them what they asked for.
 const serverInstructions = "These tools work in the person's own workspace, where they follow your work in a thread. " +

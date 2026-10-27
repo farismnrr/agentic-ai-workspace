@@ -114,14 +114,15 @@ func (r *captureRecorder) Record(_ context.Context, entry Entry) error {
 	return nil
 }
 
-type fakeTaskLog struct{ logs int }
+type fakeTaskLog struct{ logs, begins int }
 
 func (f *fakeTaskLog) Log(context.Context, string, string, string, Note) (string, error) {
 	f.logs++
 	return "legacy-task", nil
 }
 
-func (*fakeTaskLog) Begin(context.Context, string, string, string, Note) (string, error) {
+func (f *fakeTaskLog) Begin(context.Context, string, string, string, Note) (string, error) {
+	f.begins++
 	return "legacy-task", nil
 }
 

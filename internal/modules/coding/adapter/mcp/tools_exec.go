@@ -56,6 +56,10 @@ func (t *tools) runCommand(ctx context.Context, in commandInput) (runOutput, rep
 	if err != nil {
 		return runOutput{}, report{}, err
 	}
+	err = t.recheckWork(ctx, svc.ProjectID)
+	if err != nil {
+		return runOutput{}, report{}, err
+	}
 
 	result, err := svc.Tasks.RunCommand(ctx, in.Command, in.TimeoutSeconds)
 	if err != nil {
@@ -104,6 +108,10 @@ func (t *tools) listTasks(ctx context.Context, _ Target) (tasksOutput, report, e
 
 func (t *tools) runTask(ctx context.Context, in runInput) (runOutput, report, error) {
 	svc, err := t.services(ctx)
+	if err != nil {
+		return runOutput{}, report{}, err
+	}
+	err = t.recheckWork(ctx, svc.ProjectID)
 	if err != nil {
 		return runOutput{}, report{}, err
 	}

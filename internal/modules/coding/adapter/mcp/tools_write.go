@@ -82,6 +82,10 @@ func (t *tools) editFile(ctx context.Context, in editInput) (changeOutput, repor
 	if err != nil {
 		return changeOutput{}, report{}, err
 	}
+	err = t.recheckWork(ctx, svc.ProjectID)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
 
 	applied, err := svc.Editor.Edit(in.Path, in.OldText, in.NewText, in.ReplaceAll)
 
@@ -90,6 +94,10 @@ func (t *tools) editFile(ctx context.Context, in editInput) (changeOutput, repor
 
 func (t *tools) writeFile(ctx context.Context, in writeInput) (changeOutput, report, error) {
 	svc, err := t.services(ctx)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
+	err = t.recheckWork(ctx, svc.ProjectID)
 	if err != nil {
 		return changeOutput{}, report{}, err
 	}
@@ -104,6 +112,10 @@ func (t *tools) deleteFile(ctx context.Context, in deleteInput) (changeOutput, r
 	if err != nil {
 		return changeOutput{}, report{}, err
 	}
+	err = t.recheckWork(ctx, svc.ProjectID)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
 
 	applied, err := svc.Editor.Delete(in.Path)
 
@@ -112,6 +124,10 @@ func (t *tools) deleteFile(ctx context.Context, in deleteInput) (changeOutput, r
 
 func (t *tools) moveFile(ctx context.Context, in moveInput) (changeOutput, report, error) {
 	svc, err := t.services(ctx)
+	if err != nil {
+		return changeOutput{}, report{}, err
+	}
+	err = t.recheckWork(ctx, svc.ProjectID)
 	if err != nil {
 		return changeOutput{}, report{}, err
 	}

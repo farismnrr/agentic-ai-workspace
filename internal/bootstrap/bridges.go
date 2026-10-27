@@ -113,7 +113,7 @@ type recorder struct {
 }
 
 func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
-	if entry.WorkID != "" {
+	if entry.WorkID != "" || isExternalWorkTool(entry.Tool) {
 		entry.Summary, _ = taskdomain.Redact(entry.Summary)
 		entry.Detail, _ = taskdomain.Redact(entry.Detail)
 	}
@@ -127,6 +127,17 @@ func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
 	}
 
 	return nil
+}
+
+func isExternalWorkTool(name string) bool {
+	switch name {
+	case codingdomain.ToolBeginWork.Name, codingdomain.ToolSetRole.Name, codingdomain.ToolUpdatePlan.Name,
+		codingdomain.ToolSaveResearch.Name, codingdomain.ToolSaveRequirements.Name,
+		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name:
+		return true
+	default:
+		return false
+	}
 }
 
 // undoer lets the activity log reverse a change recorded by the coding tools.

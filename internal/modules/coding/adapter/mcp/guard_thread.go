@@ -93,7 +93,12 @@ func metaKeys(req *sdk.CallToolRequest) string {
 }
 
 // quiet are the tools whose calls say nothing about the work, so they are not written into the thread.
-var quiet = []string{domain.ToolWhoami.Name, domain.ToolListProjects.Name, domain.ToolLogMessage.Name}
+var quiet = []string{
+	domain.ToolWhoami.Name, domain.ToolListProjects.Name, domain.ToolLogMessage.Name,
+	domain.ToolBeginWork.Name, domain.ToolSetRole.Name, domain.ToolUpdatePlan.Name,
+	domain.ToolSaveResearch.Name, domain.ToolSaveRequirements.Name, domain.ToolReportProgress.Name,
+	domain.ToolCompleteWork.Name, domain.ToolGetWorkState.Name,
+}
 
 // thread writes the call into the app's thread, so the person can read what the app did, reading included. A
 // failure to write never turns a finished call into an error.
