@@ -19,6 +19,9 @@ inputs:
   smoke:
     description: Smoke-test script, run with the built image as its argument.
     default: test/smoke/image.test.sh
+  save-image:
+    description: Optional tar archive path for the smoke-tested local image.
+    default: ""
 outputs:
   digest:
     description: Digest of the pushed image (empty when not pushed).
@@ -46,6 +49,9 @@ runs:
         cache-to: type=gha,mode=max,scope=image${{ inputs.suffix }}
     - shell: bash
       run: sh ${{ inputs.smoke }} agentic-ai-workspace${{ inputs.suffix }}:ci
+    - if: inputs.save-image != ''
+      shell: bash
+      run: docker save --output "${{ inputs.save-image }}" agentic-ai-workspace${{ inputs.suffix }}:ci
     - if: inputs.push == 'true'
       uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
       with:

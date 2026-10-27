@@ -1,0 +1,22 @@
+name: Run one black-box scenario
+description: Download the verified binary and run one isolated scenario.
+inputs:
+  scenario:
+    description: Scenario name without the .test.sh suffix.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: app-bin
+        path: bin
+    - shell: bash
+      env:
+        SCENARIO: ${{ inputs.scenario }}
+      run: |
+        chmod +x bin/agentic-ai-workspace
+        APP_BIN="$PWD/bin/agentic-ai-workspace" make blackbox SCENARIO="$SCENARIO"

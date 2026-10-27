@@ -29,7 +29,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: sudo apt-get update && sudo apt-get install -y shellcheck
       - run: make guardrails shellcheck
 
   frontend:
@@ -86,7 +85,25 @@ jobs:
           path: internal/platform/webassets/dist
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
       - run: bash test/smoke/binary.test.sh bin/agentic-ai-workspace
-      - run: APP_BIN="$PWD/bin/agentic-ai-workspace" make blackbox
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-bin
+          path: bin/agentic-ai-workspace
+          if-no-files-found: error
+          retention-days: 1
+
+  blackbox:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [01-auth-session, 02-cross-user-isolation, 03-mcp-token-scope, 04-secrets-never-returned, 05-restart-keeps-data, 06-single-instance-clean-shutdown]
+    steps:
+      - uses: ./.github/actions/blackbox
+        with:
+          scenario: ${{ matrix.scenario }}
 
   # The toolbox image changes rarely, so it is rebuilt only when what goes into it changed. A new branch, a
   # rewritten history or any doubt counts as changed; full always builds it.
@@ -116,12 +133,8 @@ jobs:
 
   # The two images build in parallel: the sandbox image is the slow one, and nothing makes the app image wait for it.
   image-app:
-    needs: [guardrails, frontend, backend-test, backend-lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -129,11 +142,29 @@ jobs:
       - uses: ./.github/actions/build-image
         with:
           channel: dev
-          push: ${{ github.event_name == 'push' }}
+          save-image: app-image.tar
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-image
+          path: app-image.tar
+          if-no-files-found: error
+          retention-days: 1
+
+  image-app-publish:
+    needs: [guardrails, frontend, backend-test, backend-lint, build, blackbox, image-app]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: ./.github/actions/publish-image
+        with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   image-sandbox:
-    needs: [changes, guardrails, frontend, backend-test, backend-lint, build]
+    needs: [changes, guardrails, frontend, backend-test, backend-lint, build, blackbox]
     if: needs.changes.outputs.sandbox == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
