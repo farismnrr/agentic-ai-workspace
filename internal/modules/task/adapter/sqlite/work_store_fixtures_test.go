@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	_ "modernc.org/sqlite"
 )
@@ -39,8 +40,8 @@ func assertOpenWorkCounts(t *testing.T, ctx context.Context, store *Store) {
 
 func assertStaleWorks(t *testing.T, ctx context.Context, store *Store) {
 	t.Helper()
-	works, err := store.StaleOpen(ctx, time.Now().Add(time.Hour))
-	if err != nil || len(works) != 2 {
+	works, err := store.StaleOpen(ctx, "u", time.Now().Add(time.Hour))
+	if err != nil || len(works) != 1 {
 		t.Fatalf("stale open works = %d, %v", len(works), err)
 	}
 }
@@ -93,7 +94,16 @@ func createTestWork(t *testing.T, ctx context.Context, store *Store, id, taskID,
 		State: domain.WorkOpen, NextStep: 1, IdemKey: key, IdemHash: "request", CreatedAt: time.Unix(1, 0),
 		UpdatedAt: time.Unix(1, 0),
 	}
-	created, err := store.CreateWork(ctx, work)
+	if _, err := store.db.ExecContext(ctx, `DELETE FROM tasks WHERE id = ?`, taskID); err != nil {
+		t.Fatal(err)
+	}
+	task := domain.Task{
+		ID: taskID, ProjectID: project, UserID: owner, Title: taskID, Source: "client",
+		Status: domain.StatusWorking, ProviderID: "", Model: "", WorkID: id,
+		CreatedAt: work.CreatedAt, UpdatedAt: work.UpdatedAt,
+	}
+	event := domain.Event{Kind: domain.EventRequest, Text: "request", Time: work.CreatedAt}
+	created, err := store.CreateWork(ctx, application.WorkCreate{Task: task, Work: work, Event: event})
 	if err != nil {
 		t.Fatal(err)
 	}

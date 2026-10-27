@@ -26,16 +26,19 @@ const (
 )
 
 // WorkRef attributes an event to an external assistant's current work session.
+//
+//nolint:govet // fieldalignment: planned role keys remain a JSON list in the event contract.
 type WorkRef struct {
-	ID       string       `json:"id"`
-	Actor    string       `json:"actor,omitempty"`
-	Role     string       `json:"role,omitempty"`
-	RoleName string       `json:"roleName,omitempty"`
-	From     string       `json:"from,omitempty"`
-	Evidence EvidenceKind `json:"evidence,omitempty"`
-	Outcome  string       `json:"outcome,omitempty"`
-	CallID   string       `json:"callId,omitempty"`
-	Phase    string       `json:"phase,omitempty"`
+	PlannedRoles []string     `json:"plannedRoles,omitempty"`
+	ID           string       `json:"id"`
+	Actor        string       `json:"actor,omitempty"`
+	Role         string       `json:"role,omitempty"`
+	RoleName     string       `json:"roleName,omitempty"`
+	From         string       `json:"from,omitempty"`
+	Evidence     EvidenceKind `json:"evidence,omitempty"`
+	Outcome      string       `json:"outcome,omitempty"`
+	CallID       string       `json:"callId,omitempty"`
+	Phase        string       `json:"phase,omitempty"`
 }
 
 // WorkSummary is the safe, read-only work detail attached to a task response.
