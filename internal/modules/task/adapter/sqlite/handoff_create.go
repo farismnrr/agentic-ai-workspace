@@ -24,6 +24,12 @@ func (s *Store) CreateHandoffTask(ctx context.Context, handoff application.PlanH
 		return domain.Task{}, false, mapBusy(fmt.Errorf("begin plan handoff: %w", err))
 	}
 	defer func() { _ = tx.Rollback() }()
+	return s.createHandoffTaskInTransaction(ctx, tx, handoff, task, event, prompt, at)
+}
+
+func (s *Store) createHandoffTaskInTransaction(ctx context.Context, tx *sql.Tx,
+	handoff application.PlanHandoff, task domain.Task, event domain.Event, prompt string, at time.Time,
+) (domain.Task, bool, error) {
 	if insertErr := insertTask(ctx, tx, task); insertErr != nil {
 		return s.handoffCreateRace(ctx, tx, handoff, insertErr)
 	}

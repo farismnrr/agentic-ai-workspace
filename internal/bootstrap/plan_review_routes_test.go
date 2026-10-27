@@ -50,13 +50,23 @@ func TestAppPlanApprovalIsOwnerBoundAndIdempotent(t *testing.T) {
 	t.Parallel()
 	env, cookie, clientID, taskID, workID := submittedExternalPlan(t)
 	path := "/api/tasks/" + taskID
+	assertSubmittedPlanSnapshot(t, env, path, cookie)
+	assertApprovalRejectsWrongOwnerAndStaleRevision(t, env, path, cookie)
+	handoffID := approvePlanTwice(t, env, path, cookie)
+	assertMCPApprovalSharesHandoff(t, env, cookie, clientID, workID, handoffID)
+}
 
+func assertSubmittedPlanSnapshot(t *testing.T, env testEnv, path, cookie string) {
+	t.Helper()
 	snapshot := do(t, env.app, "GET", path+"/plan/revisions/1", "", planSession(cookie))
 	if snapshot.Status != 200 {
 		t.Fatalf("load submitted snapshot: %d %s", snapshot.Status, snapshot.Body)
 	}
 	mustContain(t, snapshot.Body, `"revision":1`, "Make one small change", "Make the change")
+}
 
+func assertApprovalRejectsWrongOwnerAndStaleRevision(t *testing.T, env testEnv, path, cookie string) {
+	t.Helper()
 	other := cookieOf(t, do(t, env.app, "POST", "/api/auth/register",
 		`{"name":"Eve","email":"eve-review@example.com","password":"correct horse"}`, jsonHeaders()))
 	wrongOwner := do(t, env.app, "POST", path+"/plan/approve",
@@ -69,33 +79,51 @@ func TestAppPlanApprovalIsOwnerBoundAndIdempotent(t *testing.T) {
 	if stale.Status != 409 {
 		t.Fatalf("stale plan approval status=%d body=%s", stale.Status, stale.Body)
 	}
+}
+
+func approvePlanTwice(t *testing.T, env testEnv, path, cookie string) string {
+	t.Helper()
 	body := `{"revision":1,"idempotencyKey":"approval-key-123"}`
 	first := do(t, env.app, "POST", path+"/plan/approve", body, planSession(cookie))
 	second := do(t, env.app, "POST", path+"/plan/approve", body, planSession(cookie))
 	if first.Status != 200 || second.Status != 200 {
 		t.Fatalf("approval/retry statuses=%d/%d bodies=%s/%s", first.Status, second.Status, first.Body, second.Body)
 	}
-	var firstResult, secondResult map[string]any
-	if err := json.Unmarshal(first.Body, &firstResult); err != nil {
+	firstResult := decodePlanApproval(t, first.Body)
+	secondResult := decodePlanApproval(t, second.Body)
+	assertPlanApprovalReplayMatches(t, firstResult, secondResult)
+	return firstResult["handoffId"].(string)
+}
+
+func decodePlanApproval(t *testing.T, body []byte) map[string]any {
+	t.Helper()
+	var result map[string]any
+	if err := json.Unmarshal(body, &result); err != nil {
 		t.Fatal(err)
 	}
-	if err := json.Unmarshal(second.Body, &secondResult); err != nil {
-		t.Fatal(err)
+	return result
+}
+
+func assertPlanApprovalReplayMatches(t *testing.T, first, second map[string]any) {
+	t.Helper()
+	if first["decision"] != "approved" || first["source"] != "app" || first["decidedAt"] == "" ||
+		first["handoffId"] == "" || first["handoffId"] != second["handoffId"] ||
+		first["linkedTaskId"] == "" || first["linkedTaskId"] != second["linkedTaskId"] {
+		t.Fatalf("approval retry changed handoff reference: %v then %v", first, second)
 	}
-	if firstResult["decision"] != "approved" || firstResult["source"] != "app" || firstResult["decidedAt"] == "" ||
-		firstResult["handoffId"] == "" || firstResult["handoffId"] != secondResult["handoffId"] ||
-		firstResult["linkedTaskId"] == "" || firstResult["linkedTaskId"] != secondResult["linkedTaskId"] {
-		t.Fatalf("approval retry changed handoff reference: %v then %v", firstResult, secondResult)
-	}
+}
+
+func assertMCPApprovalSharesHandoff(t *testing.T, env testEnv, cookie, clientID, workID, handoffID string) {
+	t.Helper()
 	toolHeaders := jsonCookie(cookie)
 	do(t, env.app, "PUT", "/api/spaces/coding/tools/approve_plan", `{"enabled":true}`, toolHeaders)
 	token := connect(t, env.app, cookie, clientID, "coding:read coding:approve")
 	tool := callTool(t, env.app, token, "approve_plan", `{"work_id":"`+workID+
 		`","revision":1,"idempotency_key":"mcp-retry-key"}`)
 	toolResult := toolContent(t, tool)
-	if toolResult["handoff_id"] != firstResult["handoffId"] {
+	if toolResult["handoff_id"] != handoffID {
 		t.Fatalf("app and MCP paths returned different handoffs: app=%v MCP=%v response=%s",
-			firstResult["handoffId"], toolResult, tool.Body)
+			handoffID, toolResult, tool.Body)
 	}
 }
 

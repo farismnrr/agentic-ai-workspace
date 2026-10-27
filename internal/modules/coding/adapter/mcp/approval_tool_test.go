@@ -44,10 +44,23 @@ func assertApprovalRefused(t *testing.T, result *sdk.CallToolResult, works *fake
 
 func assertApprovalAllowed(t *testing.T, result *sdk.CallToolResult, works *fakeWorkSessions) {
 	t.Helper()
-	if result == nil || result.IsError || works.approvalCalls != 1 || works.lastUser != "u1" ||
-		works.lastClient != "ChatGPT" || works.lastProject != "project-1" {
-		t.Fatalf("approval identity/result = %+v works=%+v", result, works)
+	if result == nil || result.IsError {
+		t.Fatalf("approval tool failed: %+v", result)
 	}
+	assertApprovalIdentity(t, works)
+	assertApprovalPayload(t, result)
+}
+
+func assertApprovalIdentity(t *testing.T, works *fakeWorkSessions) {
+	t.Helper()
+	if works.approvalCalls != 1 || works.lastUser != "u1" ||
+		works.lastClient != "ChatGPT" || works.lastProject != "project-1" {
+		t.Fatalf("approval identity = %+v", works)
+	}
+}
+
+func assertApprovalPayload(t *testing.T, result *sdk.CallToolResult) {
+	t.Helper()
 	body, ok := result.StructuredContent.(map[string]any)
 	if !ok || body["decision"] != "approved" || body["handoff_id"] != "handoff-1" ||
 		body["internal_task_id"] != "internal-1" {

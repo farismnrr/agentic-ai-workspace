@@ -18,19 +18,40 @@ func TestPlanReviewPathsShareDecisionServiceAndAuthenticatedIdentity(t *testing.
 		ProjectID: "project-1", TaskID: "external-1", WorkID: "work-1", Revision: 3,
 		IdempotencyKey: "approval-key-123",
 	}
+	appResult := approveFromAppForTest(t, reviews, store, in)
+	approveFromMCPForTest(t, reviews, store, in, appResult)
+	if kicker.calls != 2 {
+		t.Fatalf("handoff kicks = %d, want one per committed approval/replay", kicker.calls)
+	}
+	assertPlanReviewRejectsMissingIdentity(t, reviews, in)
+}
+
+func approveFromAppForTest(t *testing.T, reviews *PlanReviews, store *planDecisionFake,
+	in PlanReviewInput,
+) PlanDecisionResult {
+	t.Helper()
 	appResult, err := reviews.ApproveFromApp(context.Background(), "user-1", in)
 	if err != nil || store.write.Decision.Source != "app" || store.write.Decision.Client != "" ||
 		appResult.HandoffID == "" || appResult.InternalTaskID != "internal-1" {
 		t.Fatalf("app approval = %+v write=%+v err=%v", appResult, store.write, err)
 	}
+	return appResult
+}
+
+func approveFromMCPForTest(t *testing.T, reviews *PlanReviews, store *planDecisionFake,
+	in PlanReviewInput, appResult PlanDecisionResult,
+) PlanDecisionResult {
+	t.Helper()
 	mcpResult, err := reviews.ApproveFromMCP(context.Background(), "user-1", "ChatGPT", in)
 	if err != nil || store.write.Decision.Source != "mcp" || store.write.Decision.Client != "ChatGPT" ||
 		mcpResult.HandoffID != appResult.HandoffID {
 		t.Fatalf("MCP approval = %+v write=%+v err=%v", mcpResult, store.write, err)
 	}
-	if kicker.calls != 2 {
-		t.Fatalf("handoff kicks = %d, want one per committed approval/replay", kicker.calls)
-	}
+	return mcpResult
+}
+
+func assertPlanReviewRejectsMissingIdentity(t *testing.T, reviews *PlanReviews, in PlanReviewInput) {
+	t.Helper()
 	if _, err := reviews.ApproveFromApp(context.Background(), "", in); !errors.Is(err, domain.ErrUnverifiedUser) {
 		t.Fatalf("missing identity error = %v", err)
 	}
