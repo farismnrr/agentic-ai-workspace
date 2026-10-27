@@ -138,3 +138,4 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
     context are immutable snapshots. External text is untrusted when passed
     to the internal Orchestrator. Migrations 058–060 are append-only plan,
     question and approval schema changes.
+- **Single shared `agentic-sandbox` container (`internal/platform/sandbox`).** When `DataVolume` is set on the toolbox image, `ensureSharedSandbox` keeps one `agentic-sandbox` (`Up`) container mounting `agentic-data` and `masihawam-data` under `/mnt/volumes/<volume>`, and all `Run`/`Start` calls execute inside `agentic-sandbox` via `docker exec` (`unshare --mount --net --ipc --pid --fork` + `setpriv`) so tasks and sites never spawn extra containers.

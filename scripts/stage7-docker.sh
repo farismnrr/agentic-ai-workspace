@@ -10,7 +10,7 @@ test -S /var/run/docker.sock
 
 sha=$(git rev-parse --short HEAD)
 app_image="ghcr.io/farismnrr/agentic-ai-workspace:sha-$sha"
-sandbox_image="ghcr.io/farismnrr/agentic-ai-workspace-sandbox:dev"
+sandbox_image="ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest"
 volume="aw-stage7-$(date +%s)-$$"
 app="aw-stage7-app-$$"
 temp=$(mktemp -d)

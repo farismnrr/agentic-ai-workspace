@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
 
@@ -48,6 +48,7 @@ type Docker struct {
 	api        *client.Client
 	toolchains []Toolchain
 	cfg        Config
+	sharedMu   sync.Mutex
 }
 
 // Open connects to the Docker daemon (DOCKER_HOST or the default socket), makes
@@ -78,30 +79,6 @@ func Open(ctx context.Context, cfg Config) (*Docker, error) {
 	d.ensureSharedSandbox(ctx)
 
 	return d, nil
-}
-
-func (d *Docker) ensureSharedSandbox(ctx context.Context) {
-	if len(d.toolchains) == 0 || d.Running(ctx, SharedSandboxName) {
-		return
-	}
-
-	d.remove(ctx, SharedSandboxName)
-
-	enabled := true
-	created, err := d.api.ContainerCreate(ctx, client.ContainerCreateOptions{
-		Name: SharedSandboxName,
-		Config: &container.Config{
-			Image: d.cfg.Image, Entrypoint: []string{"sleep", "infinity"}, NetworkDisabled: true,
-		},
-		HostConfig: &container.HostConfig{
-			NetworkMode: "none", ReadonlyRootfs: true, Init: &enabled, Runtime: d.cfg.Runtime,
-			CapDrop: []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"},
-			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyUnlessStopped},
-		},
-	})
-	if err == nil {
-		_, _ = d.api.ContainerStart(ctx, created.ID, client.ContainerStartOptions{})
-	}
 }
 
 func (d *Docker) ensureImage(ctx context.Context) error {

@@ -33,6 +33,10 @@ func (d *Docker) Run(ctx context.Context, spec Spec, out io.Writer) (Result, err
 		return Result{}, err
 	}
 
+	if d.useShared() {
+		return d.runShared(ctx, spec, mounts, out)
+	}
+
 	created, err := d.api.ContainerCreate(ctx, d.createOptions(spec, mounts))
 	if err != nil {
 		return Result{}, fmt.Errorf("create container: %w", err)
@@ -61,7 +65,7 @@ func (d *Docker) execute(ctx context.Context, id string, stdin io.Reader, out io
 	}()
 
 	if stdin != nil {
-		go feed(attached, stdin)
+		go feed(attached.HijackedResponse, stdin)
 	}
 
 	code, err := d.start(ctx, id, waiting)
@@ -82,7 +86,7 @@ func (d *Docker) execute(ctx context.Context, id string, stdin io.Reader, out io
 }
 
 // feed copies standard input into the container, then tells it nothing more is coming.
-func feed(attached client.ContainerAttachResult, stdin io.Reader) {
+func feed(attached client.HijackedResponse, stdin io.Reader) {
 	_, _ = io.Copy(attached.Conn, stdin)
 	_ = attached.CloseWrite()
 }
