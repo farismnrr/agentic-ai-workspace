@@ -107,6 +107,9 @@ func (g toolGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 		codingdomain.ToolWebSearch.Name, codingdomain.ToolFetchPage.Name, codingdomain.ToolSearchImages.Name,
 		codingdomain.ToolDownloadAsset.Name, codingdomain.ToolViewImage.Name, codingdomain.ToolDeployExtension.Name,
 		codingdomain.ToolRequestEgress.Name,
+		codingdomain.ToolBeginWork.Name, codingdomain.ToolSetRole.Name, codingdomain.ToolUpdatePlan.Name,
+		codingdomain.ToolSaveResearch.Name, codingdomain.ToolSaveRequirements.Name,
+		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name,
 	} {
 		states[site] = states[codingdomain.SwitchOf(site)]
 	}

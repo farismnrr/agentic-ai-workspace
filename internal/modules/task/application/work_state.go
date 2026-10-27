@@ -23,10 +23,12 @@ const (
 //
 //nolint:govet // fieldalignment: these fields preserve the stable state response schema.
 type StateResult struct {
+	TaskID       string            `json:"-"`
 	Stale        bool              `json:"stale"`
 	Plan         []domain.PlanStep `json:"plan"`
 	Progress     []string          `json:"progress"`
 	WorkID       string            `json:"workId"`
+	Revision     int64             `json:"revision"`
 	State        domain.WorkState  `json:"state"`
 	Role         string            `json:"role,omitempty"`
 	Research     string            `json:"researchPreview,omitempty"`
@@ -66,7 +68,7 @@ func (w *Works) State(ctx context.Context, userID, client, projectID, workID str
 
 func stateSnapshot(work domain.ExternalWork, task domain.Task, events []domain.Event, now time.Time) StateResult {
 	state := StateResult{
-		WorkID: work.ID, State: work.State, Role: work.RoleKey,
+		TaskID: work.TaskID, WorkID: work.ID, Revision: work.Rev, State: work.State, Role: work.RoleKey,
 		Plan: task.Plan, PlanRevision: work.PlanRev, ResearchSize: len(task.Research), Research: preview(task.Research),
 		PRDSize: len(task.PRD), PRD: preview(task.PRD), Progress: []string{},
 		Stale: work.State == domain.WorkOpen && now.Sub(work.UpdatedAt) > workIdleAfter,

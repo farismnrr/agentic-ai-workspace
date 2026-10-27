@@ -15,7 +15,7 @@ import (
 
 // newSpaceMounts wires the activity log, the app API and each hosted space.
 func newSpaceMounts(
-	cfg config.Config, projects *projectapp.Service, tools *agentTools, tasks *taskapp.Service,
+	cfg config.Config, projects *projectapp.Service, tools *agentTools, tasks *taskapp.Service, works *taskapp.Works,
 	registry *spaceapp.Registry, log *spaceapp.ActivityLog, permissions *spaceapp.Permissions, oauth *oauthapp.Service,
 	sess sessions, sameOrigin fiber.Handler,
 ) []httpserver.Mount {
@@ -26,6 +26,7 @@ func newSpaceMounts(
 	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
 	handler := codingHandler(appWorkspaces{projects: projects, tools: tools}, codingmcp.Options{
 		Gate: gate{permissions: permissions}, Recorder: recorder{log: log}, Tasks: appThreads{tasks: tasks},
+		Works:               appWorks{works: works},
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 

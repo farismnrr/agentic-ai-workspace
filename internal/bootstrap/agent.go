@@ -26,7 +26,7 @@ func newAgent(
 	db *sql.DB, cfg config.Config, models modelsWiring, projects *projectapp.Service, tools *agentTools,
 	gate taskapp.ToolGate, steps taskapp.ActivitySink, hub *taskapp.Hub, auth, sameOrigin fiber.Handler,
 	agentSessions taskapp.AgentSessionCleanup,
-) (*taskapp.Service, httpserver.Mount, func(), error) {
+) (*taskapp.Service, *taskapp.Works, httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStore(db, opaque.Generator{})
 
 	var taskStore taskapp.TaskStore = store
@@ -52,10 +52,11 @@ func newAgent(
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
 	service := taskapp.NewService(deps, scheduler)
-	service.UseWorkServices(taskapp.NewWorks(deps, store), store)
+	works := taskapp.NewWorks(deps, store)
+	service.UseWorkServices(works, store)
 
 	if err := service.Recover(context.Background()); err != nil {
-		return nil, nil, nil, fmt.Errorf("recover interrupted tasks: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("recover interrupted tasks: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -67,5 +68,5 @@ func newAgent(
 		hub.Close()
 	}
 
-	return service, taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
+	return service, works, taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
 }
