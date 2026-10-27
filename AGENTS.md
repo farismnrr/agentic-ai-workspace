@@ -122,6 +122,25 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 4. Frontend functions are limited by ESLint to 60 lines and complexity 10.
 5. Split code by responsibility, never into meaningless `part1` / `part2` files just to pass the limit.
 
+## RULE: NO NON-CRITICAL WHITE-BOX UNIT TESTS
+
+This rule applies to Developers, QA, Reviewers, Planners, and every other role.
+
+1. Do not add non-critical white-box unit tests.
+2. Use black-box tests by default for features, refactors, and fixes.
+3. Keep a white-box test only with an explicit, super-critical reason that black-box testing cannot verify the behavior.
+4. Never add tests merely to raise coverage.
+5. Avoid excessive mock scaffolding; test meaningful behavior and failure scenarios.
+6. Reuse the existing black-box harness and fixtures.
+7. Cover meaningful outcomes and failure scenarios at public boundaries.
+8. Do not add tests that duplicate an existing guarantee.
+9. Do not set coverage-percentage targets.
+10. Never remove critical security or data-integrity verification without an equal or stronger named guarantee.
+
+Black-box and end-to-end tests are Bash scenarios and Playwright TypeScript,
+all under `test/`. Retained Go white-box tests stay beside their code, as Go
+requires, and are listed in `test/whitebox/registry.md`.
+
 ## Folder structure
 
 Folders express responsibility. Each folder has one reason to change; add a subfolder when a folder holds more than about 8 files or mixes two responsibilities.
@@ -138,12 +157,20 @@ web/src/app/                              shell, router, composition
 web/src/features/<feature>/               components/, content/, assets/, logic/ by role
 web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ features
 sandbox/                                  Dockerfile and start script of the toolbox image the agent's commands run in
+test/
+  whitebox/                               retained Go test registry and guardrail
+  blackbox/                               Bash API/MCP scenarios against the binary
+  e2e/                                    Playwright flows driven through Bash
+  smoke/                                  binary and Docker image smoke scenarios
+  lib/                                    sourced Bash harness functions
+  fixtures/                               static scenario inputs
+  run.sh                                  entry point for test suites
 docs/                                     documentation for people (deployment, connector, using the app, design)
 agents/                                   self-improvement, memory and notes for AI agents only
 ```
 
 1. Import direction is `app -> features -> shared` on the frontend and `adapter -> application -> domain` on the backend. Features never import other features, and `shared` never imports a feature; promote the code to `shared` once two features need it. The only inward exception is the route store in `app/router`. `scripts/check-guardrails.sh` enforces this.
-2. Go packages are lowercase nouns named after their folder; Svelte components are `PascalCase.svelte`; TypeScript modules are `kebab-case.ts`; tests sit beside their code.
+2. Go packages are lowercase nouns named after their folder; Svelte components are `PascalCase.svelte`; TypeScript modules are `kebab-case.ts`; retained Go white-box tests sit beside their code, while black-box and e2e tests live under `test/`.
 3. Name folders by responsibility (`thread`, `settings`, `httpserver`), never by kind-of-file buckets such as `helpers`, `utils`, `misc`, or `types`.
 4. A new feature gets its layer/role folders from the start; do not grow a flat folder and split it later.
 5. When code moves between folders, update this section, `docs/system-design.md`, and the guardrails in the same change.
@@ -167,12 +194,12 @@ See [agents/git-safety.md](agents/git-safety.md) for the full preflight and reco
 
 ## Verification and CI
 
-1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary.
+1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary. It runs format/lint and type checks, build, essential white-box tests, `make blackbox`, and smoke checks.
 2. Go uses strict golangci-lint; the frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
 3. Warnings fail verification. Fix diagnostics instead of silencing them. `//nolint` must name the linter and explain the exception.
 4. Keep exactly two workflow files in `.github/workflows/`: `fast.yml` and `full.yml`. Neither gets extra files or full-release auto-triggers without approval. Shared setup lives in `.github/actions/`.
-5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs `make verify` equivalents, builds and smoke-tests the static binary, then builds the app image, and the sandbox image only when `sandbox/`, its smoke test, the build-image action or `fast.yml` changed (the `changes` job; any doubt counts as changed), in parallel jobs (`.github/actions/build-image`), smoke-tests what it built, and on pushes publishes `ghcr.io/<repo>:dev` and `:sha-<short>` for the app image and `ghcr.io/<repo>-sandbox:latest` and `:sha-<short>` for the sandbox image when rebuilt. Full always builds both. Checks run in parallel. Documentation-only changes skip it.
-6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. It repeats every fast check from a clean checkout, and only then merges `dev` -> `main` and publishes the image built from the merge commit as `:latest` and `:sha-<short>`.
+5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs format/lint, types, build, essential white-box checks, `make blackbox`, and smoke checks; then builds images in parallel and publishes on pushes. The sandbox image is rebuilt only when its inputs change. Documentation-only changes skip it.
+6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. From a clean checkout it repeats Fast and adds broader black-box checks, Playwright e2e, Docker isolation, security regressions, and `-race` on concurrency packages. It merges and publishes only when every check passes.
 7. Fast stays quicker than full by skipping clean-room rebuilds, cross-checks, merging, and publishing. It must never skip a lint, type, test, or guardrail gate.
 8. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`. CI verifies dependency drift instead of fixing it.
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
@@ -204,6 +231,7 @@ Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read th
 - `agents/memory-frontend.md`: lessons for the Svelte app, routing, workspace UI and status looks.
 - `agents/egress-grants.md`: the security design, stages and activation gate of per-task egress approvals (read before touching `platform/egressproxy` or sandbox reach).
 - `agents/implementation-notes.md`: long, exact backend detail (sandbox, agent loop, models and effort, connectors, data, workspace screens) that `docs/` only summarizes.
+- `agents/testing.md`: test choice, black-box harness, and white-box registry rules.
 - `agents/git-safety.md`: the single-worktree rule, task preflight, dirty-state decisions, and safe reconciliation.
 
 ## Project document continuity

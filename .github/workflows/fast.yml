@@ -29,7 +29,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: make guardrails
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: make guardrails shellcheck
 
   frontend:
     runs-on: ubuntu-latest
@@ -84,7 +85,8 @@ jobs:
           name: spa-dist
           path: internal/platform/webassets/dist
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
-      - run: sh scripts/smoke-test.sh bin/agentic-ai-workspace
+      - run: sh test/smoke/binary.test.sh bin/agentic-ai-workspace
+      - run: APP_BIN="$PWD/bin/agentic-ai-workspace" make blackbox
 
   # The toolbox image changes rarely, so it is rebuilt only when what goes into it changed. A new branch, a
   # rewritten history or any doubt counts as changed; full always builds it.
@@ -105,7 +107,7 @@ jobs:
           set -eu
           changed=true
           if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            if git diff --quiet "$BASE" HEAD -- sandbox scripts/smoke-test-sandbox.sh \
+            if git diff --quiet "$BASE" HEAD -- sandbox test/smoke/sandbox.test.sh \
               .github/actions/build-image .github/workflows/fast.yml; then
               changed=false
             fi
@@ -114,7 +116,7 @@ jobs:
 
   # The two images build in parallel: the sandbox image is the slow one, and nothing makes the app image wait for it.
   image-app:
-    needs: [guardrails, frontend, backend-test, backend-lint]
+    needs: [guardrails, frontend, backend-test, backend-lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -131,7 +133,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   image-sandbox:
-    needs: [changes, guardrails, frontend, backend-test, backend-lint]
+    needs: [changes, guardrails, frontend, backend-test, backend-lint, build]
     if: needs.changes.outputs.sandbox == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -146,7 +148,7 @@ jobs:
         with:
           suffix: -sandbox
           dockerfile: sandbox/Dockerfile
-          smoke: scripts/smoke-test-sandbox.sh
+          smoke: test/smoke/sandbox.test.sh
           channel: latest
           # Both dev and prod pull -sandbox:latest from GHCR so the toolbox image stays current and is never duplicated.
           push: ${{ github.event_name == 'push' }}

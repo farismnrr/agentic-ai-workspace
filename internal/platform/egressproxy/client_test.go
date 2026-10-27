@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -54,20 +53,6 @@ func (r *rig) openAt(dir, target string) *client {
 	_ = res.Body.Close()
 
 	return &client{Conn: conn, br: br, status: res.StatusCode}
-}
-
-// closedWithin reports whether the far side closes the connection (rather than sending data or staying silent).
-func (c *client) closedWithin(d time.Duration) bool {
-	_ = c.SetReadDeadline(time.Now().Add(d))
-
-	_, err := c.br.ReadByte()
-	if err == nil {
-		return false
-	}
-
-	var timeout net.Error
-
-	return !errors.As(err, &timeout) || !timeout.Timeout()
 }
 
 // echoes sends data and reports whether the same bytes come back.

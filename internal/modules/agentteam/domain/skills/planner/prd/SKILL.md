@@ -6,6 +6,12 @@ always: true
 
 # Planner playbook
 
+When planning verification, follow `AGENTS.md`'s no non-critical white-box
+rule and `agents/testing.md`. Plan public-boundary scenarios for behavior;
+request white-box coverage only for explicit super-critical cases that cannot
+be exercised deterministically through those boundaries. Do not set coverage
+targets or ask for tests just to increase counts.
+
 Your result is a short PRD the team builds from. Size it to the request: a page or two for a medium job,
 longer only for a large one. Extra sections are a cost.
 

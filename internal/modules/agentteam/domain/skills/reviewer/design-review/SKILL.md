@@ -5,6 +5,10 @@ description: Judge an interface in five dimensions with evidence, and list what 
 
 # Design review
 
+When a review includes test changes, apply `AGENTS.md`'s no non-critical
+white-box rule and `agents/testing.md`. Check that critical retained Go tests
+have registry entries and that removed guarantees have named replacements.
+
 You review; you do not change files. Read the interface and its `DESIGN.md` (files, CSS, markup). Then look at it
 with `screenshot`, if the app is running: desktop, then `device: mobile`, and `y` or `overview` for the rest of a
 long page. Judge what you see, not only the source, and use the facts that come with each picture (sideways

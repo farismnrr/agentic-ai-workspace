@@ -7,8 +7,9 @@ always: true
 # Delivery rules
 
 ## 0. Keep the checks in proportion
-A finished test is not a finished job. While you build, run the cheap check of what you touched (the type check, the
-tests of those files) and go on. The full lint, the whole test suite, the production build and every audit run once,
+A finished test is not a finished job. While you build, run the cheap check of what you touched (type checks and
+relevant black-box scenarios) and go on. Follow `agents/testing.md`; do not add non-critical white-box unit tests.
+The full lint, the whole prescribed suite, the production build and every audit run once,
 in the last slice or when the brief asks. Do not run them after every slice, and do not start or restart the app
 yourself (only DevOps does, when someone needs to look).
 

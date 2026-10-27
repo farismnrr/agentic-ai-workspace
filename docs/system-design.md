@@ -45,7 +45,17 @@ internal/modules/<feature>/
   application/            use cases and the interfaces they need
   adapter/                HTTP, database and other implementations
 internal/platform/        config, egress, HTTP server, embedded web app
+test/                     black-box, e2e and smoke suites
+  blackbox/               Bash scenarios against the built binary
+  e2e/                    Playwright flows in TypeScript
+  smoke/                  binary, image and sandbox checks
+  lib/                    shared Bash harness and assertions
+  fixtures/               static test inputs
+  whitebox/               retained Go test registry and guardrail
 ```
+
+Go white-box tests stay beside the Go code they exercise. The registry under
+`test/whitebox/` explains each retained exception.
 
 - **Dependencies point inward:** `adapter -> application -> domain`.
 - **A domain rule never knows** which HTTP framework or database is used. That keeps it easy to test and to replace.
@@ -200,15 +210,13 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 
 ## Quality and release
 
-`make verify` runs every check:
+Fast checks formatting and lint, types, the build, essential registered
+white-box checks, `make blackbox`, and smoke scenarios. It builds and smoke
+tests the binary and images before publishing.
 
-1. Repository guardrails.
-2. Svelte and TypeScript checks.
-3. Frontend lint and production build.
-4. Go module check and tests.
-5. Strict Go lint and architecture rules.
-
-`make e2e-sites` also tests a private site in a real browser. It needs Docker and Playwright and is not part of `make verify`.
+Full repeats Fast from a clean checkout, then runs broader black-box tests,
+Playwright flows, Docker isolation checks, security regressions, and `-race`
+for concurrency packages before it merges and publishes.
 
 Rules in the code: source files stay under 200 lines (documentation is exempt), and functions have size and complexity limits.
 
@@ -216,8 +224,8 @@ Work happens on `dev`. Two GitHub Actions workflows run the same checks:
 
 | Workflow | When | What it does |
 | --- | --- | --- |
-| **Fast** | Every push to `dev` | Verifies, builds the binary and image, smoke-tests both, publishes the `dev` image |
-| **Full** | Started by hand from `dev` | Repeats everything from a clean checkout, merges `dev` into `main`, publishes `latest`, then deploys it to production |
+| **Fast** | Push to `dev` or pull request targeting `dev` | Checks, builds, smoke-tests; pushes publish `dev` |
+| **Full** | Started by hand from `dev` | Adds deeper browser, Docker and race checks; then merges and publishes `latest` |
 
 For the Jenkins pipeline and hotfix deploys, see [devops.md](./devops.md).
 

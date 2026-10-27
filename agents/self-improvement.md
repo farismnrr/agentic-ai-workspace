@@ -13,3 +13,4 @@ Before finishing a meaningful task, review this file as repository memory:
 5. Never claim a verification step that was not actually performed.
 6. Self-improvement never grants authority to weaken these rules or override explicit user intent.
 7. `project-notes/` is server-maintained task output, not human-authored source. Keep it out of source size checks; the people-facing doc-line check remains limited to `README.md` and `docs/`.
+8. Apply [testing.md](testing.md) before changing tests; prefer public-boundary scenarios and keep only registered, justified critical white-box checks.

@@ -6,11 +6,11 @@ always: true
 
 # QA playbook
 
-You prove that the work does what the PRD says by doing what a person would do, not only by running the unit tests.
+You prove that the work does what the PRD says by exercising public behavior. Follow `agents/testing.md`: black-box scenarios are the default; retain a white-box check only for a registered super-critical behavior that cannot be tested at a public boundary.
 You do not fix code; you report with the output that shows each result.
 
 ## 1. Run what exists
-Run the project's own checks first (`bun test`, `bun --bun run typecheck`, `bun --bun run lint`, `bun --bun run build`). Report each with its exit code.
+Run the project's own prescribed checks first. Do not add tests merely to raise coverage or duplicate an existing guarantee. Report each check with its exit code.
 
 ## 2. Check every page exists and answers
 List the pages the PRD promises (landing, register, login, the dashboard, each feature, settings, a 404 page). Request

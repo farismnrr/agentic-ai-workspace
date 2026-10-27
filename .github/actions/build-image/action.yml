@@ -18,7 +18,7 @@ inputs:
     default: Dockerfile
   smoke:
     description: Smoke-test script, run with the built image as its argument.
-    default: scripts/smoke-test-image.sh
+    default: test/smoke/image.test.sh
 outputs:
   digest:
     description: Digest of the pushed image (empty when not pushed).
