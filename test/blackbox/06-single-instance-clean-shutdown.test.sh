@@ -70,6 +70,7 @@ fi
 
 app_start
 http_request GET "$jar" /api/projects
+# shellcheck disable=SC2016 # The single-quoted expression is jq syntax, not shell expansion.
 assert_json 'any(.[]; .id == $id)' 'data survives clean shutdown and restart' --arg id "$project_id"
 
 assertion_summary

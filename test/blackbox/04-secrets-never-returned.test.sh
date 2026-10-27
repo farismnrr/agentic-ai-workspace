@@ -24,6 +24,7 @@ provider_id=$(jq -r '.id' "$HTTP_BODY_FILE")
 http_request GET "$jar" /api/providers
 assert_status "$HTTP_STATUS" 200 'provider settings can be read'
 assert_not_contains "$HTTP_BODY_FILE" "$secret" 'provider list redacts secret'
+# shellcheck disable=SC2016 # The single-quoted expression is jq syntax, not shell expansion.
 assert_json 'any(.[]; .id == $id)' 'stored provider remains present' --arg id "$provider_id"
 
 http_request GET "$jar" /api/account/export

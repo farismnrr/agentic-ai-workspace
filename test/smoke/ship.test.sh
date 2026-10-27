@@ -1,7 +1,7 @@
 #!/bin/sh
 # Offline regression tests for imported Git repositories and ship status.
 set -eu
-root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 

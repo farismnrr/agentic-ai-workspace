@@ -29,6 +29,7 @@ app_restart
 http_request GET "$jar" /api/auth/me
 assert_status "$HTTP_STATUS" 200 'session remains valid after process restart'
 http_request GET "$jar" /api/projects
+# shellcheck disable=SC2016 # The single-quoted expression is jq syntax, not shell expansion.
 assert_json 'any(.[]; .id == $id)' 'project survives restart' --arg id "$project_id"
 http_request GET "$jar" /api/preferences
 assert_json '.about == "Long-lived setting"' 'preference survives restart'

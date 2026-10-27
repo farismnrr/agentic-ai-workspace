@@ -42,7 +42,10 @@ echo 'PASS isolated named volume initialized'
 STAGE7_VOLUME="$volume" STAGE7_IMAGE="$sandbox_image" \
   go test -count=1 -v -timeout 4m ./internal/platform/sandbox \
     -run '^TestStage7ActualVolumeSubpathsAreIsolated$' | tee stage7-evidence/subpath.log
-! grep -q -- '--- SKIP' stage7-evidence/subpath.log
+if grep -q -- '--- SKIP' stage7-evidence/subpath.log; then
+  echo 'Subpath test unexpectedly skipped' >&2
+  exit 1
+fi
 echo 'PASS real Docker Engine Subpath /workspace and /cache isolation'
 
 docker run --rm --network none --mount \
@@ -64,7 +67,10 @@ SANDBOX_TEST_IMAGE="$sandbox_image" \
   go test -count=1 -v -timeout 12m ./internal/modules/coding/adapter/runner \
     -run '^Test(AGrantIsUsableOnlyFromItsOwnTasksContainer|TheContainerSeesOnlyItsOwnSocketAndCannotChangeIt|Stage7RealPublicHTTPSNeedsTaskGrant|AVendorProgramContainerGetsOnlyItsOwnTasksSocket|AVendorProgramForATaskThatIsOverDoesNotStartAndFreesItsPlace|WithoutAScopeAndForSitesTheWorkspaceSocketIsUsedAndCarriesNoGrants)$' \
   | tee stage7-evidence/socket-isolation.log
-! grep -q -- '--- SKIP' stage7-evidence/socket-isolation.log
+if grep -q -- '--- SKIP' stage7-evidence/socket-isolation.log; then
+  echo 'Socket isolation test unexpectedly skipped' >&2
+  exit 1
+fi
 echo 'PASS Coding Runner and vendor Lease socket isolation'
 
 go test -race -count=1 -timeout 12m \
@@ -85,7 +91,7 @@ docker run -d --name "$app" --network host --read-only --cap-drop ALL \
   "$app_image" >/dev/null
 
 ready() {
-  for i in $(seq 1 90); do
+  for _ in $(seq 1 90); do
     if curl -fsS "http://127.0.0.1:$port/api/health" > "$temp/health.json"; then
       return 0
     fi

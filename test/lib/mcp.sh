@@ -4,6 +4,7 @@ mcp_call() {
   local token=$1 payload=$2
   HTTP_BODY_FILE="$APP_TMP_DIR/http-body"
   HTTP_HEADERS_FILE="$APP_TMP_DIR/http-headers"
+  # shellcheck disable=SC2034 # Callers inspect this shared response status.
   HTTP_STATUS=$(curl -sS -X POST "$APP_BASE/api/coding" \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json, text/event-stream' \
@@ -25,8 +26,7 @@ mcp_call_tool() {
 oauth_code_token() {
   local jar=$1 scope=$2 resource=$3 exchange_resource=${4:-$3}
   local exchange_verifier=${5:-dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk}
-  local verifier challenge redirect request_id redirect_uri query
-  verifier='dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'
+  local challenge request_id redirect_uri query
   challenge='E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM'
   redirect_uri='https://chatgpt.com/connector_platform_oauth_redirect'
   http_request POST "$jar" /oauth/register \

@@ -5,10 +5,12 @@ http_request() {
   HTTP_BODY_FILE="$APP_TMP_DIR/http-body"
   HTTP_HEADERS_FILE="$APP_TMP_DIR/http-headers"
   if [[ -n $payload ]]; then
+    # shellcheck disable=SC2034 # Callers inspect this shared response status.
     HTTP_STATUS=$(curl -sS -X "$method" "$APP_BASE$path" \
       -b "$jar" -c "$jar" -H "Content-Type: $type" \
       --data "$payload" -D "$HTTP_HEADERS_FILE" -o "$HTTP_BODY_FILE" -w '%{http_code}')
   else
+    # shellcheck disable=SC2034 # Callers inspect this shared response status.
     HTTP_STATUS=$(curl -sS -X "$method" "$APP_BASE$path" \
       -b "$jar" -c "$jar" -D "$HTTP_HEADERS_FILE" \
       -o "$HTTP_BODY_FILE" -w '%{http_code}')
@@ -19,6 +21,7 @@ http_unauthenticated() {
   local method=$1 path=$2
   HTTP_BODY_FILE="$APP_TMP_DIR/http-body"
   HTTP_HEADERS_FILE="$APP_TMP_DIR/http-headers"
+  # shellcheck disable=SC2034 # Callers inspect this shared response status.
   HTTP_STATUS=$(curl -sS -X "$method" "$APP_BASE$path" \
     -D "$HTTP_HEADERS_FILE" -o "$HTTP_BODY_FILE" -w '%{http_code}')
 }
@@ -28,6 +31,7 @@ http_form() {
   shift
   HTTP_BODY_FILE="$APP_TMP_DIR/http-body"
   HTTP_HEADERS_FILE="$APP_TMP_DIR/http-headers"
+  # shellcheck disable=SC2034 # Callers inspect this shared response status.
   HTTP_STATUS=$(curl -sS -X POST "$APP_BASE$path" \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     "$@" -D "$HTTP_HEADERS_FILE" -o "$HTTP_BODY_FILE" -w '%{http_code}')

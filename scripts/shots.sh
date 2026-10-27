@@ -2,7 +2,7 @@
 # The throwaway instance listens on all interfaces for the few seconds it runs.
 set -eu
 
-root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
 binary="$root/local-build/agentic-ai-workspace"
 [ -x "$binary" ] || binary="$root/bin/agentic-ai-workspace"
 [ -x "$binary" ] || { echo "Needs the Developer: build the app binary first" >&2; exit 1; }
@@ -45,7 +45,10 @@ curl -fsS -b "$work/cookies.txt" -H 'Content-Type: application/json' \
   -d '{"name":"Screenshot demo","description":"A sample project for review.","slug":"screenshot-demo"}' \
   "$origin/api/projects/" >"$project_json"
 project_id="$(jq -r '.id' "$project_json")"
-[ -n "$project_id" ] && [ "$project_id" != null ] || { cat "$project_json" >&2; exit 1; }
+if [ -z "$project_id" ] || [ "$project_id" = null ]; then
+  cat "$project_json" >&2
+  exit 1
+fi
 
 curl -fsS -b "$work/cookies.txt" -H 'Content-Type: application/json' -X PUT \
   -d '{"host":"db.example.test","port":3306,"database":"app","user":"admin","password":"demo","tls":"none"}' \
