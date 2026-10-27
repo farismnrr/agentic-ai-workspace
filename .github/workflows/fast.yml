@@ -85,7 +85,7 @@ jobs:
           name: spa-dist
           path: internal/platform/webassets/dist
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make backend-build
-      - run: sh test/smoke/binary.test.sh bin/agentic-ai-workspace
+      - run: bash test/smoke/binary.test.sh bin/agentic-ai-workspace
       - run: APP_BIN="$PWD/bin/agentic-ai-workspace" make blackbox
 
   # The toolbox image changes rarely, so it is rebuilt only when what goes into it changed. A new branch, a
