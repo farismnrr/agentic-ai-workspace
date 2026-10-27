@@ -43,6 +43,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Get("/api/tasks/:id/stream", auth, h.taskStream)
 		app.Get("/api/stream", auth, h.workspaceStream)
 		app.Post("/api/tasks/:id/messages", auth, sameOrigin, h.message)
+		app.Post("/api/tasks/:id/chat", auth, sameOrigin, h.externalChat)
 		app.Post("/api/tasks/:id/events/:event/answer", auth, sameOrigin, h.answer)
 		app.Post("/api/tasks/:id/events/:event/undo", auth, sameOrigin, h.undo)
 		app.Post("/api/tasks/:id/cancel", auth, sameOrigin, h.cancel)

@@ -102,6 +102,22 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
 
 ## External MCP work contract
 
+- An owner can start a separate orchestrator conversation from an external task.
+  `tasks.linked_task_id` is unique and nullable; the linked task stores
+  `origin_task_id`, while its `source` and `work_id` remain empty so it has only
+  normal internal-task behavior. The SQLite creation transaction commits the
+  link, initial request event and transcript together. Later messages use the
+  existing `FollowUp` rules; direct external-task follow-up remains rejected.
+- The external chat route is `POST /api/tasks/:id/chat` with `{text}` and returns
+  `{linkedTaskId}`. It uses authenticated same-origin routing and validates
+  owner, project, archived state and linked-task attribution. Context labels
+  external timeline claims as reported by the external assistant and keeps
+  server-run evidence separate. The report is delimiter-wrapped as data, capped
+  to the latest 60 events and 500 characters per event line; evidence shows only
+  the server-recorded command name and exit code. External updates never queue an
+  agent. Archiving the linked chat lets the next external-task message create a
+  fresh linked chat; deleting either task clears the other task's nullable link.
+
 - The eight lifecycle tools (`begin_work`, `set_role`, `update_plan`, `save_research`, `save_requirements`, `report_progress`, `complete_work`, `get_work_state`) use `coding:read` and follow the existing `log_message` switch. They never enable file writing or command execution. A role is attribution only.
 - `begin_work` accepts `project?`, `summary`, `idempotency_key?` (8–64 chars), `planned_roles?`; returns task/work IDs, available roles, resumed flag, revision, state and warnings. A same-key, same-request retry returns the same work; changed content rejects the key.
 - `set_role` accepts `work_id`, `project?`, `role`, `brief?`; returns the selected role, revision, state and changed flag. `update_plan` accepts `work_id`, `project?`, `base_revision`, `request_id?`, `steps[]`; returns stable step IDs and plan revision. Same request IDs replay the saved response; changed requests reject key reuse.
@@ -109,5 +125,7 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
 - `complete_work` accepts `work_id`, `project?`, `outcome` (`completed`, `failed`, `blocked`), `summary`, `claims?`; returns state, task status and derived evidence. `get_work_state` accepts `work_id`, `project?`; returns current state, plan, progress, document previews, evidence counts and stale flag.
 - Ownership mismatch (user, client or project), unknown IDs, and missing tasks all return the unknown-work error. Other errors include closed work, bad role/input, stale revision, changed idempotency key, oversized content, rate limit and open-work cap. Inputs are bounded: summary 4,000 chars; markdown 12,000; role brief 300; 10 planned roles; 40 plan steps (title 200, detail 1,000); 30 sources of 2,048 chars; progress 2,000; 10 claims of 300 chars; 2,000 events. Caps are 20 open works/user and 10/project; begin is 10/minute/user and other lifecycle calls 120/minute/user. Rate buckets are process-local.
 - Mutations use revision compare-and-swap. A stale plan returns the current plan plus conflict; role, document and completion writes cannot silently overwrite a newer revision. Event and task updates are atomic. Terminal states (completed, failed, stopped, abandoned) bypass the event limit; ordinary append calls remain capped. MCP call retries use a call ID to replay the already committed event, so Changes retains one Undo record.
+- `log_message` writes directly through the legacy thread port or explicit work-call port before returning `saved`; preserve user/request and assistant/message event kinds through both adapters. A failed update to a running work-call event must return an MCP error so the timeline cannot silently stay stale.
+- Task events have a stable display `seq` and a task-local change `version`. New writes and in-place updates advance `version`; API/SSE cursors use it, while rendering stays sorted by `seq`. Keep `EventsChangedAfter` available through the `Observe` event decorator, and notify both task and user topics after committed work changes/begins.
 - Evidence is `claimed` (client says it happened), `observed` (server saw file paths change), or `ran` (server captured a real exit code). “Proven to work” requires a server-run command with exit code 0 after the latest file change; it does not certify correctness. Status mapping is open→working, blocked→needs-input, completed→done, and failed/stopped/abandoned→failed. Thirty idle minutes marks explicit work stale. Legacy calls without `work_id` retain their existing 30-minute grouping.
 - `Stop` closes work but cannot cancel an already running command. MCP `instructions` are guidance: no server observation proves a client called any lifecycle tool, saved the conversation, or disclosed its private reasoning. External work events use `EventRole`, never `EventHandoff`.

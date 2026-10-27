@@ -45,6 +45,8 @@ export interface PlanStep {
 interface EventBase {
   id: string;
   seq: number;
+  /** Advances when the event is inserted or updated, for stream reconnects. */
+  version: number;
   /** ISO timestamp. */
   time: string;
   /** The teammate who did it; absent for the lead and for tasks without a team. */
@@ -153,6 +155,10 @@ export interface Task {
   /** The connected app that created this task; empty for internal tasks. */
   source: string;
   workId?: string;
+  /** Internal conversation created from an external task. */
+  linkedTaskId?: string;
+  /** External task whose context started this internal conversation. */
+  originTaskId?: string;
   work?: WorkSummary;
 }
 

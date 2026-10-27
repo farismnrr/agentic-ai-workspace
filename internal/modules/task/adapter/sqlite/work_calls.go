@@ -121,8 +121,10 @@ func (s *Store) UpdateWorkCall(
 	if err != nil {
 		return domain.Event{}, err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE task_events SET body = ?, undo = ? WHERE task_id = ? AND id = ?`,
-		body, event.Undo, taskID, eventID); err != nil {
+	if err := tx.QueryRowContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
+		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?)
+		WHERE task_id = ? AND id = ? RETURNING version`,
+		body, event.Undo, taskID, taskID, eventID).Scan(&event.Version); err != nil {
 		return domain.Event{}, fmt.Errorf("update work call event: %w", err)
 	}
 	if _, updateErr := tx.ExecContext(ctx,

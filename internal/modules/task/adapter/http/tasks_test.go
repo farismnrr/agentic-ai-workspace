@@ -12,6 +12,7 @@ import (
 func TestTaskPayloadIncludesExternalWorkSummary(t *testing.T) {
 	task := domain.Task{
 		ID: "task-1", Source: "ChatGPT", WorkID: "work-1",
+		LinkedTaskID: "linked-1", OriginTaskID: "origin-1",
 		Work: &domain.WorkSummary{
 			ID: "work-1", State: domain.WorkBlocked, Role: "qa", RoleName: "QA",
 			Actor: "ChatGPT", PlanRev: 3, Stale: true, UpdatedAt: time.Unix(100, 0).UTC(),
@@ -24,6 +25,8 @@ func TestTaskPayloadIncludesExternalWorkSummary(t *testing.T) {
 	body := string(encoded)
 	for _, field := range []string{
 		`"source":"ChatGPT"`, `"workId":"work-1"`, `"state":"blocked"`,
+		`"linkedTaskId":"linked-1"`,
+		`"originTaskId":"origin-1"`,
 		`"role":"qa"`, `"roleName":"QA"`, `"actor":"ChatGPT"`,
 		`"planRev":3`, `"stale":true`, `"updatedAt":`,
 	} {

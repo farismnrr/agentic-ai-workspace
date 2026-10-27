@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
@@ -46,6 +47,62 @@ func TestDeleteOwnedProcessesMoreThan200Rows(t *testing.T) {
 	if err != nil || len(remaining) != 0 {
 		t.Fatalf("chunked delete left %d rows: %v", len(remaining), err)
 	}
+}
+
+func TestDeleteExternalTaskSetsLinkedTaskOriginNull(t *testing.T) {
+	assertLinkedTaskDeletion(t, "external")
+}
+
+func TestDeleteLinkedTaskSetsExternalLinkNull(t *testing.T) {
+	assertLinkedTaskDeletion(t, "linked")
+}
+
+func assertLinkedTaskDeletion(t *testing.T, target string) {
+	t.Helper()
+	ctx, store := newArchiveStore(t)
+	externalID, linkedID := "external-task", "linked-task"
+	createLinkedTaskPair(t, ctx, store, externalID, linkedID)
+	deletedID, remainingID, column := deletionIDs(target, externalID, linkedID)
+	deleted, err := store.DeleteOwned(ctx, "u", []string{deletedID})
+	if err != nil || len(deleted) != 1 || deleted[0] != deletedID {
+		t.Fatalf("delete %s: deleted=%v err=%v", target, deleted, err)
+	}
+	var linked sql.NullString
+	query := `SELECT ` + column + ` FROM tasks WHERE id=?`
+	if err := store.db.QueryRowContext(ctx, query, remainingID).Scan(&linked); err != nil {
+		t.Fatal(err)
+	}
+	if linked.Valid {
+		t.Fatalf("deleting %s should clear the remaining reference, got %q", target, linked.String)
+	}
+}
+
+func createLinkedTaskPair(t *testing.T, ctx context.Context, store *Store, externalID, linkedID string) {
+	t.Helper()
+	createArchivedFixture(t, ctx, store, externalID)
+	_, err := store.db.ExecContext(ctx, `UPDATE tasks SET source='ChatGPT' WHERE id=?`, externalID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	linked := domain.Task{
+		ID: linkedID, ProjectID: "p", UserID: "u", Title: "Linked chat",
+		Status: domain.StatusDone, CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(1, 0),
+		OriginTaskID: externalID,
+	}
+	if err = store.Create(ctx, linked); err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.db.ExecContext(ctx, `UPDATE tasks SET linked_task_id=? WHERE id=?`, linkedID, externalID)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func deletionIDs(target, externalID, linkedID string) (deletedID, remainingID, column string) {
+	if target == "linked" {
+		return linkedID, externalID, "linked_task_id"
+	}
+	return externalID, linkedID, "origin_task_id"
 }
 
 func TestArchiveAndRestoreRequireOwnershipAndKeepPin(t *testing.T) {

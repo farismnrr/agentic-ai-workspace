@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -128,4 +129,12 @@ func (o observedEvents) UpdateEvent(ctx context.Context, taskID string, event do
 	}
 
 	return err //nolint:wrapcheck // a transparent decorator
+}
+
+func (o observedEvents) EventsChangedAfter(ctx context.Context, taskID string, version int64) ([]domain.Event, error) {
+	events, err := o.EventStore.EventsChangedAfter(ctx, taskID, version)
+	if err != nil {
+		return nil, fmt.Errorf("load changed thread events: %w", err)
+	}
+	return events, nil
 }

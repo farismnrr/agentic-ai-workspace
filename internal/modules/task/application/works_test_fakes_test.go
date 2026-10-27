@@ -160,4 +160,16 @@ func (f workEventFake) EventsAfter(_ context.Context, taskID string, _ int64) ([
 	return append([]domain.Event{}, f.store.events[taskID]...), nil
 }
 
+func (f workEventFake) EventsChangedAfter(_ context.Context, taskID string, version int64) ([]domain.Event, error) {
+	f.store.mu.Lock()
+	defer f.store.mu.Unlock()
+	var events []domain.Event
+	for _, event := range f.store.events[taskID] {
+		if event.Version > version {
+			events = append(events, event)
+		}
+	}
+	return events, nil
+}
+
 var _ WorkStore = (*workFakeStore)(nil)

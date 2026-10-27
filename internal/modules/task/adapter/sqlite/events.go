@@ -12,7 +12,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-const eventColumns = `seq, id, at, tool_use_id, body, undo`
+const eventColumns = `seq, id, at, tool_use_id, body, undo, version`
 
 // AppendEvent adds an entry to a task's thread and returns it with its id and sequence number.
 func (s *Store) AppendEvent(ctx context.Context, taskID string, event domain.Event) (domain.Event, error) {
@@ -50,16 +50,27 @@ func insertEvent(ctx context.Context, exec eventExecutor, ids application.IDs,
 	}
 
 	err = exec.QueryRowContext(ctx,
-		`INSERT INTO task_events (task_id, seq, id, at, kind, tool_use_id, body, undo)
-		 VALUES (?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM task_events WHERE task_id = ?), ?, ?, ?, ?, ?, ?)
-		 RETURNING seq`,
-		taskID, taskID, id, event.Time.Unix(), string(event.Kind), event.ToolUseID, string(body), event.Undo).
-		Scan(&event.Seq)
+		`INSERT INTO task_events (task_id, seq, id, at, kind, tool_use_id, body, undo, version)
+		 VALUES (?, (SELECT COALESCE(MAX(seq), 0) + 1 FROM task_events WHERE task_id = ?), ?, ?, ?, ?, ?, ?,
+		 (SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?))
+		 RETURNING seq, version`,
+		taskID, taskID, id, event.Time.Unix(), string(event.Kind), event.ToolUseID, string(body), event.Undo, taskID).
+		Scan(&event.Seq, &event.Version)
 	if err != nil {
 		return domain.Event{}, fmt.Errorf("insert event: %w", err)
 	}
 
 	return event, nil
+}
+
+// EventsChangedAfter returns events created or updated after a version cursor.
+func (s *Store) EventsChangedAfter(ctx context.Context, taskID string, version int64) ([]domain.Event, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+eventColumns+`
+		FROM task_events WHERE task_id = ? AND version > ? ORDER BY version`, taskID, version)
+	if err != nil {
+		return nil, fmt.Errorf("select changed events: %w", err)
+	}
+	return collectEvents(rows, "read changed events")
 }
 
 // EventsAfter returns the thread entries after a sequence number.
@@ -69,24 +80,22 @@ func (s *Store) EventsAfter(ctx context.Context, taskID string, seq int64) ([]do
 	if err != nil {
 		return nil, fmt.Errorf("select events: %w", err)
 	}
+	return collectEvents(rows, "read events")
+}
 
+func collectEvents(rows *sql.Rows, operation string) ([]domain.Event, error) {
 	defer func() { _ = rows.Close() }()
-
 	events := []domain.Event{}
-
 	for rows.Next() {
-		event, err := scanEvent(rows)
-		if err != nil {
-			return nil, err
+		event, scanErr := scanEvent(rows)
+		if scanErr != nil {
+			return nil, scanErr
 		}
-
 		events = append(events, event)
 	}
-
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("read events: %w", err)
+		return nil, fmt.Errorf("%s: %w", operation, err)
 	}
-
 	return events, nil
 }
 
@@ -120,8 +129,9 @@ func (s *Store) UpdateEvent(ctx context.Context, taskID string, event domain.Eve
 		return fmt.Errorf("encode event: %w", err)
 	}
 
-	result, err := s.db.ExecContext(ctx, `UPDATE task_events SET body = ?, undo = ? WHERE task_id = ? AND id = ?`,
-		string(body), event.Undo, taskID, event.ID)
+	result, err := s.db.ExecContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
+		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?) WHERE task_id = ? AND id = ?`,
+		string(body), event.Undo, taskID, taskID, event.ID)
 	if err != nil {
 		return fmt.Errorf("update event: %w", err)
 	}
@@ -135,15 +145,16 @@ func (s *Store) UpdateEvent(ctx context.Context, taskID string, event domain.Eve
 
 func scanEvent(row scanner) (domain.Event, error) {
 	var (
-		event domain.Event
-		at    int64
-		body  string
-		undo  []byte
-		tool  string
-		seq   int64
+		event   domain.Event
+		at      int64
+		body    string
+		undo    []byte
+		tool    string
+		seq     int64
+		version int64
 	)
 
-	if err := row.Scan(&seq, &event.ID, &at, &tool, &body, &undo); err != nil {
+	if err := row.Scan(&seq, &event.ID, &at, &tool, &body, &undo, &version); err != nil {
 		return domain.Event{}, fmt.Errorf("scan event: %w", err)
 	}
 
@@ -152,7 +163,7 @@ func scanEvent(row scanner) (domain.Event, error) {
 	}
 
 	// The stored body was written before the sequence number existed, so the column wins.
-	event.Seq, event.Time, event.ToolUseID, event.Undo = seq, time.Unix(at, 0), tool, undo
+	event.Seq, event.Version, event.Time, event.ToolUseID, event.Undo = seq, version, time.Unix(at, 0), tool, undo
 
 	return event, nil
 }

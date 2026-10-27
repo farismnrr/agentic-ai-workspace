@@ -38,17 +38,20 @@ func scanTask(row scanner) (domain.Task, error) {
 		proof            sql.NullString
 		pinned           sql.NullInt64
 		archived         sql.NullInt64
+		linkedTask       sql.NullString
+		originTask       sql.NullString
 		created, updated int64
 	)
 
 	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
 		&plan, &proof, &created, &updated, &t.Source, &t.ContextUsed, &t.ContextWindow, &effort, &t.Team, &t.PRD, &t.Research,
-		&t.PlanFirst, &t.FollowSettings, &pinned, &archived, &t.WorkID)
+		&t.PlanFirst, &t.FollowSettings, &pinned, &archived, &t.WorkID, &linkedTask, &originTask)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}
 
 	t.Status, t.Effort = domain.Status(status), domain.Effort(effort)
+	t.LinkedTaskID, t.OriginTaskID = linkedTask.String, originTask.String
 	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0).UTC(), time.Unix(updated, 0).UTC()
 	if pinned.Valid {
 		at := time.Unix(pinned.Int64, 0).UTC()

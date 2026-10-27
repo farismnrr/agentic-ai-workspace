@@ -16,9 +16,23 @@ func (m *memory) AppendEvent(_ context.Context, taskID string, event domain.Even
 	m.counter++
 	event.ID = "e" + strconv.Itoa(m.counter)
 	event.Seq = int64(len(m.events[taskID]) + 1)
+	event.Version = event.Seq
 	m.events[taskID] = append(m.events[taskID], event)
 
 	return event, nil
+}
+
+func (m *memory) EventsChangedAfter(_ context.Context, taskID string, version int64) ([]domain.Event, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var out []domain.Event
+	for _, event := range m.events[taskID] {
+		if event.Version > version {
+			out = append(out, event)
+		}
+	}
+	return out, nil
 }
 
 func (m *memory) EventsAfter(_ context.Context, taskID string, seq int64) ([]domain.Event, error) {
@@ -68,6 +82,7 @@ func (m *memory) UpdateEvent(_ context.Context, taskID string, updated domain.Ev
 
 	for i, event := range m.events[taskID] {
 		if event.ID == updated.ID {
+			updated.Version = max(updated.Version, event.Version+1)
 			m.events[taskID][i] = updated
 
 			return nil

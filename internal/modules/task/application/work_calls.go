@@ -14,7 +14,7 @@ var errWorkCallStorageUnavailable = errors.New("connected-app call storage is un
 func (w *Works) StartCall(
 	ctx context.Context, userID, client, projectID, workID string, event domain.Event,
 ) (string, string, error) {
-	event.Kind = domain.EventAction
+	conversationKind(&event)
 	ensureWorkRef(&event, workID)
 	event.Work.Phase = "running"
 	return w.appendCall(ctx, userID, client, projectID, workID, event)
@@ -30,10 +30,16 @@ func (w *Works) Validate(ctx context.Context, userID, client, projectID, workID 
 func (w *Works) RecordCall(
 	ctx context.Context, userID, client, projectID, workID string, event domain.Event,
 ) (string, error) {
-	event.Kind = domain.EventAction
+	conversationKind(&event)
 	ensureWorkRef(&event, workID)
 	taskID, _, err := w.appendCall(ctx, userID, client, projectID, workID, event)
 	return taskID, err
+}
+
+func conversationKind(event *domain.Event) {
+	if event.Kind != domain.EventRequest && event.Kind != domain.EventMessage {
+		event.Kind = domain.EventAction
+	}
 }
 
 func ensureWorkRef(event *domain.Event, workID string) {
@@ -75,9 +81,10 @@ func (w *Works) FinishCall(
 		return fmt.Errorf("finish connected-app call: %w", updateErr)
 	}
 	task, err := w.deps.Tasks.Find(ctx, "", taskID)
-	if err == nil {
-		w.notify(ctx, task)
+	if err != nil {
+		task.ID = taskID
 	}
+	w.notify(ctx, task)
 	return nil
 }
 

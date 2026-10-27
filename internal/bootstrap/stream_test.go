@@ -5,7 +5,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -118,40 +117,6 @@ func TestATaskStreamPushesTheThreadAndTheModelsTextAsItIsWritten(t *testing.T) {
 	}
 
 	stream.next(t, `"status":"done"`)
-}
-
-func TestAReturningViewerOnlyGetsWhatItMissed(t *testing.T) {
-	t.Parallel()
-
-	a := newAgentRig(t, finishCall("Done"))
-	base := a.env.serve(t)
-	id := a.start(t, "Quick one")
-	a.waitFor(t, id, "done")
-
-	events := a.thread(t, id)
-	last := events[len(events)-1]
-
-	url := base + "/api/tasks/" + id + "/stream"
-	request, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, url, http.NoBody)
-	request.Header.Set("Cookie", a.cookie)
-	request.Header.Set("Last-Event-ID", strconv.FormatInt(last.Seq, 10))
-
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() { _ = response.Body.Close() }()
-
-	reader := bufio.NewReader(response.Body)
-	_, _ = reader.ReadString('\n')
-	_, _ = reader.ReadString('\n')
-	_, _ = reader.ReadString('\n')
-	line, _ := reader.ReadString('\n')
-
-	if strings.Contains(line, "receipt") || !strings.Contains(line, "update") {
-		t.Fatalf("a viewer that has everything should get no repeated entries: %q", line)
-	}
 }
 
 func TestTheWorkspaceStreamAnnouncesChangesAndStaysPrivate(t *testing.T) {

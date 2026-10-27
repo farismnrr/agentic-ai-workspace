@@ -31,14 +31,14 @@ func (g *guard) newState(
 // failed records a call that returned an error and gives the person's model the readable form of it.
 func (g *guard) failed(ctx context.Context, info domain.ToolInfo, entry *Entry, err error) error {
 	entry.Outcome, entry.Detail = OutcomeFailed, UserFacing(err).Error()
-	g.thread(ctx, info, entry, report{})
+	_ = g.thread(ctx, info, entry, report{})
 	g.record(ctx, *entry)
 
 	return UserFacing(err)
 }
 
 // succeeded records a call that ran, which may still have failed in its own terms (rep.failed).
-func (g *guard) succeeded(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) {
+func (g *guard) succeeded(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) error {
 	entry.Outcome, entry.Detail, entry.Undo = OutcomeOK, rep.detail, rep.undo
 	if rep.project != "" {
 		entry.Project = rep.project
@@ -48,8 +48,13 @@ func (g *guard) succeeded(ctx context.Context, info domain.ToolInfo, entry *Entr
 		entry.Outcome = OutcomeFailed
 	}
 
-	g.thread(ctx, info, entry, rep)
+	if err := g.thread(ctx, info, entry, rep); err != nil {
+		entry.Outcome, entry.Detail = OutcomeFailed, UserFacing(err).Error()
+		g.record(ctx, *entry)
+		return UserFacing(err)
+	}
 	g.record(ctx, *entry)
+	return nil
 }
 
 // begin writes a call that takes a while into the thread as soon as it starts, and shows the thread as working,
@@ -100,16 +105,16 @@ var quiet = []string{
 	domain.ToolCompleteWork.Name, domain.ToolGetWorkState.Name,
 }
 
-// thread writes the call into the app's thread, so the person can read what the app did, reading included. A
-// failure to write never turns a finished call into an error.
-func (g *guard) thread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) {
+// thread writes the call into the app's thread. A failed running-call update is returned to the caller.
+func (g *guard) thread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) error {
 	if workID := workIDFrom(ctx); workID != "" {
 		if g.workCalls != nil {
-			g.workThread(ctx, info, entry, rep, workID)
+			return g.workThread(ctx, info, entry, rep, workID)
 		}
-		return
+		return nil
 	}
 	g.legacyThread(ctx, info, entry, rep)
+	return nil
 }
 
 func (g *guard) legacyThread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report) {

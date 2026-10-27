@@ -88,6 +88,11 @@ The AI can inspect PNG photos and read PDFs and text files from the project.
 
 The task page has the conversation on one side and a panel on the other. On a phone or tablet, the panel is a row of tabs.
 
+External tasks keep their progress in the external task thread. Messages sent there go to a separate internal
+orchestrator conversation; the external assistant does not reply to them. After sending, use **Open conversation**
+to see the reply. That conversation links back to the external task for context. Archived external tasks are read-only.
+If no AI model is ready, choose a provider and model in **Settings → AI models**, then send again.
+
 | Tab | Shows |
 | --- | --- |
 | Plan | The team's todo list and each step's owner and status |

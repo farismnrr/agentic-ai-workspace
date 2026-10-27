@@ -1,0 +1,26 @@
+# Lanjutkan pekerjaan navigasi sidebar pada project `agentic-a…
+
+Task: 1c9f4edc96c02cc8e00cae48eed2932a
+Status: done
+Updated: 2026-10-27T04:09:01Z
+
+Reference material; confirm applicability before reusing.
+
+## Technical references
+
+- **Svelte 5:** The current Svelte docs show TypeScript in a component’s `<script lang="ts">` and use lowercase DOM event attributes such as `onclick`. Navigation entries should remain ordinary links; the requested work does not require custom widget keyboard behavior. [Svelte overview](https://svelte.dev/docs/svelte/overview) · [Basic markup](https://svelte.dev/docs/svelte/basic-markup)
+- **daisyUI Menu:** The menu component styles lists of links and provides `menu-active` for visual active state. In daisyUI 5, `active` was renamed to `menu-active`; the menu is vertical by default. Pair visual state with the appropriate current-page semantics. [Menu docs](https://daisyui.com/components/menu/) · [v5 upgrade guide](https://daisyui.com/docs/upgrade/)
+- **WAI navigation:** Use a `<nav>` landmark for navigation. Give multiple navigation landmarks distinct short labels. Mark the current page link with `aria-current="page"`; WAI-ARIA recommends only one current item in a related set. [WAI menu structure](https://www.w3.org/WAI/tutorials/menus/structure/) · [Landmark guidance](https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/) · [WAI-ARIA 1.2](https://www.w3.org/TR/wai-aria-1.2/)
+- **Project-specific:** The plan calls for removing only the three top-level sidebar entries, retaining routes, and adding Settings → Workspace links to `/app/archive` and `/app/extensions`. Preserve `/app/tasks` and `/app/extensions/:projectId`. The notes also call for ordinary-user visibility of Archive and Extensions while Database remains admin-only. [Requirements](project-notes/tasks/65fb5553e028e65b96ef6b71316f4cc0/requirements.md) · [Plan](project-notes/tasks/65fb5553e028e65b96ef6b71316f4cc0/plan.md)
+
+## Quality checks
+
+- At **390, 820, 1024, and 1440 px**, confirm no horizontal overflow and that the Settings links remain reachable and readable.
+- With keyboard only, tab through desktop navigation and the mobile drawer; verify visible focus, Enter activation, logical order, and usable return/breadcrumb links.
+- Check that navigation landmarks have distinguishable names where there is more than one, and that the visible current link has `aria-current="page"` (including Settings active state on Archive/Extensions if implemented). Confirm the three removed names are absent as top-level links; retained task rows may still contain them.
+- Verify direct navigation and refresh for `/app/tasks`, `/app/archive`, `/app/extensions`, and `/app/extensions/:projectId`; exercise browser back/forward and ensure the extension deep link still presents its installer instructions.
+- Per the requirements, also verify Project → Tasks, nonadmin/admin Settings visibility, and Archive restore/delete behavior. These are planned QA checks, **not checks I ran**.
+
+Not found: Exact expected active-state behavior for nested Settings links is not further specified beyond the plan’s request for appropriate active indication.
+
+Suggestions: Treat the Settings entries as links to the existing full-page routes, not new settings tabs. In review, check both visual active styling and `aria-current` so they agree.

@@ -30,22 +30,22 @@ func (g *guard) beginWork(ctx context.Context, entry *Entry, state *callState, p
 	entry.Task = taskID
 }
 
-func (g *guard) workThread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report, workID string) {
+func (g *guard) workThread(ctx context.Context, info domain.ToolInfo, entry *Entry, rep report, workID string) error {
 	entry.WorkID = workID
 	note := workNote(info, entry, rep)
 	if note == nil || entry.Project == "" {
-		return
+		return nil
 	}
 	call := workCall(rep, *note)
 	state, _ := ctx.Value(stateKey{}).(*callState)
 	if state != nil && state.eventID != "" {
-		g.finishWorkCall(ctx, entry, state, rep, call)
-		return
+		return g.finishWorkCall(ctx, entry, state, rep, call)
 	}
 	if call.Evidence == "" && rep.run != nil {
 		call.Evidence = "ran"
 	}
 	g.recordWorkCall(ctx, entry, workID, call)
+	return nil
 }
 
 func workNote(info domain.ToolInfo, entry *Entry, rep report) *Note {
@@ -62,14 +62,16 @@ func workNote(info domain.ToolInfo, entry *Entry, rep report) *Note {
 	return note
 }
 
-func (g *guard) finishWorkCall(ctx context.Context, entry *Entry, state *callState, rep report, call WorkCall) {
+func (g *guard) finishWorkCall(ctx context.Context, entry *Entry, state *callState, rep report, call WorkCall) error {
 	call.Phase = "finished"
 	if rep.run != nil {
 		call.Evidence = "ran"
 	}
-	if err := g.workCalls.Finish(ctx, state.taskID, state.workID, state.eventID, call); err == nil {
-		entry.Task = state.taskID
+	if err := g.workCalls.Finish(ctx, state.taskID, state.workID, state.eventID, call); err != nil {
+		return fmt.Errorf("finish running work call: %w", err)
 	}
+	entry.Task = state.taskID
+	return nil
 }
 
 func (g *guard) recordWorkCall(ctx context.Context, entry *Entry, workID string, call WorkCall) {

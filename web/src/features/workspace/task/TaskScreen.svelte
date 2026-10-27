@@ -2,10 +2,13 @@
   import { onDestroy, untrack } from 'svelte';
   import type { Readable } from 'svelte/store';
   import ComposerBox from '../components/ComposerBox.svelte';
-  import { attachmentsCanSend, readyPaths, withAttachments, type Attachment } from '../logic/attachments';
+  import { attachmentsCanSend, readyPaths, type Attachment } from '../logic/attachments';
   import { findProject } from '../logic/derive';
   import { describeTaskError } from '../logic/task-errors';
+  import { taskErrors } from '../content/tasks-copy';
   import { createController } from '../logic/task-actions';
+  import { isExternalTask, originTaskHref, taskHref } from '../logic/task-links';
+  import { submitTaskFollowUp } from '../logic/task-composer';
   import type { Task, TaskEvent } from '../logic/task-types';
   import { createThread } from '../logic/thread';
   import { projects } from '../logic/workspace-store';
@@ -36,14 +39,20 @@
   const project = $derived(findProject($projects, projectId));
   const crumbs = $derived([{ label: 'Projects', href: '/app/projects' }, { label: project?.name ?? 'Project', href: `/app/projects/${projectId}` }]);
   const views = $derived<{ id: View; label: string }[]>([{ id: 'chat', label: 'Chat' }, ...panelTabs]);
-  const canWrite = $derived($task?.status === 'review' || $task?.status === 'done' || $task?.status === 'failed');
+  const external = $derived($task !== undefined && isExternalTask($task.source, $task.workId ?? ''));
+  const canWrite = $derived(external
+    ? true
+    : $task?.status === 'review' || $task?.status === 'done' || $task?.status === 'failed');
   let view = $state<View>('chat');
   let follow = $state('');
   let attachments = $state<Attachment[]>([]);
   let uploadError = $state('');
   let uploadBusy = $state(false);
   let uploadProgress = $state('');
+  let linkedChatId = $state('');
   const archived = $derived($task?.archivedAt != null);
+  const conversationId = $derived($task?.linkedTaskId ?? linkedChatId);
+  const originHref = $derived($task === undefined ? undefined : originTaskHref($task));
   const panelTab = $derived<PanelTab>(view === 'chat' ? 'plan' : view);
 
   const controller = createController(id, thread);
@@ -59,10 +68,11 @@
     }
     try {
       const paths = readyPaths(attachments);
-      if (await controller.follow(withAttachments(text, paths))) {
+      const result = await submitTaskFollowUp(text, paths, external, controller.follow, () => {
         follow = '';
         attachments = [];
-      }
+      });
+      if (result.linkedTaskId !== undefined) linkedChatId = result.linkedTaskId;
     } catch (failure) {
       uploadError = describeTaskError(failure);
     } finally {
@@ -89,6 +99,19 @@
   {:else}
     <div class="flex h-[calc(100dvh-3rem)] flex-col">
       <TaskHeader task={$task} {archived} onstop={controller.stop} onretry={controller.retry} />
+      {#if $task.originTaskId !== undefined}
+        <div class="flex flex-wrap items-center gap-x-2 border-b border-[var(--brand-border)] bg-base-100 px-4 py-2 text-sm" role="status">
+          <span class="badge badge-primary badge-soft badge-sm">Internal orchestrator</span>
+          <span class="text-[var(--brand-text-secondary)]">Conversation started from an external task.</span>
+          <a class="link link-hover font-medium" href={originHref}>View external task</a>
+        </div>
+      {/if}
+      {#if external && conversationId !== ''}
+        <div class="flex flex-wrap items-center gap-x-2 border-b border-[var(--brand-border)] bg-base-100 px-4 py-2 text-sm" role="status">
+          <span>Your internal orchestrator conversation is ready.</span>
+          <a class="link link-hover font-medium" href={taskHref($task.projectId, conversationId)}>Open conversation</a>
+        </div>
+      {/if}
       {#if archived}
         <div class="border-b border-[var(--brand-border)] bg-base-100 px-4 py-2" role="status">
           <span class="font-medium">This task is archived</span>
@@ -102,23 +125,40 @@
       <div class="flex min-h-0 flex-1">
         <section class="min-w-0 flex-1 flex-col lg:flex {view === 'chat' ? 'flex' : 'hidden'}" aria-label="Conversation">
           <TaskThread task={$task} events={$events} draft={$draft} actions={controller.actions} onretry={$task.source === '' ? controller.retry : undefined} readOnly={archived} />
+          {#if external && !archived}
+            <p class="mx-auto w-full max-w-[51rem] px-4 pb-2 text-xs text-[var(--brand-text-secondary)] sm:px-6">
+              Messages here go to the internal orchestrator. The external assistant will not reply here.
+            </p>
+          {/if}
           {#if !archived && $task.status === 'review'}
             <ReviewBar proven={$task.proof?.proven ?? false} onaccept={controller.accept} onchanges={focusFollowUp} />
           {/if}
           <div class="mx-auto w-full max-w-[51rem] px-4 pb-3 sm:px-6">
             <ComposerBox
               id="follow-up"
-              placeholder={archived ? 'This task is archived and read-only.' : canWrite ? 'Ask for a change or add details…' : 'You can write again once the AI has finished or stopped.'}
+              placeholder={archived
+                ? 'This task is archived and read-only.'
+                : external
+                  ? 'The external assistant will not reply here; the internal orchestrator will.'
+                  : canWrite
+                    ? 'Ask for a change or add details…'
+                    : 'You can write again once the AI has finished or stopped.'}
               bind:text={follow}
               disabled={archived || !canWrite}
               busy={uploadBusy}
               {uploadProgress}
-              error={uploadError || $error}
+              error={uploadError || ($error === taskErrors['no_model'] ? '' : $error)}
               bind:attachments
               {projectId}
               attachable
               onsend={(text: string) => void sendFollowUp(text)}
             />
+            {#if $error === taskErrors['no_model']}
+              <p class="mt-2 text-sm text-error" role="alert">
+                No AI model is ready for this conversation. Choose a provider and model in
+                <a class="link link-hover font-medium" href="/app/settings/models">AI model settings</a>, then send again.
+              </p>
+            {/if}
           </div>
         </section>
         <aside class="min-w-0 flex-col bg-base-100 lg:flex lg:w-[26rem] lg:flex-none lg:border-l lg:border-[var(--brand-border)] {view === 'chat' ? 'hidden' : 'flex flex-1'}" aria-label="Work panel">

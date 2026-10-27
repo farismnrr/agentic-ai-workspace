@@ -3,6 +3,7 @@
   import type { Task } from '../logic/task-types';
   import ContextMeter from './ContextMeter.svelte';
   import { effortLabel } from '../logic/effort';
+  import { isExternalTask } from '../logic/task-links';
   import { timeAgo } from '../logic/time';
 
   interface Props {
@@ -13,6 +14,7 @@
   }
 
   const { task, archived = false, onstop, onretry }: Props = $props();
+  const external = $derived(isExternalTask(task.source, task.workId ?? ''));
   const running = $derived(['queued', 'planning', 'working'].includes(task.status));
   const workRunning = $derived(task.work?.state === 'open' || task.work?.state === 'blocked');
   const idleMinutes = $derived(task.work === undefined
@@ -26,16 +28,16 @@
     {#if task.work?.state === 'blocked'}<span class="badge badge-warning badge-sm">Blocked</span>{/if}
     {#if task.team}<span class="badge badge-soft badge-sm">Team</span>{/if}
     <p class="hidden min-w-0 flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">
-      {#if task.source !== ''}External assistant · {task.work?.actor ?? task.source}
+      {#if external}External assistant · {task.work?.actor ?? task.source}
       {:else}Started {timeAgo(task.createdAt)} · {task.model}{task.effort === '' ? '' : ` · ${effortLabel(task.effort)} effort`}{/if}
       {#if task.work?.stale} · No activity for {idleMinutes} min{/if}
     </p>
     <span class="flex-1 md:hidden"></span>
     <ContextMeter used={task.contextUsed} window={task.contextWindow} />
     {#if !archived && (running || workRunning)}<button class="btn btn-outline btn-sm" type="button" onclick={onstop}>Stop</button>{/if}
-    {#if !archived && task.source === '' && task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
+    {#if !archived && !external && task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
   </div>
-  {#if task.source !== ''}
+  {#if external}
     <p class="pb-2 text-xs text-[var(--brand-text-secondary)] md:hidden">
       External assistant · {task.work?.actor ?? task.source}
       {#if task.work?.stale} · No activity for {idleMinutes} min{/if}
