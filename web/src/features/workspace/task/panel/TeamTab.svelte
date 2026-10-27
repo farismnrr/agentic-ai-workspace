@@ -2,16 +2,19 @@
   import DocText from '../../components/DocText.svelte';
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
-  import type { TaskEvent } from '../../logic/task-types';
+  import type { TaskEvent, WorkSummary } from '../../logic/task-types';
   import { teamJobs, type JobState } from '../../logic/team';
+  import ExternalTeam from './ExternalTeam.svelte';
 
   interface Props {
     events: TaskEvent[];
     /** The task is waiting for the person, so an open question or approval is theirs to answer. */
     waiting: boolean;
+    source?: string | undefined;
+    work?: WorkSummary | undefined;
   }
 
-  const { events, waiting }: Props = $props();
+  const { events, waiting, source = '', work }: Props = $props();
   const jobs = $derived(teamJobs(events));
   const labels: Record<JobState, string> = { working: 'Working', waiting: 'Waiting for you', done: 'Done', failed: "Couldn't finish" };
   const tones: Record<JobState, string> = { working: 'badge-info', waiting: 'badge-warning', done: 'badge-success', failed: 'badge-error' };
@@ -19,7 +22,9 @@
   const count = (n: number, one: string, many: string): string => `${String(n)} ${n === 1 ? one : many}`;
 </script>
 
-{#if jobs.length === 0}
+{#if work !== undefined || source !== ''}
+  <ExternalTeam {events} {work} actor={work?.actor ?? source} />
+{:else if jobs.length === 0}
   <EmptyState compact bordered icon="user" title="No one has been called in yet" body="When the lead hands a job to a teammate, who is doing what shows up here." />
 {:else}
   <ul class="flex flex-col gap-2">

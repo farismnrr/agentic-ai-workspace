@@ -13,7 +13,7 @@
     /** Words the AI is writing right now. */
     draft: string;
     actions: ThreadActions;
-    onretry: () => void;
+    onretry?: (() => void) | undefined;
     readOnly?: boolean;
   }
 

@@ -43,11 +43,15 @@ type WorkRef struct {
 
 // WorkSummary is the safe, read-only work detail attached to a task response.
 type WorkSummary struct {
-	ID       string    `json:"id"`
-	State    WorkState `json:"state"`
-	Role     string    `json:"role,omitempty"`
-	RoleName string    `json:"roleName,omitempty"`
-	Revision int64     `json:"revision"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	ID        string    `json:"id"`
+	State     WorkState `json:"state"`
+	Role      string    `json:"role,omitempty"`
+	RoleName  string    `json:"roleName,omitempty"`
+	Actor     string    `json:"actor"`
+	Revision  int64     `json:"revision"`
+	PlanRev   int64     `json:"planRev"`
+	Stale     bool      `json:"stale"`
 }
 
 // ExternalWork is the persisted identity and lifecycle record for a work session.

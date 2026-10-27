@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -16,8 +17,10 @@ func (s *Service) withWindow(ctx context.Context, task domain.Task) domain.Task 
 		work, err := s.workSummaries.ByTask(ctx, task.ID)
 		if err == nil {
 			task.Work = &domain.WorkSummary{
-				ID: work.ID, State: work.State, Role: work.RoleKey,
-				RoleName: work.RoleName, Revision: work.Rev,
+				ID: work.ID, UpdatedAt: work.UpdatedAt, State: work.State, Role: work.RoleKey,
+				RoleName: work.RoleName, Actor: work.Client, Revision: work.Rev,
+				PlanRev: work.PlanRev,
+				Stale:   work.State == domain.WorkOpen && time.Since(work.UpdatedAt) > workIdleAfter,
 			}
 		}
 	}
