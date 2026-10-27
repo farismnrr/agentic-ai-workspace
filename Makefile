@@ -48,10 +48,9 @@ image:
 sandbox-image:
 	docker build -f sandbox/Dockerfile -t $(IMAGE)-sandbox:latest .
 
-# Pull the app and sandbox images published from dev, refresh the shared sandbox container, and recreate the app.
+# Pull the app and sandbox images published from dev and recreate the app container.
 redeploy-dev:
 	docker pull $(IMAGE)-sandbox:latest
-	docker rm -f agentic-sandbox 2>/dev/null || true
 	docker compose -f compose.dev.yaml pull
 	docker compose -f compose.dev.yaml up -d --wait --remove-orphans app
 

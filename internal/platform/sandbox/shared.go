@@ -33,6 +33,9 @@ func (d *Docker) ensureSharedSandbox(ctx context.Context) {
 		return
 	}
 
+	d.sharedMu.Lock()
+	defer d.sharedMu.Unlock()
+
 	mounts := d.sharedVolumeMounts(ctx)
 	if d.sharedReady(ctx, mounts) {
 		return
@@ -49,8 +52,11 @@ func (d *Docker) ensureSharedSandbox(ctx context.Context) {
 		},
 		HostConfig: &container.HostConfig{
 			NetworkMode: "none", ReadonlyRootfs: true, Init: &enabled, Runtime: d.cfg.Runtime,
-			CapDrop:     []string{"ALL"},
-			CapAdd:      []string{"SYS_ADMIN", "NET_ADMIN", "SETUID", "SETGID", "KILL"},
+			CapDrop: []string{"ALL"},
+			CapAdd: []string{
+				"SYS_ADMIN", "NET_ADMIN", "SETUID", "SETGID", "KILL",
+				"DAC_OVERRIDE", "DAC_READ_SEARCH", "CHOWN", "FOWNER",
+			},
 			SecurityOpt: []string{"seccomp=unconfined", "apparmor=unconfined"},
 			Mounts:      mounts,
 			Tmpfs: map[string]string{
@@ -89,16 +95,28 @@ func (d *Docker) sharedVolumeMounts(ctx context.Context) []mount.Mount {
 
 func (d *Docker) sharedReady(ctx context.Context, want []mount.Mount) bool {
 	res, err := d.api.ContainerInspect(ctx, SharedSandboxName, client.ContainerInspectOptions{})
-	if err != nil || res.Container.State == nil || !res.Container.State.Running {
+	if err != nil || !validSharedContainer(res.Container) {
 		return false
 	}
 
-	if res.Container.Config == nil || res.Container.Config.User != rootUser {
+	if img, err := d.api.ImageInspect(ctx, d.cfg.Image); err == nil && img.ID != "" && res.Container.Image != img.ID {
 		return false
 	}
 
-	have := make([]string, 0, len(res.Container.Mounts))
-	for _, m := range res.Container.Mounts {
+	return hasMounts(res.Container.Mounts, want)
+}
+
+func validSharedContainer(c container.InspectResponse) bool {
+	if c.State == nil || !c.State.Running || c.Config == nil || c.HostConfig == nil {
+		return false
+	}
+
+	return c.Config.User == rootUser && hasCap(c.HostConfig.CapAdd, "CHOWN")
+}
+
+func hasMounts(mounts []container.MountPoint, want []mount.Mount) bool {
+	have := make([]string, 0, len(mounts))
+	for _, m := range mounts {
 		have = append(have, m.Destination)
 	}
 
@@ -109,6 +127,10 @@ func (d *Docker) sharedReady(ctx context.Context, want []mount.Mount) bool {
 	}
 
 	return true
+}
+
+func hasCap(caps []string, name string) bool {
+	return slices.Contains(caps, name) || slices.Contains(caps, "CAP_"+name)
 }
 
 func (d *Docker) runShared(ctx context.Context, spec Spec, mounts []mount.Mount, out io.Writer) (Result, error) {

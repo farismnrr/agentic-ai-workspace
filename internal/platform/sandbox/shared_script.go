@@ -63,12 +63,14 @@ func (d *Docker) sharedCmd(runID string, spec Spec, mounts []mount.Mount, logFil
 		" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --no-new-privs -- \"$@\"")
 
 	pidFile := path.Join(sharedPidsDir, runID+".pid")
-	outer := "echo $$ > " + shellQuote(pidFile) + "\n"
+	unshareCmd := "exec unshare --mount --net --ipc --pid --fork sh -c " + shellQuote(inner.String()) + " -- \"$@\""
 	if logFile != "" {
-		outer += "exec >" + shellQuote(logFile) + " 2>&1\n"
+		outer := "( exec >" + shellQuote(logFile) + " 2>&1 </dev/null; " + unshareCmd + " ) &\n" +
+			"echo $! > " + shellQuote(pidFile) + "\n"
+		return append([]string{"sh", "-c", outer, "--"}, command(spec)...)
 	}
-	outer += "exec unshare --mount --net --ipc --pid --fork sh -c " + shellQuote(inner.String()) + " -- \"$@\""
 
+	outer := "echo $$ > " + shellQuote(pidFile) + "\n" + unshareCmd
 	return append([]string{"sh", "-c", outer, "--"}, command(spec)...)
 }
 
@@ -92,19 +94,25 @@ func (d *Docker) startShared(ctx context.Context, spec Spec, mounts []mount.Moun
 	logFile := path.Join(sharedPidsDir, id+".log")
 
 	created, err := d.api.ExecCreate(ctx, SharedSandboxName, client.ExecCreateOptions{
-		User:       rootUser,
-		Env:        containerEnv(spec),
-		WorkingDir: Workspace,
-		Cmd:        d.sharedCmd(id, spec, mounts, logFile),
+		User:         rootUser,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env:          containerEnv(spec),
+		WorkingDir:   Workspace,
+		Cmd:          d.sharedCmd(id, spec, mounts, logFile),
 	})
 	if err != nil {
 		return "", fmt.Errorf("create site exec: %w", err)
 	}
 
-	if _, err = d.api.ExecStart(ctx, created.ID, client.ExecStartOptions{Detach: true}); err != nil {
-		d.killShared(ctx, id)
-		return "", fmt.Errorf("start site exec: %w", err)
+	attached, err := d.api.ExecAttach(ctx, created.ID, client.ExecAttachOptions{})
+	if err != nil {
+		return "", fmt.Errorf("attach site exec: %w", err)
 	}
+	defer attached.Close()
+
+	var out bytes.Buffer
+	_, _ = stdcopy.StdCopy(&out, &out, attached.Reader)
 
 	return id, nil
 }

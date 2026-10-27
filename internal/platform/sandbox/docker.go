@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/moby/moby/client"
@@ -47,6 +48,7 @@ type Docker struct {
 	api        *client.Client
 	toolchains []Toolchain
 	cfg        Config
+	sharedMu   sync.Mutex
 }
 
 // Open connects to the Docker daemon (DOCKER_HOST or the default socket), makes
