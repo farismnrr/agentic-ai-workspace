@@ -27,10 +27,36 @@ Each connected app works in its own project, named after it (ChatGPT works in "C
 
 Each connected-app conversation shows as a task beside the work done in the app.
 
-- For substantial work, the AI app can start a separate work session and choose
-  the roles it uses. These names describe its work; no other AI agent is started.
+- For tracked work, the AI app starts with `begin_work` and must choose an
+  enabled role. It can change roles later with `set_role`. Roles describe the
+  assistant's work; they do not start another AI or change its permissions.
+- `save_research` stores research and sources. `finish_research` closes a
+  research round. `ask_question` saves a question for you to answer in the app.
+- `update_plan` saves a draft. `submit_plan` sends its revision for your
+  approval. `get_work_state` returns saved work, questions and decisions.
+- `complete_work` records the external session's outcome. It cannot finish or
+  run the internal task created by an approved handoff.
+- `log_message` without a work ID remains a record-only legacy conversation. It
+  never starts work; its reply points the assistant to `begin_work` and lists
+  the enabled roles.
 - Plan shows its steps. Documents separates research from requirements.
   Team shows only roles it declared or used.
+- A saved plan stays a draft until the assistant submits it for your approval.
+  The thread then shows “Ready for approval” and keeps the exact submitted revision.
+- Approve that revision in the task thread to send its saved snapshot to the
+  workspace Orchestrator, or request changes to return it to the planner.
+- MCP approval uses the separate **Approve plans** switch under Settings →
+  Spaces & tools and the `coding:approve` permission. The switch starts off and
+  is the effective guard, even when a token has broad scopes. It is independent
+  of the conversation switch. Existing connections must reconnect after you
+  enable approval so they receive updated permissions.
+- Before submitting a substantial plan, the assistant must save research with a web source.
+  It can mark a genuinely small task so research is not needed.
+- Questions from the assistant appear as cards in the task thread and stay there
+  until you answer them. The assistant reads your saved answers on its next call.
+- Editing the plan, research or requirements after submission returns it to draft.
+  The earlier review card is marked as superseded; work cannot be reported complete
+  while a plan is waiting for you.
 - Changes shows edited files and offers Undo when the server saved a reversible
   change. Files shows the project's current files.
 - The timeline shows conversation messages when the AI app saves them, plus
@@ -52,6 +78,10 @@ Each connected-app conversation shows as a task beside the work done in the app.
 - The server cannot see activity outside its tools or the AI app's private
   thinking. It asks the app to save your request and its answer, but the app may
   skip either message.
+- The server cannot send an unsolicited update to ChatGPT or Gemini. They read
+  saved state on their next tool call. MCP Events and elicitation are not used.
+- Approval through ChatGPT or Gemini's OAuth connection has not been verified
+  live. The MCP tool was tested with an in-memory MCP client.
 - Stop ends a work session, but cannot interrupt a command already running.
 - “Proven to work” means a command exited with code 0 after the last change. It
   does not mean the work itself is correct.

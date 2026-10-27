@@ -19,7 +19,7 @@ func TestSpacesListNeedsSessionAndDescribesTools(t *testing.T) {
 	spaces := do(t, app, "GET", "/api/spaces", "", map[string]string{"Cookie": cookie})
 
 	mustContain(t, spaces.Body, `"url":"`+publicURL+`/api/coding"`, `"name":"read_file"`, `"readOnly":true`,
-		`"id":"coding:read"`, "Read files and search code")
+		`"id":"coding:read"`, `"id":"coding:approve"`, "Read files and search code")
 }
 
 func TestTheConnectorAddressFollowsConnectorURLNotTheAppAddress(t *testing.T) {

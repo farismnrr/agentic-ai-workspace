@@ -102,7 +102,8 @@ var quiet = []string{
 	domain.ToolWhoami.Name, domain.ToolListProjects.Name, domain.ToolLogMessage.Name,
 	domain.ToolBeginWork.Name, domain.ToolSetRole.Name, domain.ToolUpdatePlan.Name,
 	domain.ToolSaveResearch.Name, domain.ToolSaveRequirements.Name, domain.ToolReportProgress.Name,
-	domain.ToolCompleteWork.Name, domain.ToolGetWorkState.Name,
+	domain.ToolCompleteWork.Name, domain.ToolGetWorkState.Name, domain.ToolSubmitPlan.Name,
+	domain.ToolFinishResearch.Name, domain.ToolAskQuestion.Name,
 }
 
 // thread writes the call into the app's thread. A failed running-call update is returned to the caller.

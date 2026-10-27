@@ -103,7 +103,7 @@ func createTestWork(t *testing.T, ctx context.Context, store *Store, id, taskID,
 		CreatedAt: work.CreatedAt, UpdatedAt: work.UpdatedAt,
 	}
 	event := domain.Event{Kind: domain.EventRequest, Text: "request", Time: work.CreatedAt}
-	created, err := store.CreateWork(ctx, application.WorkCreate{Task: task, Work: work, Event: event})
+	created, err := store.CreateWork(ctx, application.WorkCreate{Task: task, Work: work, Events: []domain.Event{event}})
 	if err != nil {
 		t.Fatal(err)
 	}

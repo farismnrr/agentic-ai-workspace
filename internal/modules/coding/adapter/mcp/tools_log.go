@@ -24,7 +24,8 @@ type logInput struct {
 }
 
 type logOutput struct {
-	Saved bool `json:"saved"`
+	Message string `json:"message,omitempty"`
+	Saved   bool   `json:"saved"`
 }
 
 func (t *tools) addLogTools(server *sdk.Server) {
@@ -55,11 +56,37 @@ func (t *tools) logMessage(ctx context.Context, in logInput) (logOutput, report,
 
 	who, _ := ctx.Value(identityKey{}).(identity)
 	note := Note{Kind: kind, Text: text}
+	message := ""
+	if who.WorkID == "" {
+		message = legacyWorkHint(ctx, t.works, who.User)
+	}
 	if err := t.saveNote(ctx, who, services, note); err != nil {
 		return logOutput{}, report{}, fmt.Errorf("save conversation message: %w", err)
 	}
 
-	return logOutput{Saved: true}, report{}, nil
+	return logOutput{Saved: true, Message: message}, report{}, nil
+}
+
+func legacyWorkHint(ctx context.Context, works WorkSessions, userID string) string {
+	if works == nil {
+		return "This legacy message is saved as a record only. For tracked work, call begin_work with a role; " +
+			"enabled role keys are unavailable right now."
+	}
+	roles, err := works.AvailableRoles(ctx, userID)
+	if err != nil {
+		return "This legacy message is saved as a record only. For tracked work, call begin_work with a role; " +
+			"enabled role keys are unavailable right now."
+	}
+	keys := make([]string, 0, len(roles))
+	for _, role := range roles {
+		keys = append(keys, role.Key)
+	}
+	if len(keys) == 0 {
+		return "This legacy message is saved as a record only. For tracked work, call begin_work with a role; " +
+			"enabled role keys: none."
+	}
+	return "This legacy message is saved as a record only. For tracked work, call begin_work with a role; " +
+		"enabled role keys: " + strings.Join(keys, ", ") + "."
 }
 
 func (t *tools) saveNote(ctx context.Context, who identity, services Services, note Note) error {

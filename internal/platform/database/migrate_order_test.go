@@ -37,7 +37,8 @@ func TestMigrationNamesAreUniqueAndKeepAFixedOrder(t *testing.T) {
 	last := position[second]
 	for _, name := range []string{
 		"052_egress_grants.sql", "053_egress_audit.sql", "054_egress_actor_attribution.sql",
-		"055_external_works.sql",
+		"055_external_works.sql", "056_task_event_versions.sql", "057_linked_task_chat.sql",
+		"058_plan_lifecycle.sql", "059_work_questions.sql", "060_plan_approvals.sql",
 	} {
 		if position[name] != last+1 {
 			t.Fatalf("migration %s must follow the prior migration", name)
@@ -69,8 +70,8 @@ func TestAnExistingDatabaseTakes052WithoutTouchingTheJournal(t *testing.T) {
 
 	if after["052_egress_grants.sql"] == "" || after["053_egress_audit.sql"] == "" ||
 		after["054_egress_actor_attribution.sql"] == "" || after["055_external_works.sql"] == "" ||
-		len(after) != len(before)+6 {
-		t.Fatalf("052 through 057 should have been added, journal has %d rows (was %d)", len(after), len(before))
+		len(after) != len(before)+9 {
+		t.Fatalf("052 through 060 should have been added, journal has %d rows (was %d)", len(after), len(before))
 	}
 }
 
@@ -134,8 +135,9 @@ func TestExistingAuditMigrationGetsAppendOnlyActorAttribution(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := journal(t, db)
-	if len(after) != len(before)+4 || after["054_egress_actor_attribution.sql"] == "" ||
-		after["055_external_works.sql"] == "" {
+	if len(after) != len(before)+7 || after["054_egress_actor_attribution.sql"] == "" ||
+		after["055_external_works.sql"] == "" || after["059_work_questions.sql"] == "" ||
+		after["060_plan_approvals.sql"] == "" {
 		t.Fatalf("actor migration not appended: before=%d after=%d", len(before), len(after))
 	}
 	for name, checksum := range before {

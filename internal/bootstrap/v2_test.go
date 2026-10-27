@@ -72,7 +72,8 @@ func TestToolSwitchesStartOffForWritingAndRunning(t *testing.T) {
 	}
 
 	for _, tool := range spaces[0].Tools {
-		if want := tool.Group == "read"; tool.Enabled != want {
+		want := tool.Group == "read" && tool.Name != "approve_plan"
+		if tool.Enabled != want {
 			t.Errorf("%s (%s) enabled=%v, want %v", tool.Name, tool.Group, tool.Enabled, want)
 		}
 	}

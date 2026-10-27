@@ -27,21 +27,30 @@ func (s *Service) Recover(ctx context.Context) error {
 
 	var failures []error
 	for _, task := range tasks {
-		if task.WorkID != "" {
-			continue
-		}
-		if task.Source != "" {
-			if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, s.deps.Now()); err != nil {
-				failures = append(failures, err)
-			}
-			continue
-		}
-		err := s.fail(ctx, task.ID, "The app restarted while I was working.", "Press Continue to pick up where I left off.")
-		if err != nil {
+		if err := s.recoverTask(ctx, task); err != nil {
 			failures = append(failures, err)
 		}
 	}
 	return errors.Join(failures...)
+}
+
+func (s *Service) recoverTask(ctx context.Context, task domain.Task) error {
+	if task.WorkID != "" {
+		return nil
+	}
+	if task.OriginTaskID != "" && s.handoffs != nil {
+		recovering, err := s.handoffs.RecoveringTask(ctx, task.ID)
+		if err != nil || recovering {
+			return err
+		}
+	}
+	if task.Source != "" {
+		if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, s.deps.Now()); err != nil {
+			return fmt.Errorf("finish recovered external task: %w", err)
+		}
+		return nil
+	}
+	return s.fail(ctx, task.ID, "The app restarted while I was working.", "Press Continue to pick up where I left off.")
 }
 
 func (s *Service) fail(ctx context.Context, taskID, text, hint string) error {

@@ -70,7 +70,8 @@ func TestProtectedResourceMetadata(t *testing.T) {
 	body := do(t, newApp(t), "GET", "/.well-known/oauth-protected-resource/api/coding", "", nil).Body
 
 	mustContain(t, body, `"resource":"`+publicURL+`/api/coding"`, `"authorization_servers":["`+publicURL+`"]`,
-		`"scopes_supported":["coding:read","coding:write","coding:exec"]`, `"bearer_methods_supported":["header"]`)
+		`"scopes_supported":["coding:read","coding:approve","coding:write","coding:exec"]`,
+		`"bearer_methods_supported":["header"]`)
 }
 
 func TestDiscoveryDocumentsMatch(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -20,32 +19,46 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	revision, err := advanceWork(ctx, tx, change)
+	revision, taskID, err := prepareWorkCommit(ctx, tx, change)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, mapBusy(err)
 	}
-	taskID, err := ownedTaskID(ctx, tx, change.WorkID, change.UserID)
+	events, err := applyWorkCommit(ctx, tx, s.ids, taskID, change)
 	if err != nil {
-		return nil, 0, err
-	}
-	if change.Op != nil {
-		err = insertWorkOp(ctx, tx, *change.Op)
-		if err != nil {
-			return nil, 0, err
-		}
-	}
-	err = patchChangedTask(ctx, tx, taskID, change.Task)
-	if err != nil {
-		return nil, 0, err
-	}
-	events, err := insertWorkEvents(ctx, tx, s.ids, taskID, change.Events, closesWork(change))
-	if err != nil {
-		return nil, 0, err
+		return nil, 0, mapBusy(err)
 	}
 	if err := tx.Commit(); err != nil {
-		return nil, 0, fmt.Errorf("commit work changes: %w", err)
+		return nil, 0, mapBusy(fmt.Errorf("commit work changes: %w", err))
 	}
 	return events, revision, nil
+}
+
+func prepareWorkCommit(ctx context.Context, tx *sql.Tx, change application.WorkChange) (int64, string, error) {
+	revision, err := advanceWork(ctx, tx, change)
+	if err != nil {
+		return 0, "", err
+	}
+	if change.Patch != nil && change.Patch.SupersedePlan {
+		if err = supersedeSubmittedPlan(ctx, tx, change.WorkID); err != nil {
+			return 0, "", err
+		}
+	}
+	taskID, err := ownedTaskID(ctx, tx, change.WorkID, change.UserID)
+	return revision, taskID, err
+}
+
+func applyWorkCommit(ctx context.Context, tx *sql.Tx, ids application.IDs, taskID string,
+	change application.WorkChange,
+) ([]domain.Event, error) {
+	if change.Op != nil {
+		if err := insertWorkOp(ctx, tx, *change.Op); err != nil {
+			return nil, err
+		}
+	}
+	if err := patchChangedTask(ctx, tx, taskID, change.Task); err != nil {
+		return nil, err
+	}
+	return insertWorkEvents(ctx, tx, ids, taskID, change.Events, closesWork(change))
 }
 
 func insertWorkEvents(ctx context.Context, tx *sql.Tx, ids application.IDs, taskID string,
@@ -85,39 +98,6 @@ func patchChangedTask(ctx context.Context, tx *sql.Tx, taskID string, patch *app
 		return nil
 	}
 	return patchTask(ctx, tx, taskID, patch)
-}
-
-func advanceWork(ctx context.Context, tx *sql.Tx, change application.WorkChange) (int64, error) {
-	var patch application.WorkPatch
-	if change.Patch != nil {
-		patch = *change.Patch
-	}
-	result, err := tx.ExecContext(ctx, `UPDATE external_works SET rev = rev + 1, updated_at = ?,
-		state = COALESCE(?, state), role_key = COALESCE(?, role_key), role_name = COALESCE(?, role_name),
-		plan_rev = COALESCE(?, plan_rev), next_step = COALESCE(?, next_step), ended_at = COALESCE(?, ended_at)
-		WHERE id = ? AND user_id = ? AND rev = ?`, time.Now().Unix(), value(patch.State), value(patch.RoleKey),
-		value(patch.RoleName), value(patch.PlanRev), value(patch.NextStep), nullTime(patch.EndedAt),
-		change.WorkID, change.UserID, change.ExpectRev)
-	if err != nil {
-		return 0, fmt.Errorf("advance work revision: %w", err)
-	}
-	changed, err := result.RowsAffected()
-	if err != nil {
-		return 0, fmt.Errorf("count work revision: %w", err)
-	}
-	if changed == 0 {
-		var exists int
-		err := tx.QueryRowContext(ctx, `SELECT 1 FROM external_works WHERE id = ? AND user_id = ?`,
-			change.WorkID, change.UserID).Scan(&exists)
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, domain.ErrUnknownWork
-		}
-		if err != nil {
-			return 0, fmt.Errorf("check work after revision conflict: %w", err)
-		}
-		return 0, domain.ErrStaleRevision
-	}
-	return change.ExpectRev + 1, nil
 }
 
 func value[T any](pointer *T) any {

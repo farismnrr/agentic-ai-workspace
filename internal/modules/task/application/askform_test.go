@@ -30,6 +30,16 @@ func TestParseAskReadsAFormAndTheOldShape(t *testing.T) {
 	}
 }
 
+func TestParseWorkQuestionFormUsesAskUserValidation(t *testing.T) {
+	questions, err := ParseWorkQuestionForm(json.RawMessage(`{"questions":[{"question":"Where?","type":"text"}]}`))
+	if err != nil || len(questions) != 1 || questions[0].Type != domain.QuestionText {
+		t.Fatalf("persistent form = %+v, %v", questions, err)
+	}
+	if _, err := ParseWorkQuestionForm(json.RawMessage(`{"questions":[]}`)); !errors.Is(err, domain.ErrBadRequest) {
+		t.Fatalf("empty persistent form = %v", err)
+	}
+}
+
 func TestAnswerQuestionChecksTheFormAndSummarises(t *testing.T) {
 	event := domain.Event{Kind: domain.EventQuestion, Questions: []domain.Question{
 		{Header: "Kind", Text: "What?", Type: domain.QuestionSingle},

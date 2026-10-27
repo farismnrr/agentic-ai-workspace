@@ -20,3 +20,6 @@ type WorkSummaries interface {
 func (s *Service) UseWorkServices(stopper WorkStopper, summaries WorkSummaries) {
 	s.workStopper, s.workSummaries = stopper, summaries
 }
+
+// UseExternalQuestionStore wires the transactional answer path for external work.
+func (s *Service) UseExternalQuestionStore(store QuestionAnswerStore) { s.externalQuestions = store }

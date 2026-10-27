@@ -8,15 +8,13 @@ import (
 )
 
 // BeginResult confirms the created or resumed work and the available roles.
-//
-//nolint:govet // fieldalignment: its compact internal mode preserves the required JSON response shape.
 type BeginResult struct {
-	mode        beginMode
 	TaskID      string
 	WorkID      string
-	Roles       []WorkRole
-	Resumed     bool
 	Idempotency string
+	Roles       []WorkRole
+	mode        beginMode
+	Resumed     bool
 }
 
 func (r BeginResult) MarshalJSON() ([]byte, error) {
@@ -33,11 +31,10 @@ func (r BeginResult) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
-//nolint:govet // fieldalignment: this JSON response mirrors the public tool contract.
 type beginResponse struct {
-	Roles       []WorkRole `json:"roles"`
 	WorkID      string     `json:"workId"`
 	Idempotency string     `json:"idempotency"`
+	Roles       []WorkRole `json:"roles"`
 	Resumed     bool       `json:"resumed"`
 }
 

@@ -5,6 +5,7 @@ import "strings"
 type beginWorkInput struct {
 	Project        string   `json:"project,omitempty"`
 	Summary        string   `json:"summary"`
+	Role           string   `json:"role" jsonschema:"enabled non-lead role key to use first; required"`
 	IdempotencyKey string   `json:"idempotency_key,omitempty"`
 	PlannedRoles   []string `json:"planned_roles,omitempty"`
 }
@@ -17,12 +18,11 @@ type roleWorkInput struct {
 	Brief string `json:"brief,omitempty"`
 }
 
-//nolint:govet // fieldalignment: field order keeps the inferred MCP input schema readable.
 type workPlanInput struct {
 	WorkTarget
-	BaseRevision int64          `json:"base_revision"`
 	RequestID    string         `json:"request_id,omitempty"`
 	Steps        []PlanWorkStep `json:"steps"`
+	BaseRevision int64          `json:"base_revision"`
 }
 
 type markdownInput struct {

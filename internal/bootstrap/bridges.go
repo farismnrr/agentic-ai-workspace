@@ -133,7 +133,8 @@ func isExternalWorkTool(name string) bool {
 	switch name {
 	case codingdomain.ToolBeginWork.Name, codingdomain.ToolSetRole.Name, codingdomain.ToolUpdatePlan.Name,
 		codingdomain.ToolSaveResearch.Name, codingdomain.ToolSaveRequirements.Name,
-		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name:
+		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name,
+		codingdomain.ToolSubmitPlan.Name, codingdomain.ToolFinishResearch.Name, codingdomain.ToolAskQuestion.Name:
 		return true
 	default:
 		return false

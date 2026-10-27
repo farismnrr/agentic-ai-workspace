@@ -56,32 +56,14 @@ func (s *Service) followExistingLinkedChat(
 }
 
 func (s *Service) createLinkedChat(ctx context.Context, external domain.Task, message string) (string, error) {
-	input := CreateInput{ProjectID: external.ProjectID}
-	input, team := s.route(ctx, external.UserID, input)
-	providerID, model, err := s.chooseModel(ctx, external.UserID, input)
-	if err != nil {
-		return "", err
-	}
-	effort, err := s.chooseEffort(ctx, external.UserID, domain.EffortDefault)
-	if err != nil {
-		return "", err
-	}
-	id, err := s.deps.IDs.ID()
-	if err != nil {
-		return "", fmt.Errorf("new linked task id: %w", err)
-	}
 	prompt, err := s.externalContext(ctx, external, message)
 	if err != nil {
 		return "", err
 	}
-	now := s.deps.Now()
-	task := domain.Task{
-		ID: id, ProjectID: external.ProjectID, UserID: external.UserID, Title: titleOf(message),
-		ProviderID: providerID, Model: model, Effort: effort, Team: team, PlanFirst: false,
-		Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
-		OriginTaskID: external.ID,
+	task, event, err := s.buildLinkedTask(ctx, external, message)
+	if err != nil {
+		return "", err
 	}
-	event := domain.Event{Kind: domain.EventRequest, Text: message, Time: now}
 	linked, created, err := s.deps.LinkedTasks.CreateLinkedTask(ctx, external.ID, task, event, prompt)
 	if err != nil {
 		return "", fmt.Errorf("create linked chat: %w", err)

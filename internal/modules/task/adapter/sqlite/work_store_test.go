@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -61,6 +62,53 @@ func TestWorkStoreCommitRollsBackAllChangesOnEventFailure(t *testing.T) {
 	}
 	if _, found, opErr := store.FindOp(ctx, work.ID, "op1"); opErr != nil || found {
 		t.Fatalf("operation escaped rollback: found=%v err=%v", found, opErr)
+	}
+}
+
+func TestWorkStoreCreateRollsBackTaskWorkAndRequestWhenRoleEventFails(t *testing.T) {
+	ctx, db, store := newWorkStore(t)
+	if _, err := db.ExecContext(ctx, `CREATE TRIGGER fail_initial_role BEFORE INSERT ON task_events
+		WHEN NEW.kind = 'role' BEGIN SELECT RAISE(ABORT, 'injected role failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	work := domain.ExternalWork{
+		ID: "w-role", TaskID: "t-role", UserID: "u", ProjectID: "p", Client: "client",
+		State: domain.WorkOpen, RoleKey: "developer", RoleName: "Developer", NextStep: 1,
+		CreatedAt: time.Unix(2, 0), UpdatedAt: time.Unix(2, 0),
+	}
+	task := domain.Task{
+		ID: work.TaskID, UserID: work.UserID, ProjectID: work.ProjectID, Source: work.Client,
+		WorkID: work.ID, Status: domain.StatusWorking, Title: "request",
+		CreatedAt: work.CreatedAt, UpdatedAt: work.UpdatedAt,
+	}
+	events := []domain.Event{
+		{Kind: domain.EventRequest, Text: "request", Time: work.CreatedAt},
+		{Kind: domain.EventRole, Text: "Developer", Time: work.CreatedAt},
+	}
+	if _, err := store.CreateWork(ctx, application.WorkCreate{Task: task, Work: work, Events: events}); err == nil {
+		t.Fatal("role event failure should abort creation")
+	}
+	assertNoCreatedWork(t, ctx, db, work)
+}
+
+func assertNoCreatedWork(t *testing.T, ctx context.Context, db *sql.DB, work domain.ExternalWork) {
+	t.Helper()
+	for table, id := range map[string]string{"tasks": work.TaskID, "external_works": work.ID} {
+		var count int
+		if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table+` WHERE id = ?`, id).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 0 {
+			t.Fatalf("%s row escaped role-event rollback", table)
+		}
+	}
+	var events int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM task_events WHERE task_id = ?`, work.TaskID).
+		Scan(&events); err != nil {
+		t.Fatal(err)
+	}
+	if events != 0 {
+		t.Fatal("initial request event escaped role-event rollback")
 	}
 }
 

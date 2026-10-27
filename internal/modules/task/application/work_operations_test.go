@@ -34,6 +34,24 @@ func TestResearchAndRequirementsAreSeparateAndRedacted(t *testing.T) {
 	assertResearchAndRequirements(t, task, files)
 }
 
+func TestResearchRetryDoesNotAppendDuplicatePriorRound(t *testing.T) {
+	works, store, begun := begunWork(t)
+	first := "First sourced round"
+	second := "Second sourced round"
+	saveResearchRound(t, works, begun.WorkID, first, []string{"https://example.test/one"})
+	saveResearchRound(t, works, begun.WorkID, second, []string{"https://example.test/two"})
+	saveResearchRound(t, works, begun.WorkID, first, []string{"https://example.test/one"})
+	var saved int
+	for _, event := range store.events[store.works[begun.WorkID].TaskID] {
+		if event.Kind == domain.EventResearch {
+			saved++
+		}
+	}
+	if saved != 2 {
+		t.Fatalf("research retry appended a duplicate round: %d saved events", saved)
+	}
+}
+
 func TestExternalNoteExportsLabelReferencesAndStripControlCharacters(t *testing.T) {
 	task := domain.Task{
 		ID: "task", Source: "External\nAssistant", Status: domain.StatusWorking,

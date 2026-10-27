@@ -13,6 +13,7 @@ type workFakeStore struct {
 	tasks  map[string]domain.Task
 	events map[string][]domain.Event
 	ops    map[string]WorkOp
+	plans  map[string][]domain.PlanRevision
 	mu     sync.Mutex
 }
 
@@ -22,11 +23,12 @@ func newWorkFakeStore() *workFakeStore {
 		tasks:  map[string]domain.Task{},
 		events: map[string][]domain.Event{},
 		ops:    map[string]WorkOp{},
+		plans:  map[string][]domain.PlanRevision{},
 	}
 }
 
 func (f *workFakeStore) CreateWork(_ context.Context, create WorkCreate) (domain.ExternalWork, error) {
-	task, work, event := create.Task, create.Work, create.Event
+	task, work := create.Task, create.Work
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if work.IdemKey != "" {
@@ -39,19 +41,16 @@ func (f *workFakeStore) CreateWork(_ context.Context, create WorkCreate) (domain
 	}
 	f.tasks[task.ID] = task
 	f.works[work.ID] = work
-	f.events[task.ID] = []domain.Event{event}
+	f.events[task.ID] = append([]domain.Event(nil), create.Events...)
 	return work, nil
 }
 
 func (f *workFakeStore) Commit(_ context.Context, change WorkChange) ([]domain.Event, int64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	work, ok := f.works[change.WorkID]
-	if !ok || work.UserID != change.UserID {
-		return nil, 0, domain.ErrUnknownWork
-	}
-	if work.Rev != change.ExpectRev {
-		return nil, 0, domain.ErrStaleRevision
+	work, err := f.workForChange(change)
+	if err != nil {
+		return nil, 0, err
 	}
 	applyFakeWorkPatch(&work, change.Patch)
 	work.Rev++
@@ -61,10 +60,42 @@ func (f *workFakeStore) Commit(_ context.Context, change WorkChange) ([]domain.E
 	applyFakeTaskPatch(&task, change.Task)
 	f.tasks[task.ID] = task
 	f.events[task.ID] = append(f.events[task.ID], change.Events...)
+	f.supersedeFakePlan(change, work.ID, task.ID)
 	if change.Op != nil {
 		f.ops[change.WorkID+":"+change.Op.OpKey] = *change.Op
 	}
 	return change.Events, work.Rev, nil
+}
+
+func (f *workFakeStore) workForChange(change WorkChange) (domain.ExternalWork, error) {
+	work, ok := f.works[change.WorkID]
+	if !ok || work.UserID != change.UserID {
+		return domain.ExternalWork{}, domain.ErrUnknownWork
+	}
+	if work.Rev != change.ExpectRev {
+		return domain.ExternalWork{}, domain.ErrStaleRevision
+	}
+	return work, nil
+}
+
+func (f *workFakeStore) supersedeFakePlan(change WorkChange, workID, taskID string) {
+	if change.Patch == nil || !change.Patch.SupersedePlan {
+		return
+	}
+	plans := f.plans[workID]
+	if len(plans) == 0 {
+		return
+	}
+	latest := &plans[len(plans)-1]
+	latest.Status = domain.PlanRevisionSuperseded
+	for index := range f.events[taskID] {
+		if f.events[taskID][index].ID == latest.EventID {
+			event := &f.events[taskID][index]
+			event.PlanReview.Status = domain.PlanRevisionSuperseded
+			event.Version++
+		}
+	}
+	f.plans[workID] = plans
 }
 
 func (f *workFakeStore) FindWork(

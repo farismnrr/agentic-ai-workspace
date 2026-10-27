@@ -147,10 +147,18 @@ func assertWorkResumed(t *testing.T, store *workFakeStore, workID string) {
 	if work.State != domain.WorkOpen || task.Status != domain.StatusWorking {
 		t.Fatalf("blocked work did not reopen: work=%+v task=%+v", work, task)
 	}
-	last := store.events[task.ID][len(store.events[task.ID])-2]
-	if last.Work == nil || last.Work.Phase != "resumed" {
+	if !hasResumeEvent(store.events[task.ID]) {
 		t.Fatalf("resume message missing: %+v", store.events[task.ID])
 	}
+}
+
+func hasResumeEvent(events []domain.Event) bool {
+	for _, event := range events {
+		if event.Work != nil && event.Work.Phase == "resumed" {
+			return true
+		}
+	}
+	return false
 }
 
 func assertWorkStopped(t *testing.T, store *workFakeStore, workID string) {

@@ -423,6 +423,20 @@ Settings, Spaces & tools has one list of tools. It applies to tasks in this app 
 
 Connecting ChatGPT and other AI apps is covered in [connector.md](./connector.md).
 
+## External work review
+
+- A connected assistant chooses a role to start work. It can research, write a
+  plan and save questions for you. Answer questions in the task thread.
+- The flow is researcher → planner → your answer → ready for approval →
+  approved → handed off. Small tasks can skip research when the assistant marks
+  them as small.
+- Review the submitted plan revision in its card. Approve it to hand its saved
+  snapshot to the Orchestrator, or request changes for a new revision.
+- Status icons include a text label, so status remains readable without color.
+  Motion stops when your device requests reduced motion.
+- Settings stays available on Archive and Extensions pages, with the current
+  page selected in its sidebar.
+
 ## GitHub
 
 Under Settings, Integrations, press Connect GitHub, approve, and choose which repositories the app may reach.

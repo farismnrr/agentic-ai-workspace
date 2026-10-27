@@ -24,6 +24,9 @@ func (s *Service) Answer(ctx context.Context, userID, taskID, eventID string, an
 	if task.ArchivedAt != nil {
 		return domain.ErrWrongState
 	}
+	if task.WorkID != "" {
+		return s.answerExternal(ctx, userID, task, eventID, answer)
+	}
 	if task.Source != "" {
 		return domain.ErrWrongState
 	}

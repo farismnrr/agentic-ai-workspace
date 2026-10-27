@@ -5,7 +5,7 @@
   import { extensionsCopy } from '../content/extensions-copy';
   import { removeExtension, type Extension } from '../logic/extensions-api';
   import { extensions, loaded, refresh } from '../logic/workspace-store';
-  import AppShell from '../shell/AppShell.svelte';
+  import SettingsFrame from '../settings/SettingsFrame.svelte';
   import ExtensionCard from './ExtensionCard.svelte';
   import InstallGuide from './InstallGuide.svelte';
 
@@ -40,7 +40,7 @@
 
 <svelte:head><title>{extensionsCopy.title} · Masih Awam</title></svelte:head>
 
-<AppShell crumbs={[{ label: 'Settings', href: '/app/settings' }, { label: extensionsCopy.title }]} width="dense">
+<SettingsFrame crumbs={[{ label: 'Settings', href: '/app/settings' }, { label: extensionsCopy.title }]}>
   <h1 class="text-xl font-semibold tracking-tight">{extensionsCopy.title}</h1>
   <p class="mt-1 max-w-2xl text-[var(--brand-text-secondary)]">{extensionsCopy.intro}</p>
   {#if error !== ''}<p class="mt-3 text-error" role="alert">{error}</p>{/if}
@@ -65,7 +65,7 @@
       </ul>
     </div>
   {/if}
-</AppShell>
+</SettingsFrame>
 
 <ConfirmModal
   open={removing !== undefined}

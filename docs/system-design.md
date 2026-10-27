@@ -151,6 +151,28 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 - **Checks.** A project's checks live in `.workspace/tasks.json`. The AI's tools can never read or write that file.
 - **GitHub.** Each person connects their own account. Commands get only their token. Web apps never do.
 
+## External work and plan approval
+
+- External sessions require an enabled role at `begin_work`. Role names record
+  attribution and never grant tools or start internal agents.
+- Plan progress is stored separately from the seven task statuses. A submitted
+  revision appears as `needs-input` until a person approves it or requests
+  changes; this adds no task status.
+- Each plan revision is immutable once submitted. Research, requirements,
+  questions and answers are saved with the work. The handoff uses the approved
+  revision snapshot, so later edits cannot change what was approved.
+- App and MCP approvals use the same service. MCP also requires the separate
+  `coding:approve` scope and the off-by-default **Approve plans** switch. The
+  switch is checked for every call and remains the effective guard.
+- Approval and its pending handoff are committed together in an outbox. A
+  dispatcher starts the existing Orchestrator path; startup recovery sweeps
+  pending rows because the scheduler queue is in memory.
+- The handoff passes external notes as untrusted context. The Orchestrator
+  alone decides and performs internal implementation.
+- App updates use the existing task hub and server-sent events. A missed wake-up
+  is recovered when the stream rereads saved state. MCP clients fetch changes on
+  their next tool call; MCP Events and elicitation are not used.
+
 ## Your own AI plan
 
 - **How:** the provider's own program (Claude Code or Codex) runs in the sandbox image, once per turn, in the project's folder. The app reads what it prints and records the steps.

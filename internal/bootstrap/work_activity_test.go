@@ -19,6 +19,7 @@ func TestRecorderRedactsExternalWorkToolActivityWithoutWorkID(t *testing.T) {
 		codingdomain.ToolBeginWork.Name, codingdomain.ToolSetRole.Name, codingdomain.ToolUpdatePlan.Name,
 		codingdomain.ToolSaveResearch.Name, codingdomain.ToolSaveRequirements.Name,
 		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name,
+		codingdomain.ToolSubmitPlan.Name,
 	}
 	for _, name := range workTools {
 		if err := activityRecorder.Record(context.Background(), codingmcp.Entry{

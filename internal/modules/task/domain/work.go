@@ -26,10 +26,7 @@ const (
 )
 
 // WorkRef attributes an event to an external assistant's current work session.
-//
-//nolint:govet // fieldalignment: planned role keys remain a JSON list in the event contract.
 type WorkRef struct {
-	PlannedRoles []string     `json:"plannedRoles,omitempty"`
 	ID           string       `json:"id"`
 	Actor        string       `json:"actor,omitempty"`
 	Role         string       `json:"role,omitempty"`
@@ -39,19 +36,25 @@ type WorkRef struct {
 	Outcome      string       `json:"outcome,omitempty"`
 	CallID       string       `json:"callId,omitempty"`
 	Phase        string       `json:"phase,omitempty"`
+	PlannedRoles []string     `json:"plannedRoles,omitempty"`
 }
 
 // WorkSummary is the safe, read-only work detail attached to a task response.
 type WorkSummary struct {
-	UpdatedAt time.Time `json:"updatedAt"`
-	ID        string    `json:"id"`
-	State     WorkState `json:"state"`
-	Role      string    `json:"role,omitempty"`
-	RoleName  string    `json:"roleName,omitempty"`
-	Actor     string    `json:"actor"`
-	Revision  int64     `json:"revision"`
-	PlanRev   int64     `json:"planRev"`
-	Stale     bool      `json:"stale"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+	ID              string    `json:"id"`
+	State           WorkState `json:"state"`
+	PlanState       PlanPhase `json:"planState"`
+	Role            string    `json:"role,omitempty"`
+	RoleName        string    `json:"roleName,omitempty"`
+	Actor           string    `json:"actor"`
+	Decision        string    `json:"decision,omitempty"`
+	HandoffState    string    `json:"handoffState,omitempty"`
+	LinkedTaskID    string    `json:"linkedTaskId,omitempty"`
+	Revision        int64     `json:"revision"`
+	CurrentRevision int64     `json:"currentRevision"`
+	PlanRev         int64     `json:"planRev"`
+	Stale           bool      `json:"stale"`
 }
 
 // ExternalWork is the persisted identity and lifecycle record for a work session.
@@ -64,6 +67,7 @@ type ExternalWork struct {
 	ProjectID string
 	Client    string
 	State     WorkState
+	PlanState PlanPhase
 	RoleKey   string
 	RoleName  string
 	IdemKey   string

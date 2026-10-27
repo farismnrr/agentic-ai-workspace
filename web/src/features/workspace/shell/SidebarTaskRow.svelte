@@ -1,11 +1,10 @@
 <script lang="ts">
   import { route } from '../../../app/router';
   import Icon from '../../../shared/ui/Icon.svelte';
+  import StatusDot from '../components/StatusDot.svelte';
   import type { Task } from '../logic/task-types';
   import { setTaskPinned } from '../logic/workspace-store';
   import { timeAgo } from '../logic/time';
-  import { dotTone } from '../components/tone';
-  import { statusMeta } from '../content/status';
 
   interface Props {
     task: Task;
@@ -18,7 +17,6 @@
   const active = $derived($route.name === 'task' && $route.taskId === task.id);
   const pinned = $derived(task.pinnedAt !== null);
   const pinLabel = $derived(pinned ? 'Unpin task' : 'Pin task');
-  const meta = $derived(statusMeta[task.status]);
 
   async function togglePin(): Promise<void> {
     saving = true;
@@ -39,9 +37,7 @@
     aria-current={active ? 'page' : undefined}
     class="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5"
   >
-    <span class="grid size-2 shrink-0 place-items-center">
-      {#if meta.needsYou || task.status === 'working'}<span class="status {dotTone[meta.tone]}"></span>{/if}
-    </span>
+    <StatusDot status={task.status} />
     <span class="min-w-0 flex-1">
       <span class="block truncate">{task.title}</span>
       {#if projectName}<span class="block truncate text-xs font-normal text-[var(--brand-text-tertiary)]">{projectName}</span>{/if}

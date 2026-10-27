@@ -9,6 +9,9 @@ func applyFakeWorkPatch(work *domain.ExternalWork, patch *WorkPatch) {
 	if patch.State != nil {
 		work.State = *patch.State
 	}
+	if patch.PlanState != nil {
+		work.PlanState = *patch.PlanState
+	}
 	if patch.RoleKey != nil {
 		work.RoleKey = *patch.RoleKey
 	}

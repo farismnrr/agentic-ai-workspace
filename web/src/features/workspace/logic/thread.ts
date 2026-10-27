@@ -1,6 +1,7 @@
 import { writable, type Readable, type Writable } from 'svelte/store';
 import { loadEvents, loadTask } from './tasks-api';
 import type { Task, TaskEvent } from './task-types';
+import { shouldShowWorkingIndicator } from './working-indicator';
 
 const maxThreadEvents = 2000;
 
@@ -31,7 +32,7 @@ interface EventMerger {
 const isWaiting = (list: TaskEvent[]): boolean =>
   list.some((event) => (event.kind === 'question' && event.answered === undefined) || (event.kind === 'approval' && event.resolved === undefined));
 
-function createEventMerger(events: Writable<TaskEvent[]>, draft: Writable<string>): EventMerger {
+function createEventMerger(events: Writable<TaskEvent[]>): EventMerger {
   let seen: TaskEvent[] = [];
   let cursor = 0;
   return {
@@ -51,7 +52,6 @@ function createEventMerger(events: Writable<TaskEvent[]>, draft: Writable<string
       if (!changed) return;
       seen = [...byId.values()].sort((left, right) => left.seq - right.seq).slice(-maxThreadEvents);
       events.set(seen);
-      draft.set('');
     },
   };
 }
@@ -84,7 +84,7 @@ export function createThread(taskId: string): Thread {
   const events = writable<TaskEvent[]>([]);
   const draft = writable('');
   const missing = writable(false);
-  const merger = createEventMerger(events, draft);
+  const merger = createEventMerger(events);
   let current: Task | undefined;
   let reloaded = '';
   let stopped = false;
@@ -104,6 +104,7 @@ export function createThread(taskId: string): Thread {
     current = nextTask;
     task.set(nextTask);
     missing.set(false);
+    if (!shouldShowWorkingIndicator(nextTask.status, nextTask.work)) draft.set('');
     merger.merge(fresh);
     reconcile(nextTask.status);
   };

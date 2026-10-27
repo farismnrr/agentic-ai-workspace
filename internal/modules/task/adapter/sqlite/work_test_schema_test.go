@@ -41,8 +41,56 @@ CREATE TABLE external_works (
  state TEXT NOT NULL, role_key TEXT NOT NULL DEFAULT '', role_name TEXT NOT NULL DEFAULT '',
  rev INTEGER NOT NULL DEFAULT 0, plan_rev INTEGER NOT NULL DEFAULT 0, next_step INTEGER NOT NULL DEFAULT 1,
  idem_key TEXT NOT NULL DEFAULT '', idem_hash TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL,
- updated_at INTEGER NOT NULL, ended_at INTEGER
+ updated_at INTEGER NOT NULL, ended_at INTEGER,
+ plan_state TEXT NOT NULL DEFAULT 'draft'
 );
+CREATE TABLE external_plan_revisions (
+ id TEXT PRIMARY KEY, work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE,
+ task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, rev_no INTEGER NOT NULL,
+ plan_rev INTEGER NOT NULL, steps TEXT NOT NULL, prd TEXT NOT NULL, research TEXT NOT NULL,
+ qa TEXT NOT NULL, small_task INTEGER NOT NULL DEFAULT 0, summary TEXT NOT NULL, digest TEXT NOT NULL,
+ event_id TEXT NOT NULL REFERENCES task_events(id) ON DELETE CASCADE,
+ status TEXT NOT NULL, created_at INTEGER NOT NULL, UNIQUE(work_id, rev_no)
+);
+CREATE UNIQUE INDEX external_plan_revision_submitted ON external_plan_revisions(work_id) WHERE status='submitted';
+CREATE TRIGGER external_plan_revision_content_immutable
+BEFORE UPDATE OF id, work_id, task_id, rev_no, plan_rev, steps, prd, research, qa,
+ small_task, summary, digest, event_id, created_at ON external_plan_revisions
+BEGIN SELECT RAISE(ABORT, 'plan revision content is immutable'); END;
+CREATE TABLE external_work_questions (
+ id TEXT PRIMARY KEY, work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE,
+ task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+ seq INTEGER NOT NULL, request_key TEXT NOT NULL DEFAULT '', form TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state IN ('open','answered','cancelled')),
+ answers TEXT NOT NULL DEFAULT '[]', summary TEXT NOT NULL DEFAULT '',
+ event_id TEXT NOT NULL REFERENCES task_events(id) ON DELETE CASCADE, asked_at INTEGER NOT NULL,
+ answered_at INTEGER, answered_by TEXT NOT NULL DEFAULT '', answer_source TEXT NOT NULL DEFAULT '',
+ UNIQUE(work_id, seq)
+);
+CREATE UNIQUE INDEX external_work_question_request_idx ON external_work_questions(work_id,request_key)
+ WHERE request_key <> '';
+CREATE TABLE external_plan_decisions (
+ id TEXT PRIMARY KEY, revision_id TEXT NOT NULL UNIQUE REFERENCES external_plan_revisions(id) ON DELETE CASCADE,
+ work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE,
+ task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+ decision TEXT NOT NULL, source TEXT NOT NULL, client TEXT NOT NULL DEFAULT '', idem_key TEXT NOT NULL DEFAULT '',
+ req_hash TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', decided_at INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX external_plan_decision_idempotency_idx
+ ON external_plan_decisions(work_id,idem_key) WHERE idem_key <> '';
+CREATE TABLE external_plan_handoffs (
+ id TEXT PRIMARY KEY, decision_id TEXT NOT NULL UNIQUE REFERENCES external_plan_decisions(id) ON DELETE CASCADE,
+ work_id TEXT NOT NULL UNIQUE REFERENCES external_works(id) ON DELETE CASCADE,
+ state TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER NOT NULL,
+ last_error TEXT NOT NULL DEFAULT '', internal_task_id TEXT REFERENCES tasks(id) ON DELETE SET NULL
+);
+CREATE UNIQUE INDEX external_plan_handoff_task_idx ON external_plan_handoffs(internal_task_id)
+ WHERE internal_task_id IS NOT NULL;
+CREATE INDEX external_plan_handoff_due_idx ON external_plan_handoffs(state,next_attempt_at);
 CREATE UNIQUE INDEX external_works_idempotency_idx
  ON external_works(user_id,client,project_id,idem_key) WHERE idem_key <> '';
 CREATE TABLE external_work_ops (

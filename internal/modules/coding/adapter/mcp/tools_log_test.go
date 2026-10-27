@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -44,7 +45,9 @@ func TestLogMessageKeepsLegacyThreadPath(t *testing.T) {
 	tools := logTestTools(&fakeWorkCalls{}, legacy)
 	ctx := context.WithValue(t.Context(), identityKey{}, identity{User: "u1", Client: "ChatGPT"})
 	result, _, err := tools.logMessage(ctx, logInput{Role: "assistant", Text: "answer"})
-	if err != nil || !result.Saved || legacy.logs != 1 {
+	if err != nil || !result.Saved || legacy.logs != 1 || legacy.begins != 0 ||
+		!strings.Contains(result.Message, "begin_work with a role") ||
+		!strings.Contains(result.Message, "developer, researcher") {
 		t.Fatalf("result=%+v logs=%d error=%v", result, legacy.logs, err)
 	}
 }
