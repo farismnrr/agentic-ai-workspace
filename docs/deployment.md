@@ -283,7 +283,7 @@ Each person can connect their own GitHub account so the AI can clone, commit and
 
 1. Set the callback URL to `<PUBLIC_URL>/api/integrations/github/callback`. Turn on "Request user authorization (OAuth) during installation". Keep "Expire user authorization tokens" on.
 2. Turn the webhook off.
-3. Under repository permissions, set Contents and Pull requests to read and write, and Metadata to read-only. Add Workflows only if the AI should edit `.github/workflows`.
+3. Under repository permissions, set Contents and Pull requests to read and write, and Metadata to read-only. Add Workflows only if the AI should edit `.github/workflows`. Add Actions as read-only if the AI should read why a CI run failed; people then accept the new permission once.
 4. Allow installs on any account if several people use the server.
 5. Generate a client secret. Set the three `GITHUB_*` variables and recreate the app.
 
