@@ -1,4 +1,4 @@
-import type { TaskEvent, WorkSummary } from './task-types';
+import type { TaskEvent, TaskStatus, WorkSummary } from './task-types';
 
 export interface Provenance {
   label: string;
@@ -33,9 +33,9 @@ function isHandedOff(event: TaskEvent): boolean {
 }
 
 /** Describes who reported an event while keeping provider and role as separate fields. */
-export function eventProvenance(event: TaskEvent, provider = ''): Provenance {
+export function eventProvenance(event: TaskEvent, provider = '', linkedTaskStatus?: TaskStatus): Provenance {
   return {
-    label: eventLabel(event, event.work?.actor ?? provider),
+    label: eventLabel(event, event.work?.actor ?? provider, linkedTaskStatus),
     provider: isAttributed(event) ? event.work?.actor ?? provider : '',
     role: eventRole(event),
   };
@@ -51,17 +51,33 @@ function isAttributed(event: TaskEvent): boolean {
 }
 
 function isServerEvidence(event: TaskEvent): boolean {
+  return hasServerEvidence(event);
+}
+
+function eventLabel(event: TaskEvent, actor: string, linkedTaskStatus?: TaskStatus): string {
+  const handoff = handoffLabel(event, linkedTaskStatus);
+  if (handoff !== undefined) return handoff;
+  if (isApproved(event)) return 'Approved by you';
+  if (hasServerEvidence(event)) return 'Verified by the server';
+  const report = reportedLabel(event, actor);
+  if (report !== undefined) return report;
+  return 'Recorded by Masih Awam';
+}
+
+function handoffLabel(event: TaskEvent, linkedTaskStatus?: TaskStatus): string | undefined {
+  if (!isHandedOff(event)) return undefined;
+  return linkedTaskStatus !== undefined && linkedTaskStatus !== 'queued'
+    ? 'Executed by the Orchestrator'
+    : 'Handed to the Orchestrator';
+}
+
+function hasServerEvidence(event: TaskEvent): boolean {
   return event.work?.evidence === 'observed' || event.work?.evidence === 'ran';
 }
 
-function eventLabel(event: TaskEvent, actor: string): string {
-  if (isHandedOff(event)) return 'Executed by the Orchestrator';
-  if (isApproved(event)) return 'Approved by you';
-  if (event.work?.evidence === 'observed' || event.work?.evidence === 'ran') return 'Verified by the server';
-  if (event.work !== undefined && assistantEvents.has(event.kind)) {
-    return `Reported by ${actor || 'the external assistant'}`;
-  }
-  return 'Recorded by Masih Awam';
+function reportedLabel(event: TaskEvent, actor: string): string | undefined {
+  if (event.work === undefined || !assistantEvents.has(event.kind)) return undefined;
+  return `Reported by ${actor || 'the external assistant'}`;
 }
 
 function hasRole(roles: string[], part: string): boolean {
@@ -69,7 +85,11 @@ function hasRole(roles: string[], part: string): boolean {
 }
 
 /** Returns only journey milestones supported by saved work and plan state. */
-export function journeySteps(events: TaskEvent[], work?: WorkSummary): JourneyStep[] {
+export function journeySteps(
+  events: TaskEvent[],
+  work?: WorkSummary,
+  linkedTaskStatus?: TaskStatus,
+): JourneyStep[] {
   const roles = events.filter((event) => event.kind === 'role')
     .map((event) => event.work?.role?.toLowerCase() ?? event.text.toLowerCase());
   const candidates: [boolean, JourneyStep][] = [
@@ -79,7 +99,7 @@ export function journeySteps(events: TaskEvent[], work?: WorkSummary): JourneySt
     [work?.planState === 'ready_for_approval', 'Ready for approval'],
     [work?.decision === 'approved' || events.some(isApproved), 'Approved'],
     [work?.linkedTaskId !== undefined || events.some(isHandedOff), 'Handed off'],
-    [work?.linkedTaskId !== undefined, 'Implementation'],
+    [work?.linkedTaskId !== undefined && linkedTaskStatus !== undefined && linkedTaskStatus !== 'queued', 'Implementation'],
   ];
   return candidates.filter((entry) => entry[0]).map(([, step]) => step);
 }

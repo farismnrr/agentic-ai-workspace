@@ -6,12 +6,14 @@
 
   interface Props {
     status: TaskStatus;
+    label?: string;
   }
 
-  const { status }: Props = $props();
+  const { status, label }: Props = $props();
   const meta = $derived(statusMeta[status]);
+  const shownLabel = $derived(label ?? meta.label);
 </script>
 
 <span class="badge gap-1.5 whitespace-nowrap {badgeTone[meta.tone]}">
-  <Icon name={meta.icon} class="size-3.5 {status === 'working' ? 'motion-safe:animate-spin' : ''}" />{meta.label}
+  <Icon name={meta.icon} class="size-3.5 {status === 'working' ? 'motion-safe:animate-spin' : ''}" />{shownLabel}
 </span>

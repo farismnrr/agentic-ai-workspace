@@ -6,6 +6,8 @@
   import StatusBadge from '../components/StatusBadge.svelte';
   import StatusDot from '../components/StatusDot.svelte';
   import { timeAgo } from '../logic/time';
+  import { workStatusPresentation } from '../logic/work-status';
+  import { statusMeta } from '../content/status';
 
   interface Props {
     tasks: Task[];
@@ -90,16 +92,18 @@
   </div>
   <p class="min-h-5 px-3 pt-1 text-sm" aria-live="polite">{message}</p>
   {#each tasks as task (task.id)}
+    {@const workStatus = workStatusPresentation(task.status, task.work)}
+    {@const statusLabel = workStatus.label || statusMeta[task.status].label}
     <div class="flex min-h-14 items-center gap-3 border-b border-[var(--brand-border)] px-3 py-2 last:border-b-0 hover:bg-base-200/60">
       <input class="checkbox checkbox-sm" type="checkbox" checked={selected.includes(task.id)} disabled={busy}
         aria-label="Select {task.title}" onchange={() => { toggle(task.id); }} />
       <a href="/app/projects/{task.projectId}/tasks/{task.id}" class="flex min-w-0 flex-1 items-center gap-3 focus-visible:outline-primary">
-        <StatusDot status={task.status} />
+        <StatusDot status={workStatus.iconStatus} label={statusLabel} />
         <span class="flex min-w-0 flex-1 flex-col">
           <span class="truncate font-medium">{task.title}</span>
           <span class="truncate text-sm text-[var(--brand-text-secondary)]">{task.summary === '' ? task.model : task.summary}</span>
         </span>
-        <span class="hidden md:block"><StatusBadge status={task.status} /></span>
+        <span class="hidden md:block"><StatusBadge status={workStatus.iconStatus} label={statusLabel} /></span>
         <span class="hidden w-24 text-right text-sm text-[var(--brand-text-tertiary)] sm:block">{timeAgo(task.updatedAt)}</span>
       </a>
       {#if archived}

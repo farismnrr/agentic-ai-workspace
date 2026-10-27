@@ -45,7 +45,10 @@ describe('event provenance', () => {
     const observed = { ...base, kind: 'action', text: 'Changed a file', work: { ...external, evidence: 'observed' } } as TaskEvent;
     expect(eventProvenance(recorded).label).toBe('Recorded by Masih Awam');
     expect(eventProvenance(approved).label).toBe('Approved by you');
-    expect(eventProvenance(handoff).label).toBe('Executed by the Orchestrator');
+    expect(eventProvenance(handoff).label).toBe('Handed to the Orchestrator');
+    expect(eventProvenance(handoff, '', 'queued').label).toBe('Handed to the Orchestrator');
+    expect(eventProvenance(handoff, '', 'working').label).toBe('Executed by the Orchestrator');
+    expect(eventProvenance(handoff, '', 'failed').label).toBe('Executed by the Orchestrator');
     expect(eventProvenance(observed).label).toBe('Verified by the server');
   });
 });
@@ -58,7 +61,7 @@ describe('planning journey', () => {
     expect(eventProvenance(planner).label).toBe('Reported by Gemini');
   });
 
-  it('derives only journey steps supported by task events and work state', () => {
+  it('requires linked task execution before showing the Implementation milestone', () => {
     const events: TaskEvent[] = [
       { ...base, kind: 'role', text: 'Researcher', work: { ...external, role: 'researcher' } },
       { ...base, id: 'planner', kind: 'role', text: 'Planner', work: external },
@@ -67,7 +70,9 @@ describe('planning journey', () => {
     const work = { id: 'work', updatedAt: '', state: 'open', actor: 'Gemini', revision: 1, planRev: 1,
       stale: false, planState: 'ready_for_approval', linkedTaskId: 'internal' } as WorkSummary;
     expect(journeySteps(events, work)).toEqual([
-      'Researcher', 'Planner', 'Needs your answer', 'Ready for approval', 'Handed off', 'Implementation',
+      'Researcher', 'Planner', 'Needs your answer', 'Ready for approval', 'Handed off',
     ]);
+    expect(journeySteps(events, work, 'queued')).not.toContain('Implementation');
+    expect(journeySteps(events, work, 'working')).toContain('Implementation');
   });
 });

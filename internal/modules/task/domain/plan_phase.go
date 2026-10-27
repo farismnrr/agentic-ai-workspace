@@ -11,20 +11,27 @@ const (
 	PlanHandedOff             PlanPhase = "handed_off"
 )
 
+var planPhaseTransitions = map[PlanPhase]map[PlanPhase]struct{}{
+	PlanDraft: {
+		PlanReadyForApproval:      {},
+		PlanAwaitingClarification: {},
+	},
+	PlanReadyForApproval: {
+		PlanDraft:                 {},
+		PlanAwaitingClarification: {},
+		PlanApproved:              {},
+	},
+	PlanAwaitingClarification: {
+		PlanDraft:            {},
+		PlanReadyForApproval: {},
+	},
+	PlanApproved: {
+		PlanHandedOff: {},
+	},
+}
+
 // CanMoveTo reports whether this slice's lifecycle operations allow a transition.
 func (p PlanPhase) CanMoveTo(next PlanPhase) bool {
-	switch p {
-	case PlanDraft:
-		return next == PlanReadyForApproval || next == PlanAwaitingClarification
-	case PlanReadyForApproval:
-		return next == PlanDraft || next == PlanAwaitingClarification
-	case PlanAwaitingClarification:
-		return next == PlanDraft || next == PlanReadyForApproval
-	case PlanApproved:
-		return next == PlanHandedOff
-	case PlanHandedOff:
-		return false
-	default:
-		return false
-	}
+	_, allowed := planPhaseTransitions[p][next]
+	return allowed
 }
