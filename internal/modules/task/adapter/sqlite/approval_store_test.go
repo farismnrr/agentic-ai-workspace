@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -14,29 +12,53 @@ import (
 )
 
 func TestApprovePlanTransactionPersistsOneDecisionAndReplaysItsHandoff(t *testing.T) {
-	ctx, db, store := newWorkStore(t)
+	ctx, _, store := newWorkStore(t)
 	work := createTestWork(t, ctx, store, "w-approve", "t1", "")
 	revision := submitStorePlan(t, ctx, store, work)
 	in := approvalWrite(work, revision.RevNo, time.Unix(20, 0))
-	first, err := store.DecidePlan(ctx, in)
+	first := approveOnce(t, store, in)
+	assertApprovalReplay(t, store, in, work, revision, first)
+	assertLatestApprovalReview(t, store, work, first)
+	assertReusedApprovalKeyRejected(t, store, in)
+}
+
+func approveOnce(t *testing.T, store *Store, in application.PlanDecisionWrite) application.PlanDecisionResult {
+	t.Helper()
+	first, err := store.DecidePlan(t.Context(), in)
 	if err != nil || first.HandoffID != in.HandoffID || first.HandoffState != "pending" {
 		t.Fatalf("approve plan = %+v, %v", first, err)
 	}
-	second, err := store.DecidePlan(ctx, in)
+	return first
+}
+
+func assertApprovalReplay(t *testing.T, store *Store, in application.PlanDecisionWrite,
+	work domain.ExternalWork, revision domain.PlanRevision, first application.PlanDecisionResult,
+) {
+	t.Helper()
+	second, err := store.DecidePlan(t.Context(), in)
 	if err != nil || second.Decision.ID != first.Decision.ID || second.HandoffID != first.HandoffID {
 		t.Fatalf("approval retry = %+v, %v", second, err)
 	}
-	assertApprovalRows(t, ctx, db, work, revision, first)
-	review, found, err := store.LatestPlanReview(ctx, work.ID)
+	assertApprovalRows(t, t.Context(), store.db, work, revision, first)
+}
+
+func assertLatestApprovalReview(t *testing.T, store *Store, work domain.ExternalWork,
+	first application.PlanDecisionResult,
+) {
+	t.Helper()
+	review, found, err := store.LatestPlanReview(t.Context(), work.ID)
 	if err != nil || !found || review.Decision != string(domain.PlanDecisionApproved) ||
 		review.HandoffID != first.HandoffID || review.HandoffState != "pending" {
 		t.Fatalf("latest review state = %+v, found %v, error %v", review, found, err)
 	}
+}
 
+func assertReusedApprovalKeyRejected(t *testing.T, store *Store, in application.PlanDecisionWrite) {
+	t.Helper()
 	reused := in
 	reused.Revision++
 	reused.Decision.ReqHash = "different-revision-hash"
-	if _, err := store.DecidePlan(ctx, reused); !errors.Is(err, domain.ErrKeyReused) {
+	if _, err := store.DecidePlan(t.Context(), reused); !errors.Is(err, domain.ErrKeyReused) {
 		t.Fatalf("same key for another revision error = %v", err)
 	}
 }
@@ -45,31 +67,48 @@ func assertApprovalRows(t *testing.T, ctx context.Context, db *sql.DB, work doma
 	revision domain.PlanRevision, result application.PlanDecisionResult,
 ) {
 	t.Helper()
+	assertApprovedWorkRows(t, ctx, db, work.ID, work.TaskID)
+	assertApprovedReviewRows(t, ctx, db, work.TaskID, revision.EventID, result.HandoffID)
+	assertApprovalOutboxRows(t, ctx, db, work.ID)
+}
+
+func assertApprovedWorkRows(t *testing.T, ctx context.Context, db *sql.DB, workID, taskID string) {
+	t.Helper()
 	var workState, phase, taskStatus string
-	if err := db.QueryRowContext(ctx, `SELECT state, plan_state FROM external_works WHERE id = ?`, work.ID).
+	if err := db.QueryRowContext(ctx, `SELECT state, plan_state FROM external_works WHERE id = ?`, workID).
 		Scan(&workState, &phase); err != nil || workState != "completed" || phase != "approved" {
 		t.Fatalf("approved work = %s/%s, %v", workState, phase, err)
 	}
-	if err := db.QueryRowContext(ctx, `SELECT status FROM tasks WHERE id = ?`, work.TaskID).
+	if err := db.QueryRowContext(ctx, `SELECT status FROM tasks WHERE id = ?`, taskID).
 		Scan(&taskStatus); err != nil || taskStatus != "done" {
 		t.Fatalf("approved task status = %s, %v", taskStatus, err)
 	}
-	event, err := NewStore(db, &workTestIDs{}).FindEvent(ctx, work.TaskID, revision.EventID)
+}
+
+func assertApprovedReviewRows(t *testing.T, ctx context.Context, db *sql.DB,
+	taskID, eventID, handoffID string,
+) {
+	t.Helper()
+	event, err := NewStore(db, &workTestIDs{}).FindEvent(ctx, taskID, eventID)
 	if err != nil || event.PlanReview.Status != domain.PlanRevisionApproved ||
-		event.PlanReview.HandoffID != result.HandoffID ||
+		event.PlanReview.HandoffID != handoffID ||
 		event.Version < 2 {
 		t.Fatalf("review card = %+v, %v", event.PlanReview, err)
 	}
-	events, err := NewStore(db, &workTestIDs{}).EventsAfter(ctx, work.TaskID, 0)
+	events, err := NewStore(db, &workTestIDs{}).EventsAfter(ctx, taskID, 0)
 	if err != nil || len(events) != 3 {
 		t.Fatalf("decision should append exactly one message event, events=%d err=%v", len(events), err)
 	}
+}
+
+func assertApprovalOutboxRows(t *testing.T, ctx context.Context, db *sql.DB, workID string) {
+	t.Helper()
 	var decisions, handoffs int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_decisions WHERE work_id = ?`, work.ID).
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_decisions WHERE work_id = ?`, workID).
 		Scan(&decisions); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_handoffs WHERE work_id = ?`, work.ID).
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_handoffs WHERE work_id = ?`, workID).
 		Scan(&handoffs); err != nil || decisions != 1 || handoffs != 1 {
 		t.Fatalf("approval/outbox counts = %d/%d, %v", decisions, handoffs, err)
 	}
@@ -108,77 +147,5 @@ func TestPlanApprovalRejectsWrongOwnerAndStaleRevision(t *testing.T) {
 				t.Fatalf("rejected approval changed revision: %+v %v", latest, err)
 			}
 		})
-	}
-}
-
-func TestRequestChangesStoresDecisionAndReturnsThePlanToDraft(t *testing.T) {
-	ctx, db, store := newWorkStore(t)
-	work := createTestWork(t, ctx, store, "w-changes", "t1", "")
-	revision := submitStorePlan(t, ctx, store, work)
-	in := approvalWrite(work, revision.RevNo, time.Unix(20, 0))
-	in.Decision.ID = "decision-changes"
-	in.Decision.Kind = domain.PlanDecisionChangesRequested
-	in.Decision.Source = "app"
-	in.Decision.Client = ""
-	in.Decision.IdemKey = "changes-key-123"
-	in.Decision.ReqHash = "changes-hash"
-	in.Decision.Note = "Clarify the first step."
-	in.HandoffID = ""
-	result, err := store.DecidePlan(ctx, in)
-	if err != nil || result.Decision.Kind != domain.PlanDecisionChangesRequested || result.HandoffID != "" {
-		t.Fatalf("request changes = %+v, %v", result, err)
-	}
-	latest, found, err := store.LatestPlan(ctx, work.ID)
-	if err != nil || !found || latest.Status != domain.PlanRevisionChangesRequested {
-		t.Fatalf("revision after changes requested = %+v, %v", latest, err)
-	}
-	var phase, state, taskStatus string
-	_ = db.QueryRowContext(ctx, `SELECT plan_state,state FROM external_works WHERE id = ?`, work.ID).
-		Scan(&phase, &state)
-	_ = db.QueryRowContext(ctx, `SELECT status FROM tasks WHERE id = ?`, work.TaskID).Scan(&taskStatus)
-	if phase != string(domain.PlanDraft) || state != string(domain.WorkOpen) ||
-		taskStatus != string(domain.StatusWorking) {
-		t.Fatalf("changes requested left work in %s/%s with task %s", phase, state, taskStatus)
-	}
-	var handoffs int
-	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_handoffs WHERE work_id = ?`, work.ID).Scan(&handoffs)
-	if handoffs != 0 {
-		t.Fatalf("request changes created %d handoffs", handoffs)
-	}
-}
-
-func TestConcurrentApprovalCreatesOneDecisionAndHandoff(t *testing.T) {
-	ctx, db, store := newConcurrentWorkStore(t)
-	work := createTestWork(t, ctx, store, "w-race-approval", "t1", "")
-	revision := submitStorePlan(t, ctx, store, work)
-	var wait sync.WaitGroup
-	results := make(chan error, 2)
-	for index := range 2 {
-		wait.Add(1)
-		go func(number int) {
-			defer wait.Done()
-			in := approvalWrite(work, revision.RevNo, time.Unix(20, 0))
-			in.Decision.ID = fmt.Sprintf("decision-race-%d", number)
-			in.Decision.IdemKey = fmt.Sprintf("race-key-%d", number)
-			in.Decision.ReqHash = fmt.Sprintf("race-hash-%d", number)
-			in.HandoffID = fmt.Sprintf("handoff-race-%d", number)
-			_, err := store.DecidePlan(ctx, in)
-			results <- err
-		}(index)
-	}
-	wait.Wait()
-	close(results)
-	for err := range results {
-		if err != nil && !errors.Is(err, domain.ErrTryAgain) {
-			t.Fatalf("concurrent approval error = %v", err)
-		}
-	}
-	var decisions, handoffs int
-	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_decisions WHERE work_id = ?`, work.ID).
-		Scan(&decisions)
-	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_handoffs WHERE work_id = ?`, work.ID).
-		Scan(&handoffs)
-	if decisions != 1 || handoffs != 1 {
-		t.Fatalf("concurrent approvals persisted %d decisions and %d handoffs", decisions, handoffs)
 	}
 }

@@ -55,6 +55,19 @@ func (s *Store) submitPlanSnapshot(ctx context.Context, workID, userID string, e
 	if taskID != revision.TaskID {
 		return domain.PlanRevision{}, domain.ErrUnknownWork
 	}
+	revision, err = s.persistPlanSnapshot(ctx, tx, workID, taskID, revision, event)
+	if err != nil {
+		return domain.PlanRevision{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.PlanRevision{}, mapBusy(fmt.Errorf("commit submitted plan: %w", err))
+	}
+	return revision, nil
+}
+
+func (s *Store) persistPlanSnapshot(ctx context.Context, tx *sql.Tx, workID, taskID string,
+	revision domain.PlanRevision, event domain.Event,
+) (domain.PlanRevision, error) {
 	if numberErr := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(rev_no), 0) + 1 FROM external_plan_revisions
 		WHERE work_id = ?`, workID).Scan(&revision.RevNo); numberErr != nil {
 		return domain.PlanRevision{}, fmt.Errorf("number plan revision: %w", numberErr)
@@ -83,9 +96,6 @@ func (s *Store) submitPlanSnapshot(ctx context.Context, workID, userID string, e
 		revision.Research, revision.QA, revision.SmallTask, revision.Summary, revision.Digest, storedEvent.ID)
 	if err != nil {
 		return domain.PlanRevision{}, mapBusy(fmt.Errorf("insert plan revision: %w", err))
-	}
-	if err := tx.Commit(); err != nil {
-		return domain.PlanRevision{}, mapBusy(fmt.Errorf("commit submitted plan: %w", err))
 	}
 	revision.EventID = storedEvent.ID
 	revision.Status = domain.PlanRevisionSubmitted

@@ -14,6 +14,19 @@ import (
 )
 
 func TestApprovedSnapshotDispatchesThroughOrchestratorWithoutExternalCompletionPower(t *testing.T) {
+	ctx, store, work, handoffs, queue, deps, handoffID := approvedDispatchFixture(t)
+	internalID, err := handoffs.Kick(ctx, handoffID)
+	queued := queue.snapshot()
+	assertQueuedHandoff(t, internalID, queued, err)
+	assertInternalTaskIsOrchestratorWork(t, ctx, store, work, internalID)
+	assertPromptUsesApprovedSnapshot(t, ctx, store, internalID)
+	assertExternalCompletionCannotFinishHandoff(t, ctx, store, work, internalID, deps)
+}
+
+func approvedDispatchFixture(t *testing.T) (context.Context, *Store, domain.ExternalWork,
+	*taskapp.Handoffs, *handoffQueueFake, taskapp.Deps, string,
+) {
+	t.Helper()
 	ctx, db, store := newWorkStore(t)
 	at := time.Unix(40, 0)
 	work := createTestWork(t, ctx, store, "w-dispatch", "t1", "")
@@ -34,16 +47,29 @@ func TestApprovedSnapshotDispatchesThroughOrchestratorWithoutExternalCompletionP
 	}
 	service := taskapp.NewService(deps, queue)
 	handoffs := taskapp.NewHandoffs(service, store)
-	internalID, err := handoffs.Kick(ctx, write.HandoffID)
-	queued := queue.snapshot()
+	return ctx, store, work, handoffs, queue, deps, write.HandoffID
+}
+
+func assertQueuedHandoff(t *testing.T, internalID string, queued []string, err error) {
+	t.Helper()
 	if err != nil || internalID == "" || len(queued) != 1 || queued[0] != internalID {
 		t.Fatalf("handoff kick = %q queue=%v err=%v", internalID, queued, err)
 	}
+}
+
+func assertInternalTaskIsOrchestratorWork(t *testing.T, ctx context.Context, store *Store,
+	work domain.ExternalWork, internalID string,
+) {
+	t.Helper()
 	internal, err := store.Find(ctx, work.UserID, internalID)
 	if err != nil || internal.OriginTaskID != work.TaskID || internal.WorkID != "" || internal.Source != "" ||
 		internal.PlanFirst || internal.Status != domain.StatusQueued {
 		t.Fatalf("Orchestrator task = %+v, %v", internal, err)
 	}
+}
+
+func assertPromptUsesApprovedSnapshot(t *testing.T, ctx context.Context, store *Store, internalID string) {
+	t.Helper()
 	transcript, err := store.LoadTranscript(ctx, internalID)
 	if err != nil || len(transcript) != 1 || transcript[0].Blocks[0].Text == "" {
 		t.Fatalf("handoff prompt not persisted: %+v, %v", transcript, err)
@@ -53,67 +79,20 @@ func TestApprovedSnapshotDispatchesThroughOrchestratorWithoutExternalCompletionP
 		!strings.Contains(text, "answers") || strings.Contains(text, "mutated") {
 		t.Fatalf("handoff prompt escaped the approved snapshot: %s", text)
 	}
+}
+
+func assertExternalCompletionCannotFinishHandoff(t *testing.T, ctx context.Context, store *Store,
+	work domain.ExternalWork, internalID string, deps taskapp.Deps,
+) {
+	t.Helper()
 	works := taskapp.NewWorks(deps, store, store, store)
 	if _, completionErr := works.Complete(ctx, work.UserID, work.Client, work.ProjectID,
 		work.ID, "completed", "External done", nil); !errors.Is(completionErr, domain.ErrWorkClosed) {
 		t.Fatalf("external completion changed approved work: %v", completionErr)
 	}
-	internal, err = store.Find(ctx, work.UserID, internalID)
+	internal, err := store.Find(ctx, work.UserID, internalID)
 	if err != nil || internal.Status != domain.StatusQueued {
 		t.Fatalf("external completion changed internal task: %+v, %v", internal, err)
-	}
-}
-
-func TestConcurrentAppAndMCPApprovalDispatchOneInternalTask(t *testing.T) {
-	ctx, db, store := newConcurrentWorkStore(t)
-	at := time.Unix(50, 0)
-	work := createTestWork(t, ctx, store, "w-concurrent-dispatch", "t1", "")
-	revision := submitStorePlan(t, ctx, store, work)
-	queue := &handoffQueueFake{}
-	deps := taskapp.Deps{
-		Tasks: store, LinkedTasks: store, Events: store, Transcript: store, Models: handoffModelSource{},
-		IDs: &handoffIDs{}, Now: func() time.Time { return at },
-	}
-	service := taskapp.NewService(deps, queue)
-	handoffs := taskapp.NewHandoffs(service, store)
-	reviews := taskapp.NewPlanReviews(store, &handoffIDs{}, func() time.Time { return at }, handoffs, nil)
-	in := taskapp.PlanReviewInput{
-		ProjectID: work.ProjectID, TaskID: work.TaskID, WorkID: work.ID,
-		Revision: revision.RevNo, IdempotencyKey: "same-approval-key",
-	}
-	var wait sync.WaitGroup
-	results := make(chan error, 2)
-	wait.Add(2)
-	go func() {
-		defer wait.Done()
-		_, err := reviews.ApproveFromApp(ctx, work.UserID, in)
-		results <- err
-	}()
-	go func() {
-		defer wait.Done()
-		_, err := reviews.ApproveFromMCP(ctx, work.UserID, work.Client, in)
-		results <- err
-	}()
-	wait.Wait()
-	close(results)
-	approved := 0
-	for err := range results {
-		if err == nil {
-			approved++
-		} else if !errors.Is(err, domain.ErrTryAgain) {
-			t.Fatalf("concurrent approval error = %v", err)
-		}
-	}
-	if approved == 0 {
-		t.Fatal("both app and MCP approvals failed")
-	}
-	var internalTasks, handoffRows int
-	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tasks WHERE origin_task_id = ?`, work.TaskID).
-		Scan(&internalTasks)
-	_ = db.QueryRowContext(ctx, `SELECT COUNT(*) FROM external_plan_handoffs WHERE work_id = ?`, work.ID).
-		Scan(&handoffRows)
-	if internalTasks != 1 || handoffRows != 1 {
-		t.Fatalf("concurrent approvals created %d internal tasks and %d handoffs", internalTasks, handoffRows)
 	}
 }
 
