@@ -11,16 +11,7 @@
 name: masihawam
 
 services:
-  # Fetches the toolbox image with the app. It never runs as a service.
-  sandbox:
-    image: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
-    entrypoint: ["true"]
-    network_mode: none
-    restart: "no"
   app:
-    depends_on:
-      sandbox:
-        condition: service_completed_successfully
     image: ghcr.io/farismnrr/agentic-ai-workspace:${APP_TAG:-latest}
     # The host's network, so "localhost" in Settings means this computer.
     network_mode: host

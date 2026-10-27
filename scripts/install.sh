@@ -126,11 +126,10 @@ wait_healthy() {
   return 1
 }
 
-# Both containers: the app keeps running; the sandbox only pulls the toolbox image and exits at once (that is normal).
+# Shows the running app container; the app manages its shared agentic-sandbox container on startup.
 show_containers() {
   say ""
   (cd "$INSTALL_DIR" && docker compose -f "$COMPOSE_FILE" ps -a) >&2
-  say "(app = Up. sandbox = Exited (0) is expected: it only downloads the toolbox the AI's commands run in.)"
 }
 
 start_app() {
