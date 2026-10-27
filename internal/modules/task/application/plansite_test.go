@@ -94,3 +94,34 @@ func TestARoleThatCannotRunCommandsGetsNoWayToAskForAWebsite(t *testing.T) {
 		t.Fatalf("no server tools expected: %+v", program.requests)
 	}
 }
+
+// A DevOps on a person's own plan reads why a CI run failed through the server's tool: the program's container
+// reaches package registries only, so it cannot download a log itself.
+func TestADevOpsOnAPlanReadsCILogsThroughTheServersTool(t *testing.T) {
+	t.Parallel()
+
+	program := &scriptedProgram{
+		say: "The deploy failed on the .env check.",
+		calls: []scriptedCall{
+			{name: "ci_logs", input: map[string]any{"repo": "farismnrr/sensio-iot-new", "run_id": 40489809262}},
+		},
+	}
+	ops := application.AgentRole{
+		Key: "devops", Name: "DevOps", Purpose: "Runs the app.", ProviderID: "plan:claude", Model: "sonnet",
+		Tools: []string{"run_command", "ci_logs"},
+	}
+	r, rig := teamWith(ops, program, delegate("d1", "devops", "Why did the run fail?"), finish("Done"))
+	rig.tools.extra = []domain.ToolDef{{Name: "ci_logs"}}
+	rig.tools.results["ci_logs"] = application.ToolResult{Output: "== Deploy failure ==\nexit code 1"}
+	r.run(r.startTeam(t, "Why did run 40489809262 fail?").ID)
+
+	if len(program.requests) != 1 || program.requests[0].Bridge == nil ||
+		!slices.Contains(toolsOf(program.requests[0]), "ci_logs") {
+		t.Fatalf("the program must be offered ci_logs: %+v", program.requests)
+	}
+
+	if !slices.Contains(rig.tools.executed, "ci_logs") || len(program.answers) != 1 ||
+		!strings.Contains(program.answers[0], "exit code 1") {
+		t.Fatalf("executed=%v answers=%v", rig.tools.executed, program.answers)
+	}
+}

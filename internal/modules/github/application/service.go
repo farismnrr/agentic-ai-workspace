@@ -26,6 +26,7 @@ type Service struct {
 	provider Provider
 	sealer   Sealer
 	secrets  Secrets
+	logs     LogSource
 	now      func() time.Time
 	states   map[string]pending
 	perUser  map[string]*sync.Mutex
