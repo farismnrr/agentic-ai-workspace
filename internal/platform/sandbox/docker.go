@@ -8,12 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
 
 // taskLabel marks every container this server starts; its value is the owner, so a
 // server only ever cleans up after itself, never after another one on the same daemon.
 const taskLabel = "agentic-ai-workspace.task"
+
+// SharedSandboxName is the one standing toolbox container shared by dev and prod on the same host.
+const SharedSandboxName = "agentic-sandbox"
 
 const (
 	cleanupTimeout = 30 * time.Second
@@ -70,8 +74,33 @@ func Open(ctx context.Context, cfg Config) (*Docker, error) {
 	d.toolchains = d.readToolchains(ctx)
 
 	d.removeLeftovers(ctx)
+	d.ensureSharedSandbox(ctx)
 
 	return d, nil
+}
+
+func (d *Docker) ensureSharedSandbox(ctx context.Context) {
+	if len(d.toolchains) == 0 || d.Running(ctx, SharedSandboxName) {
+		return
+	}
+
+	d.remove(ctx, SharedSandboxName)
+
+	enabled := true
+	created, err := d.api.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Name: SharedSandboxName,
+		Config: &container.Config{
+			Image: d.cfg.Image, Entrypoint: []string{"sleep", "infinity"}, NetworkDisabled: true,
+		},
+		HostConfig: &container.HostConfig{
+			NetworkMode: "none", ReadonlyRootfs: true, Init: &enabled, Runtime: d.cfg.Runtime,
+			CapDrop: []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"},
+			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyUnlessStopped},
+		},
+	})
+	if err == nil {
+		_, _ = d.api.ContainerStart(ctx, created.ID, client.ContainerStartOptions{})
+	}
 }
 
 func (d *Docker) ensureImage(ctx context.Context) error {
@@ -96,14 +125,16 @@ func (d *Docker) removeLeftovers(ctx context.Context) {
 	defer cancel()
 
 	list, err := d.api.ContainerList(ctx, client.ContainerListOptions{
-		All: true, Filters: make(client.Filters).Add("label", taskLabel+"="+d.cfg.Owner),
+		All: true, Filters: make(client.Filters).Add("label", taskLabel),
 	})
 	if err != nil {
 		return
 	}
 
 	for _, item := range list.Items {
-		d.remove(ctx, item.ID)
+		if item.Labels[taskLabel] == d.cfg.Owner || item.State != "running" {
+			d.remove(ctx, item.ID)
+		}
 	}
 }
 

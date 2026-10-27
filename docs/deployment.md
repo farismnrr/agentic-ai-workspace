@@ -52,7 +52,7 @@ docker compose -f compose.latest.yaml up -d
 docker compose -f compose.latest.yaml logs -f app
 ```
 
-The first start downloads two images, so it can take a few minutes. The `sandbox` container shows `Exited (0)`. That is normal: it only downloads the toolbox and stops.
+The first start downloads the app and toolbox images, so it can take a few minutes. The app keeps one shared `agentic-sandbox` container `Up` for the toolbox image.
 
 | Compose file | Image | Use for |
 | --- | --- | --- |

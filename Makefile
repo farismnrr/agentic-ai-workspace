@@ -48,10 +48,12 @@ image:
 sandbox-image:
 	docker build -f sandbox/Dockerfile -t $(IMAGE)-sandbox:latest .
 
-# Pull the app and sandbox images published from dev, recreate the app container and wait until it is healthy.
+# Pull the app and sandbox images published from dev, refresh the shared sandbox container, and recreate the app.
 redeploy-dev:
+	docker pull $(IMAGE)-sandbox:latest
+	docker rm -f agentic-sandbox 2>/dev/null || true
 	docker compose -f compose.dev.yaml pull
-	docker compose -f compose.dev.yaml up -d --wait app
+	docker compose -f compose.dev.yaml up -d --wait --remove-orphans app
 
 # Browser end-to-end check of sites; not part of verify because it needs Docker and Playwright.
 e2e-sites:
