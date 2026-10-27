@@ -23,6 +23,7 @@ const (
 	pidsTmpfsOpts     = "rw,nosuid,nodev,size=16m"
 )
 
+// useShared reports whether commands and sites execute inside the single standing agentic-sandbox container.
 func (d *Docker) useShared() bool {
 	return d.cfg.DataVolume != "" && len(d.toolchains) > 0
 }
