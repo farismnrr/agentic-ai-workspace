@@ -141,6 +141,17 @@ agents/                                   self-improvement, memory and notes for
 2. `main` is the production branch. It is updated only by the full release workflow merging a `dev` -> `main` pull request. Never commit, push, or force-push to `main`.
 3. Never delete `dev` or `main`; the release merge must not delete the head branch.
 
+## Git worktree and dirty-state policy
+
+1. Use exactly one worktree: the main checkout on `dev`. Never create linked, nested, detached, temporary, staging, `.stageN/`, or other extra checkout folders.
+2. Start every task with `git worktree list --porcelain`, branch and status checks, `git fetch`, and a `dev` versus `origin/dev` comparison.
+3. Stop and report pre-existing changes, untracked user files, conflicts, an unexpected branch, or divergence; wait for the user's keep, separate, or discard decision. Dirty state never authorizes reset, stash, clean, or overwrite.
+4. After approval, edit only task-scoped files and keep task changes distinguishable. Never commit unrelated changes; reconcile `origin/dev` non-destructively.
+5. Never run `reset --hard`, `clean -fd`/`-fdx`, `rm -rf` on worktrees, `worktree remove --force`, automatic stash/checkout/branch switch, or force push.
+6. Preserve local branch `backup/stage7` at `ebc4751`; do not delete it without the user's decision.
+
+See [agents/git-safety.md](agents/git-safety.md) for the full preflight and recovery rules.
+
 ## Verification and CI
 
 1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary.
@@ -179,6 +190,7 @@ Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read th
 - `agents/memory-frontend.md`: lessons for the Svelte app, routing, workspace UI and status looks.
 - `agents/egress-grants.md`: the security design, stages and activation gate of per-task egress approvals (read before touching `platform/egressproxy` or sandbox reach).
 - `agents/implementation-notes.md`: long, exact backend detail (sandbox, agent loop, models and effort, connectors, data, workspace screens) that `docs/` only summarizes.
+- `agents/git-safety.md`: the single-worktree rule, task preflight, dirty-state decisions, and safe reconciliation.
 
 ## Project document continuity
 
