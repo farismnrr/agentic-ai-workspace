@@ -40,7 +40,7 @@
 
 <svelte:head><title>{extensionsCopy.title} · Masih Awam</title></svelte:head>
 
-<AppShell crumbs={[{ label: extensionsCopy.title }]} width="dense">
+<AppShell crumbs={[{ label: 'Settings', href: '/app/settings' }, { label: extensionsCopy.title }]} width="dense">
   <h1 class="text-xl font-semibold tracking-tight">{extensionsCopy.title}</h1>
   <p class="mt-1 max-w-2xl text-[var(--brand-text-secondary)]">{extensionsCopy.intro}</p>
   {#if error !== ''}<p class="mt-3 text-error" role="alert">{error}</p>{/if}

@@ -7,7 +7,7 @@
   import { loadArchivedTasks } from '../logic/tasks-api';
   import type { Task } from '../logic/task-types';
 
-  const crumbs = [{ label: 'Archive', href: '/app/archive' }];
+  const crumbs = [{ label: 'Settings', href: '/app/settings' }, { label: 'Archive', href: '/app/archive' }];
   let archived = $state<Task[]>([]);
   let loaded = $state(false);
   let error = $state('');

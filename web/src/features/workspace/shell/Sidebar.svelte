@@ -27,11 +27,8 @@
   <NavItem href="/app" icon="pencil" label="New task" {collapsed} active={name === 'home'} />
   <NavItem icon="search" label="Search" {collapsed} hint="Ctrl K" onclick={() => { paletteOpen.set(true); }} />
   <NavItem href="/app/inbox" icon="inbox" label="Inbox" {collapsed} active={name === 'inbox'} badge={waiting} />
-  <NavItem href="/app/tasks" icon="check-square" label="Tasks" {collapsed} active={name === 'tasks'} />
-  <NavItem href="/app/archive" icon="box" label="Archive" {collapsed} active={name === 'archive'} />
   <NavItem href="/app/projects" icon="folder" label="All projects" {collapsed} active={inProjects} />
   <NavItem href="/app/sites" icon="globe" label="Sites" {collapsed} active={name === 'sites'} badge={live} />
-  <NavItem href="/app/extensions" icon="puzzle" label="Extensions" {collapsed} active={name === 'extensions'} />
   <div class="min-h-0 flex-1 overflow-y-auto {collapsed ? 'lg:hidden' : ''}">
     <SidebarSites />
     <SidebarPinned />
@@ -39,7 +36,7 @@
     <SidebarProjects />
   </div>
   <div class="mt-auto flex flex-col gap-0.5 border-t border-[var(--brand-border)] pt-2 {collapsed ? 'lg:mt-auto' : ''}">
-    <NavItem href="/app/settings" icon="settings" label="Settings" {collapsed} active={name === 'settings'} />
+    <NavItem href="/app/settings" icon="settings" label="Settings" {collapsed} active={name === 'settings' || name === 'archive' || name === 'extensions'} />
     <UserMenu {collapsed} />
   </div>
 </nav>
