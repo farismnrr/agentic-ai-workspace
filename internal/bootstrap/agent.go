@@ -52,6 +52,7 @@ func newAgent(
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
 	service := taskapp.NewService(deps, scheduler)
+	service.UseWorkServices(taskapp.NewWorks(deps, store), store)
 
 	if err := service.Recover(context.Background()); err != nil {
 		return nil, nil, nil, fmt.Errorf("recover interrupted tasks: %w", err)

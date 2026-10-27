@@ -12,6 +12,7 @@ type workFakeStore struct {
 	works  map[string]domain.ExternalWork
 	tasks  map[string]domain.Task
 	events map[string][]domain.Event
+	ops    map[string]WorkOp
 	mu     sync.Mutex
 }
 
@@ -20,6 +21,7 @@ func newWorkFakeStore() *workFakeStore {
 		works:  map[string]domain.ExternalWork{},
 		tasks:  map[string]domain.Task{},
 		events: map[string][]domain.Event{},
+		ops:    map[string]WorkOp{},
 	}
 }
 
@@ -59,31 +61,10 @@ func (f *workFakeStore) Commit(_ context.Context, change WorkChange) ([]domain.E
 	applyFakeTaskPatch(&task, change.Task)
 	f.tasks[task.ID] = task
 	f.events[task.ID] = append(f.events[task.ID], change.Events...)
+	if change.Op != nil {
+		f.ops[change.WorkID+":"+change.Op.OpKey] = *change.Op
+	}
 	return change.Events, work.Rev, nil
-}
-
-func applyFakeWorkPatch(work *domain.ExternalWork, patch *WorkPatch) {
-	if patch == nil {
-		return
-	}
-	if patch.State != nil {
-		work.State = *patch.State
-	}
-	if patch.RoleKey != nil {
-		work.RoleKey = *patch.RoleKey
-	}
-	if patch.RoleName != nil {
-		work.RoleName = *patch.RoleName
-	}
-	if patch.EndedAt != nil {
-		work.EndedAt = patch.EndedAt.Unix()
-	}
-}
-
-func applyFakeTaskPatch(task *domain.Task, patch *TaskPatch) {
-	if patch != nil && patch.Status != nil {
-		task.Status = *patch.Status
-	}
 }
 
 func (f *workFakeStore) FindWork(
@@ -111,8 +92,11 @@ func (f *workFakeStore) FindIdempotent(
 	return domain.ExternalWork{}, false, nil
 }
 
-func (f *workFakeStore) FindOp(context.Context, string, string) (WorkOp, bool, error) {
-	return WorkOp{}, false, nil
+func (f *workFakeStore) FindOp(_ context.Context, workID, opKey string) (WorkOp, bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	op, ok := f.ops[workID+":"+opKey]
+	return op, ok, nil
 }
 
 func (f *workFakeStore) StaleOpen(_ context.Context, userID string, before time.Time) ([]domain.ExternalWork, error) {

@@ -33,7 +33,7 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 			return nil, 0, err
 		}
 	}
-	if err := patchTask(ctx, tx, taskID, change.Task); err != nil {
+	if err := patchChangedTask(ctx, tx, taskID, change.Task); err != nil {
 		return nil, 0, err
 	}
 	events := make([]domain.Event, 0, len(change.Events))
@@ -48,6 +48,13 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 		return nil, 0, fmt.Errorf("commit work changes: %w", err)
 	}
 	return events, revision, nil
+}
+
+func patchChangedTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch) error {
+	if patch == nil {
+		return nil
+	}
+	return patchTask(ctx, tx, taskID, patch)
 }
 
 func advanceWork(ctx context.Context, tx *sql.Tx, change application.WorkChange) (int64, error) {
