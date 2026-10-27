@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/moby/moby/client"
@@ -14,7 +15,10 @@ import (
 // server only ever cleans up after itself, never after another one on the same daemon.
 const taskLabel = "agentic-ai-workspace.task"
 
-const cleanupTimeout = 30 * time.Second
+const (
+	cleanupTimeout = 30 * time.Second
+	ownerTagLen    = 6
+)
 
 // Config says which image tasks run in and how they reach the person's files.
 type Config struct {
@@ -50,7 +54,7 @@ func Open(ctx context.Context, cfg Config) (*Docker, error) {
 	}
 
 	if cfg.Owner == "" {
-		cfg.Owner = rand.Text()
+		cfg.Owner = strings.ToLower(rand.Text()[:ownerTagLen])
 	}
 
 	d := &Docker{api: api, cfg: cfg}

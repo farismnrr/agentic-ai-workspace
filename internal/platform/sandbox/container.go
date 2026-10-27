@@ -6,6 +6,8 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/moby/moby/api/pkg/stdcopy"
@@ -13,6 +15,9 @@ import (
 	"github.com/moby/moby/api/types/mount"
 	"github.com/moby/moby/client"
 )
+
+// containerSeq numbers containers started by this process so concurrent runs never share a name.
+var containerSeq atomic.Uint64
 
 const (
 	drainWait = 2 * time.Second
@@ -119,6 +124,7 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 	hosts := tunnelHosts(spec)
 
 	return client.ContainerCreateOptions{
+		Name: d.containerName(spec),
 		Config: &container.Config{
 			Image: d.cfg.Image, Cmd: command(spec), Env: containerEnv(spec), WorkingDir: Workspace,
 			User:   strconv.Itoa(d.cfg.UID) + ":" + strconv.Itoa(d.cfg.GID),
@@ -148,6 +154,20 @@ func command(spec Spec) []string {
 	}
 
 	return append([]string{Entry}, spec.Argv...)
+}
+
+func (d *Docker) containerName(spec Spec) string {
+	role := "agentic-sandbox-"
+	if spec.Site != "" {
+		role = "agentic-site-"
+	}
+
+	owner := strings.ToLower(d.cfg.Owner)
+	if len(owner) > ownerTagLen {
+		owner = owner[:ownerTagLen]
+	}
+
+	return fmt.Sprintf("%s%s-%d", role, owner, containerSeq.Add(1))
 }
 
 // signed converts a limit for the Docker API, which counts in int64.
