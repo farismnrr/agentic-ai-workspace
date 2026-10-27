@@ -9,9 +9,11 @@ import (
 )
 
 // sessionWindow is how long a connected app can stay quiet before its next call starts a new thread.
-const sessionWindow = 30 * time.Minute
-
-const maxRecordedText = 4000
+const (
+	sessionWindow    = 30 * time.Minute
+	maxRecordedText  = 4000
+	recentThreadScan = 10
+)
 
 // RecordInput is one thing that happened in a connected app's conversation.
 type RecordInput struct {
@@ -46,14 +48,20 @@ func (s *Service) Record(ctx context.Context, userID string, in RecordInput) (st
 
 // session finds the app's thread that is still current, or starts one.
 func (s *Service) session(ctx context.Context, userID string, in RecordInput) (domain.Task, error) {
-	latest, err := s.deps.Tasks.List(ctx, userID, in.ProjectID, 1)
+	latest, err := s.deps.Tasks.List(ctx, userID, in.ProjectID, recentThreadScan)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("find thread: %w", err)
 	}
 
 	now := s.deps.Now()
-	if len(latest) == 1 && latest[0].Source == in.Source && now.Sub(latest[0].UpdatedAt) < sessionWindow {
-		return latest[0], nil
+	for _, candidate := range latest {
+		if candidate.WorkID != "" {
+			continue
+		}
+		if candidate.Source == in.Source && now.Sub(candidate.UpdatedAt) < sessionWindow {
+			return candidate, nil
+		}
+		break
 	}
 
 	id, err := s.deps.IDs.ID()

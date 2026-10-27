@@ -116,15 +116,34 @@ func taskNoteFiles(task domain.Task, events []domain.Event) []NoteFile {
 
 func eventNoteFiles(base, header string, event domain.Event) []NoteFile {
 	if event.Kind == domain.EventResearch || event.Kind == domain.EventPRD {
-		metadata := fmt.Sprintf("Author: %s\nRecorded: %s\n\n", event.Agent, event.Time.UTC().Format(time.RFC3339))
-		return []NoteFile{{
-			Path:    fmt.Sprintf("%s%s/%d.md", base, event.Kind, event.Seq),
-			Content: header + metadata + event.Technical,
-		}}
+		return documentEventNoteFiles(base, header, event)
 	}
 	if event.Kind != domain.EventRequest {
 		return nil
 	}
+	return inputEventNoteFiles(base, event)
+}
+
+func documentEventNoteFiles(base, header string, event domain.Event) []NoteFile {
+	metadata := fmt.Sprintf("Author: %s\nRecorded: %s\n\n", documentAuthor(event), event.Time.UTC().Format(time.RFC3339))
+	return []NoteFile{{
+		Path:    fmt.Sprintf("%s%s/%d.md", base, event.Kind, event.Seq),
+		Content: header + metadata + event.Technical,
+	}}
+}
+
+func documentAuthor(event domain.Event) string {
+	if event.Agent != "" || event.Work == nil {
+		return event.Agent
+	}
+	author := "external assistant, self-reported"
+	if event.Work.Actor == "" && event.Work.RoleName == "" {
+		return author
+	}
+	return author + " (" + strings.Join(nonEmpty(event.Work.Actor, event.Work.RoleName), "; ") + ")"
+}
+
+func inputEventNoteFiles(base string, event domain.Event) []NoteFile {
 	files := []NoteFile{}
 	for _, name := range event.Documents {
 		if strings.HasPrefix(name, base+"input/") {
@@ -132,6 +151,16 @@ func eventNoteFiles(base, header string, event domain.Event) []NoteFile {
 		}
 	}
 	return files
+}
+
+func nonEmpty(values ...string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
 }
 
 func (r *Runner) notesPrompt() string {

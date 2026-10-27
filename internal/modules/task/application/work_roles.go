@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -71,31 +72,71 @@ func (w *Works) SetRole(ctx context.Context, userID, client, projectID, workID, 
 	if err != nil {
 		return WorkRole{}, domain.ErrUnknownWork
 	}
-	if work.State != domain.WorkOpen {
+	if work.State != domain.WorkOpen && work.State != domain.WorkBlocked {
 		return WorkRole{}, domain.ErrWorkClosed
 	}
-	roster, err := w.roster(ctx, userID)
+	role, err := w.availableRole(ctx, userID, roleName)
 	if err != nil {
-		return WorkRole{}, fmt.Errorf("load work roles: %w", err)
+		return WorkRole{}, err
 	}
-	role, ok := matchRole(roleName, roster, publicRoles(roster))
-	if !ok {
-		return WorkRole{}, domain.ErrBadRole
-	}
-	if work.RoleKey == role.Key {
+	if work.RoleKey == role.Key && work.State == domain.WorkOpen {
 		return role, nil
 	}
-	roleKey, roleNameValue := role.Key, role.Name
-	_, _, err = w.store.Commit(ctx, WorkChange{
-		WorkID: work.ID, UserID: userID, ExpectRev: work.Rev,
-		Patch:  &WorkPatch{RoleKey: &roleKey, RoleName: &roleNameValue},
-		Events: []domain.Event{roleEvent(work, role, w.now())},
-	})
+	change := roleChange(work, userID, role, w.now())
+	_, _, err = w.store.Commit(ctx, change)
 	if err != nil {
 		return WorkRole{}, fmt.Errorf("set work role: %w", err)
 	}
 	w.notify(ctx, domain.Task{ID: work.TaskID, UserID: userID})
 	return role, nil
+}
+
+func (w *Works) availableRole(ctx context.Context, userID, name string) (WorkRole, error) {
+	if utf8.RuneCountInString(name) > domain.MaxWorkClaim {
+		return WorkRole{}, domain.ErrBadRequest
+	}
+	roster, err := w.roster(ctx, userID)
+	if err != nil {
+		return WorkRole{}, fmt.Errorf("load work roles: %w", err)
+	}
+	role, ok := matchRole(name, roster, publicRoles(roster))
+	if !ok {
+		return WorkRole{}, domain.ErrBadRole
+	}
+	return role, nil
+}
+
+func roleChange(work domain.ExternalWork, userID string, role WorkRole, at time.Time) WorkChange {
+	patch, taskPatch := rolePatches(work, role)
+	events := roleEvents(work, role, at)
+	return WorkChange{
+		WorkID: work.ID, UserID: userID, ExpectRev: work.Rev,
+		Patch: patch, Task: taskPatch, Events: events,
+	}
+}
+
+func rolePatches(work domain.ExternalWork, role WorkRole) (*WorkPatch, *TaskPatch) {
+	patch := &WorkPatch{}
+	var taskPatch *TaskPatch
+	if work.RoleKey != role.Key {
+		patch.RoleKey, patch.RoleName = &role.Key, &role.Name
+	}
+	if work.State == domain.WorkBlocked {
+		patch.State = workStatePtr(domain.WorkOpen)
+		taskPatch = &TaskPatch{Status: statusPtr(domain.StatusWorking)}
+	}
+	return patch, taskPatch
+}
+
+func roleEvents(work domain.ExternalWork, role WorkRole, at time.Time) []domain.Event {
+	events := []domain.Event{}
+	if work.State == domain.WorkBlocked {
+		events = append(events, resumedEvent(work, at))
+	}
+	if work.RoleKey != role.Key {
+		events = append(events, roleEvent(work, role, at))
+	}
+	return events
 }
 
 func roleEvent(work domain.ExternalWork, role WorkRole, at time.Time) domain.Event {

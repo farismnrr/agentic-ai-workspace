@@ -34,6 +34,9 @@ func (s *Service) say(ctx context.Context, taskID, text string) error {
 }
 
 func (s *Service) requeue(ctx context.Context, task domain.Task) error {
+	if task.Source != "" {
+		return domain.ErrWrongState
+	}
 	if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusQueued, s.deps.Now()); err != nil {
 		return fmt.Errorf("queue task: %w", err)
 	}
