@@ -166,16 +166,17 @@ func TestUndoIsRefusedAfterALaterChangeAndForOtherPeople(t *testing.T) {
 
 func TestTasksRunOnlyWhenSwitchedOnAndNeverExposeTheirFile(t *testing.T) {
 	t.Parallel()
-	apptest.RequireDocker(t)
 
 	env := apptest.NewEnv(t)
 	app := env.App
 	cookie, clientID := apptest.SignedInClient(t, app)
+	apptest.SeedWorkspace(t, env, cookie, "ChatGPT")
 	token := apptest.Connect(t, app, cookie, clientID, "coding:read coding:exec")
 
 	apptest.MustContain(t, callTool(t, app, token, "list_tasks", `{}`).Body, "echo", "Say hello")
 	apptest.MustContain(t, callTool(t, app, token, "run_task", `{"name":"echo"}`).Body, "turned off")
 
+	apptest.RequireDocker(t)
 	enableTool(t, app, cookie, "run_task")
 	apptest.MustContain(t, callTool(t, app, token, "run_task", `{"name":"echo"}`).Body, "hello task", `"exit_code":0`)
 	apptest.MustContain(t, callTool(t, app, token, "run_task", `{"name":"nope"}`).Body, "unknown task")
