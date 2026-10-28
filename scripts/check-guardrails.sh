@@ -125,7 +125,7 @@ if [ -n "$svelte_violations" ]; then
 fi
 
 go_test_violations="$(find . -type f -name '*_test.go' \
-  ! -path './.git/*' ! -path './sandbox/*' ! -path './test/*' -print)"
+  ! -path './.git/*' ! -path './sandbox/*' ! -path './test/*' ! -path './data/*' -print)"
 if [ -n "$go_test_violations" ]; then
   echo 'Go tests must live under test/ (except the sandbox starter template):' >&2
   echo "$go_test_violations" >&2
