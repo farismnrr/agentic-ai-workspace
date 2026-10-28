@@ -115,17 +115,7 @@ func (r *Runner) Run(ctx context.Context, taskID string) {
 	if _, onPlan := domain.PlanRuntime(task.ProviderID); onPlan {
 		result = r.runPlan(runCtx, task)
 	} else {
-		// A turn cap is a per-run boundary, not the user's AI quota.
-		// Keep the same task and transcript until it finishes or is cancelled.
-		for runCtx.Err() == nil {
-			result = r.loop(runCtx, task)
-			if result.stop != stopTurnLimit {
-				break
-			}
-		}
-		if result.stop == stopTurnLimit {
-			result, _ = r.limitReached(runCtx)
-		}
+		result = r.runUntilTurnLimit(runCtx, task)
 	}
 
 	r.settle(settle, task, result)
