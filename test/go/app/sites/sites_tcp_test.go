@@ -98,9 +98,11 @@ func TestPrivateSiteOverRealHTTP(t *testing.T) {
 	base := listen(t, a)
 	navigate := map[string]string{"Sec-Fetch-Site": "none", "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document"}
 
-	status, _, body := browser(t, base, path, navigate)
-	if status != 403 || !strings.Contains(body, "/login?next=%2Frun%2Fbakery%2F") {
-		t.Fatalf("a signed-out browser must get the sign-in page, got %d %q", status, body)
+	status, header, body := browser(t, base, path, navigate)
+	if status != 302 || !strings.HasPrefix(header.Get("Location"), "/forbidden?next=") ||
+		strings.Contains(body, "hello site") {
+		t.Fatalf("a signed-out browser must be sent to the forbidden page, got %d %q %q",
+			status, header.Get("Location"), body)
 	}
 
 	for _, dest := range []string{"script", "empty", "image"} {
@@ -112,7 +114,7 @@ func TestPrivateSiteOverRealHTTP(t *testing.T) {
 
 	navigate["Cookie"] = a.Cookie
 
-	status, header, _ := browser(t, base, path, navigate)
+	status, header, _ = browser(t, base, path, navigate)
 	if status != 302 {
 		t.Fatalf("the owner is sent to a ticketed address, got %d", status)
 	}

@@ -476,6 +476,11 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.FinishCall("The package passed its required security check"),
 		apptest.FinishCall("The package passed its required security check"),
 		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
 	)
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
 		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true}`, apptest.JSONCookie(a.Cookie))
