@@ -156,3 +156,7 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
     cooperative deadlines. Context cannot interrupt a blocked metadata syscall
     or close operation, so incomplete snapshots remain unknown rather than
     claiming a hard wall-clock bound.
+14. Connected-app MCP input validation provides field-specific hints for wrapped
+    `ErrBadRequest` and `ErrTooLarge` errors via `cleanErrorDetail`, preserving the
+    sentinel error while giving external LLMs actionable feedback (such as empty
+    markdown, non-HTTP source URLs, or step limits) without exposing internal paths.

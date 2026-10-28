@@ -35,10 +35,10 @@ type BeginWorkInput struct {
 }
 
 type PlanWorkStep struct {
-	ID     string `json:"id,omitempty"`
-	Title  string `json:"title"`
-	Detail string `json:"detail,omitempty"`
-	State  string `json:"state"`
+	ID     string `json:"id,omitempty" jsonschema:"unique step ID (at most 80 chars); generated if omitted"`
+	Title  string `json:"title" jsonschema:"step title; required, at most 200 chars"`
+	Detail string `json:"detail,omitempty" jsonschema:"step details or instructions; at most 1000 chars"`
+	State  string `json:"state" jsonschema:"step state: pending, active, done, or failed"`
 }
 
 type PlanWorkInput struct {
