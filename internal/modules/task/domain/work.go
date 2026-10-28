@@ -45,6 +45,7 @@ type WorkSummary struct {
 	ReportedAt      *time.Time `json:"reportedAt,omitempty"`
 	ID              string     `json:"id"`
 	State           WorkState  `json:"state"`
+	Phase           WorkPhase  `json:"phase"`
 	PlanState       PlanPhase  `json:"planState"`
 	Role            string     `json:"role,omitempty"`
 	RoleName        string     `json:"roleName,omitempty"`

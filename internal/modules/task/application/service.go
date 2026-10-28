@@ -23,6 +23,7 @@ type Service struct {
 	deps              Deps
 	dispatcher        Dispatcher
 	workStopper       WorkStopper
+	workConfirmer     WorkConfirmer
 	workSummaries     WorkSummaries
 	externalQuestions QuestionAnswerStore
 	planReviews       *PlanReviews

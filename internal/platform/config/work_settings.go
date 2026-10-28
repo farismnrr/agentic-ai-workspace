@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-const abandonIdleGrace = 30 * time.Minute
-
 const (
 	defaultWorkIdleAfter    = 30 * time.Minute
 	defaultWorkAbandonAfter = 2 * time.Hour
@@ -19,9 +17,13 @@ func workDurations() (time.Duration, time.Duration, time.Duration) {
 	idle := duration("WORK_IDLE_AFTER", defaultWorkIdleAfter)
 	abandon := duration("WORK_ABANDON_AFTER", defaultWorkAbandonAfter)
 	sweep := duration("WORK_SWEEP_EVERY", defaultWorkSweepEvery)
-	minimum := idle + abandonIdleGrace
-	if abandon < minimum {
-		log.Printf("WORK_ABANDON_AFTER is below WORK_IDLE_AFTER plus 30m; using %s", minimum)
+	if sweep < time.Second {
+		log.Printf("WORK_SWEEP_EVERY must be at least 1s; using 1s")
+		sweep = time.Second
+	}
+	if abandon <= idle {
+		minimum := idle + time.Second
+		log.Printf("WORK_ABANDON_AFTER must be greater than WORK_IDLE_AFTER; using %s", minimum)
 		abandon = minimum
 	}
 	if abandon < time.Hour || abandon > 3*time.Hour {

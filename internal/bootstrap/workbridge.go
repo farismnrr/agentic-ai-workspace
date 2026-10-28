@@ -117,7 +117,7 @@ func (a appWorks) Complete(ctx context.Context, user, client, project, workID st
 		return codingmcp.CompleteWorkResult{}, workBridgeError("read completed work", err)
 	}
 	return codingmcp.CompleteWorkResult{
-		WorkID: workID, Revision: state.Revision, State: string(state.State),
+		Already: result.Already, WorkID: workID, Revision: state.Revision, State: string(state.State),
 		TaskStatus: completionStatus(in.Outcome), Verified: codingmcp.VerifiedWork{
 			FilesChanged: result.Verified.FilesChanged,
 			Runs:         result.Verified.Runs, LastRunPassed: result.Verified.LastRunPassed, Proven: result.Verified.Proven,

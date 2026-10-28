@@ -17,7 +17,7 @@ func (w *Works) StartCall(
 	conversationKind(&event)
 	ensureWorkRef(&event, workID)
 	event.Work.Phase = "running"
-	return w.appendCall(ctx, userID, client, projectID, workID, event)
+	return w.appendCall(ctx, userID, client, projectID, workID, event, false)
 }
 
 // Validate rejects tool calls once their work session has ended.
@@ -28,11 +28,11 @@ func (w *Works) Validate(ctx context.Context, userID, client, projectID, workID 
 
 // RecordCall appends one connected-app action or read under the current role.
 func (w *Works) RecordCall(
-	ctx context.Context, userID, client, projectID, workID string, event domain.Event,
+	ctx context.Context, userID, client, projectID, workID string, event domain.Event, reported bool,
 ) (string, error) {
 	conversationKind(&event)
 	ensureWorkRef(&event, workID)
-	taskID, _, err := w.appendCall(ctx, userID, client, projectID, workID, event)
+	taskID, _, err := w.appendCall(ctx, userID, client, projectID, workID, event, reported)
 	return taskID, err
 }
 
@@ -50,14 +50,14 @@ func ensureWorkRef(event *domain.Event, workID string) {
 }
 
 func (w *Works) appendCall(
-	ctx context.Context, userID, client, projectID, workID string, event domain.Event,
+	ctx context.Context, userID, client, projectID, workID string, event domain.Event, reported bool,
 ) (string, string, error) {
 	store, err := w.callStore()
 	if err != nil {
 		return "", "", err
 	}
 	cleanWorkEvent(&event)
-	taskID, stored, err := store.AppendWorkCall(ctx, userID, client, projectID, workID, event)
+	taskID, stored, err := store.AppendWorkCall(ctx, userID, client, projectID, workID, event, reported)
 	if err != nil {
 		return "", "", fmt.Errorf("record connected-app call: %w", err)
 	}

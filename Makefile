@@ -27,7 +27,7 @@ help:
 	@echo "make sandbox-image - build the toolbox image the agent's commands run in"
 	@echo "make redeploy-dev - pull the app image published from dev and recreate the app container"
 	@echo "make smoke    - smoke-test the built binary"
-	@echo "make e2e      - run browser flows (or FLOW=projects, sites or thread)"
+	@echo "make e2e      - run browser flows (or FLOW=projects, sites, thread or lifecycle)"
 	@echo "make verify-full - run verify, black-box, smoke, browser and isolation checks"
 	@echo "make registry-check - check the retained Go test registry"
 	@echo "make verify   - run every quality check (Go + frontend)"
@@ -64,7 +64,7 @@ smoke:
 
 e2e:
 	@set -eu; \
-	if [ "$(FLOW)" = all ]; then flows='projects sites thread'; else flows='$(FLOW)'; fi; \
+	if [ -z "$(FLOW)" ] || [ "$(FLOW)" = all ]; then flows='projects sites thread lifecycle'; else flows='$(FLOW)'; fi; \
 	for flow in $$flows; do ./test/run.sh e2e "$$flow"; done
 
 registry-check:

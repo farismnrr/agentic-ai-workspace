@@ -31,7 +31,7 @@ func (h *Handler) taskStream(c fiber.Ctx) error {
 		return fail(c, err)
 	}
 
-	cursor := resumeFrom(c)
+	position := streamPosition{version: resumeFrom(c)}
 	sub := h.hub.Subscribe(application.TaskTopic(id))
 
 	httpserver.StreamHeaders(c)
@@ -40,41 +40,50 @@ func (h *Handler) taskStream(c fiber.Ctx) error {
 		defer sub.Close()
 
 		out := httpserver.SSE{W: w}
-		if out.Comment("ready") && h.push(out, userID, id, &cursor, true) {
-			h.followTask(out, sub, userID, id, &cursor)
+		if out.Comment("ready") && h.push(out, userID, id, &position, true) {
+			h.followTask(out, sub, userID, id, &position)
 		}
 	})
 }
 
-func (h *Handler) followTask(out httpserver.SSE, sub *application.Subscription, userID, id string, cursor *int64) {
+type streamPosition struct {
+	phase   string
+	version int64
+}
+
+func (h *Handler) followTask(out httpserver.SSE, sub *application.Subscription, userID, id string,
+	position *streamPosition,
+) {
 	ticker := time.NewTicker(application.HeartbeatInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case update, open := <-sub.C:
-			if !open || !h.deliver(out, update, userID, id, cursor) {
+			if !open || !h.deliver(out, update, userID, id, position) {
 				return
 			}
 		case <-ticker.C:
 			// A heartbeat also repairs any wake-up that was dropped under load.
-			if !out.Comment("ping") || !h.push(out, userID, id, cursor, false) {
+			if !out.Comment("ping") || !h.push(out, userID, id, position, false) {
 				return
 			}
 		}
 	}
 }
 
-func (h *Handler) deliver(out httpserver.SSE, update application.Update, userID, id string, cursor *int64) bool {
+func (h *Handler) deliver(out httpserver.SSE, update application.Update, userID, id string,
+	position *streamPosition,
+) bool {
 	if update.Delta != "" {
 		return out.Event(0, "delta", map[string]string{"text": update.Delta})
 	}
 
-	return h.push(out, userID, id, cursor, true)
+	return h.push(out, userID, id, position, true)
 }
 
 // push sends the task and any thread entries after the cursor. Without force it stays quiet when nothing is new.
-func (h *Handler) push(out httpserver.SSE, userID, id string, cursor *int64, force bool) bool {
+func (h *Handler) push(out httpserver.SSE, userID, id string, position *streamPosition, force bool) bool {
 	ctx := context.Background()
 
 	task, err := h.service.Get(ctx, userID, id)
@@ -82,22 +91,30 @@ func (h *Handler) push(out httpserver.SSE, userID, id string, cursor *int64, for
 		return false
 	}
 
-	events, err := h.service.Events(ctx, userID, id, *cursor)
+	events, err := h.service.Events(ctx, userID, id, position.version)
 	if err != nil {
 		return false
 	}
 
-	if len(events) == 0 && !force {
+	phase := ""
+	if task.Work != nil {
+		phase = string(task.Work.Phase)
+	}
+	if len(events) == 0 && !force && phase == position.phase {
 		return true
 	}
 
 	payload := make([]eventPayload, 0, len(events))
 	for _, event := range events {
 		payload = append(payload, eventPayload{Event: event, CanUndo: event.CanUndo()})
-		*cursor = max(*cursor, event.Version)
+		position.version = max(position.version, event.Version)
 	}
 
-	return out.Event(*cursor, "update", map[string]any{"task": toPayload(task), "events": payload})
+	if !out.Event(position.version, "update", map[string]any{"task": toPayload(task), "events": payload}) {
+		return false
+	}
+	position.phase = phase
+	return true
 }
 
 // workspaceStream tells a viewer that something they own changed, so lists can refresh at once.

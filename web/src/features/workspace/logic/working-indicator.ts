@@ -1,7 +1,7 @@
 import type { TaskStatus, WorkSummary } from './task-types';
+import { workStatusPresentation } from './work-status';
 
-/** Shows activity only while the task can still make progress. */
+/** Uses the shared lifecycle rules for the thread's activity indicator. */
 export function shouldShowWorkingIndicator(status: TaskStatus, work?: WorkSummary): boolean {
-  if (!['queued', 'planning', 'working'].includes(status)) return false;
-  return work === undefined || (work.state === 'open' && !work.stale);
+  return workStatusPresentation(status, work).showWorking;
 }

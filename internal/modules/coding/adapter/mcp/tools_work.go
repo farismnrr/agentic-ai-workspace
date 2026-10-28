@@ -50,14 +50,13 @@ func (t *tools) setRole(ctx context.Context, in roleWorkInput) (RoleWorkResult, 
 	return result, report{}, workToolError("set work role", err)
 }
 
-//nolint:dupl // Typed handlers intentionally keep identical guard and result handling.
 func (t *tools) updatePlan(ctx context.Context, in workPlanInput) (PlanWorkResult, report, error) {
 	result, err := callWork(ctx, t, in.WorkTarget, "update work plan",
 		func(who identity, projectID string) (PlanWorkResult, error) {
 			return t.works.UpdatePlan(ctx, who.User, who.Client, projectID, in.WorkID,
 				PlanWorkInput{BaseRevision: in.BaseRevision, RequestID: in.RequestID, Steps: in.Steps})
 		})
-	return result, report{}, err
+	return result, report{}, workToolError("update work plan", err)
 }
 
 func (t *tools) saveResearch(ctx context.Context, in researchInput) (saveOutput, report, error) {
@@ -89,14 +88,15 @@ func (t *tools) reportProgress(ctx context.Context, in progressInput) (WorkMutat
 	return result, report{}, workToolError("report work progress", err)
 }
 
-//nolint:dupl // Typed handlers intentionally keep identical guard and result handling.
 func (t *tools) completeWork(ctx context.Context, in completeInput) (CompleteWorkResult, report, error) {
-	result, err := callWork(ctx, t, in.WorkTarget, "complete work",
-		func(who identity, projectID string) (CompleteWorkResult, error) {
-			return t.works.Complete(ctx, who.User, who.Client, projectID, in.WorkID,
-				CompleteWorkInput{Outcome: in.Outcome, Summary: in.Summary, Claims: in.Claims})
-		})
-	return result, report{}, err
+	who, _ := ctx.Value(identityKey{}).(identity)
+	_, projectID, err := t.workServices(ctx, in.Project, "")
+	if err != nil {
+		return CompleteWorkResult{}, report{}, err
+	}
+	result, err := t.works.Complete(ctx, who.User, who.Client, projectID, in.WorkID,
+		CompleteWorkInput{Outcome: in.Outcome, Summary: in.Summary, Claims: in.Claims})
+	return result, report{}, workToolError("complete work", err)
 }
 
 func (t *tools) getWorkState(ctx context.Context, in workIDInput) (WorkState, report, error) {

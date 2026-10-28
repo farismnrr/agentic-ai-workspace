@@ -57,6 +57,7 @@ func newAgent(
 	service := taskapp.NewService(deps, scheduler)
 	works, handoffs := wireExternalWorkflows(service, store, hub, deps, cfg)
 	service.UseWorkIdleAfter(cfg.WorkIdleAfter)
+	works.UseSweepMode(cfg.WorkSweepMode)
 
 	if err := handoffs.PrepareRecovery(context.Background()); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("prepare plan handoff recovery: %w", err)
@@ -67,20 +68,39 @@ func newAgent(
 
 	ctx, cancel := context.WithCancel(context.Background())
 	scheduler.Start(ctx, cfg.AgentWorkers)
+	waitBackground := startAgentBackground(ctx, handoffs, works, cfg)
+
+	stop := func() {
+		cancel()
+		scheduler.Stop()
+		waitBackground()
+		hub.Close()
+	}
+
+	return service, works, taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
+}
+
+func startAgentBackground(ctx context.Context, handoffs *taskapp.Handoffs,
+	works *taskapp.Works, cfg config.Config,
+) func() {
 	handoffDone := make(chan struct{})
 	go func() {
 		defer close(handoffDone)
 		handoffs.Run(ctx, time.Minute)
 	}()
-
-	stop := func() {
-		cancel()
-		scheduler.Stop()
-		<-handoffDone
-		hub.Close()
+	workSweepDone := make(chan struct{})
+	if cfg.WorkSweepMode == "off" {
+		close(workSweepDone)
+	} else {
+		go func() {
+			defer close(workSweepDone)
+			works.RunReconciler(ctx, cfg.WorkSweepEvery)
+		}()
 	}
-
-	return service, works, taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
+	return func() {
+		<-handoffDone
+		<-workSweepDone
+	}
 }
 
 func wireExternalWorkflows(service *taskapp.Service, store *tasksqlite.Store, hub *taskapp.Hub,
@@ -93,7 +113,7 @@ func wireExternalWorkflows(service *taskapp.Service, store *tasksqlite.Store, hu
 	reviews := taskapp.NewPlanReviews(store, opaque.Generator{}, time.Now, handoffs, hub)
 	works.UsePlanReviews(reviews)
 	service.UsePlanReviewServices(reviews, handoffs, store)
-	service.UseWorkServices(works, store)
+	service.UseWorkServices(works, works, store)
 	service.UseExternalQuestionStore(store)
 	return works, handoffs
 }
