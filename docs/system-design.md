@@ -48,7 +48,7 @@ internal/platform/        config, egress, HTTP server, embedded web app
 test/                     black-box, e2e and smoke suites
   blackbox/               Bash scenarios against the built binary
   e2e/                    Playwright flows in TypeScript
-  smoke/                  binary, image and sandbox checks
+  smoke/                  binary, image, sandbox and volume isolation checks
   lib/                    shared Bash harness and assertions
   fixtures/               static test inputs
   whitebox/               retained Go test registry and guardrail

@@ -130,18 +130,9 @@ volume-isolation:
 		if [ "$${CI:-}" = true ]; then echo "Docker is required for volume isolation checks in CI." >&2; exit 1; fi; \
 		echo "Docker unavailable; skipping volume isolation check."; exit 0; \
 	fi; \
-	set -eu; \
-	stage7_image="$${STAGE7_IMAGE:-$(SANDBOX_TEST_IMAGE)}"; \
-	volume="agentic-stage7-$${GITHUB_RUN_ID:-local}-$$$$"; \
-	docker volume create "$$volume" >/dev/null; \
-	trap 'docker volume rm "$$volume" >/dev/null 2>&1 || true' EXIT; \
-	docker run --rm --network none --user 0:0 -v "$$volume:/data" --entrypoint sh "$$stage7_image" -ec \
-		'mkdir -p /data/workspaces/a /data/workspaces/b /data/caches/a /data/caches/b; \
-		printf a > /data/workspaces/a/marker-a; printf b > /data/workspaces/b/marker-b; \
-		printf a > /data/caches/a/cache-a; printf b > /data/caches/b/cache-b; \
-		chown -R 65532:65532 /data/workspaces /data/caches'; \
-	STAGE7_VOLUME="$$volume" STAGE7_IMAGE="$$stage7_image" \
-		go test -count=1 -run '^TestStage7ActualVolumeSubpathsAreIsolated$$' ./internal/platform/sandbox
+	VOLUME_ISOLATION_IMAGE="$${VOLUME_ISOLATION_IMAGE:-$(SANDBOX_TEST_IMAGE)}" \
+	SANDBOX_TEST_IMAGE="$(SANDBOX_TEST_IMAGE)" \
+		bash test/smoke/volume-isolation.test.sh
 
 verify-full: verify
 	@APP_BIN="$(abspath $(BIN_PATH))" SANDBOX_TEST_IMAGE="$(SANDBOX_TEST_IMAGE)" $(MAKE) e2e

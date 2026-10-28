@@ -161,7 +161,7 @@ test/
   whitebox/                               retained Go test registry and guardrail
   blackbox/                               Bash API/MCP scenarios against the binary
   e2e/                                    Playwright flows driven through Bash
-  smoke/                                  binary and Docker image smoke scenarios
+  smoke/                                  binary, image, sandbox, and volume isolation scenarios
   lib/                                    sourced Bash harness functions
   fixtures/                               static scenario inputs
   run.sh                                  entry point for test suites

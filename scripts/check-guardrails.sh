@@ -25,6 +25,16 @@ if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
   fi
 fi
 
+history_named_files="$(find . \
+  -path './.git' -prune -o \
+  -path './project-notes' -prune -o \
+  -type f \( -iname '*stage[0-9]*' -o -iname '*phase[0-9]*' \) -print)"
+if [ -n "$history_named_files" ]; then
+  echo "History labels are not allowed in file names (use a subject name):" >&2
+  echo "$history_named_files" >&2
+  exit 1
+fi
+
 file_violations="$(
   find . -type f \
     \( -name '*.go' -o -name '*.ts' -o -name '*.svelte' -o -name '*.css' \

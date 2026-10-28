@@ -170,7 +170,7 @@ Full is manual and merges only after every check passes.
 | --- | --- |
 | `test/blackbox/` | Bash HTTP and MCP scenarios against the built binary |
 | `test/e2e/` | Playwright TypeScript flows, started by a Bash runner |
-| `test/smoke/` | Binary, image, and sandbox smoke scenarios |
+| `test/smoke/` | Binary, image, sandbox, and volume isolation scenarios |
 | `test/lib/` | Shared Bash startup, HTTP, MCP, and assertion functions |
 | `test/fixtures/` | Static inputs for scenarios |
 | `test/whitebox/` | Registry for justified Go tests beside their code |

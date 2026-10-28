@@ -31,7 +31,7 @@ contain 15 functions, and 10 support files contain no test functions.
 | `internal/platform/database/migrate_test.go::TestJournalRecordsChecksums` | DB integrity/migrations | Inspects stored migration checksums directly after migration. | none; journal inspection is required |
 | `internal/platform/database/migrate_test.go::TestEditedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects changed applied migrations. | none; direct journal mutation is required |
 | `internal/platform/database/migrate_test.go::TestRemovedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects removed applied migrations. | none; direct journal mutation is required |
-| `internal/platform/sandbox/subpath_integration_test.go::TestStage7ActualVolumeSubpathsAreIsolated` | sandbox/privilege | Uses a Docker volume to prove owner subpaths cannot read or write one another. | `test/smoke/sandbox.test.sh` |
+| `internal/platform/sandbox/subpath_integration_test.go::TestOwnerVolumeSubpathsAreIsolated` | sandbox/privilege | Uses a Docker volume to prove owner subpaths cannot read or write one another. | `test/smoke/volume-isolation.test.sh` |
 
 ## Support files
 

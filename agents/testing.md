@@ -16,6 +16,8 @@
   and `.test.sh`; browser flows use `.spec.ts`.
 - Smoke scripts are named by subject because suites select them by role;
   numbered prefixes are reserved for ordered scenarios.
+- Use subject names for tests and files; do not use numbered process-history
+  labels.
 - Portable smoke scripts may use `#!/bin/sh` with `set -eu`; Bash scenarios
   use `#!/usr/bin/env bash` with `set -euo pipefail`.
 - Source shared helpers from `test/lib/*.sh`; those files are sourced, not run directly.
