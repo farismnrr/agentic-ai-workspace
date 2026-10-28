@@ -37,26 +37,30 @@ func (r *Runner) leading(state *runState) *Runner {
 }
 
 // child is the runner a teammate works with: the same loop, with its own transcript, only the
-// tools its role allows, and every step it records labelled with its name.
+// tools its role allows, and every step it records labelled with its name and job id.
 func (r *Runner) child(role AgentRole, d Delegation) *Runner {
 	deps := r.deps
 	deps.Transcript = r.deps.Scopes.Scope(d.ID)
-	deps.Events = labelledEvents{EventStore: r.deps.Events, agent: d.RoleName}
+	deps.Events = labelledEvents{EventStore: r.deps.Events, agent: d.RoleName, job: d.ID}
 	deps.Gate = roleGate{ToolGate: r.deps.Gate, allow: roleToolSet(role.Tools)}
 	deps.Team, deps.Scopes, deps.Delegations = nil, nil, nil
 
-	return &Runner{deps: deps, lim: r.lim, role: &role, since: d.StartSeq}
+	return &Runner{deps: deps, lim: r.lim, role: &role, job: d.ID, scope: d.Scope, since: d.StartSeq}
 }
 
-// labelledEvents puts the teammate's name on every step they add to the thread.
+// labelledEvents puts the teammate's name and delegation id on every step they add to the thread.
 type labelledEvents struct {
 	EventStore
 	agent string
+	job   string
 }
 
 func (l labelledEvents) AppendEvent(ctx context.Context, taskID string, event domain.Event) (domain.Event, error) {
 	if event.Agent == "" {
 		event.Agent = l.agent
+	}
+	if event.Job == "" {
+		event.Job = l.job
 	}
 
 	return l.EventStore.AppendEvent(ctx, taskID, event) //nolint:wrapcheck // a pass-through
@@ -108,14 +112,14 @@ func toSet(names []string) map[string]bool {
 // drive runs the loop until the run waits, finishes or fails, or its steps run out. A teammate's
 // loop is the same as the orchestrator's, but it also stops after its own share of steps.
 func (r *Runner) drive(ctx context.Context, task domain.Task, state *runState, limitText string) outcome {
-	for state.budget.left > 0 && state.segment > 0 {
+	for state.budget.has() && state.segment > 0 {
 		result, done, modelTurn := r.advance(ctx, task, state)
 		if done {
 			return result
 		}
 
 		if modelTurn {
-			state.budget.left--
+			state.budget.take()
 			state.segment--
 		}
 	}

@@ -2,17 +2,21 @@
 
 http_request() {
   local method=$1 jar=$2 path=$3 payload=${4:-} type=${5:-application/json}
+  local -a cookie_opts=()
+  if [[ -n "$jar" ]]; then
+    cookie_opts=(-b "$jar" -c "$jar")
+  fi
   HTTP_BODY_FILE="$APP_TMP_DIR/http-body"
   HTTP_HEADERS_FILE="$APP_TMP_DIR/http-headers"
   if [[ -n $payload ]]; then
     # shellcheck disable=SC2034 # Callers inspect this shared response status.
     HTTP_STATUS=$(curl -sS -X "$method" "$APP_BASE$path" \
-      -b "$jar" -c "$jar" -H "Content-Type: $type" \
+      "${cookie_opts[@]}" -H "Content-Type: $type" \
       --data "$payload" -D "$HTTP_HEADERS_FILE" -o "$HTTP_BODY_FILE" -w '%{http_code}')
   else
     # shellcheck disable=SC2034 # Callers inspect this shared response status.
     HTTP_STATUS=$(curl -sS -X "$method" "$APP_BASE$path" \
-      -b "$jar" -c "$jar" -D "$HTTP_HEADERS_FILE" \
+      "${cookie_opts[@]}" -D "$HTTP_HEADERS_FILE" \
       -o "$HTTP_BODY_FILE" -w '%{http_code}')
   fi
 }

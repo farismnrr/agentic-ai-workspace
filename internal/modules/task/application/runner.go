@@ -51,7 +51,11 @@ type Runner struct {
 	deps Deps
 	// role is set on the runner of a teammate; the orchestrator and solo tasks have none.
 	role *AgentRole
-	lim  Limits
+	// job is the delegation id of a teammate runner; empty on the orchestrator and solo tasks.
+	job string
+	// scope lists the file or folder prefixes a teammate may change; empty allows the whole project.
+	scope []string
+	lim   Limits
 	// since is the last thread event before this teammate began; its own steps are the ones after it.
 	since int64
 	// leads is set on the runner that leads a team: it hands out work but never changes anything itself.

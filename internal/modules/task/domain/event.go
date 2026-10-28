@@ -81,6 +81,8 @@ type Event struct {
 	Effort string `json:"effort,omitempty"`
 	// Agent names the teammate who did the step; empty for the orchestrator or a task without a team.
 	Agent string `json:"agent,omitempty"`
+	// Job is the delegation id of the teammate who did the step, so parallel jobs of one role stay distinct.
+	Job string `json:"job,omitempty"`
 	// URL is where a running site can be opened (EventSite only).
 	URL string `json:"url,omitempty"`
 	// Image names the saved screenshot (EventShot only).

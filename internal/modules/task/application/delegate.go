@@ -38,6 +38,8 @@ func (r *Runner) delegate(ctx context.Context, task domain.Task, state *runState
 		if d, ok = r.startDelegation(ctx, task, state, call, args); !ok {
 			return outcome{}, false
 		}
+	default:
+		d.Scope = args.Scope
 	}
 
 	return r.runDelegation(ctx, task, state, call, d)
@@ -81,7 +83,7 @@ func (r *Runner) startDelegation(
 	effort = r.fitEffort(ctx, task.UserID, providerID, model, effort, args.Effort)
 	d := Delegation{
 		ID: call.ID, RoleKey: role.Key, RoleName: role.Name, ProviderID: providerID, Model: model, Effort: effort,
-		Brief: truncate(args.Brief, maxBrief), Status: DelegationWorking,
+		Brief: truncate(args.Brief, maxBrief), Status: DelegationWorking, Scope: args.Scope,
 	}
 
 	seed := domain.Block{Kind: domain.BlockText, Text: r.briefWithPlan(ctx, task, args)}
@@ -113,7 +115,7 @@ func (r *Runner) runDelegation(
 ) (outcome, bool) {
 	role, ok := state.roster.member(d.RoleKey)
 	if !ok {
-		r.endDelegation(ctx, task, call, d, DelegationFailed, d.RoleName+" is no longer on the team.")
+		r.endDelegation(ctx, task, state, call, d, DelegationFailed, d.RoleName+" is no longer on the team.")
 
 		return outcome{}, false
 	}
@@ -136,13 +138,15 @@ func (r *Runner) runDelegation(
 
 		return result, true
 	case stopFinished:
+		state.lock()
 		report, err := r.deliver(ctx, task, d, role, result)
+		state.unlock()
 		if err != nil {
 			return failed("The teammate's document could not be saved.", "Press Continue to retry saving it."), true
 		}
-		r.endDelegation(ctx, task, call, d, DelegationDone, report+r.facts(ctx, task, d))
+		r.endDelegation(ctx, task, state, call, d, DelegationDone, report+r.facts(ctx, task, d))
 	case stopFailed:
-		r.endDelegation(ctx, task, call, d, DelegationFailed, d.RoleName+" could not finish: "+result.text+stuckAdvice)
+		r.endDelegation(ctx, task, state, call, d, DelegationFailed, d.RoleName+" could not finish: "+result.text+stuckAdvice)
 	}
 
 	return outcome{}, false
@@ -150,7 +154,7 @@ func (r *Runner) runDelegation(
 
 // endDelegation closes the job, shows the person how it ended, and answers the delegate call.
 func (r *Runner) endDelegation(
-	ctx context.Context, task domain.Task, call Call, d Delegation, status, report string,
+	ctx context.Context, task domain.Task, state *runState, call Call, d Delegation, status, report string,
 ) {
 	_ = r.deps.Delegations.EndDelegation(ctx, task.ID, d.ID, status, report, r.deps.Now())
 
@@ -160,7 +164,9 @@ func (r *Runner) endDelegation(
 	}
 
 	plan, detail := planStateAfter(status == DelegationFailed, report)
+	state.lock()
 	r.trackPlan(ctx, task, d, plan, detail)
+	state.unlock()
 
 	r.handoff(ctx, task, d, action, text, report)
 	r.result(ctx, task, call.ID, report, status == DelegationFailed)
@@ -168,8 +174,8 @@ func (r *Runner) endDelegation(
 
 func (r *Runner) handoff(ctx context.Context, task domain.Task, d Delegation, action, text, detail string) {
 	_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-		Kind: domain.EventHandoff, Text: text, Technical: detail, Action: action, Agent: d.RoleName, Model: d.Model,
-		Effort: string(d.Effort), Time: r.deps.Now(),
+		Kind: domain.EventHandoff, Text: text, Technical: detail, Action: action, Agent: d.RoleName, Job: d.ID,
+		Model: d.Model, Effort: string(d.Effort), Time: r.deps.Now(),
 	})
 }
 
