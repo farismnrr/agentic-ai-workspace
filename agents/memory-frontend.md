@@ -58,3 +58,4 @@ Durable lessons about the Svelte frontend and routing, kept for AI agents. Add o
 
 
 - Never write reactive state (`SvelteMap.set`, `$state`) while a template renders, for example in a helper called from markup: Svelte throws `state_unsafe_mutation`, aborts the update and leaves the old DOM on screen (the attachment chip stayed on "Uploading…" after the upload succeeded). Source checks cannot observe that browser failure; drive the built app through the e2e runner and watch `pageerror`.
+- External work status presentation belongs in the single `logic/work-status.ts` function. It maps API `work.phase` to status label, hint, working indicator and Stop/Mark complete actions; reported and idle work have no spinner, and idle copy is “No updates for over 30 min”.

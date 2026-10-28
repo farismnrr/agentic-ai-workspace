@@ -192,6 +192,19 @@ For documents it has python-pptx, python-docx, reportlab, pypdf and openpyxl (ru
 | `AGENT_WORKERS` | Tasks the AI runs at once (one per project). | 2 |
 | `SITE_MAX_PER_USER` / `SITE_MAX_TOTAL` | Running [sites](./sites.md) per person and per server. 0 means no limit. | 0 / 20 |
 
+### External work lifecycle
+
+| Variable | What it controls | Default |
+| --- | --- | --- |
+| `WORK_IDLE_AFTER` | Time without updates before open work shows Idle. | `30m` |
+| `WORK_ABANDON_AFTER` | Time before the sweep closes eligible work. Must exceed idle; 1–3h is advised. | `2h` |
+| `WORK_SWEEP_EVERY` | How often the lifecycle sweep checks work. | `1m` |
+| `WORK_SWEEP_MODE` | `dry-run` logs candidates, `on` closes them, `off` disables the sweep. | `dry-run` |
+
+Roll out with `dry-run`. Review “would abandon” log lines for a day or two,
+then set `WORK_SWEEP_MODE=on` and redeploy. To roll back, set it to `off`
+and redeploy. Inactivity never marks work Done or proven.
+
 ### Web lookup
 
 The Researcher and Media roles look things up on the web from the app itself, not from the sandbox.

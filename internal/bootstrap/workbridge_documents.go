@@ -54,6 +54,6 @@ func (a appWorks) mutationState(ctx context.Context, user, client, project, work
 	}
 	return codingmcp.WorkMutation{
 		WorkID: workID, Path: exportPath, Revision: state.Revision, State: string(state.State),
-		Warnings: redactionWarnings(texts...),
+		Warnings: RedactionWarnings(texts...),
 	}, nil
 }

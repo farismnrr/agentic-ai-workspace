@@ -1,0 +1,166 @@
+# Retained white-box test registry
+
+Every retained Go test under `test/go/` has one row. Support files are listed
+after the table; they contain fixtures used by registered tests.
+
+After this slice, 72 Go test files contain 143 top-level test functions:
+62 registered test files contain 143 functions and 10 support files contain no test functions.
+
+| Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
+| --- | --- | --- | --- |
+| `test/go/app/activity/work_activity_test.go::TestRecorderRedactsExternalWorkToolActivityWithoutWorkID` | crypto/credentials | Checks secret redaction before sensitive coding-tool activity reaches the shared activity log. | none |
+| `test/go/app/activity/workbridge_redaction_test.go::TestWorkBridgeReportsSecretRedactions` | crypto/credentials | Checks external-work summaries report when secret-like text was removed. | none |
+| `test/go/app/egressgrant/api_off_test.go::TestEgressAPIDoesNotExistWhenFlagOff` | app-level integration | Authenticated HTTP requests confirm disabled grant endpoints stay absent. | none |
+| `test/go/app/egressgrant/request_scope_test.go::TestRequestEgressIgnoresForgedModelScope` | sandbox/egress/privilege | A scripted model invokes the public task API with forged scope and approval fields; persisted scope remains server-owned. | none |
+| `test/go/modules/egressgrant/codingtool/tool_test.go::TestTheToolDoesNotExistUnlessGrantsAreRunning` | sandbox/egress/privilege | Confirms disabled grants do not expose or execute the model tool. | none |
+| `test/go/modules/egressgrant/codingtool/tool_test.go::TestAnAgentCanOnlyAskAndTheScopeIsTheServers` | sandbox/egress/privilege | Confirms model-supplied scope and approval fields cannot change the server-created pending request. | none |
+| `test/go/modules/egressgrant/codingtool/tool_test.go::TestAskingAgainGivesTheSameAnswerAndNoNewRow` | DB integrity/transactions | Confirms retries reuse the same request and approved scope remains usable. | none |
+| `test/go/modules/egressgrant/codingtool/tool_test.go::TestBadInputIsRefusedAndSaysWhy` | sandbox/egress/privilege | Refuses local, wildcard, URL, malformed and invalid-reason inputs before persistence. | none |
+| `test/go/modules/egressgrant/codingtool/tool_test.go::TestSpamIsStopped` | auth/authz | Caps pending requests per task without blocking another task. | none |
+| `test/go/modules/egressgrant/codingtool/tool_test.go::TestConcurrentCallsForOneHostMakeOneRequest` | critical concurrency/data loss | Concurrent duplicate asks create one persisted grant request. | none |
+| `test/go/modules/egressgrant/codingtool/tool_test.go::TestTheToolHasNoWayToDecideAndFollowsRunCommand` | auth/authz | Confirms the request follows run-command permission and is absent from external coding tools. | none |
+| `test/go/modules/cliagent/argv_test.go::TestProgramArgvModelAndEffort` | sandbox/privilege | Verifies only catalogued model and effort values become vendor CLI arguments. | none |
+| `test/go/modules/cliagent/argv_test.go::TestProgramArgvIgnoresUnknownChoices` | sandbox/privilege | Injected option-like values must never reach the vendor program's argv. | none |
+| `test/go/modules/cliagent/permissions_test.go::TestOnlyChangingToolsLetATeammateChangeTheProject` | sandbox/privilege | Keeps a read-only vendor container read-only unless a write or run capability is enabled. | none |
+| `test/go/modules/dbconn/shared_url_test.go::TestSharedAdminURLPreservesReservedPassword` | crypto/credentials | Confirms reserved password characters survive URL encoding and driver parsing. | none |
+| `test/go/modules/dbconn/limits_test.go::TestDatabaseTestLimitCountsPerSignedInUser` | auth/authz | Confirms database probes are rate limited per signed-in person. | none |
+| `test/go/modules/dbconn/limits_test.go::TestSharedDatabaseLimitIsSeparateAndCountsPerSignedInUser` | auth/authz | Confirms shared-setting requests have a separate per-person limit. | none |
+| `test/go/modules/egressgrant/runtime/grants_test.go::TestGrantsAreInertUntilStartedAndTheHubHasNone` | sandbox/egress/privilege | Ensures an uninitialized grant registry cannot open task sockets. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/egressgrant/runtime/grants_test.go::TestApprovalReachesTheProxyAndTaskEndClosesIt` | sandbox/egress/privilege | Confirms approval reaches the proxy and task completion closes active tunnels. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/egressgrant/runtime/grants_test.go::TestRestartRebuildsFromTheDatabaseOnly` | DB integrity/transactions | Confirms restart rebuilds enforcement from still-valid persisted grants only. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/egressgrant/runtime/grants_test.go::TestASecondInstanceOnTheSameDataFolderGetsNoGrants` | sandbox/egress/privilege | Confirms a second process fails closed when it cannot own the grant lock. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/egressgrant/runtime/grants_test.go::TestADatabaseFailureRefusesConnectionsAndTheSweepEmptiesTheRegistry` | sandbox/egress/privilege | A database outage refuses proxy connections and clears the in-memory grant registry. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/egressgrant/runtime/grants_test.go::TestEachTaskSocketServesOnlyItsOwnTasksGrantsThroughTheRealProxy` | cross-user/project isolation | Uses real task sockets to confirm grants cannot cross task scope. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/egressgrant/runtime/end_test.go::TestEveryWayATaskEndsIsReportedAndNothingElseIs` | DB integrity/transactions | Checks status, archive and delete paths notify egress enforcement only after task-store results. | none |
+| `test/go/modules/egressgrant/runtime/end_test.go::TestAFailedStoreCallEndsNothing` | DB integrity/transactions | A failed persistence operation must not revoke grants for a task that remains open. | none |
+| `test/go/modules/egressgrant/runtime/end_test.go::TestEndingATaskClosesItsTunnelsAtOnceWithoutASweep` | sandbox/egress/privilege | Covers immediate revocation for status, archive, task and project deletion paths. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/egressgrant/runtime/end_test.go::TestAnOpenTasksStatusChangesLeaveItsGrantsAlone` | sandbox/egress/privilege | Review, waiting and working states must keep grants while the task is open. | none |
+| `test/go/modules/github/owner_test.go::TestCommandsActOnlyAsTheProjectOwner` | auth/authz | The exported lookup seam proves commands receive only credentials of the resolved project owner. | none |
+| `test/go/modules/runner/reach_test.go::TestTwoTargetsNeverShareAPort` | sandbox/egress/privilege | Ensures local gateway tunnels cannot collide with an existing database tunnel. | none |
+| `test/go/modules/runner/reach_test.go::TestProgramReachesWhatTheProjectWasGrantedBesidesItsOwnHosts` | sandbox/egress/privilege | Confirms only exact project grants are added to a vendor program's allowlist. | none |
+| `test/go/modules/runner/reach_test.go::TestProgramReachesGitHubOnlyWhenTheOwnerConnectedIt` | sandbox/egress/privilege | GitHub hosts enter the sandbox only when the project owner connected GitHub. | none |
+| `test/go/modules/web/trust_test.go::TestWebTextIsMarkedAsUntrusted` | sandbox/egress/privilege | Checks external page text carries the prompt-injection warning used in model context. | none |
+| `test/go/app/sites/sites_browser_test.go::TestServeSiteForABrowser` | app-level integration | scripted model needed; no API to create deterministic task events | `test/e2e/02-sites.spec.ts` |
+| `test/go/app/sites/thread_browser_test.go::TestServeThreadForABrowser` | app-level integration | scripted model needed; no API to create deterministic task events | `test/e2e/03-thread.spec.ts` |
+| `test/go/app/sites/sites_test.go::TestSitesAreMountedAndNeverFallIntoTheApp` | app-level integration | Exercises site routing through the assembled HTTP app. | none |
+| `test/go/app/sites/sites_test.go::TestSitesAPINeedsASessionAndStartsEmpty` | app-level integration | Exercises site session enforcement through the assembled HTTP app. | none |
+| `test/go/app/sites/sites_e2e_test.go::TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped` | app-level integration | Exercises the site lifecycle through the assembled app and real container. | none |
+| `test/go/app/sites/sites_tcp_test.go::TestPrivateSiteOverRealHTTP` | app-level integration | Exercises browser request protections over a real TCP connection. | none |
+| `test/go/app/stream/stream_test.go::TestATaskStreamPushesTheThreadAndTheModelsTextAsItIsWritten` | app-level integration | Exercises task SSE over the assembled app. | none |
+| `test/go/app/stream/stream_test.go::TestTheWorkspaceStreamAnnouncesChangesAndStaysPrivate` | app-level integration | Exercises workspace SSE and owner isolation over the assembled app. | none |
+| `test/go/app/stream/stream_replay_test.go::TestAReturningViewerOnlyGetsWhatItMissed` | app-level integration | Exercises resumed task SSE through the assembled app. | none |
+| `test/go/app/stream/stream_replay_test.go::TestAReconnectReplaysAnUpdatedOlderEvent` | app-level integration | Exercises changed historical events through the task APIs and SSE. | none |
+| `test/go/app/tools/tool_switches_test.go::TestToolSwitchesStartOffForWritingAndRunning` | app-level integration | Exercises tool configuration through the assembled HTTP app. | none |
+| `test/go/app/tools/tool_switches_test.go::TestWriteToolRefusesUntilSwitchedOn` | app-level integration | Exercises MCP tool permissions and workspace effects through the app. | none |
+| `test/go/app/tools/tool_switches_test.go::TestMissingScopeAsksForStepUpSignIn` | app-level integration | Exercises MCP scope enforcement through the assembled app. | none |
+| `test/go/app/tools/tool_switches_test.go::TestUndoRestoresTheFileOnce` | app-level integration | Exercises activity undo through the assembled app. | none |
+| `test/go/app/tools/tool_switches_test.go::TestUndoIsRefusedAfterALaterChangeAndForOtherPeople` | app-level integration | Exercises stale and owner-bound activity undo through HTTP. | none |
+| `test/go/app/tools/tool_switches_test.go::TestTasksRunOnlyWhenSwitchedOnAndNeverExposeTheirFile` | app-level integration | Exercises task tool switching through MCP and the assembled app. | none |
+| `test/go/app/egress/egress_host_test.go::TestTheProxyAndTheDomainSpellHostsTheSame` | security | Compares canonical host normalization at the domain and proxy boundary. | none |
+| `test/go/app/projects/projects_test.go::TestProjectLifecycleWithItsOwnFolder` | app-level integration | Exercises create, update and archive behavior through the assembled HTTP app. | `test/blackbox/` scenarios |
+| `test/go/app/projects/projects_test.go::TestProjectsAreValidatedAndPrivate` | app-level integration | Exercises project validation, owner isolation and session enforcement through HTTP. | `test/blackbox/02-cross-user-isolation.test.sh` |
+| `test/go/app/projects/spaces_test.go::TestSpacesListNeedsSessionAndDescribesTools` | app-level integration | Checks authenticated connector discovery against the assembled app. | none |
+| `test/go/app/projects/spaces_test.go::TestTheConnectorAddressFollowsConnectorURLNotTheAppAddress` | app-level integration | Checks connector metadata and authentication challenge URLs through HTTP. | none |
+| `test/go/app/account/admin_test.go::TestSharedDatabaseSettingsAreAdminOnly` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/env_test.go::TestProjectEnvIsScopedMaskedAndReplaceable` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/env_test.go::TestProjectEnvRejectsInvalidNamesAndEnforcesLimit` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/env_test.go::TestProjectEnvIsHiddenFromOtherOwners` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/foundations_test.go::TestProviderKeyIsSealedVerifiedAndNeverReturned` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/foundations_test.go::TestWrongKeyFailsVerificationAndDisabledProvidersOfferNoModels` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/foundations_test.go::TestProviderInputIsValidatedAndOwned` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/foundations_test.go::TestPreferencesRoundTripAndGetIDs` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/limits_test.go::TestRepeatedWrongPasswordsAreSlowedDownForThatAccountOnly` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/limits_test.go::TestCorrectSignInsAreNeverCounted` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/limits_test.go::TestSignUpsAndClientRegistrationsAreCapped` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/mydata_test.go::TestExportHoldsEverythingButSecrets` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/mydata_test.go::TestDeletingAllTasksKeepsProjects` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/mydata_test.go::TestDeletingTheAccountRemovesItsFoldersAndNeedsThePassword` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/origin_test.go::TestConfiguredAndPublicOriginsMayPost` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/origin_test.go::TestUnlistedOriginIsRejected` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/origin_test.go::TestCORSFollowsConfiguredOrigins` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/account/password_test.go::TestChangingPasswordKeepsOnlyThisDevice` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/connected_apps_test.go::TestEachConnectedAppWorksInAProjectNamedAfterIt` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/connected_apps_test.go::TestAppsFirstCallsAtOnceStillMakeOneProject` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/connected_projects_test.go::TestAConnectedAppWorksInAnyProjectByItsProjectID` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/connected_projects_test.go::TestAConnectedAppsWorkShowsInItsThreadWhileItRuns` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestUnauthenticatedCallPointsToResourceMetadata` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestProtectedResourceMetadata` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestDiscoveryDocumentsMatch` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestAuthorizationServerAdvertisesRegistrationAndPKCE` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestJWKSPublishesOneKey` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestToolsAreListedWithSecuritySchemes` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestReadFileThroughMCP` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestWhoamiReturnsAccountID` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/e2e_test.go::TestUnknownAPIPathIs404JSONNotSPA` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/extensions_test.go::TestADeployedExtensionIsListedAndDownloadableAsAZip` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/extensions_test.go::TestAnExtensionWithAMissingFileIsNotPackagedAndSaysWhatToFix` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/github_test.go::TestGitHubConnectionIsPerPersonAndStateBound` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/github_test.go::TestGitHubReturnWithoutStateRestartsTheSignIn` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/github_test.go::TestGitHubIsOffUntilConfigured` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/github_test.go::TestImportingARepoNeedsTheOwnerAGoodNameAndAConnection` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/oauth_confidential_test.go::TestConfidentialClientDCRAndBasicAuth` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/oauth_confidential_test.go::TestConfidentialClientPostBodyAuth` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/provider_address_test.go::TestProviderAddressesCannotAimTheServerElsewhere` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/router_deprecation_test.go::TestLegacy9routerCannotBeAddedThroughAPI` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agent_test.go::TestTaskRunsFromRequestToReviewAndCanBeAcceptedAndUndone` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agent_test.go::TestEveryChangeStopsForApprovalInTheRealApp` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agent_test.go::TestFollowUpContinuesTheConversationWithValidMessages` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agent_test.go::TestThreadEntriesCarryIncreasingSequenceNumbersForResuming` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agentteam_test.go::TestAgentTeamStartsAsTheSDLCPresetsAndCanBeSavedAndReset` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agentteam_test.go::TestAgentTeamRefusesAnEmptyOrOversizedTeam` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agentteam_test.go::TestTeamTaskHandsWorkToATeammateAndShowsWhoDidWhat` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agentteam_test.go::TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/agentteam_test.go::TestBuiltInRolesStayWhateverIsSaved` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/checks_test.go::TestChecksAreSavedReadBackAndValidated` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/checks_test.go::TestChecksBelongToTheProjectOwner` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/checks_test.go::TestPassingCheckAfterTheLastChangeMakesTheWorkProven` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/task_access_test.go::TestExternalChatRouteRejectsCrossOriginPost` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/task_access_test.go::TestTaskNeedsAModelAndStaysPrivate` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/task_access_test.go::TestAnotherPersonCannotSeeOrControlATask` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/task_settings_test.go::TestOrchestratorFollowsChangedTierOnTheSameTask` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/task_settings_test.go::TestLongMessagesBecomeCompleteProjectDocumentsOnCreateAndFollowUp` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/execution/taskfiles_test.go::TestATaskShowsEachChangedFileAsOneDiffAgainstTheStartOfTheTask` | app-level integration | Exercises execution behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/files_test.go::TestThePersonSeesTheProjectFilesButNotTheSecrets` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/files_test.go::TestAnEditIsRefusedWhenTheAgentChangedTheFileMeanwhile` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/files_test.go::TestAFolderCanBeDeletedWithEverythingInItButOnlyWhenAsked` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/isolation_test.go::TestPeopleNeverShareAWorkspace` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/isolation_test.go::TestDeletingAnAccountErasesItsWorkspace` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/model_tiers_test.go::TestModelTiersAndARolesTierAreSaved` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/project_documents_test.go::TestProjectDocumentsAreExportedRepairedAndSharedWithoutThreadHistory` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/task_pins_test.go::TestTaskPinEndpointsPersistAndReturnPinnedAt` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/projects/task_pins_test.go::TestPinEndpointsHideUnknownAndOtherUsersTasks` | app-level integration | Exercises projects behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/review/approvals_test.go::TestSkipApprovalsIsPerSpaceAndNeverTurnsAToolOn` | app-level integration | Exercises review behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/review/approvals_test.go::TestAgentRunsEnabledToolsUnaskedWhenApprovalsAreSkipped` | app-level integration | Exercises review behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/review/approvals_test.go::TestAgentCannotUseAToolThatIsSwitchedOffEvenWhenApprovalsAreSkipped` | app-level integration | Exercises review behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/review/approvals_test.go::TestConnectedAppCannotStartASiteUntilRunACommandIsSwitchedOn` | app-level integration | Exercises review behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/review/approvals_test.go::TestConnectedAppStartsASiteInItsProject` | app-level integration | Exercises review behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/review/plan_review_routes_test.go::TestAppPlanApprovalIsOwnerBoundAndIdempotent` | app-level integration | Exercises review behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/tasks/review/plan_review_routes_test.go::TestAppCanRequestChangesForSubmittedRevision` | app-level integration | Exercises review behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/modules/runner/sandbox_test.go::TestOnlyTheWorkspaceIsWritable` | sandbox/privilege | Directly checks write confinement inside the task container, including workspace mount edges. | `test/smoke/sandbox.test.sh` |
+| `test/go/modules/runner/sandbox_test.go::TestTaskHasNoNetworkAndNoPrivileges` | sandbox/egress/privilege | Inspects actual container network and capability settings that app responses cannot prove. | `test/smoke/sandbox.test.sh` |
+| `test/go/modules/tasksqlite/work_store_test.go::TestWorkStoreCommitRollsBackAllChangesOnEventFailure` | DB integrity/transactions | Injects a failure between writes to prove transaction rollback deterministically. | none; invariant remains white-box |
+| `test/go/modules/tasksqlite/work_store_test.go::TestWorkStoreCreateRollsBackTaskWorkAndRequestWhenRoleEventFails` | DB integrity/transactions | Injects a role-event persistence failure and proves related rows roll back atomically. | none; invariant remains white-box |
+| `test/go/modules/tasksqlite/approval_store_concurrent_test.go::TestConcurrentApprovalCreatesOneDecisionAndHandoff` | critical concurrency/data loss | Synchronizes concurrent approvals at the store boundary and verifies one decision and outbox row. | none; public timing race is not deterministic |
+| `test/go/platform/secretbox/cipher_test.go::TestRoundTripAndKeyPersistsAcrossRestarts` | crypto/credentials | Checks ciphertext and key behavior across adapter reopen, outside one credential API flow. | `test/blackbox/05-restart-keeps-data.test.sh` |
+| `test/go/platform/secretbox/cipher_test.go::TestSealedValuesDifferAndTamperingFails` | crypto/credentials | Corrupts ciphertext directly to prove authenticated decryption rejects tampering; no public API permits mutation. | `test/blackbox/04-secrets-never-returned.test.sh` |
+| `test/go/platform/egress/egress_test.go::TestPrivateAllowedDialControlRejectsResolvedMetadataAddress` | sandbox/egress/SSRF | Controls address resolution between validation and dial to verify metadata IP rejection. | none; deterministic resolver and dial control are needed |
+| `test/go/platform/egress/egress_test.go::TestTransportReallyRefusesToConnect` | sandbox/egress/SSRF | Verifies custom transport enforcement at the socket boundary with a controlled dialer. | none; controlled dial is needed |
+| `test/go/platform/egressproxy/grantpath_test.go::TestADNSAnswerThatChangesAfterTheCheckChangesNothing` | sandbox/egress/SSRF | Forces a DNS answer change between check and connect to cover rebinding deterministically. | none; controlled resolver is needed |
+| `test/go/platform/egressproxy/grants_race_test.go::TestRevokeRacingNewTunnelsLeavesNoneOpen` | critical concurrency/data loss | Synchronizes revocation with tunnel creation and proves no tunnel escapes revocation. | none; controlled concurrency is needed |
+| `test/go/platform/database/migrate_test.go::TestJournalRecordsChecksums` | DB integrity/migrations | Inspects stored migration checksums directly after migration. | none; journal inspection is required |
+| `test/go/platform/database/migrate_test.go::TestEditedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects changed applied migrations. | none; direct journal mutation is required |
+| `test/go/platform/database/migrate_test.go::TestRemovedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects removed applied migrations. | none; direct journal mutation is required |
+| `test/go/platform/sandbox/subpath_integration_test.go::TestOwnerVolumeSubpathsAreIsolated` | sandbox/privilege | Uses a Docker volume to prove owner subpaths cannot read or write one another. | `test/smoke/volume-isolation.test.sh` |
+
+## Support files
+
+- `test/go/modules/tasksqlite/work_store_fixtures_test.go` provides fixtures used by retained work-store checks.
+- `test/go/modules/tasksqlite/approval_fixture_test.go` provides the plan submission fixture used by the retained concurrent approval check.
+- `test/go/modules/tasksqlite/linked_tasks_parallel_test.go` provides the SQLite store fixture used by the retained concurrent approval check.
+- `test/go/modules/tasksqlite/work_test_schema_test.go` provides the SQLite schema fixture used by retained work-store checks.
+- `test/go/modules/runner/runner_test.go` provides the Docker runner fixture used by retained sandbox checks.
+- `test/go/platform/egressproxy/client_test.go` provides the tunnel client used by the retained grant-path check.
+- `test/go/platform/egressproxy/clienthello_test.go` provides a TLS ClientHello fixture used by the retained grant-path check.
+- `test/go/platform/egressproxy/extra_test.go` provides the fake dial adapter used by retained grant-path checks.
+- `test/go/platform/egressproxy/rig_test.go` provides the rig used by retained grant-path checks.
+- `test/go/app/tasks/projects/assertions_test.go` provides the shared response assertion for project integration checks.

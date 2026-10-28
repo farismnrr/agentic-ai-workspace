@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -50,6 +51,7 @@ type Config struct {
 	SandboxRuntime    string
 	SandboxDataVolume string
 	Port              string
+	WorkSweepMode     string
 	// SearxngURL is the address of a SearXNG server for web search; empty turns web search off.
 	SearxngURL       string
 	PostgresAdminURL string
@@ -66,21 +68,12 @@ type Config struct {
 	SandboxMemoryMB  int
 	SandboxCPUs      int
 	SandboxSwapMB    int
-	CookieSecure     bool
+	WorkIdleAfter    time.Duration
+	WorkAbandonAfter time.Duration
+	WorkSweepEvery   time.Duration
 	// EgressGrants turns on per-task approvals of extra HTTPS hosts. Off unless EGRESS_GRANTS is true.
+	CookieSecure bool
 	EgressGrants bool
-}
-
-// GitHub is the GitHub App people connect their account through. Empty means the feature is off.
-type GitHub struct {
-	ClientID     string
-	ClientSecret string
-	AppSlug      string
-}
-
-// Enabled reports whether the GitHub App is configured.
-func (g GitHub) Enabled() bool {
-	return g.ClientID != "" && g.ClientSecret != ""
 }
 
 // Load reads runtime configuration from the environment.
@@ -99,6 +92,8 @@ func Load() Config {
 	}
 
 	dataDir := getenv("DATA_DIR", defaultDataDir)
+	workIdleAfter, workAbandonAfter, workSweepEvery := workDurations()
+	workSweepMode := workSweepMode()
 
 	return Config{
 		Port:              port,
@@ -125,6 +120,10 @@ func Load() Config {
 		SandboxMemoryMB:   atoi(getenv("SANDBOX_MEMORY_MB", strconv.Itoa(defaultSandboxMemoryMB)), defaultSandboxMemoryMB),
 		SandboxCPUs:       atoi(getenv("SANDBOX_CPUS", strconv.Itoa(defaultSandboxCPUs)), defaultSandboxCPUs),
 		SandboxSwapMB:     atoi(getenv("SANDBOX_SWAP_MB", strconv.Itoa(defaultSandboxSwapMB)), defaultSandboxSwapMB),
+		WorkIdleAfter:     workIdleAfter,
+		WorkAbandonAfter:  workAbandonAfter,
+		WorkSweepEvery:    workSweepEvery,
+		WorkSweepMode:     workSweepMode,
 		CookieSecure:      strings.HasPrefix(publicURL, "https://") || strings.HasPrefix(connector, "https://"),
 		EgressGrants:      flag("EGRESS_GRANTS"),
 		GitHub: GitHub{

@@ -15,6 +15,8 @@ type WorkStore interface {
 	FindIdempotent(ctx context.Context, userID, client, projectID, key string) (domain.ExternalWork, bool, error)
 	FindOp(ctx context.Context, workID, opKey string) (WorkOp, bool, error)
 	StaleOpen(ctx context.Context, userID string, before time.Time) ([]domain.ExternalWork, error)
+	StaleOpenAll(ctx context.Context, before time.Time) ([]domain.ExternalWork, error)
+	InterruptRunningCalls(ctx context.Context, before *time.Time) ([]domain.ExternalWork, error)
 	CountOpen(ctx context.Context, userID, projectID string) (int, error)
 	ByTask(ctx context.Context, taskID string) (domain.ExternalWork, error)
 }
@@ -22,7 +24,7 @@ type WorkStore interface {
 // WorkCallStore records MCP calls with the work role read in the same transaction as the event.
 type WorkCallStore interface {
 	AppendWorkCall(
-		ctx context.Context, userID, client, projectID, workID string, event domain.Event,
+		ctx context.Context, userID, client, projectID, workID string, event domain.Event, reported bool,
 	) (string, domain.Event, error)
 	UpdateWorkCall(ctx context.Context, taskID, workID, eventID string, event domain.Event) (domain.Event, error)
 }
@@ -46,14 +48,15 @@ type WorkOp struct {
 
 // WorkPatch contains optional changes to the external work record.
 type WorkPatch struct {
-	State         *domain.WorkState
-	PlanState     *domain.PlanPhase
-	RoleKey       *string
-	RoleName      *string
-	PlanRev       *int64
-	NextStep      *int64
-	EndedAt       *time.Time
-	SupersedePlan bool
+	State           *domain.WorkState
+	PlanState       *domain.PlanPhase
+	RoleKey         *string
+	RoleName        *string
+	PlanRev         *int64
+	NextStep        *int64
+	EndedAt         *time.Time
+	ClearReportedAt bool
+	SupersedePlan   bool
 }
 
 // TaskPatch contains optional changes to the task fields owned by work operations.

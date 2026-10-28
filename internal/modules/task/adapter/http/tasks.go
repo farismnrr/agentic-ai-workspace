@@ -158,6 +158,14 @@ func (h *Handler) cancel(c fiber.Ctx) error {
 	return h.done(c, h.service.Cancel(c.Context(), httpserver.UserID(c), c.Params("id")))
 }
 
+func (h *Handler) confirm(c fiber.Ctx) error {
+	result, err := h.service.Confirm(c.Context(), httpserver.UserID(c), c.Params("id"))
+	if err != nil {
+		return fail(c, err)
+	}
+	return c.JSON(result)
+}
+
 func (h *Handler) accept(c fiber.Ctx) error {
 	return h.done(c, h.service.Accept(c.Context(), httpserver.UserID(c), c.Params("id")))
 }

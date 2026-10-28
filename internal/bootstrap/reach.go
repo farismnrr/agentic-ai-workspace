@@ -40,24 +40,12 @@ func (r reach) For(ctx context.Context, projectID string) codingrunner.Granted {
 	}
 
 	// Every target gets its own port on loopback, so the database keeps a port both want.
-	if target, env, ok := r.gateway.Grant(ctx, projectID); ok && !samePort(granted.Targets, target) {
+	if target, env, ok := r.gateway.Grant(ctx, projectID); ok && !codingrunner.SamePort(granted.Targets, target) {
 		granted.Targets = append(granted.Targets, target)
 		granted.Env = env
 	}
 
 	return granted
-}
-
-func samePort(targets []string, target string) bool {
-	_, port, _ := net.SplitHostPort(target)
-
-	for _, existing := range targets {
-		if _, other, _ := net.SplitHostPort(existing); other == port {
-			return true
-		}
-	}
-
-	return false
 }
 
 // newReach builds the grants and the endpoints that let a project owner choose a gateway.

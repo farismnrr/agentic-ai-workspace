@@ -27,7 +27,10 @@ fi
 
 history_named_files="$(find . \
   -path './.git' -prune -o \
+  -path './sandbox' -prune -o \
   -path './project-notes' -prune -o \
+  -path './test' -prune -o \
+  -path './scripts' -prune -o \
   -type f \( -iname '*stage[0-9]*' -o -iname '*phase[0-9]*' \) -print)"
 if [ -n "$history_named_files" ]; then
   echo "History labels are not allowed in file names (use a subject name):" >&2
@@ -42,9 +45,12 @@ file_violations="$(
        -o -name '*.yaml' -o -name '*.yml' -o -name '*.toml' -o -name '*.md' \
        -o -name '*.sh' -o -name '*.html' -o -name 'Makefile' -o -name 'Dockerfile' \) \
     ! -path './.git/*' \
+    ! -path './sandbox/*' \
     ! -path './web/node_modules/*' \
     ! -path './data/*' \
     ! -path './project-notes/*' \
+    ! -path './test/*' \
+    ! -path './scripts/*' \
     ! -path './internal/platform/webassets/dist/*' \
     ! -path './docs/*' \
     ! -path './agents/*' \
@@ -118,18 +124,29 @@ if [ -n "$svelte_violations" ]; then
   exit 1
 fi
 
-test_source_violations="$(
-  find test -type f \
-    \( -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) -print
-  find test -type f -name '*.go' ! -name '*_test.go' -print
-)"
-if [ -n "$test_source_violations" ]; then
-  echo "Tests use Bash and TypeScript; JavaScript and non-test Go files are forbidden under test/:" >&2
-  echo "$test_source_violations" >&2
+go_test_violations="$(find . -type f -name '*_test.go' \
+  ! -path './.git/*' ! -path './sandbox/*' ! -path './test/*' -print)"
+if [ -n "$go_test_violations" ]; then
+  echo 'Go tests must live under test/ (except the sandbox starter template):' >&2
+  echo "$go_test_violations" >&2
   exit 1
 fi
 
-REGISTRY_ENFORCE="${REGISTRY_ENFORCE:-1}" bash ./test/whitebox/check-registry.sh
+testdata_violations="$(find cmd internal -type d -name testdata -print)"
+if [ -n "$testdata_violations" ]; then
+  echo 'testdata directories must live under test/:' >&2
+  echo "$testdata_violations" >&2
+  exit 1
+fi
+
+test_import_violations="$(rg -n '^[[:space:]]*("[^"\n]*/test/|[^/]+[[:space:]]+"[^"\n]*/test/)' cmd internal --glob '*.go' || true)"
+if [ -n "$test_import_violations" ]; then
+  echo 'Program code under cmd/ and internal/ must not import test packages:' >&2
+  echo "$test_import_violations" >&2
+  exit 1
+fi
+
+REGISTRY_ENFORCE="${REGISTRY_ENFORCE:-1}" bash ./test/go/check-registry.sh
 
 # Import direction: app -> features -> shared. Features never import other
 # features, and shared never imports features or app. The router store in

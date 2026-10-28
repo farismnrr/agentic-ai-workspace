@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 	"sync"
 	"syscall"
@@ -31,6 +32,24 @@ const (
 
 type dialFunc func(ctx context.Context, address string) (net.Conn, error)
 
+// Option configures a proxy's network dependencies.
+type Option func(*Proxy)
+
+// WithLookup replaces DNS lookup for dynamically granted hosts.
+func WithLookup(lookup func(context.Context, string) ([]netip.Addr, error)) Option {
+	return func(proxy *Proxy) { proxy.task.lookupIP = lookup }
+}
+
+// WithDialIP replaces dialing the already-validated address of a dynamically granted host.
+func WithDialIP(dial func(context.Context, netip.Addr) (net.Conn, error)) Option {
+	return func(proxy *Proxy) { proxy.task.dialIP = dial }
+}
+
+// WithDial replaces dialing for registry hosts.
+func WithDial(dial func(context.Context, string) (net.Conn, error)) Option {
+	return func(proxy *Proxy) { proxy.dial = dial }
+}
+
 // Proxy tunnels HTTPS connections to allowed hostnames, and any TCP connection to an exact target.
 type Proxy struct {
 	hosts   map[string]struct{}
@@ -43,7 +62,7 @@ type Proxy struct {
 }
 
 // New allows the given hostnames. Names resolving to non-public addresses are still refused.
-func New(hosts []string) *Proxy {
+func New(hosts []string, opts ...Option) *Proxy {
 	allowed := make(map[string]struct{}, len(hosts))
 
 	for _, host := range hosts {
@@ -63,7 +82,12 @@ func New(hosts []string) *Proxy {
 		return dialer.DialContext(ctx, "tcp", address)
 	}
 
-	return &Proxy{hosts: allowed, dial: dial, dialTarget: targetDial(""), task: defaultTaskPath()}
+	proxy := &Proxy{hosts: allowed, dial: dial, dialTarget: targetDial(""), task: defaultTaskPath()}
+	for _, opt := range opts {
+		opt(proxy)
+	}
+
+	return proxy
 }
 
 // Serve answers connections on l until it is closed.

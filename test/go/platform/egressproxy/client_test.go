@@ -1,0 +1,72 @@
+package egressproxy_test
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"io"
+	"net"
+	"net/http"
+	"path/filepath"
+	"time"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egressproxy"
+)
+
+// client is one connection through a task socket after its CONNECT was answered.
+type client struct {
+	net.Conn
+	br     *bufio.Reader
+	status int
+}
+
+func (r *rig) open(scope egressproxy.Scope, target string) *client {
+	r.t.Helper()
+
+	dir, err := r.hub.TaskDir(context.Background(), "ws", scope)
+	if err != nil {
+		r.t.Fatal(err)
+	}
+
+	return r.openAt(dir, target)
+}
+
+func (r *rig) openAt(dir, target string) *client {
+	r.t.Helper()
+
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", filepath.Join(dir, "p.sock"))
+	if err != nil {
+		r.t.Fatal(err)
+	}
+
+	r.t.Cleanup(func() { _ = conn.Close() })
+
+	if _, err = io.WriteString(conn, "CONNECT "+target+" HTTP/1.1\r\nHost: "+target+"\r\n\r\n"); err != nil {
+		r.t.Fatal(err)
+	}
+
+	br := bufio.NewReader(conn)
+
+	res, err := http.ReadResponse(br, nil)
+	if err != nil {
+		r.t.Fatal(err)
+	}
+
+	_ = res.Body.Close()
+
+	return &client{Conn: conn, br: br, status: res.StatusCode}
+}
+
+// echoes sends data and reports whether the same bytes come back.
+func (c *client) echoes(data []byte) bool {
+	_ = c.SetDeadline(time.Now().Add(2 * time.Second))
+
+	if _, err := c.Write(data); err != nil {
+		return false
+	}
+
+	back := make([]byte, len(data))
+	_, err := io.ReadFull(c.br, back)
+
+	return err == nil && bytes.Equal(back, data)
+}

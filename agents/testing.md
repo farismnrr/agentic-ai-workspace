@@ -3,11 +3,19 @@
 ## Choose the test boundary
 
 1. Start with the rule in `AGENTS.md`: do not add non-critical white-box unit tests.
-2. For features, refactors, and fixes, prefer Bash scenarios against the built binary, real HTTP/MCP endpoints, Docker, or browser flows.
-3. Reuse `test/lib/`, fixtures, and existing scenarios before adding helpers.
-4. Test a meaningful outcome and a failure path. Do not duplicate an existing guarantee or add tests to raise coverage.
-5. Keep a Go white-box test only when the behavior is super-critical and cannot be triggered deterministically at a public boundary. Add its exact `path::TestName`, category, reason, and Bash counterpart to `test/whitebox/registry.md` in the same change.
-6. Never remove security or data-integrity verification without an equal or stronger named replacement.
+2. Put every test under `test/`; never put a Go test beside program code. The untouched `sandbox/starter/` template is the sole exception.
+3. For features, refactors, and fixes, prefer Bash scenarios against the built binary, real HTTP/MCP endpoints, Docker, or browser flows.
+4. Reuse `test/lib/`, fixtures, and existing scenarios before adding helpers.
+5. Test a meaningful outcome and a failure path. Do not duplicate an existing guarantee or add tests to raise coverage.
+6. Keep a Go white-box test only when the behavior is super-critical and cannot be triggered deterministically at a public boundary. Put it under `test/go/` and add its exact `path::TestName`, category, reason, and Bash counterpart to `test/go/registry.md` in the same change.
+7. Never remove security or data-integrity verification without an equal or stronger named replacement.
+
+## CI lanes
+
+- Fast runs `make guardrails shellcheck` and `make backend-test` before image builds.
+- Full runs `make verify-full`, which adds frontend checks, Go lint, build and smoke, black-box, browser, Docker isolation, and race checks.
+- `scripts/check-guardrails.sh` exempts `test/` and `scripts/` from its file-size and content rules. It still enforces test placement, `testdata/` placement, and the ban on program imports from `test/`.
+- ShellCheck, golangci-lint, and ESLint remain separate checks and still analyze test and script code in their configured scopes.
 
 ## Add a Bash scenario
 
@@ -26,13 +34,18 @@
 - Run one scenario directly while developing, then invoke it through `test/run.sh` or its Make target.
 - Keep Playwright TypeScript flows under `test/e2e/` and start them via `test/e2e/run.sh`.
 
+The external work lifecycle has black-box coverage in
+`test/blackbox/07-external-work-lifecycle.test.sh` and a Chromium flow in
+`test/e2e/04-work-lifecycle.spec.ts`. The flow seeds work over MCP, checks the
+running, reported, idle and confirmed states, and needs no Docker. Run it with
+`make e2e FLOW=lifecycle`; the default browser suite includes it.
+
 ## Registry enforcement
 
-`test/whitebox/check-registry.sh` defaults to enforcement and validates every
-explicit registry row, including named bootstrap tests. Enforcement checks
-every non-bootstrap `*_test.go` file and every `Test*` function. Test files
-need a named test row or an entry in the support-file list. Bootstrap remains
-the registered integration group.
+`test/go/check-registry.sh` defaults to enforcement and validates every
+explicit registry row. It checks every Go test file and every `Test*`
+function under `test/go/`. Test files need a named test row or an entry in the
+support-file list. App-level integration tests are listed too.
 
 Follow-up: replace the site and thread browser-host Go fixtures with an
 API-backed model fixture.

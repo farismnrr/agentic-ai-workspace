@@ -29,7 +29,8 @@ func (a appWorkCalls) Finish(
 func (a appWorkCalls) Record(
 	ctx context.Context, user, client, project, workID string, call codingmcp.WorkCall,
 ) (string, error) {
-	taskID, err := a.works.RecordCall(ctx, user, client, project, workID, workEvent(call))
+	reported := call.Note.Kind == codingmcp.NoteAssistant
+	taskID, err := a.works.RecordCall(ctx, user, client, project, workID, workEvent(call), reported)
 	return taskID, workBridgeError("record connected-app call", err)
 }
 

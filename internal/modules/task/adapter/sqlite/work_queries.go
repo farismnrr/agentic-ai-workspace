@@ -28,9 +28,21 @@ func (s *Store) FindOp(ctx context.Context, workID, opKey string) (application.W
 
 // StaleOpen returns open works inactive at or before the cutoff.
 func (s *Store) StaleOpen(ctx context.Context, userID string, before time.Time) ([]domain.ExternalWork, error) {
+	return s.staleOpen(ctx, userID, false, before)
+}
+
+// StaleOpenAll returns stale open work across all owners for the system reconciler.
+func (s *Store) StaleOpenAll(ctx context.Context, before time.Time) ([]domain.ExternalWork, error) {
+	return s.staleOpen(ctx, "", true, before)
+}
+
+func (s *Store) staleOpen(
+	ctx context.Context, userID string, allUsers bool, before time.Time,
+) ([]domain.ExternalWork, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT `+workColumns+` FROM external_works
-		WHERE user_id = ? AND state = 'open' AND plan_state NOT IN ('ready_for_approval', 'awaiting_clarification')
-		AND updated_at <= ? ORDER BY updated_at`, userID, before.Unix())
+		WHERE (? = 1 OR user_id = ?) AND state = 'open'
+		AND plan_state NOT IN ('ready_for_approval', 'awaiting_clarification')
+		AND updated_at <= ? ORDER BY updated_at`, allUsers, userID, before.Unix())
 	if err != nil {
 		return nil, fmt.Errorf("select stale works: %w", err)
 	}
@@ -66,11 +78,11 @@ func scanWork(row scanner) (domain.ExternalWork, error) {
 	var work domain.ExternalWork
 	var state string
 	var created, updated int64
-	var ended sql.NullInt64
+	var ended, reported sql.NullInt64
 	var planState string
 	err := row.Scan(&work.ID, &work.TaskID, &work.UserID, &work.ProjectID, &work.Client, &state,
 		&work.RoleKey, &work.RoleName, &work.Rev, &work.PlanRev, &work.NextStep, &work.IdemKey,
-		&work.IdemHash, &created, &updated, &ended, &planState)
+		&work.IdemHash, &created, &updated, &ended, &planState, &reported)
 	if err != nil {
 		return domain.ExternalWork{}, fmt.Errorf("scan work: %w", err)
 	}
@@ -79,6 +91,10 @@ func scanWork(row scanner) (domain.ExternalWork, error) {
 	work.CreatedAt, work.UpdatedAt = time.Unix(created, 0).UTC(), time.Unix(updated, 0).UTC()
 	if ended.Valid {
 		work.EndedAt = ended.Int64
+	}
+	if reported.Valid {
+		at := time.Unix(reported.Int64, 0).UTC()
+		work.ReportedAt = &at
 	}
 	return work, nil
 }

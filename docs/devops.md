@@ -150,19 +150,19 @@ GitHub Fast and Full protect `dev` and the release merge. Their required checks 
 
 | Workflow | Checks |
 | --- | --- |
-| Fast | Format/lint, types, build, essential white-box tests, black-box scenarios, and smoke checks |
-| Full | Fast checks plus broader black-box, Playwright e2e, Docker isolation, security regressions, and `-race` |
+| Fast | Guardrails and Go unit tests gate the app image and conditional sandbox image builds |
+| Full | Frontend checks, Go lint, build, smoke, black-box, browser, Docker isolation, and race checks |
 
 Fast runs on pushes and pull requests to `dev`; only pushes publish images.
-Full is manual and merges only after every check passes.
+Full is manual and merges only after every full-suite check passes.
 
 ### When a check fails
 
 - A failed check blocks image publishing and the release merge.
-- A failed smoke check means the built binary or image is not shipped.
+- A failed image smoke check means that image is not shipped.
 - A failed browser or isolation check blocks Full; fix the behavior or report
   the exact failure before retrying the workflow.
-- Documentation-only changes skip Fast when its path filters match.
+- Documentation-only changes skip Fast because its path filters exclude them.
 
 ### Test folders
 
@@ -173,10 +173,14 @@ Full is manual and merges only after every check passes.
 | `test/smoke/` | Binary, image, sandbox, and volume isolation scenarios |
 | `test/lib/` | Shared Bash startup, HTTP, MCP, and assertion functions |
 | `test/fixtures/` | Static inputs for scenarios |
-| `test/whitebox/` | Registry for justified Go tests beside their code |
+| `test/go/` | Go tests, shared harness, and retained-test registry |
 
 `make blackbox` runs the black-box scenarios. `make smoke`, `make e2e`, and
-`make whitebox-check` run their named suites.
+`make registry-check` run their named suites.
+
+The guardrail script skips content and size checks inside `test/` and
+`scripts/`. It still checks test placement and program imports from `test/`.
+ShellCheck, Go lint, and frontend lint remain separate checks.
 
 ### Jenkins pipeline
 

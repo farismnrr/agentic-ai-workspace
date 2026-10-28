@@ -103,7 +103,8 @@ func (t *tools) recheckWork(ctx context.Context, projectID string) error {
 // workspace, and only what the model writes down tells them what they asked for.
 const serverInstructions = "These tools work in the person's own workspace, where they follow your work in a thread. " +
 	"Start each request by calling log_message with role user and what the person asked, in their words. " +
-	"End it by calling log_message with role assistant and a short summary of the result. " +
+	"For tracked work, save your summary with log_message, then call complete_work. " +
+	"Do not call log_message after complete_work. " +
 	"When the person names a project (such as sensio), call list_projects and give its id as project to the other " +
 	"tools; without a project you work in your own. For substantial requests, call begin_work first (small tasks may " +
 	"skip it) and provide the required initial enabled non-lead role key; switch role labels as useful (Researcher, " +

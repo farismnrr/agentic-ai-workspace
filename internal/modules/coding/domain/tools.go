@@ -60,9 +60,9 @@ var (
 			"leave project out to work in your own project. Ask the person which project they mean when it is not clear.")
 	ToolLogMessage = ToolInfo{
 		Name: "log_message", Title: "Save the conversation", Scope: ScopeRead, Group: GroupRead, DefaultOn: true,
-		Description: "Save a message of this conversation in the person's tasks, so they can read it later in the app. " +
-			"Call it with role \"user\" for what the person asked, then do the work, then with role \"assistant\" for " +
-			"a short summary of your answer. Without a work_id this records history only; use begin_work with a role " +
+		Description: "Save conversation messages in the person's task thread. Call with role \"user\" for the request. " +
+			"For tracked work, call with role \"assistant\" for your summary, then call complete_work. Do not call " +
+			"log_message after complete_work. Without a work_id, this records history only; use begin_work with a role " +
 			"for tracked work. Never include passwords or keys.",
 	}
 	// External work lifecycle tools share log_message's existing read switch.
@@ -75,7 +75,8 @@ var (
 	ToolSaveRequirements = workTool("save_requirements", "Save requirements", "Save the requirements document.")
 	ToolReportProgress   = workTool("report_progress", "Report progress", "Record self-reported progress and claims.")
 	ToolCompleteWork     = workTool("complete_work", "Complete work",
-		"Finish or block this work and summarize verified evidence.")
+		"Finish or block this work and summarize verified evidence. Call after saving your assistant summary with "+
+			"log_message; do not call log_message after complete_work.")
 	ToolGetWorkState = workTool("get_work_state", "Get work state", "Read the compact state of a work session.")
 	ToolApprovePlan  = ToolInfo{
 		Name: "approve_plan", Title: "Approve plans", Scope: ScopeApprove, Group: GroupExec,

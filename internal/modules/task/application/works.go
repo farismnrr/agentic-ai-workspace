@@ -11,6 +11,11 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
+const (
+	defaultWorksIdleAfter   = 30 * time.Minute
+	defaultWorkAbandonAfter = 2 * time.Hour
+)
+
 // Works contains the use cases for a connected app's explicit work session.
 type Works struct {
 	deps        Deps
@@ -18,15 +23,28 @@ type Works struct {
 	plans       PlanStore
 	questions   QuestionStore
 	planReviews *PlanReviews
+	dryRunSeen  map[string]struct{}
 	limits      workLimiter
+	sweepMode   string
+	thresholds  domain.WorkPhaseThresholds
 	beginMu     sync.Mutex
+	dryRunMu    sync.Mutex
 }
 
 // NewWorks wires external work use cases to their persistence boundary.
-func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionStore) *Works {
+func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionStore,
+	thresholds domain.WorkPhaseThresholds,
+) *Works {
+	if thresholds.IdleAfter <= 0 {
+		thresholds.IdleAfter = defaultWorksIdleAfter
+	}
+	if thresholds.AbandonAfter <= 0 {
+		thresholds.AbandonAfter = defaultWorkAbandonAfter
+	}
 	return &Works{
 		deps: deps, store: store, plans: plans, questions: questions,
-		limits: workLimiter{buckets: map[string]map[int64]int{}},
+		limits: workLimiter{buckets: map[string]map[int64]int{}}, thresholds: thresholds,
+		sweepMode: "dry-run", dryRunSeen: map[string]struct{}{},
 	}
 }
 
@@ -74,9 +92,6 @@ func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
 	}
 	if resumed {
 		return w.beginResult(prior, true, roster), nil
-	}
-	if err := w.abandonStale(ctx, in.UserID); err != nil {
-		return BeginResult{}, err
 	}
 	if err := w.checkCaps(ctx, in.UserID, in.ProjectID); err != nil {
 		return BeginResult{}, err

@@ -19,11 +19,12 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	revision, taskID, err := prepareWorkCommit(ctx, tx, change)
+	now := s.now()
+	revision, taskID, err := prepareWorkCommit(ctx, tx, change, now)
 	if err != nil {
 		return nil, 0, mapBusy(err)
 	}
-	events, err := applyWorkCommit(ctx, tx, s.ids, taskID, change)
+	events, err := applyWorkCommit(ctx, tx, s.ids, taskID, change, now)
 	if err != nil {
 		return nil, 0, mapBusy(err)
 	}
@@ -33,8 +34,10 @@ func (s *Store) Commit(ctx context.Context, change application.WorkChange) ([]do
 	return events, revision, nil
 }
 
-func prepareWorkCommit(ctx context.Context, tx *sql.Tx, change application.WorkChange) (int64, string, error) {
-	revision, err := advanceWork(ctx, tx, change)
+func prepareWorkCommit(ctx context.Context, tx *sql.Tx, change application.WorkChange,
+	now time.Time,
+) (int64, string, error) {
+	revision, err := advanceWork(ctx, tx, change, now)
 	if err != nil {
 		return 0, "", err
 	}
@@ -48,14 +51,14 @@ func prepareWorkCommit(ctx context.Context, tx *sql.Tx, change application.WorkC
 }
 
 func applyWorkCommit(ctx context.Context, tx *sql.Tx, ids application.IDs, taskID string,
-	change application.WorkChange,
+	change application.WorkChange, now time.Time,
 ) ([]domain.Event, error) {
 	if change.Op != nil {
 		if err := insertWorkOp(ctx, tx, *change.Op); err != nil {
 			return nil, err
 		}
 	}
-	if err := patchChangedTask(ctx, tx, taskID, change.Task); err != nil {
+	if err := patchChangedTask(ctx, tx, taskID, change.Task, now); err != nil {
 		return nil, err
 	}
 	return insertWorkEvents(ctx, tx, ids, taskID, change.Events, closesWork(change))
@@ -93,11 +96,13 @@ func checkWorkEventLimit(ctx context.Context, tx *sql.Tx, taskID string, additio
 	return nil
 }
 
-func patchChangedTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch) error {
+func patchChangedTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch,
+	now time.Time,
+) error {
 	if patch == nil {
 		return nil
 	}
-	return patchTask(ctx, tx, taskID, patch)
+	return patchTask(ctx, tx, taskID, patch, now)
 }
 
 func value[T any](pointer *T) any {
@@ -133,7 +138,7 @@ func insertWorkOp(ctx context.Context, tx *sql.Tx, op application.WorkOp) error 
 	return nil
 }
 
-func patchTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch) error {
+func patchTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch, now time.Time) error {
 	fields := application.TaskPatch{}
 	if patch != nil {
 		fields = *patch
@@ -145,7 +150,7 @@ func patchTask(ctx context.Context, tx *sql.Tx, taskID string, patch *applicatio
 	_, err = tx.ExecContext(ctx, `UPDATE tasks SET updated_at = ?, status = COALESCE(?, status),
 		plan = COALESCE(?, plan), prd = COALESCE(?, prd), research = COALESCE(?, research),
 		summary = COALESCE(?, summary), proof = COALESCE(?, proof) WHERE id = ?`,
-		time.Now().Unix(), value(fields.Status), plan, value(fields.PRD), value(fields.Research),
+		now.Unix(), value(fields.Status), plan, value(fields.PRD), value(fields.Research),
 		value(fields.Summary), proof, taskID)
 	if err != nil {
 		return fmt.Errorf("update work task: %w", err)

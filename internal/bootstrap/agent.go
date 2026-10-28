@@ -9,12 +9,14 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	egressruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/adapter/runtime"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	taskhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/http"
 	tasknotes "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/notefiles"
 	taskshots "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/shots"
 	tasksqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/sqlite"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
@@ -27,11 +29,11 @@ func newAgent(
 	gate taskapp.ToolGate, steps taskapp.ActivitySink, hub *taskapp.Hub, auth, sameOrigin fiber.Handler,
 	agentSessions taskapp.AgentSessionCleanup,
 ) (*taskapp.Service, *taskapp.Works, httpserver.Mount, func(), error) {
-	store := tasksqlite.NewStore(db, opaque.Generator{})
+	store := tasksqlite.NewStoreWithClock(db, opaque.Generator{}, time.Now)
 
 	var taskStore taskapp.TaskStore = store
 	if tools.egress != nil {
-		taskStore = egressTasks{TaskStore: store, ended: tools.egress.TaskEnded}
+		taskStore = egressruntime.Tasks(store, tools.egress.TaskEnded)
 	}
 
 	deps := taskapp.Observe(taskapp.Deps{
@@ -53,7 +55,9 @@ func newAgent(
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
 	service := taskapp.NewService(deps, scheduler)
-	works, handoffs := wireExternalWorkflows(service, store, hub, deps)
+	works, handoffs := wireExternalWorkflows(service, store, hub, deps, cfg)
+	service.UseWorkIdleAfter(cfg.WorkIdleAfter)
+	works.UseSweepMode(cfg.WorkSweepMode)
 
 	if err := handoffs.PrepareRecovery(context.Background()); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("prepare plan handoff recovery: %w", err)
@@ -64,31 +68,52 @@ func newAgent(
 
 	ctx, cancel := context.WithCancel(context.Background())
 	scheduler.Start(ctx, cfg.AgentWorkers)
-	handoffDone := make(chan struct{})
-	go func() {
-		defer close(handoffDone)
-		handoffs.Run(ctx, time.Minute)
-	}()
+	waitBackground := startAgentBackground(ctx, handoffs, works, cfg)
 
 	stop := func() {
 		cancel()
 		scheduler.Stop()
-		<-handoffDone
+		waitBackground()
 		hub.Close()
 	}
 
 	return service, works, taskhttp.NewHandler(service, hub, time.Now).Mount(auth, sameOrigin), stop, nil
 }
 
+func startAgentBackground(ctx context.Context, handoffs *taskapp.Handoffs,
+	works *taskapp.Works, cfg config.Config,
+) func() {
+	handoffDone := make(chan struct{})
+	go func() {
+		defer close(handoffDone)
+		handoffs.Run(ctx, time.Minute)
+	}()
+	workSweepDone := make(chan struct{})
+	if cfg.WorkSweepMode == "off" {
+		close(workSweepDone)
+	} else {
+		go func() {
+			defer close(workSweepDone)
+			works.RunReconciler(ctx, cfg.WorkSweepEvery)
+		}()
+	}
+	return func() {
+		<-handoffDone
+		<-workSweepDone
+	}
+}
+
 func wireExternalWorkflows(service *taskapp.Service, store *tasksqlite.Store, hub *taskapp.Hub,
-	deps taskapp.Deps,
+	deps taskapp.Deps, cfg config.Config,
 ) (*taskapp.Works, *taskapp.Handoffs) {
-	works := taskapp.NewWorks(deps, store, store, store)
+	works := taskapp.NewWorks(deps, store, store, store, taskdomain.WorkPhaseThresholds{
+		IdleAfter: cfg.WorkIdleAfter, AbandonAfter: cfg.WorkAbandonAfter,
+	})
 	handoffs := taskapp.NewHandoffs(service, store)
 	reviews := taskapp.NewPlanReviews(store, opaque.Generator{}, time.Now, handoffs, hub)
 	works.UsePlanReviews(reviews)
 	service.UsePlanReviewServices(reviews, handoffs, store)
-	service.UseWorkServices(works, store)
+	service.UseWorkServices(works, works, store)
 	service.UseExternalQuestionStore(store)
 	return works, handoffs
 }

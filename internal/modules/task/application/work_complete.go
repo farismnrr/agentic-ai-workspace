@@ -20,6 +20,7 @@ type VerifiedWork struct {
 type Completion struct {
 	Outcome  string       `json:"outcome"`
 	Verified VerifiedWork `json:"verified"`
+	Already  bool         `json:"already,omitempty"`
 }
 
 // Complete closes or blocks one work session and derives proof only from server events.
@@ -41,8 +42,10 @@ func (w *Works) Complete(ctx context.Context, userID, client, projectID, workID,
 		work.PlanState == domain.PlanAwaitingClarification) {
 		return Completion{}, domain.ErrAwaitingPerson
 	}
-	if completionMatches(work, task, outcome, cleanSummary) {
-		return completionResult(outcome, task.Proof), nil
+	if completionMatches(work, outcome) {
+		result := completionResult(outcome, task.Proof)
+		result.Already = true
+		return result, nil
 	}
 	return w.finishWork(ctx, work, task, outcome, cleanSummary, cleanClaims)
 }
@@ -139,10 +142,10 @@ func sanitizeClaims(claims []string) ([]string, error) {
 	return cleanClaims, nil
 }
 
-func completionMatches(work domain.ExternalWork, task domain.Task, outcome, summary string) bool {
-	return task.Summary == summary && ((outcome == "completed" && work.State == domain.WorkCompleted) ||
+func completionMatches(work domain.ExternalWork, outcome string) bool {
+	return (outcome == "completed" && work.State == domain.WorkCompleted) ||
 		(outcome == "failed" && work.State == domain.WorkFailed) ||
-		(outcome == "blocked" && work.State == domain.WorkBlocked))
+		(outcome == "blocked" && work.State == domain.WorkBlocked)
 }
 
 func completionState(outcome, summary string) (domain.WorkState, domain.Status, domain.EventKind, string) {

@@ -98,7 +98,7 @@
     </div>
   {:else}
     <div class="flex h-[calc(100dvh-3rem)] flex-col">
-      <TaskHeader task={$task} {archived} onstop={controller.stop} onretry={controller.retry} />
+      <TaskHeader task={$task} {archived} onstop={controller.stop} onconfirm={controller.confirm} onretry={controller.retry} />
       {#if $task.originTaskId !== undefined}
         <div class="flex flex-wrap items-center gap-x-2 border-b border-[var(--brand-border)] bg-base-100 px-4 py-2 text-sm" role="status">
           <span class="badge badge-primary badge-soft badge-sm">Internal orchestrator</span>

@@ -84,6 +84,9 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
    handoff outbox row commit together; the Orchestrator alone dispatches and
    executes handoffs, with startup recovery sweeping pending rows. Migrations
    058–060 establish plan lifecycle, questions and approvals; do not edit them.
+10. External work phases are derived from activity and saved reports. Inactivity
+    never means completion or proof; only explicit person confirmation completes
+    reported or idle work.
 
 ## Frontend rules
 
@@ -116,7 +119,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 
 ## Size and complexity limits
 
-1. Every human-authored source, config, script, and markup file is limited to 200 lines. `README.md`, `AGENTS.md`, `agents/`, `docs/`, server-maintained `project-notes/` output, and the built-in role skills in `internal/modules/agentteam/domain/skills/` (prompt text, some copied unchanged from upstream under their licence) are exempt: keep each page whole, clear and unambiguous, and never cut information just to fit a line count.
+1. Every human-authored source, config, script, and markup file is limited to 200 lines. `test/`, `scripts/`, `README.md`, `AGENTS.md`, `agents/`, `docs/`, server-maintained `project-notes/` output, and the built-in role skills in `internal/modules/agentteam/domain/skills/` (prompt text, some copied unchanged from upstream under their licence) are exempt from this guardrail: keep each page whole, clear and unambiguous, and never cut information just to fit a line count. Other content guardrails still apply outside `test/` and `scripts/`.
 2. Generated output and dependency lockfiles are exempt.
 3. Go functions are limited by lint to 60 lines / 40 statements and strict complexity thresholds.
 4. Frontend functions are limited by ESLint to 60 lines and complexity 10.
@@ -137,9 +140,10 @@ This rule applies to Developers, QA, Reviewers, Planners, and every other role.
 9. Do not set coverage-percentage targets.
 10. Never remove critical security or data-integrity verification without an equal or stronger named guarantee.
 
-Black-box and end-to-end tests are Bash scenarios and Playwright TypeScript,
-all under `test/`. Retained Go white-box tests stay beside their code, as Go
-requires, and are listed in `test/whitebox/registry.md`.
+All tests live under `test/`; no tests sit beside program code. Go tests use
+`test/go/`, with shared harness code in `test/go/apptest/`. The only exception
+is the untouched template under `sandbox/starter/`. Retained critical Go tests
+are listed in `test/go/registry.md`.
 
 ## Folder structure
 
@@ -158,7 +162,12 @@ web/src/features/<feature>/               components/, content/, assets/, logic/
 web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ features
 sandbox/                                  Dockerfile and start script of the toolbox image the agent's commands run in
 test/
-  whitebox/                               retained Go test registry and guardrail
+  go/
+    apptest/                              shared in-process Go integration-test harness
+    app/<area>/                           app-level integration tests by feature
+    modules/                              Go tests for adapters and applications
+    platform/                             Go tests for process-wide adapters
+    registry.md, check-registry.sh        retained-test inventory and guardrail
   blackbox/                               Bash API/MCP scenarios against the binary
   e2e/                                    Playwright flows driven through Bash
   smoke/                                  binary, image, sandbox, and volume isolation scenarios
@@ -170,7 +179,7 @@ agents/                                   self-improvement, memory and notes for
 ```
 
 1. Import direction is `app -> features -> shared` on the frontend and `adapter -> application -> domain` on the backend. Features never import other features, and `shared` never imports a feature; promote the code to `shared` once two features need it. The only inward exception is the route store in `app/router`. `scripts/check-guardrails.sh` enforces this.
-2. Go packages are lowercase nouns named after their folder; Svelte components are `PascalCase.svelte`; TypeScript modules are `kebab-case.ts`; retained Go white-box tests sit beside their code, while black-box and e2e tests live under `test/`.
+2. Go packages are lowercase nouns named after their folder; Svelte components are `PascalCase.svelte`; TypeScript modules are `kebab-case.ts`. All tests live under `test/`, except the untouched `sandbox/starter/` template.
 3. Name folders by responsibility (`thread`, `settings`, `httpserver`), never by kind-of-file buckets such as `helpers`, `utils`, `misc`, or `types`.
 4. A new feature gets its layer/role folders from the start; do not grow a flat folder and split it later.
 5. When code moves between folders, update this section, `docs/system-design.md`, and the guardrails in the same change.
@@ -194,18 +203,18 @@ See [agents/git-safety.md](agents/git-safety.md) for the full preflight and reco
 
 ## Verification and CI
 
-1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary. It runs format/lint and type checks, build, essential white-box tests, `make blackbox`, and smoke checks.
+1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary. It runs guardrails, frontend checks, Go tests and lint, builds the binary, then runs black-box and smoke checks. Full CI uses `make verify-full` for this suite plus browser, isolation and race checks.
 2. Go uses strict golangci-lint; the frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
 3. Warnings fail verification. Fix diagnostics instead of silencing them. `//nolint` must name the linter and explain the exception.
 4. Keep exactly two workflow files in `.github/workflows/`: `fast.yml` and `full.yml`. Neither gets extra files or full-release auto-triggers without approval. Shared setup lives in `.github/actions/`.
-5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs format/lint, types, build, essential white-box checks, `make blackbox`, and smoke checks; then builds images in parallel and publishes on pushes. The sandbox image is rebuilt only when its inputs change. Documentation-only changes skip it.
-6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. From a clean checkout it repeats Fast and adds broader black-box checks, Playwright e2e, Docker isolation, security regressions, and `-race` on concurrency packages. It merges and publishes only when every check passes.
-7. Fast stays quicker than full by skipping clean-room rebuilds, cross-checks, merging, and publishing. It must never skip a lint, type, test, or guardrail gate.
+5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). Its `guardrails` job runs `make guardrails shellcheck`; `backend-test` runs `make backend-test`. These gate the app image build and the conditional sandbox image build. Pushes publish images; the sandbox image rebuilds only when its inputs change. Documentation-only changes skip Fast.
+6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. From a clean checkout, `make verify-full` runs frontend checks, Go lint, build and smoke, black-box tests, Playwright e2e, Docker isolation and race checks. It merges and publishes only when every check passes.
+7. Fast keeps only guardrails and Go tests as quick code gates; Full owns frontend, lint, build, smoke, black-box, browser, isolation and race checks. Neither workflow may weaken its assigned checks or the repository guardrails.
 8. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`. CI verifies dependency drift instead of fixing it.
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
 10. Permissions default to read-only; `packages: write` belongs only to the image jobs, and merge rights only to the full publish job.
 11. A change is incomplete while CI is failing.
-12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` (which pulls both `app` and `sandbox` from GHCR) and confirm `/api/health` on port 8081. Always pull the sandbox image from GHCR; if a local sandbox image was built and is newer than GHCR, push it to GHCR first so the host never drifts from GHCR. Never restart the local app from an unpushed or red build, and say when a step was skipped. Exception: a change that touches no Go, web, script, guardrail, Dockerfile or migration file (only `docs/`, `README.md`, `AGENTS.md`, `agents/` or the Jenkinsfile) is pushed to `dev` and the task ends there: Fast skips it, so there is no CI wait and no redeploy.
+12. Ship every finished change in this order, in the same task and without being asked: run `make verify`, commit, push to `dev`, and wait for the Fast run on that commit. While it is red, fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` (which pulls both `app` and `sandbox` from GHCR) and confirm `/api/health` on port 8081. Always pull the sandbox image from GHCR; if a local sandbox image is newer than GHCR, push it first. Never restart from an unpushed or red build, and report skipped steps. Exception: documentation-only changes skip `make verify`, CI wait and redeploy; push them to `dev` and finish.
 
 ## Container image
 

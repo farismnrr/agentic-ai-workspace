@@ -93,6 +93,12 @@ func (w *Works) appendMutation(ctx context.Context, work domain.ExternalWork, ta
 	patch *WorkPatch, events []domain.Event,
 ) error {
 	task, patch, events = w.resumedChange(work, task, patch, events, w.now())
+	if patch == nil {
+		patch = &WorkPatch{}
+	}
+	if patch.State == nil || *patch.State == domain.WorkOpen || *patch.State == domain.WorkBlocked {
+		patch.ClearReportedAt = true
+	}
 	_, _, err := w.store.Commit(ctx, WorkChange{
 		WorkID: work.ID, UserID: work.UserID,
 		ExpectRev: work.Rev, Task: task, Patch: patch, Events: events,

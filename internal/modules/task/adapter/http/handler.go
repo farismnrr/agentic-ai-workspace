@@ -50,6 +50,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Post("/api/tasks/:id/events/:event/answer", auth, sameOrigin, h.answer)
 		app.Post("/api/tasks/:id/events/:event/undo", auth, sameOrigin, h.undo)
 		app.Post("/api/tasks/:id/cancel", auth, sameOrigin, h.cancel)
+		app.Post("/api/tasks/:id/confirm", auth, sameOrigin, h.confirm)
 		app.Post("/api/tasks/:id/accept", auth, sameOrigin, h.accept)
 		app.Post("/api/tasks/:id/retry", auth, sameOrigin, h.retry)
 		app.Get("/api/usage", auth, h.usage)
@@ -74,6 +75,7 @@ var mapped = []statusError{
 	{domain.ErrWrongState, "wrong_state", fiber.StatusConflict},
 	{domain.ErrUndoRefused, "undo_refused", fiber.StatusConflict},
 	{domain.ErrUnknownWork, "not_found", fiber.StatusNotFound},
+	{domain.ErrWorkClosed, "work_closed", fiber.StatusConflict},
 	{domain.ErrUnverifiedUser, "unverified_user", fiber.StatusForbidden},
 	{domain.ErrStaleRevision, "stale_revision", fiber.StatusConflict},
 	{domain.ErrKeyReused, "idempotency_key_reused", fiber.StatusConflict},

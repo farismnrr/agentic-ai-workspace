@@ -24,8 +24,8 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
 )
 
-// wire builds every feature and returns the route mounts in registration order.
-func wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
+// Wire builds every feature and returns the route mounts in registration order.
+func Wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	sameOrigin, cors := routePolicies(cfg)
 	account, accountMount := newAccount(db, cfg, sameOrigin, accountLimits())
 	sess := sessions{account: account}
