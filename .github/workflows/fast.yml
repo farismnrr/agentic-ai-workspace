@@ -39,7 +39,18 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-go
-      - run: make backend-test
+      - name: Run backend tests
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! make backend-test 2>&1 | tee backend-test.log; then
+            awk '/^--- FAIL:|^# |^FAIL|^panic:|^fatal error:/ { print; context=2; next }
+                 context > 0 { print; context-- }' backend-test.log |
+              head -40 | while IFS= read -r line; do
+                echo "::error title=Backend test failure::${line}"
+              done
+            exit 1
+          fi
 
   # The toolbox image changes rarely, so it is rebuilt only when what goes into it changed. A new branch, a
   # rewritten history or any doubt counts as changed; full always builds it.
