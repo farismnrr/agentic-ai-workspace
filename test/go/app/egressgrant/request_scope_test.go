@@ -3,6 +3,7 @@ package egressgrant_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/test/go/apptest"
@@ -22,6 +23,8 @@ func TestRequestEgressIgnoresForgedModelScope(t *testing.T) {
 
 func assertRequestUsesOnlyTrustedScope(t *testing.T, rig apptest.AgentRig, taskID string) {
 	t.Helper()
+	waitForGrantFinalization(t, rig, taskID)
+
 	var projectID, storedTask, status, actor, decider string
 	err := rig.Environment.DB.QueryRowContext(context.Background(), `
 		SELECT project_id, task_id, status, requested_by_kind, decided_by
@@ -42,4 +45,23 @@ func assertRequestUsesOnlyTrustedScope(t *testing.T, rig apptest.AgentRig, taskI
 	if forged != 0 {
 		t.Fatalf("model created %d request(s) under its supplied task", forged)
 	}
+}
+
+func waitForGrantFinalization(t *testing.T, rig apptest.AgentRig, taskID string) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+
+	for time.Now().Before(deadline) {
+		var status string
+		err := rig.Environment.DB.QueryRowContext(context.Background(),
+			`SELECT status FROM egress_grants WHERE task_id = ?`, taskID).Scan(&status)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if status != "pending" {
+			return
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	t.Fatal("the finished task's request stayed pending")
 }
