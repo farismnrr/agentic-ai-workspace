@@ -133,9 +133,23 @@ func TestConnectedAppStartsASiteInItsProject(t *testing.T) {
 	token := apptest.Connect(t, env.App, cookie, clientID, "coding:read coding:exec")
 	apptest.EnableTool(t, env.App, cookie, "run_command")
 
-	args, _ := json.Marshal(map[string]any{"command": apptest.SiteCommand, "port": 8124})
+	begin := apptest.CallTool(t, env.App, token, "begin_work",
+		`{"role":"developer","summary":"Verify connected site lifecycle"}`)
+	var session struct {
+		Result struct {
+			Structured struct {
+				WorkID string `json:"work_id"`
+			} `json:"structuredContent"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(begin.Body, &session); err != nil || session.Result.Structured.WorkID == "" {
+		t.Fatalf("begin_work: %v %s", err, begin.Body)
+	}
+	workID := session.Result.Structured.WorkID
+	args, _ := json.Marshal(map[string]any{"work_id": workID, "command": apptest.SiteCommand, "port": 8124})
 	started := apptest.CallTool(t, env.App, token, "start_site", string(args))
 	apptest.MustContain(t, started.Body, apptest.PublicURL+`/run/chatgpt/`, `\"running\":true`)
 
-	apptest.MustContain(t, apptest.CallTool(t, env.App, token, "stop_site", `{}`).Body, "stopped")
+	stopArgs, _ := json.Marshal(map[string]string{"work_id": workID})
+	apptest.MustContain(t, apptest.CallTool(t, env.App, token, "stop_site", string(stopArgs)).Body, "stopped")
 }

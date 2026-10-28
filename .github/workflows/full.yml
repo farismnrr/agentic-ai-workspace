@@ -60,7 +60,11 @@ jobs:
           lines = log.read_text(errors='replace').splitlines() if log.exists() else []
           pattern = re.compile(r'(^FAIL\b|--- FAIL:|\bfailed\b|\berror:|^make: \*\*\*)', re.I)
           matches = [line.strip() for line in lines if pattern.search(line)]
-          selected = (matches[-12:] or lines[-12:])
+          context = []
+          for index, line in enumerate(lines):
+              if line.startswith('--- FAIL:'):
+                  context.extend(lines[index:index + 4])
+          selected = (context[-14:] or matches[-12:] or lines[-12:])
           message = ' | '.join(line[:240] for line in selected)[:3500]
           message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
           print(f'::error title=Full verification failure::{message}')
