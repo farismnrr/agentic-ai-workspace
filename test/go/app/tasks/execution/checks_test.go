@@ -69,7 +69,11 @@ func TestPassingCheckAfterTheLastChangeMakesTheWorkProven(t *testing.T) {
 		apptest.ToolCall("r1", "run_task", map[string]string{"name": "hello"}),
 		apptest.FinishCall("Made the page and checked it"),
 	)
-	a.PutChecks(t, goodChecks)
+	// A no-op shell command is not evidence of a real test execution.
+	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
+	a.PutFile(t, "sample_test.go", "package sample\n\nimport \"testing\"\n\n"+
+		"func TestValue(t *testing.T) { if 1+1 != 2 { t.Fatal(\"bad\") } }\n")
+	a.PutChecks(t, `[{"name":"hello","description":"Runs Go tests","command":["go","test","./..."],"timeoutSeconds":90}]`)
 
 	id := a.Start(t, "Make a page")
 	a.WaitApproving(t, id, "review")

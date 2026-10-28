@@ -369,11 +369,15 @@ func assertFakeExecutorDidNotProve(t *testing.T, a apptest.AgentRig, id, command
 	response := apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id, "",
 		apptest.JSONCookie(a.Cookie))
 	proof, _ := response.JSON(t)["proof"].(map[string]any)
-	if proof["proven"] != false {
+	// A blocked sensitive task may have no receipt; absence of proof is not success.
+	if proof != nil && proof["proven"] != false {
 		t.Fatalf("replacement executor must not prove the task: %v", proof)
 	}
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
 		apptest.JSONCookie(a.Cookie)).Body)
+	if proof == nil && !strings.Contains(events, "blocked and unverified") {
+		t.Fatalf("missing proof must be caused by the mandatory security gate: %s", events)
+	}
 	if !strings.Contains(events, `"command":"`+command+`"`) ||
 		!strings.Contains(events, `"exitCode":0`) || strings.Contains(events, `"testExecuted":true`) {
 		t.Fatalf("the successful wrapper must be visible but not count as executed tests: %s", events)
@@ -463,6 +467,15 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 				[]string{"go.mod", "sample_test.go"}, []string{"go test ./..."}),
 		}),
 		apptest.FinishCall("The package passed its required security check"),
+		// A team can ask to reconcile its plan or save changes before review.
+		apptest.ToolCall("final-plan", "update_plan", map[string]any{"steps": []map[string]string{
+			{"title": "Developer: prepare checked package", "state": "done"},
+			{"title": "Security: verify the package", "state": "done"},
+		}}),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
 	)
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
 		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true}`, apptest.JSONCookie(a.Cookie))
@@ -504,6 +517,11 @@ func TestRenamedDeveloperCannotSatisfyStableSecurityReview(t *testing.T) {
 			`{"choices":[{"message":{"content":"Token handling is complete."}}],`,
 			`"usage":{"prompt_tokens":30,"completion_tokens":10}}`,
 		}, ""),
+		// Refused completion must exhaust the bounded review attempts.
+		apptest.FinishCall("Token handling is complete"),
+		apptest.FinishCall("Token handling is complete"),
+		apptest.FinishCall("Token handling is complete"),
+		apptest.FinishCall("Token handling is complete"),
 	)
 	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	a.PutFile(t, "internal/modules/auth/token_test.go", "package auth\n\nimport \"testing\"\n\n"+
