@@ -14,6 +14,8 @@ export interface WorkSummary {
   id: string;
   updatedAt: string;
   state: WorkState;
+  phase: 'running' | 'awaiting_person' | 'blocked' | 'reported' | 'idle' |
+    'completed' | 'failed' | 'stopped' | 'abandoned';
   planState?: 'draft' | 'awaiting_clarification' | 'ready_for_approval' | 'approved' | 'handed_off';
   role?: string;
   roleName?: string;

@@ -21,6 +21,6 @@ func (a appWorks) SubmitPlan(ctx context.Context, user, client, project, workID 
 		WorkID: workID, WorkRev: result.WorkRev, State: string(result.WorkState),
 		PlanState: string(taskdomain.PlanReadyForApproval), PlanRevision: result.Revision.RevNo,
 		Summary: result.Revision.Summary, Status: string(result.Revision.Status),
-		Warnings: redactionWarnings(in.Summary),
+		Warnings: RedactionWarnings(in.Summary),
 	}, nil
 }

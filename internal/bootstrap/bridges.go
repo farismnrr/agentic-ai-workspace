@@ -108,11 +108,15 @@ func (g gate) Allowed(ctx context.Context, userID, tool string) (bool, error) {
 }
 
 // recorder lets the coding tools write to the activity log.
-type recorder struct {
+// Recorder stores coding tool activity, redacting secret-like text from external-work records.
+type Recorder struct {
 	log *spaceapp.ActivityLog
 }
 
-func (r recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
+// NewRecorder builds the activity recorder used by the coding space.
+func NewRecorder(log *spaceapp.ActivityLog) Recorder { return Recorder{log: log} }
+
+func (r Recorder) Record(ctx context.Context, entry codingmcp.Entry) error {
 	if entry.WorkID != "" || isExternalWorkTool(entry.Tool) {
 		entry.Summary, _ = taskdomain.Redact(entry.Summary)
 		entry.Detail, _ = taskdomain.Redact(entry.Detail)

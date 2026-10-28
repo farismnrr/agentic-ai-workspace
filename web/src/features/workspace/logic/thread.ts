@@ -25,7 +25,13 @@ interface UpdatePayload {
 interface EventMerger {
   cursor: () => number;
   hasWaiting: () => boolean;
-  merge: (fresh: TaskEvent[]) => void;
+  merge: (fresh: TaskEvent[]) => TaskEvent[];
+}
+
+interface DraftState {
+  append: (text: string) => void;
+  clear: () => void;
+  reconcile: (events: TaskEvent[]) => void;
 }
 
 /** True while a question or an approval in the thread still shows as waiting. */
@@ -40,19 +46,49 @@ function createEventMerger(events: Writable<TaskEvent[]>): EventMerger {
     hasWaiting: () => isWaiting(seen),
     merge: (fresh) => {
       const byId = new Map(seen.map((event) => [event.id, event]));
-      let changed = false;
+      const changed: TaskEvent[] = [];
       for (const event of fresh) {
         cursor = Math.max(cursor, event.version);
         const prior = byId.get(event.id);
         if (prior === undefined || event.version > prior.version) {
           byId.set(event.id, event);
-          changed = true;
+          changed.push(event);
         }
       }
-      if (!changed) return;
+      if (changed.length === 0) return [];
       seen = [...byId.values()].sort((left, right) => left.seq - right.seq).slice(-maxThreadEvents);
       events.set(seen);
+      return changed;
     },
+  };
+}
+
+function createDraftState(draft: Writable<string>): DraftState {
+  let value = '';
+  const set = (text: string): void => {
+    value = text;
+    draft.set(text);
+  };
+  return {
+    append: (text) => { set(value + text); },
+    clear: () => { set(''); },
+    reconcile: (events) => {
+      if (value !== '' && events.some((event) =>
+        event.kind === 'message' && event.text.startsWith(value))) set('');
+    },
+  };
+}
+
+function createWaitingReconciler(taskId: string, merger: EventMerger, isStopped: () => boolean):
+(status: string) => void {
+  let reloaded = '';
+  return (status) => {
+    const key = `${status}:${String(merger.cursor())}`;
+    if (isStopped() || status === 'needs-input' || !merger.hasWaiting() || reloaded === key) return;
+    reloaded = key;
+    void loadEvents(taskId, merger.cursor()).then((fresh) => {
+      if (!isStopped()) merger.merge(fresh);
+    }).catch(() => undefined);
   };
 }
 
@@ -60,9 +96,16 @@ function listenToThread(
   source: EventSource,
   apply: (task: Task, events: TaskEvent[]) => void,
   appendDraft: (text: string) => void,
+  onDisconnect: () => void,
+  onReconnect: () => void,
   onMissing: () => void,
   isStopped: () => boolean,
 ): void {
+  let opened = false;
+  source.onopen = () => {
+    if (opened && !isStopped()) onReconnect();
+    opened = true;
+  };
   source.addEventListener('update', (event) => {
     if (isStopped()) return;
     const payload = JSON.parse((event as MessageEvent<string>).data) as UpdatePayload;
@@ -74,7 +117,9 @@ function listenToThread(
     appendDraft(text);
   });
   source.onerror = (): void => {
-    if (!isStopped() && source.readyState === EventSource.CLOSED) onMissing();
+    if (isStopped()) return;
+    if (source.readyState === EventSource.CLOSED) onMissing();
+    else onDisconnect();
   };
 }
 
@@ -85,36 +130,32 @@ export function createThread(taskId: string): Thread {
   const draft = writable('');
   const missing = writable(false);
   const merger = createEventMerger(events);
+  const draftState = createDraftState(draft);
   let current: Task | undefined;
-  let reloaded = '';
   let stopped = false;
-
-  /** Refreshes changed events after a waiting card's task state moves on. */
-  const reconcile = (status: string): void => {
-    const key = `${status}:${String(merger.cursor())}`;
-    if (stopped || status === 'needs-input' || !merger.hasWaiting() || reloaded === key) return;
-    reloaded = key;
-    void loadEvents(taskId, merger.cursor()).then((fresh) => {
-      if (!stopped) merger.merge(fresh);
-    }).catch(() => undefined);
-  };
+  const reconcile = createWaitingReconciler(taskId, merger, () => stopped);
 
   const apply = (nextTask: Task, fresh: TaskEvent[]): void => {
     if (stopped) return;
     current = nextTask;
     task.set(nextTask);
     missing.set(false);
-    if (!shouldShowWorkingIndicator(nextTask.status, nextTask.work)) draft.set('');
-    merger.merge(fresh);
+    const changed = merger.merge(fresh);
+    draftState.reconcile(changed);
+    if (!shouldShowWorkingIndicator(nextTask.status, nextTask.work)) draftState.clear();
     reconcile(nextTask.status);
   };
 
   const source = new EventSource(`/api/tasks/${encodeURIComponent(taskId)}/stream`);
-  listenToThread(source, apply, (text) => {
-    draft.update((value) => value + text);
-  }, () => {
-    if (current === undefined) missing.set(true);
-  }, () => stopped);
+  listenToThread(
+    source,
+    apply,
+    draftState.append,
+    draftState.clear,
+    () => { void refresh(); },
+    () => { if (current === undefined) missing.set(true); },
+    () => stopped,
+  );
 
   const refresh = async (): Promise<void> => {
     try {

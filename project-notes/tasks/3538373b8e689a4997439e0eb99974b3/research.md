@@ -1,0 +1,156 @@
+# P0 — Investigate External Assistant Lifecycle Desynchronizat…
+
+Task: 3538373b8e689a4997439e0eb99974b3
+Status: working
+Updated: 2026-10-28T06:04:05Z
+
+Reference material; confirm applicability before reusing.
+
+**Summary:** I stopped at the repository’s required dirty-state check.  
+**No files were changed, and I did not run project code or tests.**
+
+## Report
+
+The checkout is on `dev` with one worktree and no reported branch divergence. The working tree already contains deleted project-note files and untracked files, including `test-approval-list.md` and two task directories. These are pre-existing changes; I did not inspect or alter them.
+
+`agents/git-safety.md` requires stopping when pre-existing changes or untracked files are found and waiting for a decision. I did not continue the lifecycle trace or run `git fetch`.
+
+## Needed
+
+Needs the orchestrator’s keep, separate, or discard decision for the listed starting state before research continues.
+
+---
+
+**Summary:** Source shows a path where an external session stays open after its assistant has reported an answer: `log_message` records that answer but does not complete the work session.  
+**No files changed; I did not run the app or tests.** The report separates source facts from inferences.
+
+## Source verified
+
+### Work completion and rejection
+
+- `Works.Complete` in `internal/modules/task/application/work_complete.go:26–48` closes work only when `complete_work` is called. A successful completion sets work to `completed`, task status to `done`, and adds a receipt; `failed` and `blocked` map to `failed` and `needs-input` respectively (`:50–73`, `:148–157`).
+- An exact repeat of the same outcome and summary returns success without another mutation (`completionMatches`, `:44–47`, `:142–146`). A different completion attempt after the work is closed returns `ErrWorkClosed` (`:50–55`).
+- For outcome `completed`, `ready_for_approval` or `awaiting_clarification` is rejected with `ErrAwaitingPerson` before mutation (`Complete`, `:40–43`). The source does not show that rejection automatically completes or stops the session.
+- `Stop` accepts open or blocked work, then atomically sets work to `stopped`, task status to `failed`, and records “Stopped by you” (`work_complete.go:76–92`).
+- SQLite `Store.Commit` applies the work revision, task patch and events in one transaction (`internal/modules/task/adapter/sqlite/work_commit.go:14–33`). `advanceWork` updates the work state and revision; a supplied task patch updates task status (`work_advance.go:14–45`, `work_commit.go:136–154`). A stale revision rejects the mutation.
+
+### MCP logging, tools, plans and handoff
+
+- MCP instructions tell the assistant to end by calling `log_message` with an assistant summary (`internal/modules/coding/adapter/mcp/server.go:102–114`). They separately say substantial work should call `begin_work` (`:108–112`).
+- `logMessage` saves the supplied text (`internal/modules/coding/adapter/mcp/tools_log.go:36–67`). With a `work_id`, `saveNote` records a work call with phase `finished` (`:92–106`); it does **not** call `Complete`.
+- `complete_work` is a separate MCP tool that calls `Works.Complete` (`internal/modules/coding/adapter/mcp/tools_work.go:26–29`, `:93–100`). `begin_work` calls `Works.Begin` (`:13–15`, `:32–42`); Begin validates its input, resumes an idempotent request when applicable, then creates a work session (`internal/modules/task/application/works.go:59–85`, `:123–138`).
+- Work roles are labels; source instructions say they do not call separate agents or change permissions (`server.go:108–114`).
+- Plan approval is persisted with the decision and, for approval, a pending handoff row in one SQLite transaction (`internal/modules/task/adapter/sqlite/approval_store.go:13–33`, `:57–77`; `approval_events.go:46–54`). The Orchestrator dispatches the outbox handoff (`internal/modules/task/application/handoff_dispatch.go:18–24`). This plan path is distinct from ordinary `complete_work`.
+- The MCP server can record tool calls and text the host assistant submits to `log_message`. **It cannot observe the host assistant’s final response directly** in the code path traced; the final-response summary is available to the workspace only if the host sends it as a tool call.
+
+### Activity timestamps and recovery
+
+- The schema stores `external_works.state`, `updated_at`, revision and `ended_at`; valid states include `open`, `blocked`, `completed`, `failed`, `stopped` and `abandoned` (`internal/platform/database/migrations/055_external_works.sql:3–21`). `work_id` links the task to the work row.
+- `AppendWorkCall` updates `external_works.updated_at` on a valid open/blocked call (`internal/modules/task/adapter/sqlite/work_calls.go:14–25`, `:74–99`). A newly stored event also updates `tasks.updated_at` (`:34–53`). Updating a running command’s event to finished updates the task timestamp but does not update the work timestamp (`:101–137`).
+- Ordinary work mutations update `external_works.updated_at` through `advanceWork`; task `updated_at` is updated when the mutation includes a task patch (`internal/modules/task/adapter/sqlite/work_advance.go:19–25`, `work_commit.go:136–154`). Plan submission and decisions also update their relevant timestamps (`internal/modules/task/adapter/sqlite/plan_commit.go:46–48`, `approval_store.go:98–105`).
+- The UI’s stale flag is based on an open work row whose `updated_at` is more than 30 minutes old, excluding phases waiting on the person (`internal/modules/task/application/work_state_support.go:75–82`). `abandonStale` runs during `Begin` and abandons eligible work after 24 hours; at capacity, `abandonIdleAtCap` uses 30 minutes and skips work with a recorded running call (`work_support.go:46–73`, `:89–115`; `works.go:78–84`).
+- Startup recovery skips every task with a nonempty `WorkID` (`internal/modules/task/application/recovery.go:21–40`). Thus this recovery path does not close or fail an interrupted external work session.
+- The application has injectable time in `Works.now` (`works.go:140–145`), and state snapshots accept a supplied `now` (`work_state_support.go:75–82`). The task response summary instead uses `time.Since` (`internal/modules/task/application/window.go:22–38`); `work_calls.go` also uses `time.Now`. Those paths are not fully controlled by the `Works` clock hook.
+
+### Browser state, Stop and SSE
+
+- The thread’s “Working on it” indicator requires task status `queued`, `planning` or `working`; when a work summary exists, it also requires state `open` and `stale == false` (`web/src/features/workspace/logic/working-indicator.ts:3–7`; used in `TaskThread.svelte:24–27`, rendered at `:106–111`).
+- The header shows “No activity for N min” when `task.work.stale` is true. Its Stop button is visible for a running task **or** any open/blocked work; the latter condition does not exclude stale work (`web/src/features/workspace/task/TaskHeader.svelte:19–25`, `:34–47`).
+- Stop posts to `/api/tasks/:id/cancel` (`web/src/features/workspace/logic/tasks-api.ts:73`; route `internal/modules/task/adapter/http/handler.go:52`). For tasks with a `WorkID`, `Service.Cancel` delegates to `WorkStopper.Stop` (`internal/modules/task/application/actions.go:71–88`), which invokes the external-work stop behavior above.
+- The task SSE endpoint sends an initial task snapshot and follows notifications. Its heartbeat re-reads the task, but sends no update when there are no new events (`internal/modules/task/adapter/http/stream.go:27–46`, `:49–65`, `:76–101`). The browser uses `EventSource`; on reconnection, the server resumes from `Last-Event-ID` and pushes the snapshot plus events after the cursor (`stream.go:15–24`, `:34–45`). The browser merges event versions and reloads on user-triggered refresh (`web/src/features/workspace/logic/thread.ts:35–55`, `:81–117`, `:119–136`).
+- There is no explicit “disconnected” or “unknown work state” in the work-state or task-status types (`web/src/features/workspace/logic/task-types.ts:3–11`). The browser has a `missing` flag when it cannot load the task, not a state for a reachable task with an unresponsive host assistant (`thread.ts:8–18`, `:112–125`).
+
+## Inferences, ranked by evidence
+
+1. **Strongest candidate:** the host assistant followed the MCP instruction to log its final summary but did not call the separate `complete_work` tool. The log creates a finished message, while the work remains open and the task status is not changed by that call. The session can therefore remain stoppable after the report.
+2. **Also plausible:** `complete_work` was attempted but rejected because the plan was waiting for approval or clarification. The source rejects the call without closing the work; a final host response after that rejection would not itself change workspace state.
+3. **Possible visibility delay:** if no new events arrive, the task SSE heartbeat does not send its refreshed task snapshot. A stale flag may therefore not reach an already-open page until another event, reconnect, or refresh. The header’s displayed idle minutes also has no visible timer in the inspected component.
+
+These are code-path candidates, not a confirmed explanation for the reported session.
+
+## Test and deployment evidence
+
+- The repository has Bash black-box scenarios under `test/blackbox/`, shared helpers under `test/lib/`, Playwright flows under `test/e2e/`, and runners at `test/run.sh` and `test/e2e/run.sh`. The inspected scenario names do not show an external-work lifecycle scenario.
+- There are SQLite work-store and approval tests under `internal/modules/task/adapter/sqlite/`; I did not run tests. The `Works` clock hook exists, but the traced UI task-summary stale calculation uses wall-clock time.
+- To distinguish the candidates on the affected deployment, the needed evidence is the task ID, `tasks.status`, linked `external_works.state` and `revision`, plus timestamped MCP/server logs showing whether `log_message`, `complete_work`, or a completion rejection occurred. Per the assignment, the dev database has no matching records, so source inspection cannot confirm the incident’s exact path.
+
+## Not found
+
+- Whether the affected host assistant actually called `complete_work`, or whether that call was rejected.
+- The affected deployment’s task/work row values and MCP call logs.
+- A host-assistant final-response event independent of MCP tool calls.
+
+## Suggestions
+
+- Compare the deployment evidence above first. In particular, a latest assistant `log_message` followed by no successful `complete_work` is consistent with the strongest candidate.
+- For QA planning, exercise successful completion, duplicate completion, rejected completion, and final-summary logging without completion through the public MCP and task APIs. Check the thread after an SSE reconnect and a page refresh.
+- Keep the distinction clear in any design discussion: the workspace records what the assistant sends through MCP; the inspected server path has no signal that independently confirms the host assistant has stopped speaking.
+
+---
+
+**Summary:** Official guidance supports the planned nullable SQLite column, revision-checked transactions, cancellable reconciler, and lifecycle UI patterns.  
+Repository rules and the requested official references were checked; **no files were changed and no project code or tests were run.**
+
+## Technical references
+
+- **Repository and pinned versions:** `go.mod` pins Go `1.27.2`, Fiber `v3.5.0`, and the CGO-free `modernc.org/sqlite v1.59.0`. `web/package.json` pins Svelte `5.57.1` and daisyUI `5.7.47`. Current official docs describe the relevant APIs; daisyUI’s docs show `5.7.50`. No migration to another stack is indicated.
+- **Migration:** SQLite permits `ALTER TABLE … ADD COLUMN`; a nullable column without constraints is a straightforward addition. Adding a column with `NOT NULL` requires a non-NULL default. Unconstrained column addition does not rewrite existing table contents. [SQLite ALTER TABLE](https://www.sqlite.org/lang_altertable.html)
+- **Driver and transaction:** The repo’s `modernc.org/sqlite` driver is a pure-Go SQLite driver. The Go database guidance recommends `database/sql` transaction APIs (`BeginTx`, `Commit`, `Rollback`), not issuing transaction control statements directly. SQLite transactions make their writes atomic. [Driver docs](https://pkg.go.dev/modernc.org/sqlite), [Go transaction guidance](https://go.dev/doc/database/execute-transactions), [SQLite transactions](https://sqlite.org/lang_transaction.html)
+- **Revision checks:** The existing SQLite store uses a compare-and-swap revision in `Store.Commit` (`internal/modules/task/adapter/sqlite/work_commit.go`). A conditional update on the expected revision, followed by checking whether a row changed, is consistent with that existing approach. HTTP `If-Match` is the standard alternative for protecting state changes against stale representations; RFC 9110 defines `409 Conflict` for a request that conflicts with current resource state. [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html)
+- **Background reconciler:** Use a ticker and select on both its tick channel and the service context’s `Done` channel; stop the ticker and wait for the goroutine during shutdown. Go documents that slow receivers can cause ticks to be dropped, so the reconciler should not assume every interval produces a tick. [Go `time.Ticker`](https://go.dev/pkg/time/), [Go context guidance](https://go.dev/blog/context)
+- **Fiber SSE:** Fiber v3 provides SSE headers, flushing, heartbeat comments, disconnect detection, and `LastEventID()` access. It does not provide replay storage or authentication; those remain application responsibilities. The repo’s current SSE route reads `Last-Event-ID` and replays a snapshot plus events (`internal/modules/task/adapter/http/stream.go`). A heartbeat that only emits comments will keep the connection alive but will not notify clients of changed lifecycle state; the app must explicitly send the changed snapshot. [Fiber v3 SSE](https://docs.gofiber.io/middleware/sse/)
+- **POST and retries:** RFC 9110 does not define POST as idempotent by default. If this endpoint promises repeat success, implement and test that behavior at the application boundary. Return `409` for a state/revision conflict with enough response detail to explain the conflict. [RFC 9110: idempotency and 409](https://www.rfc-editor.org/rfc/rfc9110.html)
+- **Svelte and daisyUI:** Svelte 5 `$derived` recalculates from synchronously read dependencies; derived expressions should be side-effect free. daisyUI has semantic `badge`, `alert`, and `btn` patterns, including status roles; use the repo’s existing theme roles. [Svelte `$derived`](https://svelte.dev/docs/svelte/%24derived), [daisyUI badge](https://daisyui.com/components/badge/), [alert](https://daisyui.com/components/alert/), [button](https://daisyui.com/components/button/)
+- **Security:** Protect the new state-changing POST with the endpoint’s existing authentication and task-level authorization. For cookie-authenticated browser requests, OWASP recommends a CSRF defense (such as the framework’s built-in protection, a token, or appropriate Fetch Metadata checks); POST alone does not prevent CSRF. The Go vulnerability database lists Fiber v3 advisories fixed before `v3.1.0` and `v3.2.0`, so the pinned `v3.5.0` is above those affected ranges. I did not establish whether any other pinned dependency versions are affected; use `govulncheck` for that check. [OWASP CSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), [GO-2026-4534](https://pkg.go.dev/vuln/GO-2026-4534), [GO-2026-5069](https://pkg.go.dev/vuln/GO-2026-5069), [Go vulnerability management](https://go.dev/doc/security/vuln/)
+
+## Quality checks
+
+- **Lifecycle:** Through the public API/MCP boundary, check reported-but-open, confirmed, stopped, abandoned, and waiting-on-person states. Verify that only explicit confirmation produces `done`, that confirmation leaves `proven` false, and that waiting-on-person work is excluded from abandonment.
+- **Idempotency and conflict:** Repeat confirmation and repeat `complete_work`; verify success without duplicate events or receipts. Verify stale revision and stopped/abandoned attempts return the specified conflict and leave state unchanged.
+- **Reconciler:** With a controllable clock, exercise dry-run, off, and on; reported and unreported old work; and waiting-on-person work. Assert dry-run/off do not mutate records, and that on produces the expected review or “Lost contact” outcome.
+- **SSE:** Connect, observe the initial snapshot, change phase, and confirm the heartbeat delivers the new snapshot. Reconnect with `Last-Event-ID`; verify the current snapshot and only later events arrive, without losing or duplicating state in the browser. The existing server already resumes from this header (`stream.go`).
+- **Time-dependent coverage:** Inject the clock and trigger reconciliation directly or advance a fake clock; avoid tests that wait real minutes. Check cancellation and goroutine exit on shutdown.
+- **Browser acceptance:** Through the existing Playwright flow, verify reported and stale tasks do not show a Working indicator, reported work has Mark complete and Stop controls, and confirmation displays Done without a Proven indicator.
+
+## Not found
+
+- A checked advisory result for every pinned dependency; the Go vulnerability database should be queried against the full module graph.
+- Whether the current endpoint authentication middleware already applies a CSRF defense to this route; confirm during implementation review.
+
+## Suggestions
+
+- Keep migration 061 additive and nullable, and preserve the existing compare-and-swap revision boundary.
+- Keep report status distinct from completion and proof; only the person’s confirmation should produce Done.
+- Needs Security: review authorization and CSRF protections for the new POST when the endpoint is implemented.
+
+**AGENTS.md research requirement:** This round read the relevant agent notes and indexed task documents, inspected pinned stack versions, and searched current official documentation for the affected technologies before implementation. It satisfies the required official-docs research for SQLite migrations, Go timing/transactions, Fiber SSE, Svelte derived state, and daisyUI components.
+
+---
+
+**Summary:** `Works` is in a pre-existing dirty checkout, so I stopped before reading it or `.golangci.yml`.  
+Official Go tooling explains how to generate the suggested field order and what the pointer-byte diagnostic measures.
+
+## Report
+
+**Checkout:** The required preflight showed numerous modified and untracked files, including `internal/modules/task/application/works.go`. `git fetch` could not run because `.git/FETCH_HEAD` is read-only. Per the repository’s dirty-state rule, I did not inspect either requested file or continue repository research.
+
+**General fix guidance:** The official `fieldalignment` analyzer provides a suggested field reorder. To run its fix mode for the affected package when the module is already cached:
+
+```sh
+GOPROXY=off go run golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment -fix ./internal/modules/task/application
+```
+
+This assumes the repository’s selected `golang.org/x/tools` version contains that command and its dependencies are cached. The analyzer’s source documents a standalone command and implements its suggested field reorder; golangci-lint runs `fieldalignment` as a `govet` analyzer. [Go analyzer source](https://github.com/golang/tools/blob/master/go/analysis/passes/fieldalignment/fieldalignment.go), [golangci-lint govet configuration](https://golangci-lint.run/docs/linters/configuration/)
+
+“Pointer bytes” is the GC scan extent: the number of bytes from the start of the struct through the last byte the garbage collector may need to scan for pointers. It is not the sum of pointer widths. For example, the analyzer says `{ string; uint32 }` has 8 pointer bytes, while `{ uint32; string }` has 16 because the scan must extend through the string’s pointer. Its ordering algorithm sorts by alignment, pointer-bearing status, trailing non-pointer bytes, then size. [Official analyzer source](https://github.com/golang/tools/blob/master/go/analysis/passes/fieldalignment/fieldalignment.go)
+
+A `//nolint:govet // fieldalignment: <reason>` exception is appropriate only when a real constraint makes the reorder unacceptable—for example, a measured false-sharing concern or a compatibility constraint—and the reason is concrete. The project rule requires naming the linter and explaining why; the linter documentation supports specific-linter directives with explanations. Prefer applying the analyzer’s suggested reorder first. [golangci-lint nolint guidance](https://golangci-lint.run/docs/linters/false-positives/)
+
+## Not found
+
+- The current `Works` field declarations and the repository’s exact `.golangci.yml` configuration, because the checkout is dirty and `works.go` itself is modified.
+- Whether the requested `go run` command can resolve the repository’s selected `x/tools` version from cache; I did not run it.
+
+## Suggestions
+
+After the orchestrator resolves the dirty-state decision, inspect the current `Works` declaration and `.golangci.yml`, then run the command above and review its diff before accepting it. No files were changed, and no project code or tests were run.

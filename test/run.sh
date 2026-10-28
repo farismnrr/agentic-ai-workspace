@@ -47,11 +47,11 @@ case $suite in
   e2e)
     bash "$REPO_ROOT/test/e2e/run.sh" "${2:-}"
     ;;
-  whitebox-check)
-    bash "$REPO_ROOT/test/whitebox/check-registry.sh"
+  registry-check)
+    bash "$REPO_ROOT/test/go/check-registry.sh"
     ;;
   *)
-    printf 'Usage: %s {blackbox [scenario]|smoke|e2e|whitebox-check}\n' "$0" >&2
+    printf 'Usage: %s {blackbox [scenario]|smoke|e2e|registry-check}\n' "$0" >&2
     exit 2
     ;;
 esac

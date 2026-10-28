@@ -64,6 +64,10 @@ Each connected-app conversation shows as a task beside the work done in the app.
   simple timeline used before.
 - In a work session, saved user and assistant messages remain chat bubbles.
   `saved` is returned only after the thread event commits.
+- For tracked work, save the final summary with `log_message`, then call
+  `complete_work` with the outcome. If the assistant omits `complete_work`, the
+  thread shows **Reported, not confirmed**; the person can review it and choose
+  **Mark complete**.
 - You can message an external task to ask the workspace orchestrator for help.
   It opens one linked internal chat in the same project; the external task's
   timeline and lifecycle remain separate. The chat includes the external task's

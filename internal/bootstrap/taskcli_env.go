@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
+	cliagentcommand "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/adapter/command"
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
@@ -32,12 +32,13 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted 
 		ctx = codingrunner.WithTask(ctx, req.ProjectID, req.TaskID)
 	}
 
-	docker, spec, release, err := p.engine.Lease(ctx, dir, programHosts(p.hosts[req.Program], granted, hasGit)...)
+	docker, spec, release, err := p.engine.Lease(ctx, dir,
+		codingrunner.ProgramHosts(p.hosts[req.Program], granted, hasGit)...)
 	if err != nil {
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("start program: %w", err)
 	}
 	granted.Open(&spec)
-	spec.WorkspaceReadOnly = req.Limited && !mayChange(req.Tools)
+	spec.WorkspaceReadOnly = req.Limited && !cliagentcommand.MayChange(req.Tools)
 	stop, err := p.prepareBridge(ctx, req, &spec)
 	if err != nil {
 		release()
@@ -45,17 +46,6 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted 
 	}
 	spec.Home = home
 	return docker, spec, combineRelease(stop, release), nil
-}
-
-// programHosts is the program's own hosts plus what the project was granted as exact host:port targets.
-// GitHub is added when the project's owner connected it.
-func programHosts(own []string, granted codingrunner.Granted, hasGit bool) []string {
-	hosts := append(slices.Clone(own), granted.Targets...)
-	if hasGit {
-		hosts = append(hosts, codingrunner.GitHosts()...)
-	}
-
-	return hosts
 }
 
 func combineRelease(stop, release func()) func() {
@@ -93,7 +83,7 @@ func (p *plans) environment(
 		}
 	}
 	values, granting := granted.Apply(&spec, values)
-	entries := append(windowEnv(req.Program, window), "HOME="+sandbox.Home,
+	entries := append(cliagentcommand.WindowEnv(req.Program, window), "HOME="+sandbox.Home,
 		"CODEX_HOME="+sandbox.Home+"/.codex", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
 		"DISABLE_AUTOUPDATER=1", fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))
 	entries = append(append(entries, granting...), guardEnv(req)...)

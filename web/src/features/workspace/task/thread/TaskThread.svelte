@@ -23,11 +23,11 @@
 
   const { task, events, draft, actions, onretry, readOnly = false }: Props = $props();
   const allBlocks = $derived(toBlocks(events));
-  const working = $derived(shouldShowWorkingIndicator(task.status, task.work));
   const journey = $derived(journeySteps(events, task.work, task.linkedTaskStatus));
   const workStatus = $derived(workStatusPresentation(task.status, task.work));
   const statusLabel = $derived(workStatus.label || statusMeta[task.status].label);
-  const hasPlanStatus = $derived(workStatus.label !== '');
+  const working = $derived(shouldShowWorkingIndicator(task.status, task.work));
+  const hasStatusLabel = $derived(workStatus.label !== '' && !workStatus.showWorking);
 
   // Only the latest messages are drawn; older ones are added as the person scrolls up to them.
   const pageSize = 40;
@@ -79,8 +79,11 @@
 
 <div bind:this={scroller} {onscroll} class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-6" role="log" aria-label="Conversation">
   <ol bind:this={content} class="mx-auto flex max-w-3xl flex-col gap-5 wrap-anywhere">
-    {#if hasPlanStatus}
+    {#if hasStatusLabel}
       <li><p class="badge badge-outline badge-sm" role="status">{statusLabel}</p></li>
+    {/if}
+    {#if workStatus.hint !== ''}
+      <li><p class="text-sm text-[var(--brand-text-secondary)]" role="status">{workStatus.hint}</p></li>
     {/if}
     {#if journey.length > 0}
       <li class="flex flex-wrap items-center gap-1.5 text-xs" aria-label="Work journey">
@@ -107,7 +110,8 @@
       <li><ChatBubble who="ai" text={draft} time="writing…" /></li>
     {:else if working}
       <li class="ml-9 flex items-center gap-2 text-[var(--brand-text-secondary)]" role="status">
-        <span class="loading loading-sm motion-safe:loading-dots motion-reduce:animate-none"></span>{task.status === 'queued' ? 'Waiting to start' : 'Working on it'}
+        <span class="loading loading-sm motion-safe:loading-dots motion-reduce:animate-none"></span>
+        {task.work?.phase === 'running' ? workStatus.label : task.status === 'queued' ? 'Waiting to start' : 'Working on it'}
       </li>
     {/if}
   </ol>

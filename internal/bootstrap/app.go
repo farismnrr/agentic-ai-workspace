@@ -26,7 +26,7 @@ func Run(version string) error {
 
 	defer func() { _ = db.Close() }()
 
-	mounts, stop, err := wire(db, cfg)
+	mounts, stop, err := Wire(db, cfg)
 	if err != nil {
 		return err
 	}

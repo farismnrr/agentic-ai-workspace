@@ -101,6 +101,22 @@ func (s *Service) Cancel(ctx context.Context, userID, taskID string) error {
 	return domain.ErrWrongState
 }
 
+// Confirm marks a reported external task complete after checking task ownership.
+func (s *Service) Confirm(ctx context.Context, userID, taskID string) (Completion, error) {
+	task, err := s.owned(ctx, userID, taskID)
+	if err != nil {
+		return Completion{}, err
+	}
+	if task.ArchivedAt != nil || task.WorkID == "" || s.workConfirmer == nil {
+		return Completion{}, domain.ErrWrongState
+	}
+	completion, err := s.workConfirmer.Confirm(ctx, userID, task.Source, task.ProjectID, task.WorkID)
+	if err != nil {
+		return Completion{}, fmt.Errorf("confirm external work: %w", err)
+	}
+	return completion, nil
+}
+
 func (s *Service) revokeAgentSession(task domain.Task) {
 	if s.deps.AgentSessions != nil {
 		s.deps.AgentSessions.RevokeTask(task.UserID, task.ID)

@@ -5,9 +5,30 @@ import (
 	"net"
 	"net/netip"
 	"net/url"
+	"slices"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
 )
+
+// ProgramHosts combines a vendor program's registries with project grants and owner-connected GitHub access.
+func ProgramHosts(own []string, granted Granted, hasGit bool) []string {
+	hosts := append(slices.Clone(own), granted.Targets...)
+	if hasGit {
+		hosts = append(hosts, githubHosts...)
+	}
+	return hosts
+}
+
+// SamePort reports whether a granted target already uses target's port.
+func SamePort(targets []string, target string) bool {
+	_, port, _ := net.SplitHostPort(target)
+	for _, existing := range targets {
+		if _, other, _ := net.SplitHostPort(existing); other == port {
+			return true
+		}
+	}
+	return false
+}
 
 // Granted is what the server lets one project's sandbox reach besides the registries: exact "host:port" targets,
 // such as the project's database and its model gateway, and the environment that points the code at them.

@@ -18,7 +18,7 @@ SANDBOX_TEST_IMAGE ?= ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-.PHONY: help image sandbox-image redeploy-dev e2e build backend-build run verify verify-full guardrails shellcheck frontend frontend-deps frontend-verify backend-test backend-lint backend-verify blackbox smoke docker-boundary volume-isolation whitebox-check clean
+.PHONY: help image sandbox-image redeploy-dev e2e build backend-build run verify verify-full guardrails shellcheck frontend frontend-deps frontend-verify backend-test backend-lint backend-verify blackbox smoke docker-boundary volume-isolation registry-check clean
 
 help:
 	@echo "make build    - verify, then build the single static binary ($(BIN_PATH))"
@@ -27,9 +27,9 @@ help:
 	@echo "make sandbox-image - build the toolbox image the agent's commands run in"
 	@echo "make redeploy-dev - pull the app image published from dev and recreate the app container"
 	@echo "make smoke    - smoke-test the built binary"
-	@echo "make e2e      - run browser flows (or FLOW=projects, sites or thread)"
+	@echo "make e2e      - run browser flows (or FLOW=projects, sites, thread or lifecycle)"
 	@echo "make verify-full - run verify, black-box, smoke, browser and isolation checks"
-	@echo "make whitebox-check - check the retained Go test registry"
+	@echo "make registry-check - check the retained Go test registry"
 	@echo "make verify   - run every quality check (Go + frontend)"
 	@echo "make blackbox - run the built-binary black-box scenarios"
 	@echo "make clean    - remove bin/, node_modules and generated frontend output"
@@ -64,11 +64,11 @@ smoke:
 
 e2e:
 	@set -eu; \
-	if [ "$(FLOW)" = all ]; then flows='projects sites thread'; else flows='$(FLOW)'; fi; \
+	if [ -z "$(FLOW)" ] || [ "$(FLOW)" = all ]; then flows='projects sites thread lifecycle'; else flows='$(FLOW)'; fi; \
 	for flow in $$flows; do ./test/run.sh e2e "$$flow"; done
 
-whitebox-check:
-	@./test/run.sh whitebox-check
+registry-check:
+	@./test/run.sh registry-check
 
 guardrails:
 	MAX_FILE_LINES="$(MAX_FILE_LINES)" sh ./scripts/check-guardrails.sh
@@ -97,10 +97,10 @@ frontend-verify: frontend-deps
 
 backend-test:
 	go mod tidy -diff
-	go test ./cmd/... ./internal/...
+	go test ./cmd/... ./internal/... ./test/go/...
 
 backend-lint:
-	$(GOLANGCI_LINT) run ./cmd/... ./internal/...
+	$(GOLANGCI_LINT) run ./cmd/... ./internal/... ./test/go/...
 
 backend-verify: backend-test backend-lint
 
@@ -138,7 +138,7 @@ verify-full: verify
 	@APP_BIN="$(abspath $(BIN_PATH))" SANDBOX_TEST_IMAGE="$(SANDBOX_TEST_IMAGE)" $(MAKE) e2e
 	@SANDBOX_TEST_IMAGE="$(SANDBOX_TEST_IMAGE)" $(MAKE) docker-boundary
 	@$(MAKE) volume-isolation
-	go test -race -count=1 ./internal/platform/egressproxy ./internal/modules/task/adapter/sqlite ./internal/platform/database
+	go test -race -count=1 ./test/go/platform/egressproxy ./test/go/modules/tasksqlite ./internal/platform/database
 
 clean:
 	rm -rf "$(BIN_DIR)" "$(WEB_DIR)/node_modules" "$(WEB_DIR)/.vite" "$(WEB_DIR)/.svelte-check"

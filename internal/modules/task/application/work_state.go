@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -14,7 +13,6 @@ const (
 	workDocumentPreview = 500
 	workMinimalPreview  = 100
 	workStateMaxBytes   = 8 * 1024
-	workIdleAfter       = 30 * time.Minute
 )
 
 // State contains a bounded, read-only snapshot of an external work session.
@@ -61,7 +59,7 @@ func (w *Works) State(ctx context.Context, userID, client, projectID, workID str
 	if err != nil {
 		return StateResult{}, err
 	}
-	state := stateSnapshot(work, task, events, w.now())
+	state := stateSnapshot(work, task, events, w.now(), w.thresholds)
 	state.Review, err = w.latestReview(ctx, work.ID)
 	if err != nil {
 		return StateResult{}, fmt.Errorf("read plan review state: %w", err)

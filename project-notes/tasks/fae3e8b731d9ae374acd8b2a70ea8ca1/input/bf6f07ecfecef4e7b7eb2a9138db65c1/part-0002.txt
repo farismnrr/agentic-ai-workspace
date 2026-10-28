@@ -1,6 +1,0 @@
-ang akurat.
-8. Memperlihatkan seluruh aktivitas tersebut di existing Plan, Documents, Team, Changes, Files, dan timeline.
-9. Melanjutkan session setelah reconnect.
-10. Tetap bekerja tanpa menjalankan internal orchestrator atau agent lain.
-
-Lakukan audit dan implementasi secara menyeluruh. Jika ditemukan blocker, laporkan bukti dan opsi penyelesaiannya. Jangan mengklaim selesai sebelum acceptance criteria terverifikasi.

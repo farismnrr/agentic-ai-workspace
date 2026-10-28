@@ -1,7 +1,7 @@
 import { writable, type Readable } from 'svelte/store';
 import { describeTaskError } from './task-errors';
 import {
-  acceptTask, answerApproval, answerQuestion, cancelTask, chatOnExternalTask, retryTask,
+  acceptTask, answerApproval, answerQuestion, cancelTask, chatOnExternalTask, confirmTask, retryTask,
   sendMessage, undoStep,
 } from './tasks-api';
 import type { Thread } from './thread';
@@ -19,6 +19,7 @@ export interface TaskController {
   /** The last problem in plain words, or an empty string. */
   error: Readable<string>;
   accept: () => void;
+  confirm: () => void;
   stop: () => void;
   retry: () => void;
   /** Resolves true when the message was accepted. */
@@ -50,6 +51,7 @@ export function createController(taskId: string, thread: Thread): TaskController
       undo: (eventId) => void act(() => undoStep(taskId, eventId)),
     },
     accept: () => void act(() => acceptTask(taskId)),
+    confirm: () => void act(() => confirmTask(taskId)),
     stop: () => void act(() => cancelTask(taskId)),
     retry: () => void act(() => retryTask(taskId)),
     follow: async (text, external) => {

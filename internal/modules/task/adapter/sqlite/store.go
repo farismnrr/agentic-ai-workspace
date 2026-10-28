@@ -24,11 +24,20 @@ const taskColumns = `id, project_id, user_id, title, summary, status, provider_i
 type Store struct {
 	db  *sql.DB
 	ids application.IDs
+	now func() time.Time
 }
 
 // NewStore wraps an open database; ids names new events.
 func NewStore(db *sql.DB, ids application.IDs) *Store {
-	return &Store{db: db, ids: ids}
+	return NewStoreWithClock(db, ids, time.Now)
+}
+
+// NewStoreWithClock wraps an open database and uses now for persisted timestamps.
+func NewStoreWithClock(db *sql.DB, ids application.IDs, now func() time.Time) *Store {
+	if now == nil {
+		now = time.Now
+	}
+	return &Store{db: db, ids: ids, now: now}
 }
 
 type scanner interface {
