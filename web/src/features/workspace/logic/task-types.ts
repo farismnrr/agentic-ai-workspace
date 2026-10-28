@@ -58,6 +58,8 @@ interface EventBase {
   time: string;
   /** The teammate who did it; absent for the lead and for tasks without a team. */
   agent?: string;
+  /** The delegation job id; distinguishes parallel jobs of the same role. */
+  job?: string;
   work?: WorkEventRef;
 }
 

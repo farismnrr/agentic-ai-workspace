@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -42,6 +43,7 @@ type runState struct {
 	// noImages is set once the model refused a request with screenshots; it then gets their text reports only.
 	noImages bool
 	holds
+	mu sync.Mutex
 }
 
 // compaction is what summarising needs from the turn that asks for it.

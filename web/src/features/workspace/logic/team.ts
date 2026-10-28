@@ -37,10 +37,26 @@ function close(open: Map<string, TeamJob>, agent: string, state: JobState, repor
   open.delete(agent);
 }
 
+function applyHandoff(
+  open: Map<string, TeamJob>,
+  jobs: TeamJob[],
+  event: Extract<TaskEvent, { kind: 'handoff' }>,
+  key: string,
+  agent: string
+): void {
+  if (event.action === 'assigned') {
+    const job = emptyJob(event.id, agent, event.model ?? '', event.technical ?? '');
+    jobs.push(job);
+    open.set(key, job);
+    return;
+  }
+  close(open, key, event.action === 'reported' ? 'done' : 'failed', event.technical ?? '');
+}
+
 /**
  * Who did what, worked out from the thread: a handoff opens a job, the steps and checks the teammate does
- * count towards it, and a handoff back closes it. Teammates work one at a time, so a step belongs to the
- * open job of the teammate whose name it carries.
+ * count towards it, and a handoff back closes it. Each job is keyed by its delegation job id (falling back
+ * to the teammate name for older events), so parallel jobs of the same role stay distinct.
  */
 export function teamJobs(events: TaskEvent[]): TeamJob[] {
   const jobs: TeamJob[] = [];
@@ -48,16 +64,13 @@ export function teamJobs(events: TaskEvent[]): TeamJob[] {
   for (const event of events) {
     const agent = event.agent;
     if (agent === undefined) continue;
-    if (event.kind !== 'handoff') {
-      const job = open.get(agent);
-      if (job !== undefined) count(job, event);
-    } else if (event.action === 'assigned') {
-      const job = emptyJob(event.id, agent, event.model ?? '', event.technical ?? '');
-      jobs.push(job);
-      open.set(agent, job);
-    } else {
-      close(open, agent, event.action === 'reported' ? 'done' : 'failed', event.technical ?? '');
+    const key = event.job ?? agent;
+    if (event.kind === 'handoff') {
+      applyHandoff(open, jobs, event, key, agent);
+      continue;
     }
+    const job = open.get(key) ?? open.get(agent);
+    if (job !== undefined) count(job, event);
   }
   return jobs;
 }

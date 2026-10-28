@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"path"
 	"slices"
 	"strings"
 
@@ -39,14 +40,38 @@ func (r *Runner) trackPlan(ctx context.Context, task domain.Task, d Delegation, 
 	}
 }
 
-// stepFor is the first step in the given state that names the teammate, or -1.
+// stepFor is the first step in the given state that names the teammate (preferring one that matches its scope), or -1.
 func stepFor(steps []domain.PlanStep, d Delegation, state domain.PlanState) int {
-	return slices.IndexFunc(steps, func(step domain.PlanStep) bool {
-		text := strings.ToLower(step.Title + " " + step.Detail)
+	if len(d.Scope) > 0 {
+		if at := slices.IndexFunc(steps, func(step domain.PlanStep) bool {
+			return stepMatchesRole(step, d, state) && stepMatchesScope(step, d.Scope)
+		}); at >= 0 {
+			return at
+		}
+	}
 
-		return step.State == state &&
-			(strings.Contains(text, strings.ToLower(d.RoleName)) || strings.Contains(text, strings.ToLower(d.RoleKey)))
+	return slices.IndexFunc(steps, func(step domain.PlanStep) bool {
+		return stepMatchesRole(step, d, state)
 	})
+}
+
+func stepMatchesRole(step domain.PlanStep, d Delegation, state domain.PlanState) bool {
+	text := strings.ToLower(step.Title + " " + step.Detail)
+
+	return step.State == state &&
+		(strings.Contains(text, strings.ToLower(d.RoleName)) || strings.Contains(text, strings.ToLower(d.RoleKey)))
+}
+
+func stepMatchesScope(step domain.PlanStep, scope []string) bool {
+	text := strings.ToLower(step.Title + " " + step.Detail)
+	for _, prefix := range scope {
+		base := strings.ToLower(path.Base(prefix))
+		if strings.Contains(text, strings.ToLower(prefix)) || (len(base) >= 3 && strings.Contains(text, base)) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // unfinishedPlan lists the steps that are neither done nor failed.

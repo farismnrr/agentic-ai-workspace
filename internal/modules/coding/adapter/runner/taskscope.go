@@ -3,11 +3,33 @@ package runner
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egressproxy"
 )
 
 type scopeKey struct{}
+
+// acquireSlot serializes commands per workspace: task-scoped calls (including parallel teammates) queue on the
+// workspace slot until it opens or ctx expires, while non-task calls fail fast with ErrTaskBusy.
+func (r *Runner) acquireSlot(ctx context.Context) (func(), error) {
+	if _, scoped := ctx.Value(scopeKey{}).(taskScope); scoped {
+		select {
+		case r.slot <- struct{}{}:
+			return func() { <-r.slot }, nil
+		case <-ctx.Done():
+			return nil, fmt.Errorf("task slot cancelled: %w", ctx.Err())
+		}
+	}
+
+	select {
+	case r.slot <- struct{}{}:
+		return func() { <-r.slot }, nil
+	default:
+		return nil, domain.ErrTaskBusy
+	}
+}
 
 // taskScope is whom a command runs for. The server sets it from the task it is executing (never from tool input),
 // and it only matters when the proxy hub has grants enabled.

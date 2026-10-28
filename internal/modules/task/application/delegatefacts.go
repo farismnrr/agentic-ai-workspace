@@ -21,7 +21,7 @@ func (r *Runner) facts(ctx context.Context, task domain.Task, d Delegation) stri
 	files, seen, runs := []string{}, map[string]bool{}, []string{}
 
 	for _, event := range events {
-		if event.Agent != d.RoleName || event.Undone {
+		if !belongsToJob(event, d.RoleName, d.ID) || event.Undone {
 			continue
 		}
 
@@ -38,6 +38,14 @@ func (r *Runner) facts(ctx context.Context, task domain.Task, d Delegation) stri
 	}
 
 	return "\n\nWhat the server recorded for " + d.RoleName + ": " + describeWork(files, runs) + "."
+}
+
+func belongsToJob(event domain.Event, roleName, jobID string) bool {
+	if jobID != "" && event.Job != "" {
+		return event.Job == jobID
+	}
+
+	return event.Agent == roleName
 }
 
 func runResult(run domain.RunInfo) string {
