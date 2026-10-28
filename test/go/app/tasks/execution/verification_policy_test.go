@@ -476,6 +476,13 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 			"summary": "Verdict: PASS\nReviewed sample_test.go and its affected callers; no contract changes.",
 		}),
 		apptest.FinishCall("Architecture review passed"),
+		apptest.ToolCall("v0", "delegate", map[string]string{
+			"role": "reviewer", "brief": "Independently review the checked package",
+		}),
+		apptest.ToolCall("v-report", "report", map[string]string{
+			"summary": "Verdict: PASS\nReviewed sample_test.go and the recorded passing go test ./... evidence.",
+		}),
+		apptest.FinishCall("Independent review passed"),
 		apptest.ToolCall("final-plan", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: prepare checked package", "state": "done"},
 			{"title": "Security: verify the package", "state": "done"},
@@ -490,7 +497,7 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.FinishCall("The package passed its required security check"),
 		apptest.FinishCall("The package passed its required security check"),
 	)
-	configureReviewTeam(t, a, "developer", "security", "architect")
+	configureReviewTeam(t, a, "developer", "security", "architect", "reviewer")
 	// Keep go.mod as baseline: changing dependencies would also require an Architect review.
 	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
