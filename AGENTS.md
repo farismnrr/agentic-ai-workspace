@@ -84,6 +84,9 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
    handoff outbox row commit together; the Orchestrator alone dispatches and
    executes handoffs, with startup recovery sweeping pending rows. Migrations
    058–060 establish plan lifecycle, questions and approvals; do not edit them.
+10. External work phases are derived from activity and saved reports. Inactivity
+    never means completion or proof; only explicit person confirmation completes
+    reported or idle work.
 
 ## Frontend rules
 

@@ -23,9 +23,12 @@ type Works struct {
 	plans       PlanStore
 	questions   QuestionStore
 	planReviews *PlanReviews
+	dryRunSeen  map[string]struct{}
 	limits      workLimiter
-	beginMu     sync.Mutex
+	sweepMode   string
 	thresholds  domain.WorkPhaseThresholds
+	beginMu     sync.Mutex
+	dryRunMu    sync.Mutex
 }
 
 // NewWorks wires external work use cases to their persistence boundary.
@@ -41,6 +44,7 @@ func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionSto
 	return &Works{
 		deps: deps, store: store, plans: plans, questions: questions,
 		limits: workLimiter{buckets: map[string]map[int64]int{}}, thresholds: thresholds,
+		sweepMode: "dry-run", dryRunSeen: map[string]struct{}{},
 	}
 }
 
@@ -88,9 +92,6 @@ func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
 	}
 	if resumed {
 		return w.beginResult(prior, true, roster), nil
-	}
-	if err := w.abandonStale(ctx, in.UserID); err != nil {
-		return BeginResult{}, err
 	}
 	if err := w.checkCaps(ctx, in.UserID, in.ProjectID); err != nil {
 		return BeginResult{}, err

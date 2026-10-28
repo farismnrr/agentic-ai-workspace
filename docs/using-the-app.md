@@ -429,6 +429,20 @@ Connecting ChatGPT and other AI apps is covered in [connector.md](./connector.md
 
 - A connected assistant chooses a role to start work. It can research, write a
   plan and save questions for you. Answer questions in the task thread.
+- **Working** means the assistant has sent recent updates. The app shows a
+  working indicator while it considers the session active.
+- **Reported, not confirmed** means the assistant saved its summary but did not
+  confirm the session with `complete_work`. Read the report before deciding.
+- **Idle** means there have been no updates for over 30 minutes. The assistant
+  may still be working; inactivity never means the work is finished or proven.
+- **Ready for your review** means a reported session passed the configured
+  cleanup window. Review the result and accept the task, or continue it.
+- **Lost contact** means an unreported session passed that window and was
+  closed as failed. Continue the task to pick it up again.
+- **Mark complete** confirms reported or idle work and changes the task to Done.
+  It records your confirmation, but does not add a “Proven to work” stamp.
+- **Stop** ends an open work session and marks its task failed. It does not
+  confirm that the requested result is complete.
 - The flow is researcher → planner → your answer → ready for approval →
   approved → handed off. Small tasks can skip research when the assistant marks
   them as small.

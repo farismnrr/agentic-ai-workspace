@@ -20,6 +20,10 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:?set PUBLIC_URL in ~/masihawam/.env}
       CONNECTOR_URL: ${CONNECTOR_URL:-${PUBLIC_URL}}
       CLIENT_IP_HEADER: CF-Connecting-IP
+      WORK_IDLE_AFTER: ${WORK_IDLE_AFTER:-30m}
+      WORK_ABANDON_AFTER: ${WORK_ABANDON_AFTER:-2h}
+      WORK_SWEEP_EVERY: ${WORK_SWEEP_EVERY:-1m}
+      WORK_SWEEP_MODE: ${WORK_SWEEP_MODE:-dry-run}
       # Workspaces are handed to the check containers as sub-paths of this volume.
       SANDBOX_DATA_VOLUME: masihawam-data
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}

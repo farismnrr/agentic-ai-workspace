@@ -27,15 +27,17 @@ func (s *Service) workSummary(ctx context.Context, task domain.Task) *domain.Wor
 		return nil
 	}
 	currentRevision, decision, handoffState, linkedTaskID := s.currentWorkReview(ctx, work)
+	phase := domain.DeriveWorkPhase(work, s.now(), domain.WorkPhaseThresholds{
+		IdleAfter: s.workIdleAfter,
+	})
 	return &domain.WorkSummary{
 		ID: work.ID, UpdatedAt: work.UpdatedAt, State: work.State, PlanState: work.PlanState, Role: work.RoleKey,
+		Phase:      phase,
 		ReportedAt: work.ReportedAt,
 		RoleName:   work.RoleName, Actor: work.Client, Revision: work.Rev,
 		CurrentRevision: currentRevision, PlanRev: work.PlanRev,
 		Decision: decision, HandoffState: handoffState, LinkedTaskID: linkedTaskID,
-		Stale: domain.DeriveWorkPhase(work, s.now(), domain.WorkPhaseThresholds{
-			IdleAfter: s.workIdleAfter,
-		}) == domain.WorkPhaseIdle,
+		Stale: phase == domain.WorkPhaseIdle,
 	}
 }
 

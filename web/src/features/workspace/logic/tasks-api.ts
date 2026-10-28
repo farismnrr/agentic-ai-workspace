@@ -23,6 +23,12 @@ export interface UsageRow {
   outputTokens: number;
 }
 
+export interface TaskConfirmation {
+  outcome: string;
+  verified: { proven: boolean };
+  already?: boolean;
+}
+
 export const loadTasks = (): Promise<Task[]> => request<Task[]>('GET', '/api/tasks');
 
 export const loadArchivedTasks = (): Promise<Task[]> => request<Task[]>('GET', '/api/tasks/archived');
@@ -71,6 +77,9 @@ export const undoStep = (id: string, eventId: string): Promise<undefined> =>
   request<undefined>('POST', `${base(id)}/events/${encodeURIComponent(eventId)}/undo`);
 
 export const cancelTask = (id: string): Promise<undefined> => request<undefined>('POST', `${base(id)}/cancel`);
+
+export const confirmTask = (id: string): Promise<TaskConfirmation> =>
+  request<TaskConfirmation>('POST', `${base(id)}/confirm`);
 
 export const acceptTask = (id: string): Promise<undefined> => request<undefined>('POST', `${base(id)}/accept`);
 

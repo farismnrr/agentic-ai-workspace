@@ -160,12 +160,13 @@ type PlanWorkResult struct {
 }
 
 type CompleteWorkResult struct {
-	WorkID     string       `json:"work_id"`
 	State      string       `json:"state"`
 	TaskStatus string       `json:"task_status"`
+	WorkID     string       `json:"work_id"`
 	Warnings   []string     `json:"warnings"`
 	Verified   VerifiedWork `json:"verified"`
 	Revision   int64        `json:"revision"`
+	Already    bool         `json:"already,omitempty"`
 }
 
 type VerifiedWork struct {

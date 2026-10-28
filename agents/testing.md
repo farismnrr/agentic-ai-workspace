@@ -32,6 +32,12 @@
 - Run one scenario directly while developing, then invoke it through `test/run.sh` or its Make target.
 - Keep Playwright TypeScript flows under `test/e2e/` and start them via `test/e2e/run.sh`.
 
+The external work lifecycle has black-box coverage in
+`test/blackbox/07-external-work-lifecycle.test.sh` and a Chromium flow in
+`test/e2e/04-work-lifecycle.spec.ts`. The flow seeds work over MCP, checks the
+running, reported, idle and confirmed states, and needs no Docker. Run it with
+`make e2e FLOW=lifecycle`; the default browser suite includes it.
+
 ## Registry enforcement
 
 `test/go/check-registry.sh` defaults to enforcement and validates every

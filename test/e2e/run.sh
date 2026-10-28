@@ -4,12 +4,15 @@ set -euo pipefail
 REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 flow=${1:-}
 case "$flow" in
-  projects|sites|thread) ;;
-  *) printf 'Usage: %s {projects|sites|thread}\n' "$0" >&2; exit 2 ;;
+  projects|sites|thread|lifecycle) ;;
+  *) printf 'Usage: %s {projects|sites|thread|lifecycle}\n' "$0" >&2; exit 2 ;;
 esac
 
 source "$REPO_ROOT/test/lib/app.sh"
 source "$REPO_ROOT/test/lib/http.sh"
+source "$REPO_ROOT/test/lib/assert.sh"
+source "$REPO_ROOT/test/lib/mcp.sh"
+source "$REPO_ROOT/test/lib/work.sh"
 
 playwright_module="$REPO_ROOT/web/node_modules/playwright"
 if [[ ! -d $playwright_module ]]; then
@@ -47,6 +50,46 @@ if [[ $flow == projects ]]; then
   shots=${shots:-$APP_TMP_DIR}
   mkdir -p "$shots"
   spec=01-projects.spec.ts
+elif [[ $flow == lifecycle ]]; then
+  export WORK_SWEEP_MODE=off WORK_IDLE_AFTER=2s
+  app_init
+  app_start
+  cookie_jar="$APP_TMP_DIR/browser.cookies"
+  touch "$cookie_jar"
+  email="lifecycle-${APP_PORT}@example.test"
+  password='correct horse battery'
+  http_register "$cookie_jar" 'Lifecycle test' "$email" "$password"
+  assert_status "$HTTP_STATUS" 201 'register lifecycle browser user'
+  oauth_code_token "$cookie_jar" 'openid email coding:read coding:write' "$APP_BASE/api/coding"
+  assert_status "$HTTP_STATUS" 200 'issue lifecycle MCP token'
+  WORK_TOKEN=$(jq -r '.access_token' "$HTTP_BODY_FILE")
+  work_begin 'Reported lifecycle task'
+  reported_id=$TASK_ID reported_work=$WORK_ID
+  work_log "$reported_work" 'The reported lifecycle task is ready.'
+  assert_status "$HTTP_STATUS" 200 'seed reported lifecycle task'
+  work_begin 'Idle lifecycle task'
+  idle_id=$TASK_ID
+  sleep 2.2
+  work_begin 'Running lifecycle task'
+  running_id=$TASK_ID running_work=$WORK_ID
+  work_begin 'Plan awaiting approval'
+  approval_id=$TASK_ID approval_work=$WORK_ID
+  work_update_plan "$approval_work"
+  assert_status "$HTTP_STATUS" 200 'save browser approval plan'
+  approval_revision=$(jq -r '.result.structuredContent.revision' "$HTTP_BODY_FILE")
+  work_submit_plan "$approval_work" 'Needs your approval' "$approval_revision"
+  assert_status "$HTTP_STATUS" 200 'submit browser approval plan'
+  info_file="$APP_TMP_DIR/info.json"
+  jq -n --arg base "$APP_BASE" --arg email "$email" --arg password "$password" \
+    --arg running "$running_id" --arg runningWork "$running_work" \
+    --arg reported "$reported_id" --arg reportedWork "$reported_work" --arg idle "$idle_id" \
+    --arg approval "$approval_id" \
+    --arg token "$WORK_TOKEN" \
+    '{base:$base,email:$email,password:$password,running:$running,runningWork:$runningWork,
+      reported:$reported,reportedWork:$reportedWork,idle:$idle,approval:$approval,token:$token}' >"$info_file"
+  shots=${shots:-$APP_TMP_DIR}
+  mkdir -p "$shots"
+  spec=04-work-lifecycle.spec.ts
 else
   image=${SANDBOX_TEST_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
   dir=$(mktemp -d)

@@ -14,3 +14,7 @@ Run `make e2e FLOW=sites` or `make e2e FLOW=thread` for those browser flows.
 They start retained Go fixture hosts because they need a scripted model and
 Docker with the configured sandbox image. Run `test/go/check-registry.sh` to
 check the registered Go tests; `scripts/check-guardrails.sh` runs it too.
+
+Run `make e2e FLOW=lifecycle` for the external work lifecycle in Chromium.
+It seeds work through MCP and uses the built binary without Docker. The default
+`make e2e` run includes this flow with the other browser scenarios.
