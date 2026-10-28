@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -26,6 +27,7 @@ type Service struct {
 	planReviews       *PlanReviews
 	handoffs          *Handoffs
 	planSnapshots     PlanSnapshotReader
+	workIdleAfter     time.Duration
 	// calls counts the calls of each connected app's thread that are under way, so the thread shows as working
 	// until the last one ends.
 	calls map[string]int
@@ -35,7 +37,21 @@ type Service struct {
 
 // NewService wires the use cases to the same collaborators as the runner.
 func NewService(deps Deps, dispatcher Dispatcher) *Service {
-	return &Service{deps: deps, dispatcher: dispatcher, calls: map[string]int{}}
+	return &Service{deps: deps, dispatcher: dispatcher, calls: map[string]int{}, workIdleAfter: 30 * time.Minute}
+}
+
+// UseWorkIdleAfter sets the idle threshold used in external-work summaries.
+func (s *Service) UseWorkIdleAfter(after time.Duration) {
+	if after > 0 {
+		s.workIdleAfter = after
+	}
+}
+
+func (s *Service) now() time.Time {
+	if s.deps.Now != nil {
+		return s.deps.Now()
+	}
+	return time.Now()
 }
 
 // CreateInput is what the composer sends.

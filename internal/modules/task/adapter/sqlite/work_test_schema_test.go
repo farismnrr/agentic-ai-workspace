@@ -41,7 +41,7 @@ CREATE TABLE external_works (
  state TEXT NOT NULL, role_key TEXT NOT NULL DEFAULT '', role_name TEXT NOT NULL DEFAULT '',
  rev INTEGER NOT NULL DEFAULT 0, plan_rev INTEGER NOT NULL DEFAULT 0, next_step INTEGER NOT NULL DEFAULT 1,
  idem_key TEXT NOT NULL DEFAULT '', idem_hash TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL,
- updated_at INTEGER NOT NULL, ended_at INTEGER,
+	updated_at INTEGER NOT NULL, ended_at INTEGER, reported_at INTEGER,
  plan_state TEXT NOT NULL DEFAULT 'draft'
 );
 CREATE TABLE external_plan_revisions (

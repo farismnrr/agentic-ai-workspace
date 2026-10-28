@@ -72,13 +72,15 @@ func stateNextAction(state StateResult, events []domain.Event, plan []domain.Pla
 	return "submit_plan"
 }
 
-func stateSnapshot(work domain.ExternalWork, task domain.Task, events []domain.Event, now time.Time) StateResult {
+func stateSnapshot(work domain.ExternalWork, task domain.Task, events []domain.Event, now time.Time,
+	thresholds domain.WorkPhaseThresholds,
+) StateResult {
 	state := StateResult{
 		TaskID: work.TaskID, WorkID: work.ID, Revision: work.Rev, State: work.State, PlanState: work.PlanState,
 		Questions: QuestionGroups{Open: []WorkQuestion{}, Answered: []WorkQuestion{}}, Role: work.RoleKey,
 		Plan: task.Plan, PlanRevision: work.PlanRev, ResearchSize: len(task.Research), Research: preview(task.Research),
 		PRDSize: len(task.PRD), PRD: preview(task.PRD), Progress: []string{},
-		Stale: work.State == domain.WorkOpen && !waitingOnPerson(work.PlanState) && now.Sub(work.UpdatedAt) > workIdleAfter,
+		Stale: domain.DeriveWorkPhase(work, now, thresholds) == domain.WorkPhaseIdle,
 	}
 	for _, event := range events {
 		countEvidence(&state, event)
