@@ -200,18 +200,18 @@ See [agents/git-safety.md](agents/git-safety.md) for the full preflight and reco
 
 ## Verification and CI
 
-1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary. It runs format/lint and type checks, build, essential white-box tests, `make blackbox`, and smoke checks.
+1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary. It runs guardrails, frontend checks, Go tests and lint, builds the binary, then runs black-box and smoke checks. Full CI uses `make verify-full` for this suite plus browser, isolation and race checks.
 2. Go uses strict golangci-lint; the frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
 3. Warnings fail verification. Fix diagnostics instead of silencing them. `//nolint` must name the linter and explain the exception.
 4. Keep exactly two workflow files in `.github/workflows/`: `fast.yml` and `full.yml`. Neither gets extra files or full-release auto-triggers without approval. Shared setup lives in `.github/actions/`.
-5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). It runs format/lint, types, build, essential white-box checks, `make blackbox`, and smoke checks; then builds images in parallel and publishes on pushes. The sandbox image is rebuilt only when its inputs change. Documentation-only changes skip it.
-6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. From a clean checkout it repeats Fast and adds broader black-box checks, Playwright e2e, Docker isolation, security regressions, and `-race` on concurrency packages. It merges and publishes only when every check passes.
-7. Fast stays quicker than full by skipping clean-room rebuilds, cross-checks, merging, and publishing. It must never skip a lint, type, test, or guardrail gate.
+5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). Its `guardrails` job runs `make guardrails shellcheck`; `backend-test` runs `make backend-test`. These gate the app image build and the conditional sandbox image build. Pushes publish images; the sandbox image rebuilds only when its inputs change. Documentation-only changes skip Fast.
+6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. From a clean checkout, `make verify-full` runs frontend checks, Go lint, build and smoke, black-box tests, Playwright e2e, Docker isolation and race checks. It merges and publishes only when every check passes.
+7. Fast keeps only guardrails and Go tests as quick code gates; Full owns frontend, lint, build, smoke, black-box, browser, isolation and race checks. Neither workflow may weaken its assigned checks or the repository guardrails.
 8. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`. CI verifies dependency drift instead of fixing it.
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.
 10. Permissions default to read-only; `packages: write` belongs only to the image jobs, and merge rights only to the full publish job.
 11. A change is incomplete while CI is failing.
-12. Ship every finished change in this order, in the same task and without being asked: `make verify`, commit, push to `dev`, wait for the Fast run on that commit, and while it is red fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` (which pulls both `app` and `sandbox` from GHCR) and confirm `/api/health` on port 8081. Always pull the sandbox image from GHCR; if a local sandbox image was built and is newer than GHCR, push it to GHCR first so the host never drifts from GHCR. Never restart the local app from an unpushed or red build, and say when a step was skipped. Exception: a change that touches no Go, web, script, guardrail, Dockerfile or migration file (only `docs/`, `README.md`, `AGENTS.md`, `agents/` or the Jenkinsfile) is pushed to `dev` and the task ends there: Fast skips it, so there is no CI wait and no redeploy.
+12. Ship every finished change in this order, in the same task and without being asked: run `make verify`, commit, push to `dev`, and wait for the Fast run on that commit. While it is red, fix and push again. Only when it is green, pull and recreate the app with `make redeploy-dev` (which pulls both `app` and `sandbox` from GHCR) and confirm `/api/health` on port 8081. Always pull the sandbox image from GHCR; if a local sandbox image is newer than GHCR, push it first. Never restart from an unpushed or red build, and report skipped steps. Exception: documentation-only changes skip `make verify`, CI wait and redeploy; push them to `dev` and finish.
 
 ## Container image
 

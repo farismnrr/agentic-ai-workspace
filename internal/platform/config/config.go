@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 	"slices"
 	"strconv"
@@ -10,20 +9,17 @@ import (
 )
 
 const (
-	defaultWorkers          = 2
-	defaultSandboxes        = 4
-	defaultSitesPerUser     = 0
-	defaultSitesTotal       = 20
-	defaultSandboxMemoryMB  = 2048
-	defaultSandboxCPUs      = 1
-	defaultSandboxSwapMB    = 0
-	defaultPort             = "8081"
-	defaultDataDir          = "data"
-	defaultAdminEmail       = "farismunir2@gmail.com"
-	defaultSandboxImage     = "ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest"
-	defaultWorkIdleAfter    = 30 * time.Minute
-	defaultWorkAbandonAfter = 2 * time.Hour
-	defaultWorkSweepEvery   = time.Minute
+	defaultWorkers         = 2
+	defaultSandboxes       = 4
+	defaultSitesPerUser    = 0
+	defaultSitesTotal      = 20
+	defaultSandboxMemoryMB = 2048
+	defaultSandboxCPUs     = 1
+	defaultSandboxSwapMB   = 0
+	defaultPort            = "8081"
+	defaultDataDir         = "data"
+	defaultAdminEmail      = "farismunir2@gmail.com"
+	defaultSandboxImage    = "ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest"
 )
 
 // defaultEgressHosts are the package registries sandboxed commands may reach.
@@ -55,6 +51,7 @@ type Config struct {
 	SandboxRuntime    string
 	SandboxDataVolume string
 	Port              string
+	WorkSweepMode     string
 	// SearxngURL is the address of a SearXNG server for web search; empty turns web search off.
 	SearxngURL       string
 	PostgresAdminURL string
@@ -74,22 +71,9 @@ type Config struct {
 	WorkIdleAfter    time.Duration
 	WorkAbandonAfter time.Duration
 	WorkSweepEvery   time.Duration
-	WorkSweepMode    string
-	CookieSecure     bool
 	// EgressGrants turns on per-task approvals of extra HTTPS hosts. Off unless EGRESS_GRANTS is true.
+	CookieSecure bool
 	EgressGrants bool
-}
-
-// GitHub is the GitHub App people connect their account through. Empty means the feature is off.
-type GitHub struct {
-	ClientID     string
-	ClientSecret string
-	AppSlug      string
-}
-
-// Enabled reports whether the GitHub App is configured.
-func (g GitHub) Enabled() bool {
-	return g.ClientID != "" && g.ClientSecret != ""
 }
 
 // Load reads runtime configuration from the environment.
@@ -148,46 +132,6 @@ func Load() Config {
 			AppSlug:      strings.TrimSpace(os.Getenv("GITHUB_APP_SLUG")),
 		},
 	}
-}
-
-func workDurations() (time.Duration, time.Duration, time.Duration) {
-	idle := duration("WORK_IDLE_AFTER", defaultWorkIdleAfter)
-	abandon := duration("WORK_ABANDON_AFTER", defaultWorkAbandonAfter)
-	sweep := duration("WORK_SWEEP_EVERY", defaultWorkSweepEvery)
-	minimum := idle + 30*time.Minute
-	if abandon < minimum {
-		log.Printf("WORK_ABANDON_AFTER is below WORK_IDLE_AFTER plus 30m; using %s", minimum)
-		abandon = minimum
-	}
-	if abandon < time.Hour || abandon > 3*time.Hour {
-		log.Printf("WORK_ABANDON_AFTER=%s is outside the recommended 1h–3h range", abandon)
-	}
-	return idle, abandon, sweep
-}
-
-func workSweepMode() string {
-	mode := strings.TrimSpace(os.Getenv("WORK_SWEEP_MODE"))
-	if mode == "" {
-		return "dry-run"
-	}
-	if mode != "on" && mode != "dry-run" && mode != "off" {
-		log.Printf("WORK_SWEEP_MODE must be on, dry-run, or off; using dry-run")
-		return "dry-run"
-	}
-	return mode
-}
-
-func duration(key string, fallback time.Duration) time.Duration {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
-	}
-	parsed, err := time.ParseDuration(value)
-	if err != nil || parsed <= 0 {
-		log.Printf("%s must be a positive duration; using %s", key, fallback)
-		return fallback
-	}
-	return parsed
 }
 
 // Connector is the public address AI apps such as ChatGPT use to reach this server: the root of the

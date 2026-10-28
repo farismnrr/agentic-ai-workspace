@@ -25,15 +25,8 @@ type WorkPhaseThresholds struct {
 
 // DeriveWorkPhase derives presentation state without persisting a phase.
 func DeriveWorkPhase(work ExternalWork, now time.Time, thresholds WorkPhaseThresholds) WorkPhase {
-	switch work.State {
-	case WorkCompleted:
-		return WorkPhaseCompleted
-	case WorkFailed:
-		return WorkPhaseFailed
-	case WorkStopped:
-		return WorkPhaseStopped
-	case WorkAbandoned:
-		return WorkPhaseAbandoned
+	if phase, terminal := terminalWorkPhase(work.State); terminal {
+		return phase
 	}
 	if waitingForPerson(work.PlanState) {
 		return WorkPhaseAwaitingPerson
@@ -48,6 +41,22 @@ func DeriveWorkPhase(work ExternalWork, now time.Time, thresholds WorkPhaseThres
 		return WorkPhaseIdle
 	}
 	return WorkPhaseRunning
+}
+
+func terminalWorkPhase(state WorkState) (WorkPhase, bool) {
+	switch state {
+	case WorkCompleted:
+		return WorkPhaseCompleted, true
+	case WorkFailed:
+		return WorkPhaseFailed, true
+	case WorkStopped:
+		return WorkPhaseStopped, true
+	case WorkAbandoned:
+		return WorkPhaseAbandoned, true
+	case WorkOpen, WorkBlocked:
+		return "", false
+	}
+	return "", false
 }
 
 func waitingForPerson(phase PlanPhase) bool {

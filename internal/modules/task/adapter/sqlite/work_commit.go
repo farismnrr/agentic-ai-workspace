@@ -96,7 +96,9 @@ func checkWorkEventLimit(ctx context.Context, tx *sql.Tx, taskID string, additio
 	return nil
 }
 
-func patchChangedTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch, now time.Time) error {
+func patchChangedTask(ctx context.Context, tx *sql.Tx, taskID string, patch *application.TaskPatch,
+	now time.Time,
+) error {
 	if patch == nil {
 		return nil
 	}

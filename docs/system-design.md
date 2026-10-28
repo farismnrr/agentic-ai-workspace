@@ -215,13 +215,13 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 
 ## Quality and release
 
-Fast checks formatting and lint, types, the build, essential registered
-white-box checks, `make blackbox`, and smoke scenarios. It builds and smoke
-tests the binary and images before publishing.
+Fast runs guardrails and Go unit tests, then builds and smoke-tests the app
+image. It builds the sandbox image only when its inputs changed. Pushes to
+`dev` publish the app image and any changed sandbox image.
 
-Full repeats Fast from a clean checkout, then runs broader black-box tests,
-Playwright flows, Docker isolation checks, security regressions, and `-race`
-for concurrency packages before it merges and publishes.
+Full runs the broader suite from a clean checkout: frontend checks, Go lint,
+build and smoke, black-box tests, Playwright flows, Docker isolation and
+`-race` checks. It merges and publishes only after every check passes.
 
 Rules in the code: source files stay under 200 lines (documentation is exempt), and functions have size and complexity limits.
 
@@ -229,7 +229,7 @@ Work happens on `dev`. Two GitHub Actions workflows run the same checks:
 
 | Workflow | When | What it does |
 | --- | --- | --- |
-| **Fast** | Push to `dev` or pull request targeting `dev` | Checks, builds, smoke-tests; pushes publish `dev` |
+| **Fast** | Push to `dev` or pull request targeting `dev` | Guardrails and Go tests gate image builds; pushes publish `dev` |
 | **Full** | Started by hand from `dev` | Adds deeper browser, Docker and race checks; then merges and publishes `latest` |
 
 For the Jenkins pipeline and hotfix deploys, see [devops.md](./devops.md).

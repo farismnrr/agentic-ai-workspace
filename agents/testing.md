@@ -10,6 +10,11 @@
 6. Keep a Go white-box test only when the behavior is super-critical and cannot be triggered deterministically at a public boundary. Put it under `test/go/` and add its exact `path::TestName`, category, reason, and Bash counterpart to `test/go/registry.md` in the same change.
 7. Never remove security or data-integrity verification without an equal or stronger named replacement.
 
+## CI lanes
+
+- Fast runs `make guardrails shellcheck` and `make backend-test` before image builds.
+- Full runs `make verify-full`, which adds frontend checks, Go lint, build and smoke, black-box, browser, Docker isolation, and race checks.
+
 ## Add a Bash scenario
 
 - Put runnable scenarios in `test/blackbox/`, `test/smoke/`, or `test/e2e/` by purpose.
