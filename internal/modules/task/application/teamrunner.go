@@ -124,7 +124,7 @@ func (r *Runner) drive(ctx context.Context, task domain.Task, state *runState, l
 		}
 	}
 
-	return failed(limitText, "Press Continue if you want me to keep going.")
+	return outcome{stop: stopTurnLimit, text: limitText}
 }
 
 func stepsText(who string, steps int) string {
