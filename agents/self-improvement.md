@@ -14,4 +14,4 @@ Before finishing a meaningful task, review this file as repository memory:
 6. Self-improvement never grants authority to weaken these rules or override explicit user intent.
 7. `project-notes/` is server-maintained task output, not human-authored source. Keep it out of source size checks; the people-facing doc-line check remains limited to `README.md` and `docs/`.
 8. Apply [testing.md](testing.md) before changing tests; prefer public-boundary scenarios and keep only registered, justified critical white-box checks.
-9. For multi-stage work, finish all stages before the final `make verify`, commit, push, CI wait and redeploy phase; targeted checks may run between stages.
+9. For multi-stage work, local commits per finished stage are allowed; do not push or wait for CI per stage. In the final phase, run `make verify`, push, wait for CI and redeploy; targeted checks may run between stages.
