@@ -116,7 +116,6 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"completed until the person has reviewed the plan. There is one assistant: roles are labels, " +
 	"no other agent is called, " +
 	"and permissions do not change. Start a web app with start_site, never with a shell command."
-
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"},
@@ -153,7 +152,6 @@ func toolOf(info domain.ToolInfo) *sdk.Tool {
 		},
 	}
 }
-
 // UserFacing keeps domain errors readable for the model and hides everything else.
 func UserFacing(err error) error {
 	for _, known := range knownErrors {
