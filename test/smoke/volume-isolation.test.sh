@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# shellcheck source=../lib/assert.sh
-# shellcheck source=../lib/http.sh
-# shellcheck source=../lib/grants.sh
+# shellcheck source=test/lib/assert.sh
+# shellcheck source=test/lib/http.sh
+# shellcheck source=test/lib/grants.sh
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -21,6 +21,7 @@ volume="agentic-volume-isolation-$(date +%s)-$$"
 app="agentic-volume-isolation-app-$$"
 port=18187
 APP_BASE="http://127.0.0.1:$port"
+# shellcheck disable=SC2034 # Read by sourced test/lib/grants.sh.
 APP_TMP_DIR=$work_dir
 jar="$work_dir/grant-check.cookies"
 state_file="$work_dir/grant-state.json"
