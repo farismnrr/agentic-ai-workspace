@@ -64,6 +64,10 @@ func (d *Docker) ensureSharedSandbox(ctx context.Context) {
 				Egress: maskTmpfsOpts, SiteDir: maskTmpfsOpts, ViewDir: maskTmpfsOpts,
 				BridgeDir: maskTmpfsOpts, sharedPidsDir: pidsTmpfsOpts,
 			},
+			Resources: container.Resources{
+				Memory: signed(d.cfg.Limits.MemoryBytes), MemorySwap: signed(d.cfg.Limits.MemoryBytes + d.cfg.Limits.SwapBytes),
+				NanoCPUs: signed(d.cfg.Limits.CPUMillis) * nanoPerMS,
+			},
 			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyUnlessStopped},
 		},
 	})
