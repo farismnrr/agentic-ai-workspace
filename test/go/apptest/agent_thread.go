@@ -34,7 +34,7 @@ func (a AgentRig) WaitApproving(t *testing.T, id, want string) {
 		}
 		time.Sleep(requestPollInterval)
 	}
-	t.Fatalf("task never reached %q, it is %q", want, a.Status(t, id))
+	t.Fatalf("task never reached %q, it is %q; recent events: %+v", want, a.Status(t, id), a.Thread(t, id))
 }
 
 // WaitApprovals polls until the thread holds the requested number of approvals.
