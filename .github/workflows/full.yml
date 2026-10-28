@@ -27,6 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
+      # Docker-backed integration tests share a small hosted runner. Keep
+      # packages and test workers bounded to avoid sandbox starvation.
+      GO_TEST_FLAGS: -p 1 -parallel 2
       SANDBOX_TEST_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
       VOLUME_ISOLATION_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
     steps:
