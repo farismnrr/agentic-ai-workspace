@@ -55,20 +55,23 @@ const leadRules = `How to lead:
         assets, ask the person once with ask_user, "Upload these pictures" or "Find free ones for me", and
         say that the list has sizes and prompts to make them. Hand the list to Media only after "Find free ones";
         pictures the person uploaded are already in assets/ and only need optimizing.
-     3. Build in slices: one delegation to the Developer per todo of the PRD, in the PRD's order, shell first
-        (layout, navigation, landing page, register and login). Name the todo, point at DESIGN.md, say what to hand
-        back. Never ask for "the whole app" in one brief. When a report says part is left, send the next slice.
-        While building, keep every slice light: the Developer type-checks and runs only the tests of what it
-        touched. No Security, QA walk, Architect, Reviewer, full lint or build, and no start_site between slices.
-        Say in each brief whether it is the last slice; only the last one gets the full lint, tests and build.
+     3. Build in slices: build the shared foundation and shell first in one Developer delegation (layout, navigation,
+        landing page, register, login and shared schema). After the shell is in place, independent feature todos may
+        be delegated to multiple Developers in parallel in the same turn by giving each a disjoint scope of file or
+        folder prefixes (for example ["pages/invoices", "server/api/invoices"]); run dependent slices one after
+        another. Name the todo, point at DESIGN.md, say what to hand back, and never ask for "the whole app" in one
+        brief. Keep early slices light (type-check and unit tests of touched files only, no start_site between slices);
+        say which slice is the last, and run the full lint, tests and build once all slices are in.
      4. Styling pass: have DevOps start the app, then the Designer styles every page that now exists and looks at
         each one with screenshots.
      5. Checks, once, after the last slice and not before: Security looks at the code, QA walks the flows and the
-        pages, the Architect verifies the final code, the Reviewer looks at the screens. A finished test or slice
-        is not a finished job, so none of these runs after every step; they run at the end, just before you report
-        to the person. The server enforces them at finish (rules 7 and 9).
-     6. For a browser extension, step 4 is not a running app: DevOps packages the build with deploy_extension instead
-        of start_site, and the screenshot of the popup is optional.
+        pages, the Architect verifies the final code, the Reviewer looks at the screens. You may call delegate for
+        these read/test checks in parallel in the same turn once the app is running. None of these runs between
+        slices; they run at the end, just before you report to the person (rules 7 and 9).
+     6. Parallelism rule: only Researcher, Developer (with disjoint scope), QA Tester, Reviewer, Security and
+        Architect may run in parallel in one turn. Planner, Business Analyst, Designer, DevOps, Media and Documents
+        must always run one at a time in their own turn. For a browser extension, step 4 uses deploy_extension
+        instead of start_site, and the popup screenshot is optional.
      7. Save: last of all, after the checks and with the app running, have DevOps commit and push the work (it
         runs ship, which puts it on the branch dev and says whether the push worked). The server holds your finish
         until files that changed are saved, so do it after the last fix, once. A push that failed is not a failed job:
@@ -152,8 +155,9 @@ const leadRules = `How to lead:
    If DevOps cannot get the app running after two tries, it reports "Stuck: ..." and you handle it like any stuck
    teammate (rule 5): the Researcher looks up the proper way, then DevOps tries again with it.
    A teammate who reports "Needs the app started" gets the same: DevOps first.
-   One teammate at a time on code. When QA finds a failure, send it to the Developer and check again, at most
-   two rounds; then stop and tell the person what is still wrong. Do not fix it yourself.
+   Never let two teammates edit the same file at once: parallel Developers must have disjoint scopes. When QA
+   finds a failure, send it to the Developer and check again, at most two rounds; then stop and tell the person
+   what is still wrong. Do not fix it yourself.
    Work with a screen the person will see ends with a design review: after the Designer and the Developer are
    done, make sure the app is running (a DevOps job starts it; no one else can), then hand the
    Reviewer a brief that says "design review" and names DESIGN.md and the files. It scores the

@@ -1,6 +1,9 @@
 package application
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 const (
 	defaultWallTime  = 15 * time.Minute
@@ -66,9 +69,35 @@ func (l Limits) steps(team bool) int {
 }
 
 // budget counts the model turns a run has left. The orchestrator and the teammates it delegates to
-// draw from the same one; a run is a single goroutine, so it needs no lock.
+// (including parallel teammates) draw from the same one.
 type budget struct {
+	mu   sync.Mutex
 	left int
+}
+
+func (b *budget) has() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.left > 0
+}
+
+func (b *budget) take() {
+	b.mu.Lock()
+	b.left--
+	b.mu.Unlock()
+}
+
+func (s *runState) lock() {
+	if s != nil {
+		s.mu.Lock()
+	}
+}
+
+func (s *runState) unlock() {
+	if s != nil {
+		s.mu.Unlock()
+	}
 }
 
 func (l Limits) delegateSteps() int {

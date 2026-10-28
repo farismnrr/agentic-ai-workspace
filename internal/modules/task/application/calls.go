@@ -6,14 +6,26 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// process works through the tool calls that still need a result, in order. It
-// stops at the first call that has to wait for the person, or that ends the task.
+// process works through the tool calls that still need a result, in order. Consecutive delegate calls run
+// together in parallel; the loop stops at the first call (or batch) that has to wait for the person or ends the task.
 func (r *Runner) process(
 	ctx context.Context, task domain.Task, state *runState, pending []Call,
 ) (outcome, bool) {
-	for index, call := range pending {
-		result, done := r.handle(ctx, task, state, call)
+	for index := 0; index < len(pending); {
+		if batch := delegateBatchLen(pending[index:]); batch > 1 {
+			result, done := r.processDelegations(ctx, task, state, pending[index:index+batch])
+			if done {
+				return result, true
+			}
+			index += batch
+
+			continue
+		}
+
+		result, done := r.handle(ctx, task, state, pending[index])
 		if !done {
+			index++
+
 			continue
 		}
 
@@ -67,6 +79,12 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 // tool runs a project tool, unless the person switched it off or has to say yes first.
 func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
+
+	if why := r.scopeHold(call); why != "" {
+		r.result(ctx, task, call.ID, why, true)
+
+		return outcome{}, false
+	}
 
 	if why := r.commandHold(call); why != "" {
 		r.result(ctx, task, call.ID, why, true)

@@ -294,6 +294,8 @@ An agent team works like a small software company. A lead takes your request and
 - The lead never changes anything itself, even a one-line fix. It reads, plans, asks you and hands every change to a teammate.
 - A teammate you did not need is simply never called.
 - Teammates do not chat with each other. The lead passes on what each one needs, so nobody works from a different picture.
+- Once the shared app shell is in place, the lead can assign independent feature slices to multiple Developers in parallel, each with its own folder scope.
+- Read and verification checks (Researcher, QA Tester, Reviewer, Security, Architect) can also run in parallel when their work is independent.
 
 The lead sizes your request first and tells you:
 

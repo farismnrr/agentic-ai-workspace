@@ -40,14 +40,21 @@ func delegateTool(members []AgentRole) domain.ToolDef {
 					"ordinary work, high for something intricate or risky, xhigh or max only for the hardest. " +
 					"Leave it out for the default.",
 			},
+			"scope": map[string]any{
+				"type": "array", "items": map[string]any{"type": "string"},
+				"description": "Optional file or folder prefixes this teammate owns (for example [\"pages/invoices\", " +
+					"\"server/api/invoices\"]). Required when running more than one file-changing teammate in parallel; " +
+					"their scopes must not overlap.",
+			},
 		},
 		"required": []string{"role", "brief"},
 	})
 
 	return domain.ToolDef{
 		Name: toolDelegate,
-		Description: "Hand one focused job to a teammate and wait for their report. The teammate sees only the brief " +
-			"and context you write. Teammates:\n- " + strings.Join(lines, "\n- "),
+		Description: "Hand a focused job to a teammate and wait for their report. Call delegate several times in one " +
+			"turn to run independent teammates in parallel (for parallel file-changing jobs, give each a disjoint " +
+			"scope). The teammate sees only the brief and context you write. Teammates:\n- " + strings.Join(lines, "\n- "),
 		Schema: schema,
 	}
 }
@@ -66,10 +73,11 @@ func reportTool() domain.ToolDef {
 }
 
 type delegateArgs struct {
-	Role    string `json:"role"`
-	Brief   string `json:"brief"`
-	Context string `json:"context"`
-	Effort  string `json:"effort"`
+	Role    string   `json:"role"`
+	Brief   string   `json:"brief"`
+	Context string   `json:"context"`
+	Effort  string   `json:"effort"`
+	Scope   []string `json:"scope"`
 }
 
 func parseDelegate(input json.RawMessage) (delegateArgs, bool) {
@@ -79,6 +87,7 @@ func parseDelegate(input json.RawMessage) (delegateArgs, bool) {
 	}
 
 	args.Role, args.Brief = strings.TrimSpace(args.Role), strings.TrimSpace(args.Brief)
+	args.Scope = cleanScope(args.Scope)
 
 	return args, args.Role != "" && args.Brief != ""
 }
@@ -86,6 +95,10 @@ func parseDelegate(input json.RawMessage) (delegateArgs, bool) {
 // briefText is what the teammate reads first.
 func (a delegateArgs) briefText() string {
 	text := "## Assignment\n\n" + truncate(a.Brief, maxBrief)
+	if len(a.Scope) > 0 {
+		text += "\n\n## Owned file scope (read anywhere; write, edit, move or delete only inside these paths):\n- " +
+			strings.Join(a.Scope, "\n- ")
+	}
 	if context := strings.TrimSpace(a.Context); context != "" {
 		text += "\n\n## Context from the orchestrator:\n\n" + truncate(context, maxBrief)
 	}
