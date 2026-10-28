@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,7 +78,15 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 		return application.RunResult{ExitCode: -1, Output: overQuota}, nil
 	}
 
-	return r.execute(ctx, task), nil
+	ctx, cancel := context.WithTimeout(r.bind(ctx), task.Timeout())
+	defer cancel()
+
+	before := snapshotEffects(ctx, r.dir)
+	result := r.execute(ctx, task, cancel)
+	after := snapshotEffects(ctx, r.dir)
+	result.Command = strings.Join(task.Command, " ")
+	result.EffectPaths, result.EffectsKnown = changedEffects(before, after)
+	return result, nil
 }
 
 const (
@@ -86,10 +95,7 @@ const (
 	stoppedOOM = "\nStopped: it used more memory than allowed."
 )
 
-func (r *Runner) execute(ctx context.Context, task domain.Task) application.RunResult {
-	ctx, cancel := context.WithTimeout(r.bind(ctx), task.Timeout())
-	defer cancel()
-
+func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.CancelFunc) application.RunResult {
 	out := &tail{limit: domain.MaxOutputBytes}
 
 	docker, err := r.engine.Docker(ctx)

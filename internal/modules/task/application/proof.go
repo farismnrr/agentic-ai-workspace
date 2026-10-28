@@ -6,17 +6,18 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// buildProof derives the evidence for a finished task. Checks come from tasks
-// the server ran itself after the last change ("verified"); anything the agent
-// only says it checked is listed as claimed and never counts as proof.
+// buildProof derives the receipt from every recognized check attempt after the
+// latest change. A failed current attempt stays visible after an earlier pass.
 func buildProof(events []domain.Event, claims []string) *domain.Proof {
 	runs, by := runsSinceLastChange(events)
 	proof := &domain.Proof{Checks: []domain.Check{}}
 	failed := false
+	verified := len(runs) > 0
 
 	for i, run := range runs {
 		passed := passedRun(run)
 		failed = failed || !passed
+		verified = verified && verificationRun(run)
 		check := domain.Check{Text: runText(run, passed), Verified: true, Passed: passed, By: by[i]}
 		proof.Checks = append(proof.Checks, check)
 	}
@@ -25,11 +26,11 @@ func buildProof(events []domain.Event, claims []string) *domain.Proof {
 		proof.Checks = append(proof.Checks, domain.Check{Text: claim})
 	}
 
-	proof.Proven = len(runs) > 0 && !failed
+	proof.Proven = verified && !failed
 	proof.Rows = []domain.ProofRow{
 		{Label: "What changed", Value: changedSummary(events)},
 		{Label: "How it was tested", Value: testedSummary(runs)},
-		{Label: "Result", Value: resultText(runs, failed)},
+		{Label: "Result", Value: resultText(runs, failed, proof.Proven)},
 	}
 
 	return proof
@@ -40,7 +41,10 @@ func runsSinceLastChange(events []domain.Event) ([]domain.RunInfo, []string) {
 	start := 0
 
 	for i, event := range events {
-		if len(event.Files) > 0 && !event.Undone {
+		if !event.Undone && hasImpactChange(event) {
+			if event.Run != nil && recognizedCheckAttempt(*event.Run) {
+				continue
+			}
 			start = i + 1
 		}
 	}
@@ -48,7 +52,7 @@ func runsSinceLastChange(events []domain.Event) ([]domain.RunInfo, []string) {
 	runs, by := []domain.RunInfo{}, []string{}
 
 	for _, event := range events[start:] {
-		if event.Run != nil {
+		if event.Run != nil && recognizedCheckAttempt(*event.Run) {
 			runs, by = append(runs, *event.Run), append(by, event.Agent)
 		}
 	}
@@ -68,8 +72,19 @@ func runText(run domain.RunInfo, passed bool) string {
 }
 
 func changedSummary(events []domain.Event) string {
-	files := map[string]bool{}
+	files := changedFiles(events)
+	summary := fileCountSummary(len(files))
+	if !hasUnknownEffects(events) {
+		return summary
+	}
+	if len(files) == 0 {
+		return "File changes could not be confirmed"
+	}
+	return summary + "; other file changes could not be confirmed"
+}
 
+func changedFiles(events []domain.Event) map[string]bool {
+	files := map[string]bool{}
 	for _, event := range events {
 		if event.Undone {
 			continue
@@ -78,21 +93,49 @@ func changedSummary(events []domain.Event) string {
 		for _, file := range event.Files {
 			files[file] = true
 		}
+		if event.Run != nil {
+			for _, file := range event.Run.EffectPaths {
+				files[file] = true
+			}
+		}
 	}
+	return files
+}
 
-	switch len(files) {
+func hasUnknownEffects(events []domain.Event) bool {
+	for _, event := range events {
+		if event.Undone || event.Run == nil {
+			continue
+		}
+		if !event.Run.EffectsKnown || len(event.Run.EffectPaths) == 0 && !knownNonMutatingCommand(event.Run.Command) {
+			return true
+		}
+	}
+	return false
+}
+
+func fileCountSummary(count int) string {
+	switch count {
 	case 0:
 		return "No files were changed"
 	case 1:
 		return "1 file changed"
 	}
+	return fmt.Sprintf("%d files changed", count)
+}
 
-	return fmt.Sprintf("%d files changed", len(files))
+func recognizedCheckAttempt(run domain.RunInfo) bool {
+	return knownCheckCommand(run.Command) && !noOpCheckCommand(run.Command) &&
+		(!isGoTestCommand(run.Command) || GoTestExecutionEvidenceAllowed(run.Command))
+}
+
+func verificationRun(run domain.RunInfo) bool {
+	return run.EffectsKnown && len(run.EffectPaths) == 0 && meaningfulCheck(run)
 }
 
 // passedRun reports whether a check the server ran succeeded.
 func passedRun(run domain.RunInfo) bool {
-	return run.ExitCode == 0 && !run.TimedOut
+	return run.ExitCode == 0 && !run.TimedOut && meaningfulCheck(run)
 }
 
 // testedSummary says how many checks ran and how they ended. It never lists the commands: they are long, and the
@@ -126,7 +169,7 @@ func testedSummary(runs []domain.RunInfo) string {
 	return fmt.Sprintf("Ran %d checks: %d passed, %d failed", len(runs), passed, failed)
 }
 
-func resultText(runs []domain.RunInfo, failed bool) string {
+func resultText(runs []domain.RunInfo, failed, proven bool) string {
 	switch {
 	case len(runs) == 0:
 		return "Not verified"
@@ -134,6 +177,9 @@ func resultText(runs []domain.RunInfo, failed bool) string {
 		return "A check failed"
 	}
 
+	if !proven {
+		return "Not verified"
+	}
 	return "Verified"
 }
 

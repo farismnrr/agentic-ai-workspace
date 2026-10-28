@@ -10,6 +10,9 @@ import (
 // TaskStore persists tasks.
 type TaskStore interface {
 	Create(ctx context.Context, task domain.Task) error
+	CreateWithRequest(ctx context.Context, task domain.Task, event domain.Event, prompt string) error
+	FollowUp(ctx context.Context, userID, taskID string, event domain.Event, prompt string,
+		mode domain.ReviewMode, at time.Time) error
 	// Find loads a task; an empty userID skips the ownership check (server use only).
 	Find(ctx context.Context, userID, id string) (domain.Task, error)
 	Pin(ctx context.Context, userID, id string, at time.Time) (domain.Task, error)

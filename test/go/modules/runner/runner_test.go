@@ -2,8 +2,11 @@ package runner_test
 
 import (
 	"context"
+	"errors"
 	"os"
+	"path/filepath"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -69,4 +72,63 @@ func run(t *testing.T, seconds int, command ...string) application.RunResult {
 	t.Helper()
 
 	return runWith(t, engine, seconds, command...)
+}
+
+var errSnapshotTestNoDocker = errors.New("snapshot regression does not require Docker")
+
+type snapshotRun struct {
+	err   error
+	value application.RunResult
+}
+
+func TestRunnerSnapshotSymlinkToFIFOIsBoundedWithoutDocker(t *testing.T) {
+	workspace := t.TempDir()
+	pipe := filepath.Join(workspace, "pipe")
+	if err := syscall.Mkfifo(pipe, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("pipe", filepath.Join(workspace, "link")); err != nil {
+		t.Fatal(err)
+	}
+	engine := runner.NewEngine(runner.EngineConfig{
+		Size: 1,
+		Open: func(context.Context) (*sandbox.Docker, error) {
+			return nil, errSnapshotTestNoDocker
+		},
+	})
+	started := time.Now()
+	result := runSnapshot(workspace, engine)
+	awaitBoundedSnapshot(t, result, pipe, started)
+}
+
+func runSnapshot(workspace string, engine *runner.Engine) <-chan snapshotRun {
+	result := make(chan snapshotRun, 1)
+	go func() {
+		value, err := runner.New(workspace, engine).Run(context.Background(),
+			domain.Task{Name: "snapshot", Command: []string{"true"}, TimeoutSeconds: 1})
+		result <- snapshotRun{err: err, value: value}
+	}()
+	return result
+}
+
+func awaitBoundedSnapshot(t *testing.T, result <-chan snapshotRun, pipe string, started time.Time) {
+	t.Helper()
+	select {
+	case outcome := <-result:
+		if outcome.err != nil || outcome.value.EffectsKnown || time.Since(started) >= time.Second {
+			t.Fatalf("snapshot must return promptly and conservatively before Docker: %+v, %v", outcome.value, outcome.err)
+		}
+	case <-time.After(time.Second):
+		fd, err := syscall.Open(pipe, syscall.O_RDWR|syscall.O_NONBLOCK, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = syscall.Close(fd)
+		select {
+		case <-result:
+			t.Fatal("Runner.Run blocked opening a symlink to a FIFO")
+		case <-time.After(time.Second):
+			t.Fatal("Runner.Run remained blocked after releasing the FIFO")
+		}
+	}
 }

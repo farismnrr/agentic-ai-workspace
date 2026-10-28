@@ -132,18 +132,19 @@ the HTTP methods a route needs. Limit file uploads by size and type. Show errors
 
 ## 6. Build and start
 Check with `run_command`, one step per call (a command has about 2 GB of memory, and an install followed by a type
-check in the same call can run out). In a slice that is not the last (the brief says which), run only
-`bun install` when you added packages, `bun --bun run typecheck` and the relevant public-boundary scenario: that is
-enough to hand the slice on. In the last slice, or when the brief asks for the full
-check, run `bun --bun run typecheck`, `bun --bun run lint`, the prescribed test suite (if the project policy permits
-it), and `bun --bun run build`; every one must pass
-before you report. The app then runs from `.output`. You do not start it: the DevOps teammate does, and your report says so.
+check in the same call can run out). Use the saved task mode and impact to choose affected type checks and
+public-boundary scenarios. Add broader applicable regression, lint, dependency and security checks for deep-review or
+sensitive impact; include critical scenarios for sensitive changes in either mode. Run the full project suite only
+when the final product scope, impact or brief requires it. The app then runs from `.output`. You do not start it: the
+DevOps teammate does, and your report says so.
 Give it the start command, port 3000: `bun /usr/local/share/serve/site-serve.ts bun .output/server/index.mjs`.
 `site-serve` makes Nuxt work under the address prefix the sites proxy uses; do not run `.output` directly.
 In the preview the page has no cookies, so a login cannot stay signed in there. That is the preview's sandbox, not
 a fault in the app: test accounts with `curl` against the API instead (sign up, sign in, then call a protected
 route with the returned cookie) and say so in your report. Never weaken a security setting to make the preview work.
-The Security teammate checks the code once, when the work is done; it does not hold up starting the app while you build.
+Security review follows changed behavior and impact. Sensitive changes require focused Security review before
+completion; ordinary Swift work does not summon Security automatically. Starting the private app during development
+does not itself require Security review.
 
 ## 7. Report
 Say in plain words what the app does, the stack, which commands you ran and how they ended, and what you could not check.

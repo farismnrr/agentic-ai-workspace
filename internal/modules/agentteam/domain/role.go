@@ -69,13 +69,13 @@ type Role struct {
 	WritesPRD bool `json:"-"`
 	// WritesResearch is the same for the role whose documents are the team's research notes.
 	WritesResearch bool `json:"-"`
-	// ChecksSecurity is true for the role whose review must come before an app is started.
+	// ChecksSecurity is true for the built-in role that reviews sensitive changes.
 	ChecksSecurity bool `json:"-"`
 	// RunsApps is true for the role that alone may start and stop the web app.
 	RunsApps bool `json:"-"`
-	// ChecksArchitecture is true for the role that must verify the final code before the task is finished.
+	// ChecksArchitecture is true for the role that reviews affected architecture when required.
 	ChecksArchitecture bool `json:"-"`
-	// ChecksLook is true for the Reviewer, whose look at the screens must come before the task is finished.
+	// ChecksLook is true for the built-in independent Reviewer.
 	ChecksLook bool `json:"-"`
 	// LooksAtScreens is true for the Designer, who must look at the running app before reporting screens it made.
 	LooksAtScreens bool `json:"-"`

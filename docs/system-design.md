@@ -33,7 +33,8 @@ flowchart LR
   C --> D[Files embedded into Go] --> E[Go tests and lint] --> F[bin/agentic-ai-workspace]
 ```
 
-Run `make build`. It verifies first, then builds the binary.
+Run `make build`. It rebuilds frontend assets and the static binary. Use
+`make verify` when the task's impact calls for the full local quality suite.
 
 ## Code layout
 
@@ -221,7 +222,8 @@ image. It builds the sandbox image only when its inputs changed. Pushes to
 
 Full runs the broader suite from a clean checkout: frontend checks, Go lint,
 build and smoke, black-box tests, Playwright flows, Docker isolation and
-`-race` checks. It merges and publishes only after every check passes.
+`-race` checks. It verifies by default. Merge and publishing require the
+explicit `release` input plus successful verification on `dev`.
 
 Rules in the code: content files stay under 200 lines, except for `test/`,
 `scripts/` and the documented long-form files. Functions also have size and
@@ -232,7 +234,7 @@ Work happens on `dev`. Two GitHub Actions workflows run the same checks:
 | Workflow | When | What it does |
 | --- | --- | --- |
 | **Fast** | Push to `dev` or pull request targeting `dev` | Guardrails and Go tests gate image builds; pushes publish `dev` |
-| **Full** | Started by hand from `dev` | Adds deeper browser, Docker and race checks; then merges and publishes `latest` |
+| **Full** | Started by hand from `dev` | Adds browser, Docker and race checks; release is separately authorized |
 
 For the Jenkins pipeline and hotfix deploys, see [devops.md](./devops.md).
 

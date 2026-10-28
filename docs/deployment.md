@@ -78,7 +78,7 @@ docker compose -f compose.latest.yaml up -d --pull never
 ### C. Build and run the binary
 
 ```bash
-make run              # verify, build, start on port 8081
+make run              # build and start on port 8081
 make run PORT=9000    # another port
 ```
 
@@ -339,7 +339,9 @@ A limited non-marimo egress canary requires separate approval and its own securi
 
 ## Masih Awam production
 
-The Full workflow deploys production by itself. After it publishes the image, the `deploy` job runs on the on-premise runner.
+The Full workflow verifies by default. Production deploys only when a maintainer
+sets its `release` input to true and every verification and publish prerequisite
+succeeds on `dev`.
 
 | Part | Detail |
 | --- | --- |

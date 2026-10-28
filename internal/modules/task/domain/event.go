@@ -53,9 +53,14 @@ const (
 
 // RunInfo records a task the server ran for the agent; proof is built from these.
 type RunInfo struct {
-	Name     string `json:"name"`
-	ExitCode int    `json:"exitCode"`
-	TimedOut bool   `json:"timedOut,omitempty"`
+	Name         string   `json:"name"`
+	Command      string   `json:"command,omitempty"`
+	EffectPaths  []string `json:"effectPaths,omitempty"`
+	ExitCode     int      `json:"exitCode"`
+	TimedOut     bool     `json:"timedOut,omitempty"`
+	EffectsKnown bool     `json:"effectsKnown,omitempty"`
+	// TestExecuted is a bounded server-derived fact from captured Go test output.
+	TestExecuted bool `json:"testExecuted,omitempty"`
 }
 
 // Event is one entry of a task's thread. Fields beyond Kind and Text only

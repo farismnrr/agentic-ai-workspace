@@ -1,10 +1,15 @@
 name: Full
 
-# Manual production release. Re-verifies everything from a clean checkout, merges dev
-# into main, publishes the image to GHCR as latest, then deploys it to production
-# (compose.prod.yaml, port 5004) on the on-premise runner.
+# Manual verification defaults to read-only. Release jobs run only when explicitly
+# requested on dev after every verification prerequisite succeeds.
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: Merge dev, publish production images, and deploy after verification
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -40,6 +45,7 @@ jobs:
 
   publish:
     needs: [verify]
+    if: inputs.release == true && github.ref == 'refs/heads/dev' && needs.verify.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -61,8 +67,8 @@ jobs:
               --title "Release from dev" --body "Automated full release after all checks passed."
             pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head dev --state open --json number --jq '.[0].number')"
           fi
-          # No --delete-branch: dev must survive the merge.
-          gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --merge
+          # No --delete-branch: dev must survive the merge. Refuse a newer dev head.
+          gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$GITHUB_SHA"
           sha="$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid')"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
@@ -71,13 +77,26 @@ jobs:
           ref: ${{ steps.merge.outputs.sha }}
           persist-credentials: false
 
-      - uses: ./.github/actions/build-image
+      - id: app_image
+        uses: ./.github/actions/build-image
         with:
           channel: latest
           push: "true"
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: ./.github/actions/build-image
+      - name: Tag the app image with the built merge commit
+        env:
+          MERGE_SHA: ${{ steps.merge.outputs.sha }}
+          IMAGE_DIGEST: ${{ steps.app_image.outputs.digest }}
+        run: |
+          set -eu
+          test -n "$IMAGE_DIGEST"
+          tag="sha-$(printf '%s' "$MERGE_SHA" | cut -c1-7)"
+          image="ghcr.io/$GITHUB_REPOSITORY"
+          docker buildx imagetools create --tag "$image:$tag" "$image@$IMAGE_DIGEST"
+
+      - id: sandbox_image
+        uses: ./.github/actions/build-image
         with:
           suffix: -sandbox
           dockerfile: sandbox/Dockerfile
@@ -86,8 +105,20 @@ jobs:
           push: "true"
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Tag the sandbox image with the built merge commit
+        env:
+          MERGE_SHA: ${{ steps.merge.outputs.sha }}
+          IMAGE_DIGEST: ${{ steps.sandbox_image.outputs.digest }}
+        run: |
+          set -eu
+          test -n "$IMAGE_DIGEST"
+          tag="sha-$(printf '%s' "$MERGE_SHA" | cut -c1-7)"
+          image="ghcr.io/$GITHUB_REPOSITORY-sandbox"
+          docker buildx imagetools create --tag "$image:$tag" "$image@$IMAGE_DIGEST"
+
   deploy:
-    needs: [publish]
+    needs: [verify, publish]
+    if: inputs.release == true && github.ref == 'refs/heads/dev' && needs.verify.result == 'success' && needs.publish.result == 'success'
     runs-on: [self-hosted, Linux, X64, masihawam-prod]
     timeout-minutes: 15
     steps:
@@ -103,8 +134,8 @@ jobs:
           env_file="$HOME/masihawam/.env"
           test -f "$env_file" || { echo "Missing $env_file on the runner."; exit 1; }
           export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
-          # The publish step tags the image with the commit this run was started on.
-          export APP_TAG="sha-$(printf '%s' '${{ github.sha }}' | cut -c1-7)"
+          # Deploy the tag created from the merge commit that the publish job built.
+          export APP_TAG="sha-$(printf '%s' '${{ needs.publish.outputs.sha }}' | cut -c1-7)"
           docker pull ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
           docker rm -f agentic-sandbox 2>/dev/null || true
           docker compose -f compose.prod.yaml --env-file "$env_file" pull

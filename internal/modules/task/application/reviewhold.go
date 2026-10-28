@@ -29,40 +29,31 @@ func hasScreen(files []string) bool {
 	return false
 }
 
-// reviewerOf names the team's Reviewer, the role that must look at the screens before the task is done.
-func reviewerOf(roster *Roster) string {
+// reviewerOf names the team's independent Reviewer.
+func reviewerOf(roster *Roster) AgentRole {
 	if roster == nil {
-		return ""
+		return AgentRole{}
 	}
 
 	for _, member := range roster.Members {
 		if member.ChecksLook {
-			return member.Name
+			return member
 		}
 	}
 
-	return ""
+	return AgentRole{}
 }
 
-// reviewerNotAsked holds a finish back while screens changed after the Reviewer last reported. The look is judged by
-// someone who is not the one who made it, on the running app, before the person is told it is done.
-func (r *Runner) reviewerNotAsked(ctx context.Context, task domain.Task, state *runState, call Call) bool {
-	reviewer := reviewerOf(state.roster)
-	if reviewer == "" || state.reviewerAsked >= maxLookRounds {
+// reviewerNotAsked requires independent review only when the saved impact policy calls for it.
+func (r *Runner) reviewerNotAsked(
+	ctx context.Context, task domain.Task, state *runState, call Call, impact verificationImpact,
+) bool {
+	if !impact.reviewer {
 		return false
 	}
-
-	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if !changedSinceReview(events, reviewer, hasScreen, maxLookRounds) {
-		return false
-	}
-
-	state.reviewerAsked++
-	r.result(ctx, task, call.ID, "The "+reviewer+" has not looked at the screens yet. Make sure the app is running, then "+
-		"hand the "+reviewer+" a brief that says \"design review\" and names DESIGN.md and the pages. Send what it "+
-		"finds to the Designer or the Developer, and finish when it reports that the product looks right.", true)
-
-	return true
+	return r.requireReview(ctx, task, state, call, reviewerOf(state.roster), &state.reviewerAsked,
+		maxLookRounds, hasImpactChange, "Reviewer", impact.reason,
+		"Independently review the changed behavior and relevant regression evidence. Do not assume a passing report.")
 }
 
 // madeAndLooked reports whether a teammate changed screens, and whether it took a screenshot, in the events given.

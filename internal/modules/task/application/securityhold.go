@@ -2,137 +2,129 @@ package application
 
 import (
 	"context"
-	"path"
-	"slices"
-	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// toolStartSite is the project tool that serves an app to the person. The task module does not import the coding
-// module, so the name is repeated here.
 const toolStartSite = "start_site"
 
-// maxSecurityRounds bounds how often a finish is held back for another security check, so a reviewer that keeps
-// finding things cannot keep the run from ever ending.
-const maxSecurityRounds = 3
+const (
+	maxSecurityRounds  = 3
+	maxArchitectRounds = 3
+)
 
-// maxArchitectRounds bounds how often a finish is held back for the Architect.
-const maxArchitectRounds = 3
-
-var codeExtensions = []string{
-	".ts", ".tsx", ".js", ".mjs", ".cjs", ".vue", ".py", ".go", ".rs", ".java", ".kt", ".rb", ".php", ".sql",
-}
-
-// securityNotAsked holds a finish back while code was changed after the Security role last reported. The app can be
-// started and restarted freely while it is being built (a private site only the owner opens); the check of the
-// finished code happens once, before the person is told it is done. At most a few rounds.
-func (r *Runner) securityNotAsked(ctx context.Context, task domain.Task, state *runState, call Call) bool {
-	security := securityOf(state.roster)
-
-	return r.finalCheckMissing(ctx, task, call, security, &state.securityAsked, maxSecurityRounds,
-		"The "+security+" has not checked the final code yet. Hand it the changed files once, now that the work is "+
-			"done, send its \"Fix first\" findings back to the Developer, and finish when it says the code is safe.")
-}
-
-// finalCheckMissing holds a finish back, with text as the answer, while code changed after reviewer last reported.
-// It counts the holds in asked and gives up after maxRounds, so a check that cannot be met never blocks the end.
-func (r *Runner) finalCheckMissing(
-	ctx context.Context, task domain.Task, call Call, reviewer string, asked *int, maxRounds int, text string,
+func (r *Runner) securityNotAsked(
+	ctx context.Context, task domain.Task, state *runState, call Call, impact verificationImpact,
 ) bool {
-	if reviewer == "" || *asked >= maxRounds {
+	if !impact.security {
 		return false
 	}
+	return r.requireReview(ctx, task, state, call, securityOf(state.roster), &state.securityAsked,
+		maxSecurityRounds, hasImpactChange, "Security", impact.reason,
+		"Name every affected path in Assessment and run each named critical scenario as its own exact recorded command.")
+}
 
-	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
-	if !changedSinceReview(events, reviewer, hasCode, maxRounds) {
+func (r *Runner) architectNotAsked(
+	ctx context.Context, task domain.Task, state *runState, call Call, impact verificationImpact,
+) bool {
+	if !impact.architecture {
 		return false
 	}
+	return r.requireReview(ctx, task, state, call, architectOf(state.roster), &state.architectAsked,
+		maxArchitectRounds, hasImpactChange, "Architect", impact.reason,
+		"Check the changed contracts and affected callers against the design, SOLID and Clean Architecture.")
+}
 
+func (r *Runner) requireReview(
+	ctx context.Context, task domain.Task, state *runState, call Call, reviewer AgentRole,
+	asked *int, maxRounds int, touches func(domain.Event) bool, label, rationale, instruction string,
+) bool {
+	events, err := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if err != nil {
+		state.addUnverified(label + " review status could not be read; impact is unknown. " + rationale)
+		return false
+	}
+	if !r.changedSinceReview(ctx, task, events, reviewer, touches) {
+		return false
+	}
+	if reviewer.Key == "" {
+		state.addUnverified(label + " review is mandatory but no matching role is enabled. " + rationale)
+		return false
+	}
+	if r.reviewRounds(ctx, task, events, reviewer) >= maxRounds || *asked >= maxRounds {
+		state.addUnverified(label + " review is still missing after the review limit. " + rationale)
+		return false
+	}
 	*asked++
-
-	r.result(ctx, task, call.ID, text, true)
-
+	r.result(ctx, task, call.ID, "Required verification: "+rationale+" Hand the changed files to "+reviewer.Name+
+		". "+instruction+" Report the checks and any unresolved finding before trying to finish.", true)
 	return true
 }
 
-// changedSinceReview reports whether files that touches matches were changed after the last time the named reviewer
-// reported, and that reviewer has not yet used up its rounds.
-func changedSinceReview(events []domain.Event, reviewer string, touches func([]string) bool, maxRounds int) bool {
+func (state *holds) addUnverified(reason string) {
+	if state.unverified == "" {
+		state.unverified = reason
+		return
+	}
+	state.unverified += "; " + reason
+}
+
+func (r *Runner) reviewRounds(ctx context.Context, task domain.Task, events []domain.Event, reviewer AgentRole) int {
+	count := 0
+	for _, event := range events {
+		if r.isReviewReport(ctx, task, event, reviewer) {
+			count++
+		}
+	}
+	return count
+}
+
+func (r *Runner) changedSinceReview(
+	ctx context.Context, task domain.Task, events []domain.Event, reviewer AgentRole, touches func(domain.Event) bool,
+) bool {
 	var lastChange, lastReview int64
-
-	rounds := 0
-
+	var latest domain.Event
 	for _, event := range events {
 		switch {
-		case event.Kind == domain.EventHandoff && event.Agent == reviewer && event.Action == handoffReported:
-			lastReview = event.Seq
-			rounds++
-		case !event.Undone && touches(event.Files):
+		case r.isReviewReport(ctx, task, event, reviewer):
+			lastReview, latest = event.Seq, event
+		case !event.Undone && touches(event):
 			lastChange = event.Seq
 		}
 	}
-
-	return lastChange > lastReview && rounds < maxRounds
+	return lastChange > lastReview || latest.Seq == 0 || !reviewPassed(latest) ||
+		reviewer.ChecksSecurity && !r.hasCriticalEvidence(ctx, task, events, latest)
 }
 
-// inDocuments reports whether a file belongs to the Documents role's output folder. Its scripts and the viewer
-// page it generates are not an app, so they do not call for the security check or the design review.
-func inDocuments(name string) bool { return strings.HasPrefix(path.Clean(name), "documents/") }
-
-func hasCode(files []string) bool {
-	for _, name := range files {
-		if inDocuments(name) {
-			continue
-		}
-
-		base := path.Base(strings.ToLower(name))
-		isConfig := base == "package.json" || strings.HasPrefix(base, "nuxt.config.")
-		if isConfig || slices.Contains(codeExtensions, path.Ext(base)) {
-			return true
-		}
+func (r *Runner) isReviewReport(ctx context.Context, task domain.Task, event domain.Event, reviewer AgentRole) bool {
+	if event.Kind != domain.EventHandoff || event.Action != handoffReported || event.Job == "" ||
+		r.deps.Delegations == nil {
+		return false
 	}
-
-	return false
+	d, found, err := r.deps.Delegations.FindDelegation(ctx, task.ID, event.Job)
+	return err == nil && found && d.RoleKey == reviewer.Key
 }
 
-// securityOf names the team's Security role, or "" when the team has none.
-func securityOf(roster *Roster) string {
+func securityOf(roster *Roster) AgentRole {
 	if roster == nil {
-		return ""
+		return AgentRole{}
 	}
-
 	for _, member := range roster.Members {
 		if member.ChecksSecurity {
-			return member.Name
+			return member
 		}
 	}
-
-	return ""
+	return AgentRole{}
 }
 
-// architectOf names the team's Architect role, or "" when the team has none.
-func architectOf(roster *Roster) string {
+func architectOf(roster *Roster) AgentRole {
 	if roster == nil {
-		return ""
+		return AgentRole{}
 	}
-
 	for _, member := range roster.Members {
 		if member.ChecksArchitecture {
-			return member.Name
+			return member
 		}
 	}
-
-	return ""
-}
-
-// architectNotAsked holds a finish back while code was changed after the Architect last reported: the one who
-// knows the architecture verifies the final code before the person is told it is done. At most a few rounds.
-func (r *Runner) architectNotAsked(ctx context.Context, task domain.Task, state *runState, call Call) bool {
-	architect := architectOf(state.roster)
-
-	return r.finalCheckMissing(ctx, task, call, architect, &state.architectAsked, maxArchitectRounds,
-		"The "+architect+" has not verified the final code yet. Hand it the changed files to check against the design "+
-			"and against SOLID and Clean Architecture, send what it finds back to the Developer, and finish when it "+
-			"reports that the code is sound.")
+	return AgentRole{}
 }

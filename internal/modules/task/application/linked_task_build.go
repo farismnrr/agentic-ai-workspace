@@ -29,7 +29,8 @@ func (s *Service) buildLinkedTask(ctx context.Context, external domain.Task, mes
 	task := domain.Task{
 		ID: id, ProjectID: external.ProjectID, UserID: external.UserID, Title: titleOf(message),
 		ProviderID: providerID, Model: model, Effort: effort, Team: team, PlanFirst: false,
-		Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
+		ReviewMode: external.ReviewMode,
+		Status:     domain.StatusQueued, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
 		OriginTaskID: external.ID,
 	}
 	event := domain.Event{Kind: domain.EventRequest, Text: message, Time: now}

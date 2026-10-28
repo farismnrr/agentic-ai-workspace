@@ -50,14 +50,44 @@ func (r *Runner) siteNotRunning(ctx context.Context, task domain.Task, state *ru
 			"finish. On a team, only the DevOps teammate can start it: give it that job.")
 }
 
-// tryFinish ends the run unless the plan is out of date or a page the person cannot open is waiting to be served.
+// tryFinish enforces task completion gates, including the impact-based review policy.
 func (r *Runner) tryFinish(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
-	if r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
-		r.localAddressHeld(ctx, task, state, call) || r.extensionHeld(ctx, task, state, call) ||
-		r.securityNotAsked(ctx, task, state, call) || r.architectNotAsked(ctx, task, state, call) ||
-		r.reviewerNotAsked(ctx, task, state, call) || r.commitMissing(ctx, task, state, call) {
-		return outcome{}, false
+	blocked, allowed := r.completionGate(ctx, task, state, call)
+	if !allowed {
+		if blocked.stop == 0 {
+			return outcome{}, false
+		}
+		return blocked, true
 	}
 
 	return r.finish(ctx, task, call), true
+}
+
+func (r *Runner) completionGate(
+	ctx context.Context, task domain.Task, state *runState, call Call,
+) (outcome, bool) {
+	events, err := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if err != nil {
+		return failed("This work is blocked and unverified because its changed-file record could not be read.",
+			"Restore task event access, then continue verification."), false
+	}
+	impact := assessImpact(task, events)
+	if r.finishHeld(ctx, task, state, call, impact) {
+		return outcome{}, false
+	}
+	if state.unverified != "" {
+		return failed("This work is blocked and unverified. "+state.unverified,
+			"Enable the required role or continue with a reviewer who can complete the mandatory check."), false
+	}
+
+	return outcome{}, true
+}
+
+func (r *Runner) finishHeld(
+	ctx context.Context, task domain.Task, state *runState, call Call, impact verificationImpact,
+) bool {
+	return r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
+		r.localAddressHeld(ctx, task, state, call) || r.extensionHeld(ctx, task, state, call) ||
+		r.securityNotAsked(ctx, task, state, call, impact) || r.architectNotAsked(ctx, task, state, call, impact) ||
+		r.reviewerNotAsked(ctx, task, state, call, impact) || r.commitMissing(ctx, task, state, call)
 }

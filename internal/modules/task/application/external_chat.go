@@ -93,5 +93,5 @@ func (s *Service) followLinkedChat(ctx context.Context, external domain.Task, me
 	if invalidLink {
 		return domain.ErrNotFound
 	}
-	return s.FollowUp(ctx, external.UserID, linked.ID, message)
+	return s.followUp(ctx, external.UserID, linked.ID, FollowUpInput{Text: message}, false)
 }

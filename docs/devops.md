@@ -154,7 +154,13 @@ GitHub Fast and Full protect `dev` and the release merge. Their required checks 
 | Full | Frontend checks, Go lint, build, smoke, black-box, browser, Docker isolation, and race checks |
 
 Fast runs on pushes and pull requests to `dev`; only pushes publish images.
-Full is manual and merges only after every full-suite check passes.
+Full is manual and verifies without changing production by default. Its
+`release` input defaults to false. Merge, production publishing and deployment
+each require that input, the `dev` branch, and successful prerequisites.
+Release also requires `dev` to still point at the revision Full verified. If
+the branch moved, the merge fails and a new verification run is needed. Full
+builds the merge commit, publishes an image tag from that commit, and deploys
+that same tag.
 
 ### When a check fails
 

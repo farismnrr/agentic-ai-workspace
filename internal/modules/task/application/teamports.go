@@ -34,13 +34,11 @@ type AgentRole struct {
 	// WritesResearch makes the document of this role's report research notes, saved on the task and shared with
 	// every teammate after it.
 	WritesResearch bool
-	// ChecksSecurity marks the role whose review must come before an app is started: start_site is refused for the
-	// team until it has looked at the latest code.
+	// ChecksSecurity marks the role that reviews a sensitive or conservatively classified change.
 	ChecksSecurity bool
-	// ChecksArchitecture marks the role that must verify the final code: the task is not finished until it has
-	// reported on the latest changes.
+	// ChecksArchitecture marks the role that reviews architecture when the impact policy requires it.
 	ChecksArchitecture bool
-	// ChecksLook marks the Reviewer: the task is not finished until it has looked at the latest screens.
+	// ChecksLook marks the independent Reviewer used by deep or uncertain impact.
 	ChecksLook bool
 	// LooksAtScreens marks the Designer: it may not report screens it made without having looked at the running app.
 	LooksAtScreens bool

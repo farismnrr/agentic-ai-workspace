@@ -1,6 +1,7 @@
 package execution_test
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -60,36 +61,45 @@ func TestAgentTeamRefusesAnEmptyOrOversizedTeam(t *testing.T) {
 func TestTeamTaskHandsWorkToATeammateAndShowsWhoDidWhat(t *testing.T) {
 	t.Parallel()
 
-	a := apptest.NewAgentRig(t,
-		apptest.ToolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
-			{"title": "Researcher: look around the project", "state": "pending"},
-		}}),
-		apptest.ToolCall("d0", "delegate", map[string]string{"role": "researcher", "brief": "Look around the project"}),
-		apptest.ToolCall("d1", "delegate", map[string]string{"role": "researcher", "brief": "Look around the project"}),
-		apptest.ToolCall("l1", "list_files", map[string]string{"path": "."}),
-		apptest.ToolCall("r1", "report", map[string]string{"summary": "The project is empty"}),
-		apptest.FinishCall("It is empty"),
-	)
+	a := researcherTaskRig(t, "Look around the project", "The project is empty")
 
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
-		`{"projectId":"`+a.Project+`","prompt":"What is in here?","team":true}`, apptest.JSONCookie(a.Cookie))
+		`{"projectId":"`+a.Project+`","prompt":"@deep-review\nWhat is in here?","team":true}`,
+		apptest.JSONCookie(a.Cookie))
 	if created.Status != 201 {
 		t.Fatalf("task not created: %d %s", created.Status, created.Body)
 	}
-
-	apptest.MustContain(t, created.Body, `"team":true`)
+	apptest.MustContain(t, created.Body, `"mode":"deep-review"`)
 
 	id, _ := created.JSON(t)["id"].(string)
 	a.WaitFor(t, id, "done")
-
+	a.Gateway.Mu.Lock()
+	requests, _ := json.Marshal(a.Gateway.Requests)
+	a.Gateway.Mu.Unlock()
+	if strings.Count(string(requests), "Saved task verification mode: deep-review.") < 2 {
+		t.Fatalf("the saved mode must reach the lead and delegated teammate: %s", requests)
+	}
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
 		apptest.JSONCookie(a.Cookie)).Body)
 	apptest.MustContain(t, []byte(events), `"kind":"handoff"`, `"action":"assigned"`, `"action":"reported"`)
 	apptest.MustContain(t, []byte(events), `"agent":"Researcher"`)
-
 	if strings.Contains(events, `"kind":"error"`) {
 		t.Fatalf("a clean team run has no errors: %s", events)
 	}
+}
+
+func researcherTaskRig(t *testing.T, brief, report string) apptest.AgentRig {
+	t.Helper()
+	return apptest.NewAgentRig(t,
+		apptest.ToolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
+			{"title": "Researcher: look around the project", "state": "pending"},
+		}}),
+		apptest.ToolCall("d0", "delegate", map[string]string{"role": "researcher", "brief": brief}),
+		apptest.ToolCall("d1", "delegate", map[string]string{"role": "researcher", "brief": brief}),
+		apptest.ToolCall("l1", "list_files", map[string]string{"path": "."}),
+		apptest.ToolCall("r1", "report", map[string]string{"summary": report}),
+		apptest.FinishCall("It is empty"),
+	)
 }
 
 func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.T) {

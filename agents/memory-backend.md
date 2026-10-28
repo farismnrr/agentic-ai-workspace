@@ -144,3 +144,15 @@ Durable lessons about the Go backend, kept for AI agents. Add one only when it i
     to the internal Orchestrator. Migrations 058–060 are append-only plan,
     question and approval schema changes.
 - **Single shared `agentic-sandbox` container (`internal/platform/sandbox`).** When `DataVolume` is set on the toolbox image, `ensureSharedSandbox` keeps one `agentic-sandbox` (`Up`) container mounting `agentic-data` and `masihawam-data` under `/mnt/volumes/<volume>`, and all `Run`/`Start` calls execute inside `agentic-sandbox` via `docker exec` (`unshare --mount --net --ipc --pid --fork` + `setpriv`) so tasks and sites never spawn extra containers.
+
+12. Task verification mode is persisted on the task and authoritative through
+    continuations and delegation. `tryFinish` derives review impact from changed
+    paths and command activity; sensitive and unclassified impact cannot bypass
+    Security, and absent mandatory roles or exhausted rounds end failed and
+    unverified. Keep ordinary Swift targeted, and do not infer impact from file
+    extensions alone. Full CI verifies by default; release jobs require the
+    boolean dispatch input, `dev`, and successful prerequisites.
+13. Command-effect snapshots use root-confined, nonblocking file opens and
+    cooperative deadlines. Context cannot interrupt a blocked metadata syscall
+    or close operation, so incomplete snapshots remain unknown rather than
+    claiming a hard wall-clock bound.

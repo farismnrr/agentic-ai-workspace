@@ -40,13 +40,17 @@ type TaskFile interface {
 	WriteTasks(data []byte) error
 }
 
-// RunResult is what a finished task produced.
+// RunResult is what a finished task produced. Effect paths describe only the
+// project workspace snapshot; they do not certify effects outside that tree.
 type RunResult struct {
-	Output    string
-	ExitCode  int
-	Duration  time.Duration
-	TimedOut  bool
-	Truncated bool
+	Output       string
+	Command      string
+	EffectPaths  []string
+	ExitCode     int
+	Duration     time.Duration
+	TimedOut     bool
+	Truncated    bool
+	EffectsKnown bool
 }
 
 // Runner executes a task's command inside the workspace.

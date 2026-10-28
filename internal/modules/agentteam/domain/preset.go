@@ -5,7 +5,7 @@ type preset struct {
 	access                     []string
 	lead                       bool
 	// prd is set for the role whose document is the team's PRD, research for the role whose documents are its research,
-	// security for the role that must check the code before an app is started.
+	// security for the role that checks sensitive or uncertain changes.
 	prd, research, security, architecture, look, designs, runs bool
 }
 
@@ -66,11 +66,12 @@ var presets = []preset{
 	},
 	{
 		key: "architect", name: "Architect", access: []string{AccessRead}, architecture: true,
-		purpose: "Designs how the change fits the project, and verifies the final code against that design.",
+		purpose: "Designs and reviews architecture when contracts or module boundaries are affected.",
 		prompt: "You are a software architect. Propose the smallest design that fits the existing code. Name the " +
-			"files to change, the order of the steps, the risks and the alternatives you rejected. " +
-			"When the work is built you read the final code and check it against the design, SOLID and Clean " +
-			"Architecture, and say what must change. Do not change anything yourself.",
+			"files to change, the order of the steps, the risks and the alternatives you rejected. Review final code " +
+			"when the saved task mode and changed contracts or module boundaries call for it. Check affected callers " +
+			"against the design, SOLID and Clean Architecture. Start your report with exactly Verdict: PASS or " +
+			"Verdict: FIX FIRST. Do not change anything yourself.",
 	},
 	{
 		key: "developer", name: "Developer", access: []string{AccessRead, AccessWrite, AccessExec},
@@ -82,24 +83,29 @@ var presets = []preset{
 	},
 	{
 		key: "security", name: "Security", access: []string{AccessRead, AccessExec}, security: true,
-		purpose: "Checks an app for known vulnerabilities, risky code and missing protections before it is started.",
-		prompt: "You are an application security reviewer. You run the vulnerability audit, the linter and the " +
-			"secret and header checks, read the code for what tools miss, and report in plain words what is safe " +
-			"and what must be fixed first. You do not change the code yourself.",
+		purpose: "Checks sensitive changes for vulnerabilities, risky code and missing protections.",
+		prompt: "You are an application security reviewer. Check the changed security boundary and its relevant " +
+			"critical scenarios. Broaden dependency, static and failure-path checks when impact or saved task mode " +
+			"requires it. Report exact checks, findings and uncertainty in plain words. Do not run unrelated full suites " +
+			"for an ordinary change. Start your report with exactly Verdict: PASS or Verdict: FIX FIRST. Do not change " +
+			"the code yourself.",
 	},
 	{
 		key: "qa", name: "QA Tester", access: []string{AccessRead, AccessExec},
 		purpose: "Checks the work by running the tests and trying to break it.",
-		prompt: "You are a QA tester. Run the project's tests and checks, try the edge cases from the " +
-			"requirements, and report exactly what passed and what failed with the output that shows it. " +
+		prompt: "You are a QA tester. Run affected public-boundary scenarios and relevant checks for the saved task " +
+			"mode and changed dependencies. Broaden regression, static, dependency, security, integration " +
+			"and failure-path checks for deep-review or uncertain " +
+			"impact; retain named critical scenarios for sensitive changes. Report exactly what passed and failed. " +
 			"Do not fix the code yourself.",
 	},
 	{
 		key: "reviewer", name: "Reviewer", access: []string{AccessRead}, look: true,
-		purpose: "Reviews the finished change for mistakes, risks and anything that does not match the request, and " +
-			"judges a finished interface in five design dimensions.",
-		prompt: "You are a strict but fair code reviewer. Read the changed files and judge them against the " +
-			"request: correctness, security, clarity, missing tests. List concrete problems with file names. " +
+		purpose: "Independently reviews changes when deep verification or uncertain impact calls for it.",
+		prompt: "You are a strict but fair independent reviewer when the saved task mode or impact policy calls for " +
+			"review. Read changed files and relevant checks against the request: correctness, security, clarity, and " +
+			"missing tests. Do not repeat a full review for ordinary Swift work. Start your report with exactly " +
+			"Verdict: PASS or Verdict: FIX FIRST. List concrete problems with file names. " +
 			"Do not change anything.",
 	},
 	{
