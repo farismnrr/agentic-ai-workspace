@@ -60,7 +60,7 @@ docker run --rm --network none --mount "type=volume,source=$volume,target=/data"
 echo 'PASS disposable owner volume initialized'
 
 VOLUME_ISOLATION_VOLUME="$volume" VOLUME_ISOLATION_IMAGE="$sandbox_image" \
-  go test -count=1 -v -timeout 4m ./internal/platform/sandbox \
+  go test -count=1 -v -timeout 4m ./test/go/platform/sandbox \
     -run '^TestOwnerVolumeSubpathsAreIsolated$' | tee "$logs_dir/subpath.log"
 if grep -q -- '--- SKIP' "$logs_dir/subpath.log"; then
   echo 'Subpath test unexpectedly skipped' >&2
@@ -93,13 +93,13 @@ SANDBOX_TEST_IMAGE="$sandbox_image" go test -count=1 -v -timeout 12m \
   -run '^Test(OnlyTheWorkspaceIsWritable|TaskHasNoNetworkAndNoPrivileges)$' \
   | tee "$logs_dir/sandbox-boundaries.log"
 
-go test -race -count=1 -timeout 12m ./internal/platform/egressproxy \
+go test -race -count=1 -timeout 12m ./test/go/platform/egressproxy \
   -run '^Test(RevokeRacingNewTunnelsLeavesNoneOpen|ADNSAnswerThatChangesAfterTheCheckChangesNothing)$' \
   | tee "$logs_dir/grant-race.log"
-go test -race -count=1 -timeout 12m ./internal/modules/task/adapter/sqlite \
+go test -race -count=1 -timeout 12m ./test/go/modules/tasksqlite \
   -run '^TestConcurrentApprovalCreatesOneDecisionAndHandoff$' \
   | tee "$logs_dir/approval-race.log"
-go test -race -count=1 -timeout 12m ./internal/bootstrap \
+go test -race -count=1 -timeout 12m ./test/go/modules/egressgrant/runtime \
   -run '^Test(ApprovalReachesTheProxyAndTaskEndClosesIt|RestartRebuildsFromTheDatabaseOnly|ADatabaseFailureRefusesConnectionsAndTheSweepEmptiesTheRegistry|EachTaskSocketServesOnlyItsOwnTasksGrantsThroughTheRealProxy)$' \
   | tee "$logs_dir/grant-http-regressions.log"
 go test -race -count=1 -timeout 12m ./internal/platform/database \

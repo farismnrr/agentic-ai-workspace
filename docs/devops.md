@@ -173,10 +173,10 @@ Full is manual and merges only after every check passes.
 | `test/smoke/` | Binary, image, sandbox, and volume isolation scenarios |
 | `test/lib/` | Shared Bash startup, HTTP, MCP, and assertion functions |
 | `test/fixtures/` | Static inputs for scenarios |
-| `test/whitebox/` | Registry for justified Go tests beside their code |
+| `test/go/` | Go tests, shared harness, and retained-test registry |
 
 `make blackbox` runs the black-box scenarios. `make smoke`, `make e2e`, and
-`make whitebox-check` run their named suites.
+`make registry-check` run their named suites.
 
 ### Jenkins pipeline
 

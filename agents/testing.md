@@ -3,11 +3,12 @@
 ## Choose the test boundary
 
 1. Start with the rule in `AGENTS.md`: do not add non-critical white-box unit tests.
-2. For features, refactors, and fixes, prefer Bash scenarios against the built binary, real HTTP/MCP endpoints, Docker, or browser flows.
-3. Reuse `test/lib/`, fixtures, and existing scenarios before adding helpers.
-4. Test a meaningful outcome and a failure path. Do not duplicate an existing guarantee or add tests to raise coverage.
-5. Keep a Go white-box test only when the behavior is super-critical and cannot be triggered deterministically at a public boundary. Add its exact `path::TestName`, category, reason, and Bash counterpart to `test/whitebox/registry.md` in the same change.
-6. Never remove security or data-integrity verification without an equal or stronger named replacement.
+2. Put every test under `test/`; never put a Go test beside program code. The untouched `sandbox/starter/` template is the sole exception.
+3. For features, refactors, and fixes, prefer Bash scenarios against the built binary, real HTTP/MCP endpoints, Docker, or browser flows.
+4. Reuse `test/lib/`, fixtures, and existing scenarios before adding helpers.
+5. Test a meaningful outcome and a failure path. Do not duplicate an existing guarantee or add tests to raise coverage.
+6. Keep a Go white-box test only when the behavior is super-critical and cannot be triggered deterministically at a public boundary. Put it under `test/go/` and add its exact `path::TestName`, category, reason, and Bash counterpart to `test/go/registry.md` in the same change.
+7. Never remove security or data-integrity verification without an equal or stronger named replacement.
 
 ## Add a Bash scenario
 
@@ -28,11 +29,10 @@
 
 ## Registry enforcement
 
-`test/whitebox/check-registry.sh` defaults to enforcement and validates every
-explicit registry row, including named bootstrap tests. Enforcement checks
-every non-bootstrap `*_test.go` file and every `Test*` function. Test files
-need a named test row or an entry in the support-file list. Bootstrap remains
-the registered integration group.
+`test/go/check-registry.sh` defaults to enforcement and validates every
+explicit registry row. It checks every Go test file and every `Test*`
+function under `test/go/`. Test files need a named test row or an entry in the
+support-file list. App-level integration tests are listed too.
 
 Follow-up: replace the site and thread browser-host Go fixtures with an
 API-backed model fixture.

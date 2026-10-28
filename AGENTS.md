@@ -137,9 +137,10 @@ This rule applies to Developers, QA, Reviewers, Planners, and every other role.
 9. Do not set coverage-percentage targets.
 10. Never remove critical security or data-integrity verification without an equal or stronger named guarantee.
 
-Black-box and end-to-end tests are Bash scenarios and Playwright TypeScript,
-all under `test/`. Retained Go white-box tests stay beside their code, as Go
-requires, and are listed in `test/whitebox/registry.md`.
+All tests live under `test/`; no tests sit beside program code. Go tests use
+`test/go/`, with shared harness code in `test/go/apptest/`. The only exception
+is the untouched template under `sandbox/starter/`. Retained critical Go tests
+are listed in `test/go/registry.md`.
 
 ## Folder structure
 
@@ -158,7 +159,12 @@ web/src/features/<feature>/               components/, content/, assets/, logic/
 web/src/shared/<concern>/                 ui, motion, theme, ... reused by 2+ features
 sandbox/                                  Dockerfile and start script of the toolbox image the agent's commands run in
 test/
-  whitebox/                               retained Go test registry and guardrail
+  go/
+    apptest/                              shared in-process Go integration-test harness
+    app/<area>/                           app-level integration tests by feature
+    modules/                              Go tests for adapters and applications
+    platform/                             Go tests for process-wide adapters
+    registry.md, check-registry.sh        retained-test inventory and guardrail
   blackbox/                               Bash API/MCP scenarios against the binary
   e2e/                                    Playwright flows driven through Bash
   smoke/                                  binary, image, sandbox, and volume isolation scenarios
@@ -170,7 +176,7 @@ agents/                                   self-improvement, memory and notes for
 ```
 
 1. Import direction is `app -> features -> shared` on the frontend and `adapter -> application -> domain` on the backend. Features never import other features, and `shared` never imports a feature; promote the code to `shared` once two features need it. The only inward exception is the route store in `app/router`. `scripts/check-guardrails.sh` enforces this.
-2. Go packages are lowercase nouns named after their folder; Svelte components are `PascalCase.svelte`; TypeScript modules are `kebab-case.ts`; retained Go white-box tests sit beside their code, while black-box and e2e tests live under `test/`.
+2. Go packages are lowercase nouns named after their folder; Svelte components are `PascalCase.svelte`; TypeScript modules are `kebab-case.ts`. All tests live under `test/`, except the untouched `sandbox/starter/` template.
 3. Name folders by responsibility (`thread`, `settings`, `httpserver`), never by kind-of-file buckets such as `helpers`, `utils`, `misc`, or `types`.
 4. A new feature gets its layer/role folders from the start; do not grow a flat folder and split it later.
 5. When code moves between folders, update this section, `docs/system-design.md`, and the guardrails in the same change.
