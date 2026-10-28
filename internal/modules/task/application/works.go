@@ -18,15 +18,24 @@ type Works struct {
 	plans       PlanStore
 	questions   QuestionStore
 	planReviews *PlanReviews
+	thresholds  domain.WorkPhaseThresholds
 	limits      workLimiter
 	beginMu     sync.Mutex
 }
 
 // NewWorks wires external work use cases to their persistence boundary.
-func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionStore) *Works {
+func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionStore,
+	thresholds domain.WorkPhaseThresholds,
+) *Works {
+	if thresholds.IdleAfter <= 0 {
+		thresholds.IdleAfter = 30 * time.Minute
+	}
+	if thresholds.AbandonAfter <= 0 {
+		thresholds.AbandonAfter = 2 * time.Hour
+	}
 	return &Works{
 		deps: deps, store: store, plans: plans, questions: questions,
-		limits: workLimiter{buckets: map[string]map[int64]int{}},
+		limits: workLimiter{buckets: map[string]map[int64]int{}}, thresholds: thresholds,
 	}
 }
 

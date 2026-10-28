@@ -15,6 +15,7 @@ import (
 	taskshots "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/shots"
 	tasksqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/sqlite"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
@@ -27,7 +28,7 @@ func newAgent(
 	gate taskapp.ToolGate, steps taskapp.ActivitySink, hub *taskapp.Hub, auth, sameOrigin fiber.Handler,
 	agentSessions taskapp.AgentSessionCleanup,
 ) (*taskapp.Service, *taskapp.Works, httpserver.Mount, func(), error) {
-	store := tasksqlite.NewStore(db, opaque.Generator{})
+	store := tasksqlite.NewStoreWithClock(db, opaque.Generator{}, time.Now)
 
 	var taskStore taskapp.TaskStore = store
 	if tools.egress != nil {
@@ -53,7 +54,8 @@ func newAgent(
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
 	service := taskapp.NewService(deps, scheduler)
-	works, handoffs := wireExternalWorkflows(service, store, hub, deps)
+	works, handoffs := wireExternalWorkflows(service, store, hub, deps, cfg)
+	service.UseWorkIdleAfter(cfg.WorkIdleAfter)
 
 	if err := handoffs.PrepareRecovery(context.Background()); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("prepare plan handoff recovery: %w", err)
@@ -81,9 +83,11 @@ func newAgent(
 }
 
 func wireExternalWorkflows(service *taskapp.Service, store *tasksqlite.Store, hub *taskapp.Hub,
-	deps taskapp.Deps,
+	deps taskapp.Deps, cfg config.Config,
 ) (*taskapp.Works, *taskapp.Handoffs) {
-	works := taskapp.NewWorks(deps, store, store, store)
+	works := taskapp.NewWorks(deps, store, store, store, taskdomain.WorkPhaseThresholds{
+		IdleAfter: cfg.WorkIdleAfter, AbandonAfter: cfg.WorkAbandonAfter,
+	})
 	handoffs := taskapp.NewHandoffs(service, store)
 	reviews := taskapp.NewPlanReviews(store, opaque.Generator{}, time.Now, handoffs, hub)
 	works.UsePlanReviews(reviews)

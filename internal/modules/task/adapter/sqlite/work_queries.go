@@ -66,11 +66,11 @@ func scanWork(row scanner) (domain.ExternalWork, error) {
 	var work domain.ExternalWork
 	var state string
 	var created, updated int64
-	var ended sql.NullInt64
+	var ended, reported sql.NullInt64
 	var planState string
 	err := row.Scan(&work.ID, &work.TaskID, &work.UserID, &work.ProjectID, &work.Client, &state,
 		&work.RoleKey, &work.RoleName, &work.Rev, &work.PlanRev, &work.NextStep, &work.IdemKey,
-		&work.IdemHash, &created, &updated, &ended, &planState)
+		&work.IdemHash, &created, &updated, &ended, &planState, &reported)
 	if err != nil {
 		return domain.ExternalWork{}, fmt.Errorf("scan work: %w", err)
 	}
@@ -79,6 +79,10 @@ func scanWork(row scanner) (domain.ExternalWork, error) {
 	work.CreatedAt, work.UpdatedAt = time.Unix(created, 0).UTC(), time.Unix(updated, 0).UTC()
 	if ended.Valid {
 		work.EndedAt = ended.Int64
+	}
+	if reported.Valid {
+		at := time.Unix(reported.Int64, 0).UTC()
+		work.ReportedAt = &at
 	}
 	return work, nil
 }

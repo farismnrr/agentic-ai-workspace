@@ -11,7 +11,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-func advanceWork(ctx context.Context, tx *sql.Tx, change application.WorkChange) (int64, error) {
+func advanceWork(ctx context.Context, tx *sql.Tx, change application.WorkChange, now time.Time) (int64, error) {
 	var patch application.WorkPatch
 	if change.Patch != nil {
 		patch = *change.Patch
@@ -20,7 +20,7 @@ func advanceWork(ctx context.Context, tx *sql.Tx, change application.WorkChange)
 		state = COALESCE(?, state), role_key = COALESCE(?, role_key), role_name = COALESCE(?, role_name),
 		plan_rev = COALESCE(?, plan_rev), next_step = COALESCE(?, next_step), ended_at = COALESCE(?, ended_at),
 		plan_state = COALESCE(?, plan_state)
-		WHERE id = ? AND user_id = ? AND rev = ?`, time.Now().Unix(), value(patch.State), value(patch.RoleKey),
+		WHERE id = ? AND user_id = ? AND rev = ?`, now.Unix(), value(patch.State), value(patch.RoleKey),
 		value(patch.RoleName), value(patch.PlanRev), value(patch.NextStep), nullTime(patch.EndedAt), value(patch.PlanState),
 		change.WorkID, change.UserID, change.ExpectRev)
 	if err != nil {

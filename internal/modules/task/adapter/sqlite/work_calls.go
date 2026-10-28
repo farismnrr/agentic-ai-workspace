@@ -20,7 +20,7 @@ func (s *Store) AppendWorkCall(
 		return "", domain.Event{}, fmt.Errorf("begin work call: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	taskID, role, roleName, err := touchWorkCall(ctx, tx, userID, client, projectID, workID)
+	taskID, role, roleName, err := touchWorkCall(ctx, tx, userID, client, projectID, workID, s.now())
 	if err != nil {
 		return "", domain.Event{}, err
 	}
@@ -73,11 +73,12 @@ func existingWorkCall(ctx context.Context, tx *sql.Tx, taskID, workID, callID st
 
 func touchWorkCall(
 	ctx context.Context, tx *sql.Tx, userID, client, projectID, workID string,
+	now time.Time,
 ) (string, string, string, error) {
 	var taskID, role, roleName string
 	err := tx.QueryRowContext(ctx, `UPDATE external_works SET updated_at = ?
 		WHERE id = ? AND user_id = ? AND client = ? AND project_id = ? AND state IN ('open','blocked')
-		RETURNING task_id, role_key, role_name`, time.Now().Unix(), workID, userID, client, projectID).
+		RETURNING task_id, role_key, role_name`, now.Unix(), workID, userID, client, projectID).
 		Scan(&taskID, &role, &roleName)
 	if err == nil {
 		return taskID, role, roleName, nil
@@ -127,8 +128,15 @@ func (s *Store) UpdateWorkCall(
 		body, event.Undo, taskID, taskID, eventID).Scan(&event.Version); err != nil {
 		return domain.Event{}, fmt.Errorf("update work call event: %w", err)
 	}
+	if work.Phase != "interrupted" {
+		if _, updateErr := tx.ExecContext(ctx,
+			`UPDATE external_works SET updated_at = ? WHERE id = ? AND task_id = ?`,
+			s.now().Unix(), workID, taskID); updateErr != nil {
+			return domain.Event{}, fmt.Errorf("update work activity time: %w", updateErr)
+		}
+	}
 	if _, updateErr := tx.ExecContext(ctx,
-		`UPDATE tasks SET updated_at = ? WHERE id = ?`, time.Now().Unix(), taskID); updateErr != nil {
+		`UPDATE tasks SET updated_at = ? WHERE id = ?`, s.now().Unix(), taskID); updateErr != nil {
 		return domain.Event{}, fmt.Errorf("update work task activity time: %w", updateErr)
 	}
 	if err := tx.Commit(); err != nil {

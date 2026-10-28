@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -30,11 +29,13 @@ func (s *Service) workSummary(ctx context.Context, task domain.Task) *domain.Wor
 	currentRevision, decision, handoffState, linkedTaskID := s.currentWorkReview(ctx, work)
 	return &domain.WorkSummary{
 		ID: work.ID, UpdatedAt: work.UpdatedAt, State: work.State, PlanState: work.PlanState, Role: work.RoleKey,
-		RoleName: work.RoleName, Actor: work.Client, Revision: work.Rev,
+		ReportedAt: work.ReportedAt,
+		RoleName:   work.RoleName, Actor: work.Client, Revision: work.Rev,
 		CurrentRevision: currentRevision, PlanRev: work.PlanRev,
 		Decision: decision, HandoffState: handoffState, LinkedTaskID: linkedTaskID,
-		Stale: work.State == domain.WorkOpen && !waitingOnPerson(work.PlanState) &&
-			time.Since(work.UpdatedAt) > workIdleAfter,
+		Stale: domain.DeriveWorkPhase(work, s.now(), domain.WorkPhaseThresholds{
+			IdleAfter: s.workIdleAfter,
+		}) == domain.WorkPhaseIdle,
 	}
 }
 
