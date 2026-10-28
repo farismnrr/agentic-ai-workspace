@@ -41,6 +41,14 @@ export interface GitSnapshot {
   files: GitFileStatus[];
 }
 
+export interface GitHead {
+  available: boolean;
+  initial: boolean;
+  content: string;
+  binary: boolean;
+  truncated: boolean;
+}
+
 const base = (projectId: string): string => `/api/projects/${encodeURIComponent(projectId)}`;
 const query = (path: string): string => `?path=${encodeURIComponent(path)}`;
 
@@ -53,6 +61,10 @@ export const readFile = (projectId: string, path: string): Promise<OpenFile> => 
 
 export const readGitStatus = (projectId: string): Promise<GitSnapshot> =>
   request<GitSnapshot>('GET', `${base(projectId)}/git/status`);
+
+/** Reads one bounded text baseline from HEAD; a file absent in HEAD has empty content. */
+export const readGitHead = (projectId: string, path: string): Promise<GitHead> =>
+  request<GitHead>('GET', `${base(projectId)}/git/head${query(path)}`);
 
 /** Saves an edit; an empty baseHash creates a file that must not exist yet. Fails with code "changed" when it moved on. */
 export const saveFile = (projectId: string, path: string, content: string, baseHash: string): Promise<{ hash: string }> =>

@@ -40,5 +40,8 @@ export const diffTheme = EditorView.theme({
   '.cm-changedLineGutter, .cm-deletedLineGutter': { background: 'var(--color-warning)' },
   '&.cm-merge-b .cm-changedLineGutter': { background: 'var(--color-success)' },
   '&.cm-merge-a .cm-changedLineGutter, .cm-deletedLineGutter': { background: 'var(--color-error)' },
+  '.cm-changeGutter': { width: '1.25rem' },
+  '.cm-changedLineGutter::before': { content: '"+"', color: 'var(--color-success)', fontWeight: '700' },
+  '.cm-deletedLineGutter::before': { content: '"−"', color: 'var(--color-error)', fontWeight: '700' },
   '.cm-collapsedLines': { backgroundColor: 'var(--color-base-200)', color: 'var(--color-base-content)', cursor: 'pointer' },
 });

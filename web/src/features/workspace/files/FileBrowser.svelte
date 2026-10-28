@@ -23,6 +23,8 @@
   const view = untrack(() => createFileView(projectId));
   const { dirs, expanded } = store;
   const gitState = git.snapshot;
+  const gitVersion = $derived($gitState === undefined ? '' : `${$gitState.revision ?? ''}:${String($gitState.initial)}:` +
+    $gitState.files.map((file) => `${file.path}:${file.index}:${file.worktree}:${String(file.conflict)}`).join('|'));
   const shown = view.state;
   let naming = $state(false);
   let newPath = $state('');
@@ -94,7 +96,7 @@
       {/if}
     </nav>
     <div class="min-h-0 min-w-0 {$shown.path === undefined ? 'hidden @2xl:block' : 'block'}">
-      <FileView {view} {projectId} onback={view.close} ondeleted={() => void store.reload()} />
+      <FileView {view} {projectId} {gitVersion} onback={view.close} ondeleted={() => void store.reload()} />
     </div>
   </div>
 </div>

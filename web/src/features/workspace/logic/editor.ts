@@ -5,6 +5,8 @@ export interface Editor {
   text: () => string;
   /** Replaces the whole text without counting it as the person's edit. */
   replace: (text: string) => void;
+  /** Updates the Git baseline without replacing the document. */
+  setGitBaseline: (text: string | undefined) => void;
   destroy: () => void;
 }
 
@@ -12,6 +14,7 @@ export interface EditorOptions {
   parent: HTMLElement;
   path: string;
   doc: string;
+  original?: string | undefined;
   readOnly: boolean;
   onchange: (text: string) => void;
 }

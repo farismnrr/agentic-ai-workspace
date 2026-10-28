@@ -4,8 +4,8 @@ set -euo pipefail
 REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 flow=${1:-}
 case "$flow" in
-  projects|sites|thread|lifecycle) ;;
-  *) printf 'Usage: %s {projects|sites|thread|lifecycle}\n' "$0" >&2; exit 2 ;;
+  projects|sites|thread|lifecycle|git) ;;
+  *) printf 'Usage: %s {projects|sites|thread|lifecycle|git}\n' "$0" >&2; exit 2 ;;
 esac
 
 source "$REPO_ROOT/test/lib/app.sh"
@@ -90,6 +90,40 @@ elif [[ $flow == lifecycle ]]; then
   shots=${shots:-$APP_TMP_DIR}
   mkdir -p "$shots"
   spec=04-work-lifecycle.spec.ts
+elif [[ $flow == git ]]; then
+  make -C "$REPO_ROOT" frontend >/dev/null
+  app_init
+  app_start
+  cookie_jar="$APP_TMP_DIR/browser.cookies"
+  touch "$cookie_jar"
+  email="git-${APP_PORT}@example.test"
+  password='correct horse battery'
+  http_register "$cookie_jar" 'Git browser test' "$email" "$password"
+  assert_status "$HTTP_STATUS" 201 'register Git browser user'
+  http_project_create "$cookie_jar" 'Git decorations project'
+  assert_status "$HTTP_STATUS" 201 'create Git browser project'
+  project_id=$(jq -r '.id' "$HTTP_BODY_FILE")
+  project_dir="$APP_DATA_DIR/projects/$project_id"
+  mkdir -p "$project_dir/src"
+  printf 'first line\nold line\nlast line\n' >"$project_dir/src/tracked.txt"
+  printf 'untracked\n' >"$project_dir/new.txt"
+  git -C "$project_dir" init -q
+  git -C "$project_dir" config user.name 'Browser Test'
+  git -C "$project_dir" config user.email 'browser@example.test'
+  git -C "$project_dir" add src/tracked.txt
+  git -C "$project_dir" commit -qm 'initial file'
+  printf 'first line\nnew line\nlast line\n' >"$project_dir/src/tracked.txt"
+  http_request POST "$cookie_jar" /api/tasks \
+    "$(jq -cn --arg project "$project_id" '{projectId:$project,prompt:"Git browser check",providerId:"plan:claude",model:"default",team:false}')"
+  assert_status "$HTTP_STATUS" 201 'create Git browser task'
+  task_id=$(jq -r '.id' "$HTTP_BODY_FILE")
+  info_file="$APP_TMP_DIR/info.json"
+  jq -n --arg base "$APP_BASE" --arg email "$email" --arg password "$password" \
+    --arg project "$project_id" --arg task "$task_id" \
+    '{base:$base,email:$email,password:$password,project:$project,task:$task}' >"$info_file"
+  shots=${shots:-$APP_TMP_DIR}
+  mkdir -p "$shots"
+  spec=05-git-decorations.spec.ts
 else
   image=${SANDBOX_TEST_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
   dir=$(mktemp -d)

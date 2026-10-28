@@ -7,6 +7,11 @@ type GitStatusReader interface {
 	Read() (domain.GitSnapshot, error)
 }
 
+// GitHeadReader reads one file's original text from the same project repository.
+type GitHeadReader interface {
+	ReadHead(path string) (domain.GitHead, error)
+}
+
 // GitStatus reads a project's current repository state through its adapter.
 type GitStatus struct{ reader GitStatusReader }
 
@@ -19,3 +24,12 @@ func NewGitStatus(reader GitStatusReader) *GitStatus {
 func (s *GitStatus) Read() (domain.GitSnapshot, error) {
 	return s.reader.Read()
 }
+
+// GitHead reads one bounded file baseline through its adapter.
+type GitHead struct{ reader GitHeadReader }
+
+// NewGitHead wires the use case to a repository adapter.
+func NewGitHead(reader GitHeadReader) *GitHead { return &GitHead{reader: reader} }
+
+// Read returns a safe HEAD baseline for one repository-relative file path.
+func (s *GitHead) Read(path string) (domain.GitHead, error) { return s.reader.ReadHead(path) }

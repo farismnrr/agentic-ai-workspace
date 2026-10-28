@@ -5,6 +5,7 @@
   import { createFileChanges } from '../../logic/changes-store';
   import { createGitStatusStore, gitStatusLabel } from '../../logic/git-status-store';
   import type { Change } from '../../logic/task-types';
+  import GitChangeDiff from '../../changes/GitChangeDiff.svelte';
   import EvidenceBadge from '../thread/EvidenceBadge.svelte';
 
   interface Props {
@@ -19,6 +20,12 @@
   const gitStore = untrack(() => createGitStatusStore(projectId));
   const git = gitStore.snapshot;
   const loaded = store.loaded;
+  let refreshKey = $state(0);
+
+  $effect(() => {
+    const snapshot = $git;
+    untrack(() => { if (snapshot !== undefined) refreshKey += 1; });
+  });
 
   // Each step of the AI adds a change, which may not have reached the files stream yet.
   $effect(() => {
@@ -37,13 +44,14 @@
   {:else if $git.files.length === 0}
     <EmptyState compact bordered icon="pencil" title="No active Git changes" body="Saved files match the current commit. Task steps remain in history below." />
   {:else}
-    <p class="text-sm font-medium">{$git.files.length} active {$git.files.length === 1 ? 'change' : 'changes'}</p>
+    <p class="text-sm font-medium">Current Git changes · {$git.files.length} {$git.files.length === 1 ? 'file' : 'files'}</p>
     <ul class="flex flex-col divide-y divide-[var(--brand-border)] rounded-lg border border-[var(--brand-border)] bg-base-100">
       {#each $git.files as file (file.path)}
         <li class="flex min-w-0 flex-wrap items-center gap-2 px-3 py-2 text-sm">
           <span class="badge badge-warning badge-sm">{gitStatusLabel(file)}</span>
           <code class="min-w-0 flex-1 truncate">{file.originalPath ? `${file.originalPath} → ${file.path}` : file.path}</code>
-          <span class="text-xs text-[var(--brand-text-secondary)]">Index: {file.index} · Working tree: {file.worktree}</span>
+          <span class="text-xs text-[var(--brand-text-secondary)]">Staged: {file.index || '—'} · Unstaged: {file.worktree || '—'}</span>
+          <GitChangeDiff {projectId} {file} {refreshKey} />
         </li>
       {/each}
     </ul>

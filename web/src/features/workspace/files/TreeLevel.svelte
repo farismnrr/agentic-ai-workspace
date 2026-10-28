@@ -42,11 +42,11 @@
           <TreeLevel {dirs} {expanded} path={entry.path} depth={depth + 1} {selected} {statuses} {ontoggle} {onopen} {ondeletefolder} />
         {/if}
       {:else}
+        {@const status = statusByPath.get(entry.path)}
         <button type="button" class="flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-sm hover:bg-base-200 {selected === entry.path ? 'bg-base-200 font-medium' : ''}" style:padding-left="{depth * 0.75 + 1.9}rem" onclick={() => { onopen(entry.path); }}>
           <Icon name="file-text" class="size-4 shrink-0 text-[var(--brand-text-tertiary)]" />
           <span class="min-w-0 flex-1 truncate">{entry.name}</span>
-          {@const status = statusByPath.get(entry.path)}
-          {#if status}<span class="badge badge-warning badge-xs" title={`${gitStatusLabel(status)}; index ${status.index}, working tree ${status.worktree}`} aria-label={`${gitStatusLabel(status)}; staged ${status.index !== '.'}, unstaged ${status.worktree !== '.'}`}>{code(status)}</span>{/if}
+          {#if status}<span class="badge badge-warning badge-xs" title={`${gitStatusLabel(status)}; index ${status.index}, working tree ${status.worktree}`} aria-label={`${gitStatusLabel(status)}; staged ${status.index !== '.' ? 'yes' : 'no'}, unstaged ${status.worktree !== '.' ? 'yes' : 'no'}`}>{code(status)}</span>{/if}
         </button>
       {/if}
     </li>

@@ -37,6 +37,7 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler, session httpserver.Authe
 		}, session)
 		app.Get("/api/projects/:id/files", auth, h.list)
 		app.Get("/api/projects/:id/git/status", auth, h.gitStatus)
+		app.Get("/api/projects/:id/git/head", auth, h.gitHead)
 		app.Get("/api/projects/:id/files/stream", auth, h.stream)
 		app.Get("/api/projects/:id/file", auth, h.read)
 		app.Get("/api/projects/:id/file/raw", auth, h.raw)
