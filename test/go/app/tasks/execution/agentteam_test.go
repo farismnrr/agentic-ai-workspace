@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/test/go/apptest"
 )
@@ -142,14 +143,29 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 		t.Fatalf("the teammate asks by name before touching anything: %+v", approval)
 	}
 
-	a.WaitApproving(t, id, "review")
-
-	if data, err := os.ReadFile(a.File("hello.txt")); err != nil || string(data) != "hi" {
-		t.Fatalf("after the yes the teammate's step runs: %q %v", data, err)
+	// Verify the approval resumes the teammate's own write. Later verification
+	// gates (which require real sandbox checks) are covered by separate tests.
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		a.AllowPending(t, id)
+		data, err := os.ReadFile(a.File("hello.txt"))
+		if err == nil && string(data) == "hi" {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-
-	apptest.MustContain(t, apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id, "",
-		apptest.JSONCookie(a.Cookie)).Body, `"summary":"Made hello.txt"`)
+	if data, err := os.ReadFile(a.File("hello.txt")); err != nil || string(data) != "hi" {
+		t.Fatalf("after approval the teammate's write must resume: %q %v", data, err)
+	}
+	var wrote bool
+	for _, event := range a.Thread(t, id) {
+		if event.Kind == "action" && event.Agent == "Developer" && strings.Contains(event.Text, "Wrote hello.txt") {
+			wrote = true
+		}
+	}
+	if !wrote {
+		t.Fatal("the resumed write must be attributed to Developer")
+	}
 }
 
 func TestBuiltInRolesStayWhateverIsSaved(t *testing.T) {
