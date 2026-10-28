@@ -22,8 +22,14 @@ func (w *Works) StartCall(
 
 // Validate rejects tool calls once their work session has ended.
 func (w *Works) Validate(ctx context.Context, userID, client, projectID, workID string) error {
-	_, _, _, err := w.mutable(ctx, userID, client, projectID, workID)
-	return err
+	work, _, _, err := w.mutable(ctx, userID, client, projectID, workID)
+	if err != nil {
+		return err
+	}
+	if work.RoleKey == "" {
+		return domain.ErrBadRole
+	}
+	return nil
 }
 
 // RecordCall appends one connected-app action or read under the current role.

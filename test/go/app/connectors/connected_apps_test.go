@@ -56,7 +56,8 @@ func TestEachConnectedAppWorksInAProjectNamedAfterIt(t *testing.T) {
 
 	for _, clientID := range []string{chatgpt, gemini, chatgpt} {
 		token := apptest.Connect(t, env.App, cookie, clientID, "coding:read coding:write")
-		apptest.CallTool(t, env.App, token, "write_file", `{"path":"note.txt","content":"from `+clientID+`"}`)
+		workID := beginTrackedWork(t, env.App, token, "")
+		apptest.CallTool(t, env.App, token, "write_file", `{"work_id":"`+workID+`","path":"note.txt","content":"from `+clientID+`"}`)
 	}
 
 	byName := map[string]projectRow{}
@@ -102,7 +103,7 @@ func mustRead(t *testing.T, dataDir, project string) []byte {
 	return data
 }
 
-func TestAppsFirstCallsAtOnceStillMakeOneProject(t *testing.T) {
+func TestConcurrentTrackedCallsStillReuseOneProject(t *testing.T) {
 	t.Parallel()
 
 	app := apptest.NewEnv(t).App
@@ -110,6 +111,7 @@ func TestAppsFirstCallsAtOnceStillMakeOneProject(t *testing.T) {
 		`{"name":"Rae","email":"rae@example.com","password":"correct horse"}`, apptest.JSONHeaders()))
 	token := apptest.Connect(t, app, cookie, registerClient(t, app, "Racer"), "coding:read")
 
+	workID := beginTrackedWork(t, app, token, "")
 	var wg sync.WaitGroup
 
 	for range 8 {
@@ -118,7 +120,7 @@ func TestAppsFirstCallsAtOnceStillMakeOneProject(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			apptest.CallTool(t, app, token, "list_files", `{}`)
+			apptest.CallTool(t, app, token, "list_files", `{"work_id":"`+workID+`"}`)
 		}()
 	}
 

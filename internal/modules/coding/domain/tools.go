@@ -62,7 +62,7 @@ var (
 		Name: "log_message", Title: "Save the conversation", Scope: ScopeRead, Group: GroupRead, DefaultOn: true,
 		Description: "Save conversation messages in the person's task thread. Call with role \"user\" for the request. " +
 			"For tracked work, call with role \"assistant\" for your summary, then call complete_work. Do not call " +
-			"log_message after complete_work. Without a work_id, this records history only; use begin_work with a role " +
+			"log_message after complete_work. A work_id is required; use begin_work with an enabled role " +
 			"for tracked work. Never include passwords or keys.",
 	}
 	// External work lifecycle tools share log_message's existing read switch.

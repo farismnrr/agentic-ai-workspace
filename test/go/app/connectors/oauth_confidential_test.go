@@ -57,7 +57,8 @@ func TestConfidentialClientDCRAndBasicAuth(t *testing.T) {
 	}
 
 	token := tokenRes.JSON(t)["access_token"].(string)
-	call := apptest.RPC("tools/call", `{"name":"read_file","arguments":{"path":"hello.txt"}}`)
+	workID := beginTrackedWork(t, app, token, "")
+	call := apptest.RPC("tools/call", `{"name":"read_file","arguments":{"work_id":"`+workID+`","path":"hello.txt"}}`)
 	apptest.MustContain(t, apptest.Do(t, app, "POST", "/api/coding", call, apptest.MCPHeaders(token)).Body,
 		"hello from the workspace")
 }
