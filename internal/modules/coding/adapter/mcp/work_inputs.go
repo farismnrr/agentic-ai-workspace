@@ -22,7 +22,7 @@ type workPlanInput struct {
 	WorkTarget
 	RequestID    string         `json:"request_id,omitempty" jsonschema:"optional idempotency key (16-64 chars)"`
 	Steps        []PlanWorkStep `json:"steps" jsonschema:"ordered steps of the execution plan; required"`
-	BaseRevision int64          `json:"base_revision" jsonschema:"base plan revision to guard against concurrent edits; required"`
+	BaseRevision int64          `json:"base_revision" jsonschema:"required plan revision for concurrent edit protection"`
 }
 
 type markdownInput struct {
@@ -32,8 +32,8 @@ type markdownInput struct {
 
 type researchInput struct {
 	WorkTarget
-	Markdown string   `json:"markdown" jsonschema:"research notes and findings in markdown (at least 400 runes for full tasks, at most 12000 chars); required"`
-	Sources  []string `json:"sources,omitempty" jsonschema:"list of absolute http or https source URLs used for research (at most 30)"`
+	Markdown string   `json:"markdown" jsonschema:"research markdown (400+ runes, max 12000 chars); required"`
+	Sources  []string `json:"sources,omitempty" jsonschema:"up to 30 absolute http(s) research source URLs"`
 }
 
 type progressInput struct {

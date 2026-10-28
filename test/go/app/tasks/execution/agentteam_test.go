@@ -125,6 +125,11 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 		apptest.FinishCall("Made hello.txt"), // the run restarted after the approval of the command, so it counts again
 	)
 
+	verifyTeammateApprovalResumes(t, &a)
+}
+
+func verifyTeammateApprovalResumes(t *testing.T, a *apptest.AgentRig) {
+	t.Helper()
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
 		`{"projectId":"`+a.Project+`","prompt":"Make a hello file","team":true}`, apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
@@ -143,6 +148,12 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 		t.Fatalf("the teammate asks by name before touching anything: %+v", approval)
 	}
 
+	waitForTeammateWrite(t, a, id)
+	assertTeammateWriteAttribution(t, a, id)
+}
+
+func waitForTeammateWrite(t *testing.T, a *apptest.AgentRig, id string) {
+	t.Helper()
 	// Verify the approval resumes the teammate's own write. Later verification
 	// gates (which require real sandbox checks) are covered by separate tests.
 	deadline := time.Now().Add(5 * time.Second)
@@ -157,6 +168,10 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 	if data, err := os.ReadFile(a.File("hello.txt")); err != nil || string(data) != "hi" {
 		t.Fatalf("after approval the teammate's write must resume: %q %v", data, err)
 	}
+}
+
+func assertTeammateWriteAttribution(t *testing.T, a *apptest.AgentRig, id string) {
+	t.Helper()
 	var wrote bool
 	for _, event := range a.Thread(t, id) {
 		if event.Kind == "action" && event.Agent == "Developer" && strings.Contains(event.Text, "Wrote hello.txt") {

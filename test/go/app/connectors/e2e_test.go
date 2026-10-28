@@ -139,7 +139,8 @@ func TestReadFileThroughMCP(t *testing.T) {
 	mustContain(t, apptest.Do(t, app, "POST", "/api/coding", unaffiliated, mcpHeaders(token)).Body,
 		`"isError":true`, "Start with begin_work")
 
-	begin := apptest.CallTool(t, app, token, "begin_work", `{"role":"researcher","summary":"Read the workspace for research"}`)
+	begin := apptest.CallTool(t, app, token, "begin_work",
+		`{"role":"researcher","summary":"Read the workspace for research"}`)
 	var envelope struct {
 		Result struct {
 			Structured struct {

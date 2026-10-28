@@ -13,28 +13,35 @@ import (
 
 var toolWorks sync.Map
 
+func trackedToolWorkID(t *testing.T, app *fiber.App, token string) string {
+	t.Helper()
+	if value, ok := toolWorks.Load(token); ok {
+		return value.(string)
+	}
+	begin := apptest.CallTool(t, app, token, "begin_work",
+		`{"role":"developer","summary":"Exercise tool access controls"}`)
+	var response struct {
+		Result struct {
+			Structured struct {
+				WorkID string `json:"work_id"`
+			} `json:"structuredContent"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(begin.Body, &response); err != nil || response.Result.Structured.WorkID == "" {
+		t.Fatalf("begin_work: %v %s", err, begin.Body)
+	}
+	value, _ := toolWorks.LoadOrStore(token, response.Result.Structured.WorkID)
+	return value.(string)
+}
+
 func callTool(t *testing.T, app *fiber.App, token, name, args string) apptest.Reply {
 	t.Helper()
 	if name != "begin_work" {
-		value, ok := toolWorks.Load(token)
-		if !ok {
-			begin := apptest.CallTool(t, app, token, "begin_work", `{"role":"developer","summary":"Exercise tool access controls"}`)
-			var response struct {
-				Result struct {
-					Structured struct {
-						WorkID string `json:"work_id"`
-					} `json:"structuredContent"`
-				} `json:"result"`
-			}
-			if err := json.Unmarshal(begin.Body, &response); err != nil || response.Result.Structured.WorkID == "" {
-				t.Fatalf("begin_work: %v %s", err, begin.Body)
-			}
-			value, _ = toolWorks.LoadOrStore(token, response.Result.Structured.WorkID)
-		}
+		workID := trackedToolWorkID(t, app, token)
 		if args == `{}` {
-			args = `{"work_id":"` + value.(string) + `"}`
+			args = `{"work_id":"` + workID + `"}`
 		} else {
-			args = strings.Replace(args, "{", `{"work_id":"`+value.(string)+`",`, 1)
+			args = strings.Replace(args, "{", `{"work_id":"`+workID+`",`, 1)
 		}
 	}
 	return apptest.CallTool(t, app, token, name, args)

@@ -19,7 +19,10 @@ func planSnapshot(work domain.ExternalWork, task domain.Task, in SubmitPlanInput
 		return domain.PlanRevision{}, fmt.Errorf("plan steps are required: %w", domain.ErrBadRequest)
 	}
 	if !in.SmallTask && strings.TrimSpace(task.PRD) == "" {
-		return domain.PlanRevision{}, fmt.Errorf("requirements document (save_requirements) is required before submitting full plan: %w", domain.ErrBadRequest)
+		return domain.PlanRevision{}, fmt.Errorf(
+			"requirements document (save_requirements) is required before submitting full plan: %w",
+			domain.ErrBadRequest,
+		)
 	}
 	revision := domain.PlanRevision{
 		WorkID: work.ID, TaskID: task.ID, PlanRev: work.PlanRev, Steps: task.Plan,
