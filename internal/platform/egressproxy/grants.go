@@ -145,6 +145,14 @@ func (g *Grants) Close() {
 	closeAll(leases)
 }
 
+// OpenTunnels reports the number of currently leased tunnel slots.
+func (g *Grants) OpenTunnels() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.total
+}
+
 // dropLocked removes an entry and returns its open tunnels, which the caller closes after unlocking.
 func (g *Grants) dropLocked(entry *grant) []*Lease {
 	entry.timer.Stop()

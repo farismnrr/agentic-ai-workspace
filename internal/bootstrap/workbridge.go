@@ -52,7 +52,7 @@ func (a appWorks) Begin(ctx context.Context, user, client, project string,
 	return codingmcp.BeginWorkResult{
 		TaskID: result.TaskID, WorkID: result.WorkID, Roles: roles,
 		Resumed: result.Resumed, Idempotency: result.Idempotency, Revision: state.Revision,
-		State: string(state.State), Warnings: redactionWarnings(in.Summary),
+		State: string(state.State), Warnings: RedactionWarnings(in.Summary),
 	}, nil
 }
 
@@ -74,7 +74,7 @@ func (a appWorks) SetRole(
 	return codingmcp.RoleWorkResult{
 		WorkID: workID, Revision: state.Revision, State: string(state.State),
 		Role:    codingmcp.WorkRole{Key: result.Key, Name: result.Name, Purpose: result.Purpose},
-		Changed: before.Role != result.Key, Warnings: redactionWarnings(role, brief),
+		Changed: before.Role != result.Key, Warnings: RedactionWarnings(role, brief),
 	}, nil
 }
 
@@ -101,7 +101,7 @@ func (a appWorks) UpdatePlan(ctx context.Context, user, client, project, workID 
 	}
 	return codingmcp.PlanWorkResult{
 		WorkID: workID, Revision: state.Revision, State: string(state.State),
-		PlanRevision: result.Revision, Steps: planSteps(result.Steps), Warnings: redactionWarnings(texts...),
+		PlanRevision: result.Revision, Steps: planSteps(result.Steps), Warnings: RedactionWarnings(texts...),
 	}, nil
 }
 
@@ -122,7 +122,7 @@ func (a appWorks) Complete(ctx context.Context, user, client, project, workID st
 			FilesChanged: result.Verified.FilesChanged,
 			Runs:         result.Verified.Runs, LastRunPassed: result.Verified.LastRunPassed, Proven: result.Verified.Proven,
 		},
-		Warnings: redactionWarnings(append([]string{in.Summary}, in.Claims...)...),
+		Warnings: RedactionWarnings(append([]string{in.Summary}, in.Claims...)...),
 	}, nil
 }
 
@@ -166,7 +166,8 @@ func planSteps(in []taskdomain.PlanStep) []codingmcp.PlanWorkStep {
 	return out
 }
 
-func redactionWarnings(texts ...string) []string {
+// RedactionWarnings reports whether secret-like text was removed from work documents.
+func RedactionWarnings(texts ...string) []string {
 	count := 0
 	for _, text := range texts {
 		_, found := taskdomain.Redact(text)

@@ -48,7 +48,7 @@ func (a *agentTools) search(ctx context.Context, in toolArgs) taskapp.ToolResult
 
 	var out strings.Builder
 
-	out.WriteString(untrusted)
+	out.WriteString(webdomain.MarkUntrusted(""))
 
 	for i, hit := range results {
 		fmt.Fprintf(&out, "%d. %s\n   %s\n   %s\n", i+1, hit.Title, hit.URL, hit.Snippet)
@@ -69,7 +69,8 @@ func (a *agentTools) readPage(ctx context.Context, in toolArgs) taskapp.ToolResu
 	}
 
 	return taskapp.ToolResult{
-		Output: fmt.Sprintf("%sPage: %s (%s)\n---\n%s%s", untrusted, page.Title, page.URL, page.Text, note),
+		Output: webdomain.MarkUntrusted(fmt.Sprintf("Page: %s (%s)\n---\n%s%s",
+			page.Title, page.URL, page.Text, note)),
 	}
 }
 
@@ -85,7 +86,7 @@ func (a *agentTools) findImages(ctx context.Context, projectID string, in toolAr
 
 	var out strings.Builder
 
-	out.WriteString(untrusted + "Pictures you may use (save one with download_asset, using its url):\n")
+	out.WriteString(webdomain.MarkUntrusted("Pictures you may use (save one with download_asset, using its url):\n"))
 
 	for i, image := range images {
 		fmt.Fprintf(&out, "%d. %s by %s, %s, %dx%d, from %s\n   url: %s\n", i+1, image.Title,

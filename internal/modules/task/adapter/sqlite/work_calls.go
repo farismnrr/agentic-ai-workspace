@@ -113,6 +113,30 @@ func (s *Store) UpdateWorkCall(
 	if err != nil || prior.Work == nil || prior.Work.ID != workID {
 		return domain.Event{}, domain.ErrNotFound
 	}
+	event, work, err := updateWorkCallEvent(ctx, tx, taskID, eventID, prior, event)
+	if err != nil {
+		return domain.Event{}, err
+	}
+	if work.Phase != "interrupted" {
+		if err := touchWork(ctx, tx, s.now(), workID, taskID); err != nil {
+			return domain.Event{}, err
+		}
+	}
+	if err := touchTask(ctx, tx, s.now(), taskID); err != nil {
+		return domain.Event{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.Event{}, fmt.Errorf("commit work call update: %w", err)
+	}
+	return event, nil
+}
+
+func updateWorkCallEvent(
+	ctx context.Context,
+	tx *sql.Tx,
+	taskID, eventID string,
+	prior, event domain.Event,
+) (domain.Event, domain.WorkRef, error) {
 	work := *prior.Work
 	if event.Work != nil {
 		work.Evidence, work.Phase = event.Work.Evidence, event.Work.Phase
@@ -120,29 +144,32 @@ func (s *Store) UpdateWorkCall(
 	event.ID, event.Seq, event.Time, event.Work = prior.ID, prior.Seq, prior.Time, &work
 	body, err := encodeEvent(event)
 	if err != nil {
-		return domain.Event{}, err
+		return domain.Event{}, domain.WorkRef{}, err
 	}
 	if err := tx.QueryRowContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
 		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?)
 		WHERE task_id = ? AND id = ? RETURNING version`,
 		body, event.Undo, taskID, taskID, eventID).Scan(&event.Version); err != nil {
-		return domain.Event{}, fmt.Errorf("update work call event: %w", err)
+		return domain.Event{}, domain.WorkRef{}, fmt.Errorf("update work call event: %w", err)
 	}
-	if work.Phase != "interrupted" {
-		if _, updateErr := tx.ExecContext(ctx,
-			`UPDATE external_works SET updated_at = ? WHERE id = ? AND task_id = ?`,
-			s.now().Unix(), workID, taskID); updateErr != nil {
-			return domain.Event{}, fmt.Errorf("update work activity time: %w", updateErr)
-		}
+	return event, work, nil
+}
+
+func touchWork(ctx context.Context, tx *sql.Tx, now time.Time, workID, taskID string) error {
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE external_works SET updated_at = ? WHERE id = ? AND task_id = ?`,
+		now.Unix(), workID, taskID); err != nil {
+		return fmt.Errorf("update work activity time: %w", err)
 	}
-	if _, updateErr := tx.ExecContext(ctx,
-		`UPDATE tasks SET updated_at = ? WHERE id = ?`, s.now().Unix(), taskID); updateErr != nil {
-		return domain.Event{}, fmt.Errorf("update work task activity time: %w", updateErr)
+	return nil
+}
+
+func touchTask(ctx context.Context, tx *sql.Tx, now time.Time, taskID string) error {
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE tasks SET updated_at = ? WHERE id = ?`, now.Unix(), taskID); err != nil {
+		return fmt.Errorf("update work task activity time: %w", err)
 	}
-	if err := tx.Commit(); err != nil {
-		return domain.Event{}, fmt.Errorf("commit work call update: %w", err)
-	}
-	return event, nil
+	return nil
 }
 
 func encodeEvent(event domain.Event) (string, error) {

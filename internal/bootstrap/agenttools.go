@@ -13,6 +13,7 @@ import (
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	egressruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/adapter/runtime"
 	envapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/env/application"
 	extensionapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/extension/application"
 	githubapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/application"
@@ -42,7 +43,7 @@ type agentTools struct {
 	github     *githubapp.Service
 	owners     projectOwners
 	plans      *plans
-	egress     *egressRuntime
+	egress     *egressruntime.Runtime
 	git        func(projectID string) codingrunner.GitSource
 	reach      codingrunner.Reach
 	public     string

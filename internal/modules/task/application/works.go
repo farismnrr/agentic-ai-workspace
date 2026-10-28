@@ -11,6 +11,11 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
+const (
+	defaultWorksIdleAfter   = 30 * time.Minute
+	defaultWorkAbandonAfter = 2 * time.Hour
+)
+
 // Works contains the use cases for a connected app's explicit work session.
 type Works struct {
 	deps        Deps
@@ -18,9 +23,9 @@ type Works struct {
 	plans       PlanStore
 	questions   QuestionStore
 	planReviews *PlanReviews
-	thresholds  domain.WorkPhaseThresholds
 	limits      workLimiter
 	beginMu     sync.Mutex
+	thresholds  domain.WorkPhaseThresholds
 }
 
 // NewWorks wires external work use cases to their persistence boundary.
@@ -28,10 +33,10 @@ func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionSto
 	thresholds domain.WorkPhaseThresholds,
 ) *Works {
 	if thresholds.IdleAfter <= 0 {
-		thresholds.IdleAfter = 30 * time.Minute
+		thresholds.IdleAfter = defaultWorksIdleAfter
 	}
 	if thresholds.AbandonAfter <= 0 {
-		thresholds.AbandonAfter = 2 * time.Hour
+		thresholds.AbandonAfter = defaultWorkAbandonAfter
 	}
 	return &Works{
 		deps: deps, store: store, plans: plans, questions: questions,

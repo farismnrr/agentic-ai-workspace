@@ -4,9 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net"
-	"net/url"
-	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -40,7 +37,8 @@ func newDBConnMount(
 	service := dbconnapp.NewServiceWithProvisioners(dbconnsqlite.NewStore(db), cipher, projects, env,
 		dbconnprobe.New(cfg.Port), provisioners)
 	return []httpserver.Mount{
-		dbconnhttp.NewHandler(service).Mount(auth, sameOrigin, databaseTestLimit(), databaseSharedLimit()),
+		dbconnhttp.NewHandler(service).Mount(auth, sameOrigin,
+			dbconnhttp.TestRateLimit(), dbconnhttp.SharedRateLimit()),
 		dbconnhttp.NewSharedSettingsHandler(settings, service).Mount(
 			auth, sameOrigin, accountRole(account), adminOnly(account)),
 	}, nil
@@ -132,7 +130,7 @@ func (p callTimeProvisioner) postgres(
 	if !saved {
 		return dbconnprovision.New(p.fallbackURL, p.ownPort), nil
 	}
-	adminURL, err := sharedAdminURL(settings)
+	adminURL, err := dbconnprovision.SharedAdminURL(settings)
 	if err != nil {
 		return nil, fmt.Errorf("build shared database connection: %w", err)
 	}
@@ -140,23 +138,6 @@ func (p callTimeProvisioner) postgres(
 		CACert: settings.CACert, ClientCert: settings.ClientCert, ClientKey: settings.ClientKey,
 	}
 	return dbconnprovision.New(adminURL, p.ownPort, material), nil
-}
-
-func sharedAdminURL(settings dbconndomain.SharedSettings) (string, error) {
-	if err := settings.Validate(); err != nil {
-		return "", fmt.Errorf("validate shared database settings: %w", err)
-	}
-	sslMode := "verify-full"
-	if settings.TLS == "none" {
-		sslMode = "disable"
-	}
-	query := url.Values{"sslmode": []string{sslMode}}
-	connection := url.URL{
-		Scheme: "postgres", User: url.UserPassword(settings.User, settings.Password),
-		Host: net.JoinHostPort(settings.Host, strconv.Itoa(settings.Port)), Path: settings.Database,
-		RawQuery: query.Encode(),
-	}
-	return connection.String(), nil
 }
 
 var (

@@ -9,7 +9,8 @@ import (
 	"github.com/moby/moby/api/types/mount"
 )
 
-var errOutsideData = errors.New("workspace is outside the data folder")
+// ErrOutsideData means a volume-backed sandbox path escapes the configured data directory.
+var ErrOutsideData = errors.New("workspace is outside the data folder")
 
 // folderMount shows one folder of the data directory at target. Run directly on the
 // host the folder is bind-mounted; run inside a container, the daemon cannot see
@@ -21,7 +22,7 @@ func (c Config) folderMount(dir, target string, readOnly bool) (mount.Mount, err
 
 	rel, err := filepath.Rel(c.DataDir, dir)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return mount.Mount{}, fmt.Errorf("%w: %s", errOutsideData, dir)
+		return mount.Mount{}, fmt.Errorf("%w: %s", ErrOutsideData, dir)
 	}
 
 	return mount.Mount{

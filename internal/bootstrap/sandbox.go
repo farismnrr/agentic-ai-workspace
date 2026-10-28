@@ -12,6 +12,7 @@ import (
 	"time"
 
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
+	egressruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/adapter/runtime"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/egressproxy"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
@@ -54,7 +55,7 @@ func sandboxConfig(cfg config.Config) sandbox.Config {
 // newSandboxEngine builds the infrastructure all runners share. Docker is reached lazily and
 // warmed in the background, so a missing daemon never keeps the server from starting; checks
 // are answered with a plain reason until it works.
-func newSandboxEngine(cfg config.Config, db *sql.DB) (*codingrunner.Engine, *egressRuntime, func()) {
+func newSandboxEngine(cfg config.Config, db *sql.DB) (*codingrunner.Engine, *egressruntime.Runtime, func()) {
 	conf := sandboxConfig(cfg)
 	proxy := egressproxy.New(cfg.SandboxEgress).WithOwnPort(cfg.Port)
 	hub := egressproxy.NewHub(filepath.Join(conf.DataDir, "egress"), proxy)
@@ -62,15 +63,15 @@ func newSandboxEngine(cfg config.Config, db *sql.DB) (*codingrunner.Engine, *egr
 	extras := codingrunner.Extras{CacheDir: filepath.Join(conf.DataDir, "caches"), Proxy: hub}
 	closeGrants := func() {}
 
-	var egress *egressRuntime
+	var egress *egressruntime.Runtime
 
 	// Dynamic egress grants are off unless EGRESS_GRANTS is true. When off, nothing below runs and the hub keeps no
 	// registry, so every socket is a workspace socket exactly as before.
 	if cfg.EgressGrants {
-		if rt, err := startEgressGrants(db, hub, conf.DataDir); err != nil {
+		if rt, err := egressruntime.Start(db, hub, conf.DataDir); err != nil {
 			log.Printf("egress grants stay off: %v", err)
 		} else {
-			egress, extras.Scopes, closeGrants = rt, rt.service, rt.stop
+			egress, extras.Scopes, closeGrants = rt, rt.Service(), rt.Close
 		}
 	}
 

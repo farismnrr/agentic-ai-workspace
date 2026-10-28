@@ -4,6 +4,7 @@ import (
 	"time"
 
 	codingrunner "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
+	egressruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/adapter/runtime"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/web/adapter/commons"
@@ -33,7 +34,7 @@ func newWeb(cfg config.Config) *webapp.Service {
 // newToolbox builds the tools the agent works with, web lookups included.
 // openToolbox opens the project folders and the tools that work in them.
 func openToolbox(
-	cfg config.Config, engine *codingrunner.Engine, egress *egressRuntime,
+	cfg config.Config, engine *codingrunner.Engine, egress *egressruntime.Runtime,
 ) (*folder.Folders, *agentTools, error) {
 	folders, err := openFolders(cfg.DataDir)
 	if err != nil {

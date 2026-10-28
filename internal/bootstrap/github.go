@@ -60,9 +60,12 @@ func connectGitHub(
 }
 
 // projectOwners says who owns a project.
-type projectOwners interface {
+// ProjectOwners resolves the person who owns a project before a command receives credentials.
+type ProjectOwners interface {
 	Owner(ctx context.Context, id string) (userID, name string, err error)
 }
+
+type projectOwners = ProjectOwners
 
 // useGitHub signs a project's commands in to its owner's GitHub account. The owner is looked up
 // from the project each time a command runs, never taken from the caller, so a command can only
@@ -70,29 +73,30 @@ type projectOwners interface {
 func (a *agentTools) useGitHub(github *githubapp.Service, projects projectOwners) {
 	a.github = github
 	a.owners = projects
-	a.git = func(projectID string) codingrunner.GitSource {
+	a.git = GitHubSourceForProject(github, projects)
+
+	if a.plans != nil {
+		a.plans.git = a.git
+	}
+}
+
+// GitHubSourceForProject resolves credentials from the project's owner, never from a task caller.
+func GitHubSourceForProject(github *githubapp.Service, projects ProjectOwners) func(string) codingrunner.GitSource {
+	return func(projectID string) codingrunner.GitSource {
 		return func(ctx context.Context) (codingrunner.Git, bool) {
 			owner, _, err := projects.Owner(ctx, projectID)
 			if err != nil {
 				log.Printf("github: project %s has no owner to sign in as: %v", projectID, err)
-
 				return codingrunner.Git{}, false
 			}
-
 			cred, err := github.Credentials(ctx, owner)
 			if err != nil {
 				log.Printf("github: commands in project %s run without GitHub: %v", projectID, err)
-
 				return codingrunner.Git{}, false
 			}
-
 			return codingrunner.Git{
 				Token: cred.Token, Name: cred.Profile.DisplayName(), Email: cred.Profile.NoreplyEmail(),
 			}, true
 		}
-	}
-
-	if a.plans != nil {
-		a.plans.git = a.git
 	}
 }
