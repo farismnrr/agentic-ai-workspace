@@ -34,7 +34,8 @@ func TestAConnectedAppWorksInAnyProjectByItsProjectID(t *testing.T) {
 	apptest.MustContain(t, listed.Body, `\"id\":\"sensio\"`, `\"default\":true`, "ChatGPT")
 
 	namedID := beginTrackedWork(t, env.App, token, "sensio")
-	named := apptest.CallTool(t, env.App, token, "read_file", `{"work_id":"`+namedID+`","path":"hello.txt","project":"sensio"}`)
+	named := apptest.CallTool(t, env.App, token, "read_file",
+		`{"work_id":"`+namedID+`","path":"hello.txt","project":"sensio"}`)
 	apptest.MustContain(t, named.Body, "hi from sensio")
 
 	// Without a project the call stays in the app's own project, which has no such file.
@@ -44,7 +45,8 @@ func TestAConnectedAppWorksInAnyProjectByItsProjectID(t *testing.T) {
 		t.Fatalf("a call that names no project must stay in the app's own project: %s", own.Body)
 	}
 
-	unknown := apptest.CallTool(t, env.App, token, "read_file", `{"work_id":"`+ownID+`","path":"hello.txt","project":"nope"}`)
+	unknown := apptest.CallTool(t, env.App, token, "read_file",
+		`{"work_id":"`+ownID+`","path":"hello.txt","project":"nope"}`)
 	apptest.MustContain(t, unknown.Body, "list_projects")
 }
 

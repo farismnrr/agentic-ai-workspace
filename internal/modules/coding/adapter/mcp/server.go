@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -116,6 +115,7 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"completed until the person has reviewed the plan. There is one assistant: roles are labels, " +
 	"no other agent is called, " +
 	"and permissions do not change. Start a web app with start_site, never with a shell command."
+
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-coding", Version: "2.0.0"},
@@ -152,6 +152,7 @@ func toolOf(info domain.ToolInfo) *sdk.Tool {
 		},
 	}
 }
+
 // UserFacing keeps domain errors readable for the model and hides everything else.
 func UserFacing(err error) error {
 	for _, known := range knownErrors {
@@ -166,24 +167,6 @@ func UserFacing(err error) error {
 	}
 
 	return fmt.Errorf("the workspace could not be used: %w", errInternal)
-}
-
-func cleanErrorDetail(err, known error) string {
-	msg := err.Error()
-	knownMsg := known.Error()
-	if !strings.HasSuffix(msg, knownMsg) {
-		return ""
-	}
-	prefix := strings.TrimSuffix(msg, knownMsg)
-	prefix = strings.TrimSuffix(strings.TrimSpace(prefix), ":")
-	if idx := strings.LastIndex(prefix, ": "); idx >= 0 {
-		prefix = prefix[idx+2:]
-	}
-	prefix = strings.TrimSpace(prefix)
-	if prefix == "" || strings.ContainsAny(prefix, "\r\n") || len(prefix) > 120 {
-		return ""
-	}
-	return prefix
 }
 
 var errInternal = errors.New("internal error")

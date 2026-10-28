@@ -145,7 +145,7 @@ func (r *Runner) runDelegation(
 			return failed("The teammate's document could not be saved.", "Press Continue to retry saving it."), true
 		}
 		r.endDelegation(ctx, task, state, call, d, DelegationDone, report+r.facts(ctx, task, d))
-	case stopFailed:
+	case stopFailed, stopTurnLimit:
 		r.endDelegation(ctx, task, state, call, d, DelegationFailed, d.RoleName+" could not finish: "+result.text+stuckAdvice)
 	}
 
