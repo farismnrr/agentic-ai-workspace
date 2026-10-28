@@ -33,14 +33,14 @@ services:
       # POSTGRES_ADMIN_URL: ${POSTGRES_ADMIN_URL:-}
       SITE_PREVIEW_DOMAIN: ${SITE_PREVIEW_DOMAIN:-}
       SANDBOX_RUNTIME: ${SANDBOX_RUNTIME:-}
-      # This computer is dedicated to the app (12 threads, 23 GB RAM, 71 GB swap). Every command and site container is
-      # capped at memory plus swap, so the worst case stays well inside RAM plus swap and a runaway is killed first.
-      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-3072}
-      SANDBOX_SWAP_MB: ${SANDBOX_SWAP_MB:-3072}
-      SANDBOX_CPUS: ${SANDBOX_CPUS:-2}
-      MAX_SANDBOXES: ${MAX_SANDBOXES:-5}
-      AGENT_WORKERS: ${AGENT_WORKERS:-3}
-      SITE_MAX_TOTAL: ${SITE_MAX_TOTAL:-6}
+      # This computer is dedicated to the app (12 threads, 23 GB RAM, 71 GB swap). Dev is sized to ~85% host capacity
+      # (10 CPUs, 18 GB RAM + 18 GB swap, 10 workers, 12 concurrent sandboxes) for maximum throughput.
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-18432}
+      SANDBOX_SWAP_MB: ${SANDBOX_SWAP_MB:-18432}
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-10}
+      MAX_SANDBOXES: ${MAX_SANDBOXES:-12}
+      AGENT_WORKERS: ${AGENT_WORKERS:-10}
+      SITE_MAX_TOTAL: ${SITE_MAX_TOTAL:-16}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
@@ -53,9 +53,10 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
-    # The app itself is small; a cap here keeps a leak in it from taking the computer down.
-    mem_limit: 2g
-    memswap_limit: 3g
+    # Allow the dev server up to 10 CPUs and 6 GB RAM (12 GB with swap).
+    cpus: 10.0
+    mem_limit: 6g
+    memswap_limit: 12g
     restart: unless-stopped
 
 volumes:

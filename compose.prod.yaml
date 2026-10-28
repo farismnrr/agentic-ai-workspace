@@ -24,7 +24,11 @@ services:
       SANDBOX_DATA_VOLUME: masihawam-data
       SANDBOX_IMAGE: ${SANDBOX_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}
       SITE_PREVIEW_DOMAIN: ${SITE_PREVIEW_DOMAIN:-}
-      MAX_SANDBOXES: ${MAX_SANDBOXES:-2}
+      AGENT_WORKERS: ${AGENT_WORKERS:-1}
+      MAX_SANDBOXES: ${MAX_SANDBOXES:-1}
+      SITE_MAX_TOTAL: ${SITE_MAX_TOTAL:-1}
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-1}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-512}
     volumes:
       - masihawam-data:/data
       - /var/run/docker.sock:/var/run/docker.sock
@@ -34,6 +38,9 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    cpus: 0.25
+    mem_limit: 256m
+    memswap_limit: 512m
     restart: always
   tunnel:
     image: cloudflare/cloudflared:latest
@@ -41,6 +48,9 @@ services:
     network_mode: host
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in ~/masihawam/.env}
+    cpus: 0.15
+    mem_limit: 128m
+    memswap_limit: 256m
     restart: always
 
 volumes:
