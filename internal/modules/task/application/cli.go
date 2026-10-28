@@ -51,9 +51,10 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 	if session == "" {
 		req.Prompt = r.continuation(ctx, task.ID) + "\n\nCurrent request:\n" + req.Prompt
 	}
-	req.Prompt = r.notesPrompt() + req.Prompt
 	if lead != nil {
 		req = lead.shape(ctx, req)
+	} else {
+		req.Prompt = reviewModePrompt(task.ReviewMode) + r.notesPrompt() + req.Prompt
 	}
 
 	sink := &planSink{runner: runner, task: task}
@@ -109,7 +110,11 @@ func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 		p.flush(ctx)
 		p.step(ctx, domain.Event{
 			Text: event.Text, Technical: event.Technical,
-			Run: &domain.RunInfo{Name: checkName(event.Technical), ExitCode: event.ExitCode, TimedOut: event.TimedOut},
+			Run: &domain.RunInfo{
+				Name: checkName(event.Technical), Command: event.Technical,
+				EffectPaths: event.Files, EffectsKnown: len(event.Files) > 0,
+				ExitCode: event.ExitCode, TimedOut: event.TimedOut,
+			},
 		})
 	}
 }
@@ -147,6 +152,15 @@ func (p *planSink) finish(ctx context.Context, result CLIResult) outcome {
 	}
 
 	if workDone(events) {
+		state := &runState{roster: p.runner.roster(ctx, p.task)}
+		blocked, allowed := p.runner.completionGate(ctx, p.task, state, Call{})
+		if !allowed {
+			if blocked.stop != 0 {
+				return blocked
+			}
+			return failed("This work is blocked until its required review is recorded.",
+				"Press Continue after the review has completed.")
+		}
 		return p.runner.complete(ctx, p.task, summary, buildProof(events, nil))
 	}
 

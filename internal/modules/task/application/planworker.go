@@ -127,6 +127,7 @@ func (r *Runner) rolePrompt(ctx context.Context, task domain.Task, role AgentRol
 		out.WriteString("\nYou start and stop the web app with the start_site and stop_site tools of the team server, " +
 			"never with a shell command.\n")
 	}
+	out.WriteString(reviewModePrompt(task.ReviewMode))
 
 	out.WriteString("\n" + strings.TrimSpace(laneRule) + "\n")
 	out.WriteString("\n" + stuckRule + "\n")

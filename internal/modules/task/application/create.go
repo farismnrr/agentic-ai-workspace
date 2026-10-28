@@ -21,6 +21,8 @@ type CreateInput struct {
 	Model      string
 	// Effort is how hard the model should think; empty uses the person's default.
 	Effort domain.Effort
+	// ReviewMode is an optional explicit owner choice; the request directive can promote it.
+	ReviewMode string
 }
 
 // Create starts a task: it records the request and queues the agent.
@@ -29,7 +31,11 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 	if err := validatePrompt(prompt); err != nil {
 		return domain.Task{}, err
 	}
-	if _, err := s.deps.Projects.Name(ctx, userID, in.ProjectID); err != nil {
+	mode, err := requestedReviewMode(in.ReviewMode, in.Prompt, domain.ReviewModeSwift)
+	if err != nil {
+		return domain.Task{}, err
+	}
+	if _, projectErr := s.deps.Projects.Name(ctx, userID, in.ProjectID); projectErr != nil {
 		return domain.Task{}, domain.ErrNoProject
 	}
 
@@ -52,15 +58,16 @@ func (s *Service) Create(ctx context.Context, userID string, in CreateInput) (do
 	task := domain.Task{
 		ID: id, ProjectID: in.ProjectID, UserID: userID, Title: titleOf(prompt), ProviderID: providerID,
 		FollowSettings: followSettings, Model: model, Effort: effort, Team: team,
-		PlanFirst: in.PlanFirst == nil || *in.PlanFirst,
-		Status:    domain.StatusQueued, CreatedAt: now, UpdatedAt: now,
+		PlanFirst: in.PlanFirst == nil || *in.PlanFirst, ReviewMode: mode,
+		Status: domain.StatusQueued, CreatedAt: now, UpdatedAt: now,
 		Plan: []domain.PlanStep{},
 	}
-	if err := s.deps.Tasks.Create(ctx, task); err != nil {
-		return domain.Task{}, fmt.Errorf("save task: %w", err)
-	}
-	if err := s.say(ctx, task.ID, in.Prompt); err != nil {
+	event, message, err := s.prepareOwnerRequest(ctx, task.ID, task.ProjectID, in.Prompt)
+	if err != nil {
 		return domain.Task{}, err
+	}
+	if err := s.deps.Tasks.CreateWithRequest(ctx, task, event, message); err != nil {
+		return domain.Task{}, fmt.Errorf("save task request: %w", err)
 	}
 	s.dispatcher.Enqueue(task.ID, task.ProjectID)
 	return s.withWindow(ctx, task), nil

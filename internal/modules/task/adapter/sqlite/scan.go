@@ -32,25 +32,26 @@ func collectTasks(rows *sql.Rows) ([]domain.Task, error) {
 
 func scanTask(row scanner) (domain.Task, error) {
 	var (
-		t                domain.Task
-		status, plan     string
-		effort           string
-		proof            sql.NullString
-		pinned           sql.NullInt64
-		archived         sql.NullInt64
-		linkedTask       sql.NullString
-		originTask       sql.NullString
-		created, updated int64
+		t                        domain.Task
+		status, plan, reviewMode string
+		effort                   string
+		proof                    sql.NullString
+		pinned                   sql.NullInt64
+		archived                 sql.NullInt64
+		linkedTask               sql.NullString
+		originTask               sql.NullString
+		created, updated         int64
 	)
 
 	err := row.Scan(&t.ID, &t.ProjectID, &t.UserID, &t.Title, &t.Summary, &status, &t.ProviderID, &t.Model,
 		&plan, &proof, &created, &updated, &t.Source, &t.ContextUsed, &t.ContextWindow, &effort, &t.Team, &t.PRD, &t.Research,
-		&t.PlanFirst, &t.FollowSettings, &pinned, &archived, &t.WorkID, &linkedTask, &originTask)
+		&t.PlanFirst, &t.FollowSettings, &pinned, &archived, &t.WorkID, &linkedTask, &originTask, &reviewMode)
 	if err != nil {
 		return domain.Task{}, fmt.Errorf("scan task: %w", err)
 	}
 
 	t.Status, t.Effort = domain.Status(status), domain.Effort(effort)
+	t.ReviewMode = domain.ReviewMode(reviewMode)
 	t.LinkedTaskID, t.OriginTaskID = linkedTask.String, originTask.String
 	t.CreatedAt, t.UpdatedAt = time.Unix(created, 0).UTC(), time.Unix(updated, 0).UTC()
 	if pinned.Valid {

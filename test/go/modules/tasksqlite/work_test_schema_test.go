@@ -7,6 +7,7 @@ CREATE TABLE projects (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES use
 CREATE TABLE tasks (
  id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id), user_id TEXT NOT NULL REFERENCES users(id),
  title TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '', status TEXT NOT NULL, mode TEXT NOT NULL,
+ review_mode TEXT NOT NULL DEFAULT 'swift' CHECK (review_mode IN ('swift', 'deep-review')),
  provider_id TEXT NOT NULL, model TEXT NOT NULL, plan TEXT NOT NULL DEFAULT '[]', proof TEXT,
  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, source TEXT NOT NULL DEFAULT '',
  context_used INTEGER NOT NULL DEFAULT 0, context_window INTEGER NOT NULL DEFAULT 0,

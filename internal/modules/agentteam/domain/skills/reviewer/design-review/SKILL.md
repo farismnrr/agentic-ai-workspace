@@ -5,9 +5,20 @@ description: Judge an interface in five dimensions with evidence, and list what 
 
 # Design review
 
+Use this playbook when independent review is required by deep-review or
+uncertain impact, or when the brief specifically asks for a design review.
+Ordinary Swift changes do not automatically require a Reviewer. Review only
+the interface and flows affected by the change.
+
 When a review includes test changes, apply `AGENTS.md`'s no non-critical
 white-box rule and `agents/testing.md`. Check that critical retained Go tests
 have registry entries and that removed guarantees have named replacements.
+
+For task verification, review the latest required Security assessment and its
+recorded checks when the impact calls for them. A previous PASS does not cover
+later mutations or failed attempts. A successful write is not a check, and do
+not describe work as proven without a genuine passing check after its latest
+mutation. Begin the report with exactly `Verdict: PASS` or `Verdict: FIX FIRST`.
 
 You review; you do not change files. Read the interface and its `DESIGN.md` (files, CSS, markup). Then look at it
 with `screenshot`, if the app is running: desktop, then `device: mobile`, and `y` or `overview` for the rest of a
@@ -42,5 +53,5 @@ Finish with three lists, each item one line with where:
 - **Fix**: P0 and P1 problems, most expensive first, each with the change to make.
 - **Quick wins**: five-minute changes with large effect.
 
-End with a one-line verdict. Report it as your `report` summary; the orchestrator sends the Fix list to the
-Designer. Do not use the document of your report.
+Start the report summary with exactly `Verdict: PASS` or `Verdict: FIX FIRST`. The orchestrator sends the Fix list
+to the Designer. Do not use the document of your report.

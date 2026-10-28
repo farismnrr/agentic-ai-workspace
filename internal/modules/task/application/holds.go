@@ -9,6 +9,8 @@ import (
 // holds counts how often the server held something back during one run, so that every hold is bounded and a
 // check that cannot be satisfied never stops the run from ending.
 type holds struct {
+	// unverified records a mandatory review that cannot be completed in this run.
+	unverified string
 	// planWarned is set once the orchestrator was told its plan was out of date, so it is told only once.
 	planWarned bool
 	// siteAsked counts finishes held back because a page was built and no app was running.
@@ -23,11 +25,11 @@ type holds struct {
 	clarifyAsked int
 	// planAsked counts jobs held back because the person's latest request was not in the plan yet.
 	planAsked int
-	// securityAsked counts finishes held back for the Security check of the final code.
+	// securityAsked counts finishes held back for a required focused Security review.
 	securityAsked int
-	// architectAsked counts finishes held back for the Architect's check of the final code.
+	// architectAsked counts finishes held back for an impact-required architecture review.
 	architectAsked int
-	// reviewerAsked counts finishes held back for the Reviewer's look at the screens.
+	// reviewerAsked counts finishes held back for an impact-required independent review.
 	reviewerAsked int
 	// lookAsked counts reports sent back because a teammate had not looked at the screens it made.
 	lookAsked int

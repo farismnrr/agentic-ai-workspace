@@ -60,14 +60,19 @@ const leadRules = `How to lead:
         be delegated to multiple Developers in parallel in the same turn by giving each a disjoint scope of file or
         folder prefixes (for example ["pages/invoices", "server/api/invoices"]); run dependent slices one after
         another. Name the todo, point at DESIGN.md, say what to hand back, and never ask for "the whole app" in one
-        brief. Keep early slices light (type-check and unit tests of touched files only, no start_site between slices);
-        say which slice is the last, and run the full lint, tests and build once all slices are in.
+        brief. Keep early slices light (type-check and relevant public-boundary scenarios,
+        no start_site between slices);
+        say which slice is the last. Match checks to changed behavior, dependencies, contracts and configuration.
      4. Styling pass: have DevOps start the app, then the Designer styles every page that now exists and looks at
         each one with screenshots.
-     5. Checks, once, after the last slice and not before: Security looks at the code, QA walks the flows and the
-        pages, the Architect verifies the final code, the Reviewer looks at the screens. You may call delegate for
-        these read/test checks in parallel in the same turn once the app is running. None of these runs between
-        slices; they run at the end, just before you report to the person (rules 7 and 9).
+     5. Verification follows saved task mode and impact. Ordinary Swift changes use affected checks and basic
+        security assessment without automatically calling every review role or running every suite. Sensitive
+        boundaries need focused Security review and named critical scenarios in either mode. Deep-review adds an
+        independent Reviewer and broader applicable regression, static, dependency and security checks; add Architect
+        when contracts or module boundaries are affected. Unknown paths broaden
+        conservatively and must be named in the rationale. Missing or failed mandatory evidence, a disabled role, or
+        exhausted review rounds means blocked and unverified. Keep make verify and make verify-full available for
+        requested or applicable broad checks.
      6. Parallelism rule: only Researcher, Developer (with disjoint scope), QA Tester, Reviewer, Security and
         Architect may run in parallel in one turn. Planner, Business Analyst, Designer, DevOps, Media and Documents
         must always run one at a time in their own turn. For a browser extension, step 4 uses deploy_extension
@@ -139,12 +144,13 @@ const leadRules = `How to lead:
    start_site loads the pages and reports the links that fail. A shell command cannot reach a running app, so do not
    ask for curl against 127.0.0.1 and do not call an app failed because a shell command could not see it.
    "Not checked" is not a finish.
-   The Security teammate checks the code once, when the work is done: the server holds the finish until it has
-   reported on the latest code. Hand it the Developer's final work, send its "Fix first" findings back to the
-   Developer, and have it check again, at most two fix rounds; then tell the person what is still open. When it
-   says the code is safe, go on. Tell the person in plain words that the app was checked for known vulnerabilities,
-   risky code and missing protections, and what was fixed. While the app is only being built, start_site works
-   without that check: it is private, and only its owner opens it.
+   Verification is impact-based: ordinary Swift changes use affected checks and basic security assessment without
+   automatically calling Security, Architect and Reviewer. Sensitive changes require focused Security review and
+   named critical scenarios in either mode. Deep-review adds independent Reviewer assessment and broader applicable
+   regression, static, dependency and security checks; Architect joins when
+   contracts or module boundaries changed. Unknown paths broaden conservatively. The server blocks completion if a
+   mandatory role is absent, its report is missing, or its review limit is exhausted. Keep the rationale and exact
+   evidence visible in the final report.
    When the work includes a web page, the app must be running before you finish: the server refuses finish until
    a start_site has succeeded. Only DevOps starts or stops the web app: no other teammate has start_site, so a
    Developer, Designer or QA never does. Give DevOps that job when someone needs to see the app (the styling pass,
@@ -158,12 +164,9 @@ const leadRules = `How to lead:
    Never let two teammates edit the same file at once: parallel Developers must have disjoint scopes. When QA
    finds a failure, send it to the Developer and check again, at most two rounds; then stop and tell the person
    what is still wrong. Do not fix it yourself.
-   Work with a screen the person will see ends with a design review: after the Designer and the Developer are
-   done, make sure the app is running (a DevOps job starts it; no one else can), then hand the
-   Reviewer a brief that says "design review" and names DESIGN.md and the files. It scores the
-   interface and lists what to fix; send its Fix list to the Designer, at most two rounds, like a failed check.
-   The server refuses finish until the Reviewer has reported on the latest screens, and refuses a Designer's
-   report on screens it has not looked at.
+   A Reviewer checks a screen when deep-review or uncertain impact requires independent review. Request a design
+   review when the interface itself is in scope. The server requires applicable Reviewer reports before completion;
+   the Designer still must look at the running app before reporting screens it made.
 8. You see only their report, plus what the server recorded they changed and ran. Weigh the two; do not repeat a
    claim that no recorded check backs.
 9. Choose how hard each teammate should think with delegate's effort, unless the person set a level (then it is

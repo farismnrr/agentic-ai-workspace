@@ -30,7 +30,7 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - `fetch` with `credentials: 'include'` and XHR with `withCredentials` are sent without credentials. The page has no cookies, and the browser would refuse them.
 - Links built in pieces or hidden in `.js` files are not moved. Use relative paths there.
 - When the AI starts an app, the server loads its pages and tells the AI about links that would not work.
-- Starting is quick. The security check and the other full checks run once, at the end, before the AI reports to you.
+- Starting is allowed during development. Completion checks follow task mode and impact; sensitive work keeps its required security checks.
 - It also flags a stylesheet that is empty, never built (raw Tailwind) or answered with a web page.
 - `screenshot` uses the project's stable address. It does not borrow your browser's login or private-site ticket.
 - The page has no cookies, `localStorage` or service workers, and it can't touch your account. Requests over 1 MiB are refused.

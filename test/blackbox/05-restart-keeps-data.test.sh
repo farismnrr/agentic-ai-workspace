@@ -25,6 +25,13 @@ http_request POST "$jar" /api/providers \
     '{kind:"compatible",name:"Saved gateway",baseUrl:$base,apiKey:"sk-persist-1234"}')"
 assert_status "$HTTP_STATUS" 201 'credential setting is saved'
 
+http_request POST "$jar" /api/tasks \
+  "$(jq -cn --arg project "$project_id" \
+    '{projectId:$project,prompt:"@deep-review\nKeep this task mode",team:false,providerId:"plan:claude",model:"default"}')"
+assert_status "$HTTP_STATUS" 201 'deep-review task is created'
+task_id=$(jq -r '.id' "$HTTP_BODY_FILE")
+assert_json '.mode == "deep-review"' 'task mode is returned'
+
 app_restart
 http_request GET "$jar" /api/auth/me
 assert_status "$HTTP_STATUS" 200 'session remains valid after process restart'
@@ -36,5 +43,8 @@ assert_json '.about == "Long-lived setting"' 'preference survives restart'
 http_request GET "$jar" /api/providers
 assert_json 'any(.[]; .name == "Saved gateway")' 'credential metadata survives restart'
 assert_not_contains "$HTTP_BODY_FILE" 'sk-persist-1234' 'credential remains redacted after restart'
+http_request GET "$jar" "/api/tasks/$task_id"
+assert_status "$HTTP_STATUS" 200 'task survives restart'
+assert_json '.mode == "deep-review"' 'task mode survives restart'
 
 assertion_summary

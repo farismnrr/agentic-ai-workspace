@@ -8,6 +8,7 @@ var (
 	ErrBadRequest     = errors.New("write what you need")
 	ErrNoProject      = errors.New("project not found")
 	ErrBadEffort      = errors.New("that effort level is not available")
+	ErrBadMode        = errors.New("task mode must be swift or deep-review")
 	ErrNoModel        = errors.New("no model is available; add a provider under Settings, AI models")
 	ErrBusy           = errors.New("the agent is still working on this task")
 	ErrNeedsAnswer    = errors.New("answer the pending question or approval first")

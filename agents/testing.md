@@ -14,6 +14,17 @@
 
 - Fast runs `make guardrails shellcheck` and `make backend-test` before image builds.
 - Full runs `make verify-full`, which adds frontend checks, Go lint, build and smoke, black-box, browser, Docker isolation, and race checks.
+
+## Impact-based task verification
+
+- Assess impact from changed behavior, dependencies, shared contracts and configuration; extensions alone are not enough. Ordinary Swift work runs affected public-boundary scenarios and relevant static checks; do not require every suite or review role by default.
+- Sensitive changes need focused Security review and their named critical scenarios in either mode.
+- Deep-review adds an independent Reviewer assessment and broader applicable regression, static, dependency and security checks. Add Architect when contracts or module boundaries are affected.
+- Unknown paths, ambiguous behavior or unclear dependencies broaden conservatively and must be explained in the lead's report.
+- Every task completion path, including a direct model answer, CLI result and finish tool, must enforce the same gate. Require the latest applicable review and every named critical check; a PASS label without evidence is insufficient.
+- A Security PASS must include an `Assessment:` naming every affected path and explaining how the scenarios cover it, plus `Checks:` with one exact full command per required scenario. Each distinct command needs its own latest matching passing server-recorded run after the latest change. Listing, collection, compile-only and no-test commands are not meaningful checks. Evidence runs require known effects and no changed paths.
+- A missing mandatory role, missing or failed evidence, or exhausted review limit blocks completion as unverified. Broad Make targets remain available when requested or indicated by impact.
+- The Full release merge must match the verified `GITHUB_SHA`. Build from its returned merge SHA and publish a tag from that SHA for deployment; if `dev` moved, fail and verify again.
 - `scripts/check-guardrails.sh` exempts `test/` and `scripts/` from its file-size and content rules. It still enforces test placement, `testdata/` placement, and the ban on program imports from `test/`.
 - ShellCheck, golangci-lint, and ESLint remain separate checks and still analyze test and script code in their configured scopes.
 

@@ -143,13 +143,13 @@ func moveFile(_ context.Context, s codingmcp.Services, in toolArgs) taskapp.Tool
 func runTask(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
 	result, err := s.Tasks.Run(ctx, in.Name)
 
-	return ran(in.Name, fmt.Sprintf("Task %q", in.Name), result, err)
+	return ran(in.Name, fmt.Sprintf("Task %q", in.Name), result.Command, result, err)
 }
 
 func runCommand(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
 	result, err := s.Tasks.RunCommand(ctx, in.Command, in.TimeoutSecs)
 
-	return ran(commandName(in.Command), "Command", result, err)
+	return ran(commandName(in.Command), "Command", in.Command, result, err)
 }
 
 const maxCommandName = 60
@@ -167,7 +167,7 @@ func commandName(command string) string {
 }
 
 // ran words a finished run for the model and records it as a check that really ran.
-func ran(name, label string, result codingapp.RunResult, err error) taskapp.ToolResult {
+func ran(name, label, command string, result codingapp.RunResult, err error) taskapp.ToolResult {
 	if err != nil {
 		return failure(err)
 	}
@@ -184,6 +184,10 @@ func ran(name, label string, result codingapp.RunResult, err error) taskapp.Tool
 	return taskapp.ToolResult{
 		Output: fmt.Sprintf("%s finished: %s.\n%s", label, verdict, result.Output),
 		Note:   verdict,
-		Run:    &taskdomain.RunInfo{Name: name, ExitCode: result.ExitCode, TimedOut: result.TimedOut},
+		Run: &taskdomain.RunInfo{
+			Name: name, Command: command, EffectPaths: result.EffectPaths, EffectsKnown: result.EffectsKnown,
+			ExitCode: result.ExitCode, TimedOut: result.TimedOut,
+			TestExecuted: goTestsExecuted(command, result.Output, result.Truncated),
+		},
 	}
 }

@@ -7,26 +7,24 @@ import (
 	"unicode/utf8"
 )
 
-// inputDocument preserves a long request verbatim and gives every runtime a readable project-file reference.
-func (s *Service) inputDocument(ctx context.Context, taskID, text string) (string, []string, error) {
+// inputDocumentForProject preserves a long request verbatim with a project-file reference.
+func (s *Service) inputDocumentForProject(
+	ctx context.Context, taskID, projectID, text string,
+) (string, []string, error) {
 	if s.deps.Notes == nil || utf8.RuneCountInString(text) <= documentThreshold {
 		return text, nil, nil
-	}
-	task, err := s.deps.Tasks.Find(ctx, "", taskID)
-	if err != nil {
-		return "", nil, fmt.Errorf("find input project: %w", err)
 	}
 	id, err := s.deps.IDs.ID()
 	if err != nil {
 		return "", nil, fmt.Errorf("name input document: %w", err)
 	}
-	base := notesFolder + "tasks/" + task.ID + "/input/" + id
+	base := notesFolder + "tasks/" + taskID + "/input/" + id
 	files := inputFiles(base, text)
-	if err = s.deps.Notes.Write(ctx, task.ProjectID, files); err != nil {
+	if err = s.deps.Notes.Write(ctx, projectID, files); err != nil {
 		return "", nil, fmt.Errorf("save input document: %w", err)
 	}
 	if s.deps.Notify != nil {
-		s.deps.Notify.FilesChanged(task.ProjectID)
+		s.deps.Notify.FilesChanged(projectID)
 	}
 	const previewLength = 1200
 	prompt := "The person's full message is saved verbatim in the project document `" + base + ".md`. " +

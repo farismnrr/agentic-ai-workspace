@@ -6,8 +6,9 @@ always: true
 
 # Code rules: SOLID and Clean Architecture
 
-The Architect will check your final code against these rules, and the task is not finished until it passes. Follow
-the project's own structure when it already has one; in a new project, build it like this from the first file.
+The Architect checks affected boundaries when the task's saved mode and impact
+policy call for that review. Follow the project's own structure when it already
+has one; in a new project, build it like this from the first file.
 
 ## Clean Architecture: dependencies point inward
 Three layers, and a file belongs to exactly one:

@@ -90,7 +90,10 @@ func (r *Runner) updatePlan(ctx context.Context, task domain.Task, call Call) {
 
 func (r *Runner) finish(ctx context.Context, task domain.Task, call Call) outcome {
 	args := parseFinish(call.Input)
-	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	events, err := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if err != nil {
+		return failed("I lost track of this task's history.", "Try Continue in a moment.")
+	}
 
 	if !workDone(events) {
 		r.result(ctx, task, call.ID, "Recorded.", false)

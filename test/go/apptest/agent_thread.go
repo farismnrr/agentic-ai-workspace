@@ -12,6 +12,7 @@ type ThreadEvent struct {
 	URL      string   `json:"url"`
 	Kind     string   `json:"kind"`
 	Text     string   `json:"text"`
+	Action   string   `json:"action"`
 	Resolved string   `json:"resolved"`
 	Agent    string   `json:"agent"`
 	Files    []string `json:"files"`

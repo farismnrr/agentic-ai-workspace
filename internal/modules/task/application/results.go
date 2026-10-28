@@ -7,6 +7,10 @@ import (
 )
 
 func (r *Runner) result(ctx context.Context, task domain.Task, callID, text string, isError bool) {
+	if callID == "" {
+		_ = r.deps.Transcript.AppendBlock(ctx, task.ID, domain.RoleUser, domain.Block{Kind: domain.BlockText, Text: text})
+		return
+	}
 	r.resultUpTo(ctx, task, callID, text, isError, r.lim.MaxResult)
 }
 

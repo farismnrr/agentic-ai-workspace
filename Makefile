@@ -21,8 +21,8 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$
 .PHONY: help image sandbox-image redeploy-dev e2e build backend-build run verify verify-full guardrails shellcheck frontend frontend-deps frontend-verify backend-test backend-lint backend-verify blackbox smoke docker-boundary volume-isolation registry-check clean
 
 help:
-	@echo "make build    - verify, then build the single static binary ($(BIN_PATH))"
-	@echo "make run      - build, then run the binary on PORT (default $(PORT))"
+	@echo "make build    - build frontend assets and the single static binary ($(BIN_PATH))"
+	@echo "make run      - build and run on PORT (default $(PORT)); use make verify for quality gates"
 	@echo "make image    - build the Docker image ($(IMAGE):latest and :dev, what the compose files use)"
 	@echo "make sandbox-image - build the toolbox image the agent's commands run in"
 	@echo "make redeploy-dev - pull the app image published from dev and recreate the app container"
@@ -34,8 +34,8 @@ help:
 	@echo "make blackbox - run the built-binary black-box scenarios"
 	@echo "make clean    - remove bin/, node_modules and generated frontend output"
 
-# Sequenced through a sub-make so `make -j` cannot embed a stale frontend build.
-build: verify
+# Build runtime assets without forcing the full quality suite on ordinary work.
+build: frontend
 	@$(MAKE) backend-build
 
 backend-build:

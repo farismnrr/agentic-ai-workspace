@@ -30,6 +30,7 @@ type runState struct {
 	budget *budget
 	// roster is the team the orchestrator leads on this run; nil for a solo task and for teammates.
 	roster *Roster
+	holds
 	// size is the tokens the last model call carried; zero while unknown.
 	size int64
 	// window is the model's context window in tokens, as of the last turn.
@@ -42,8 +43,7 @@ type runState struct {
 	misses int
 	// noImages is set once the model refused a request with screenshots; it then gets their text reports only.
 	noImages bool
-	holds
-	mu sync.Mutex
+	mu       sync.Mutex
 }
 
 // compaction is what summarising needs from the turn that asks for it.

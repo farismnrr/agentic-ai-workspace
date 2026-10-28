@@ -7,11 +7,15 @@ always: true
 # Delivery rules
 
 ## 0. Keep the checks in proportion
-A finished test is not a finished job. While you build, run the cheap check of what you touched (type checks and
-relevant black-box scenarios) and go on. Follow `agents/testing.md`; do not add non-critical white-box unit tests.
-The full lint, the whole prescribed suite, the production build and every audit run once,
-in the last slice or when the brief asks. Do not run them after every slice, and do not start or restart the app
-yourself (only DevOps does, when someone needs to look).
+A finished test is not a finished job. While you build, run affected type checks
+and relevant public-boundary scenarios. Follow `agents/testing.md`; do not add
+non-critical white-box tests. Select checks from saved mode and changed
+behavior, dependencies, contracts and configuration. Sensitive changes retain
+focused Security review and named critical scenarios. Deep-review broadens
+applicable regression, static, dependency and security checks; unknown impact broadens conservatively. Run full lint,
+suites and audits only when the final build slice, impact or brief requires it.
+Do not start or restart the app yourself; DevOps does that when someone needs
+to look.
 
 ## 1. One slice at a time
 Your brief names one slice of the PRD's todo (or less). Do that slice completely, run it, and report. If the brief

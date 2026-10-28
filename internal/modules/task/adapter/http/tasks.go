@@ -28,6 +28,7 @@ type taskPayload struct {
 	ID           string              `json:"id"`
 	Model        string              `json:"model"`
 	Effort       string              `json:"effort"`
+	ReviewMode   domain.ReviewMode   `json:"mode"`
 	Source       string              `json:"source"`
 	WorkID       string              `json:"workId,omitempty"`
 	LinkedTaskID string              `json:"linkedTaskId,omitempty"`
@@ -46,7 +47,8 @@ type taskPayload struct {
 func toPayload(t domain.Task) taskPayload {
 	return taskPayload{
 		ID: t.ID, ProjectID: t.ProjectID, Title: t.Title, Summary: t.Summary, Status: t.Status,
-		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), Source: t.Source, Team: t.Team,
+		ProviderID: t.ProviderID, Model: t.Model, Effort: string(t.Effort), ReviewMode: t.ReviewMode,
+		Source: t.Source, Team: t.Team,
 		WorkID: t.WorkID, Work: t.Work, LinkedTaskID: t.LinkedTaskID, OriginTaskID: t.OriginTaskID,
 		PlanFirst: t.PlanFirst,
 		PRD:       t.PRD, Research: t.Research, Proof: t.Proof,
@@ -111,6 +113,7 @@ func (h *Handler) create(c fiber.Ctx) error {
 		ProviderID string `json:"providerId"`
 		Model      string `json:"model"`
 		Effort     string `json:"effort"`
+		ReviewMode string `json:"mode"`
 	}
 	if err := c.Bind().JSON(&body); err != nil {
 		return badBody(c)
@@ -118,7 +121,7 @@ func (h *Handler) create(c fiber.Ctx) error {
 
 	task, err := h.service.Create(c.Context(), httpserver.UserID(c), application.CreateInput{
 		ProjectID: body.ProjectID, Prompt: body.Prompt, ProviderID: body.ProviderID, Model: body.Model,
-		Effort: domain.Effort(body.Effort), Team: body.Team,
+		Effort: domain.Effort(body.Effort), Team: body.Team, ReviewMode: body.ReviewMode,
 	})
 	if err != nil {
 		return fail(c, err)
@@ -129,13 +132,15 @@ func (h *Handler) create(c fiber.Ctx) error {
 
 func (h *Handler) message(c fiber.Ctx) error {
 	var body struct {
-		Text string `json:"text"`
+		Text       string `json:"text"`
+		ReviewMode string `json:"mode"`
 	}
 	if err := c.Bind().JSON(&body); err != nil {
 		return badBody(c)
 	}
 
-	return h.done(c, h.service.FollowUp(c.Context(), httpserver.UserID(c), c.Params("id"), body.Text))
+	return h.done(c, h.service.FollowUp(c.Context(), httpserver.UserID(c), c.Params("id"),
+		application.FollowUpInput{Text: body.Text, ReviewMode: body.ReviewMode}))
 }
 
 func (h *Handler) externalChat(c fiber.Ctx) error {

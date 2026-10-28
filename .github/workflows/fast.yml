@@ -1,8 +1,8 @@
 name: Fast
 
 # Quick feedback loop: guardrails and Go tests gate the image path. Pushes to dev
-# publish the dev image to GHCR; pull requests only build it. Full runs the broader
-# quality suite and release; see full.yml.
+# publish the dev image to GHCR; pull requests only build it. Full provides broader
+# verification and releases only after an explicit dispatch input; see full.yml.
 on:
   push:
     branches: [dev]

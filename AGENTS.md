@@ -29,7 +29,7 @@ Three audiences, three places. Never mix them.
 3. Node.js, Vite, Tailwind CSS, and daisyUI are build-time dependencies only.
 4. Do not add a second runtime server, frontend port, or reverse proxy without explicit approval.
 5. Do not add hot reload or a dev-server workflow. Supported execution is `build -> run binary`.
-6. `make run` always verifies and rebuilds before running, so the binary never goes stale.
+6. `make build` rebuilds frontend assets and the binary; `make run` uses that build. Run `make verify` when the task or impact policy calls for the full local quality suite.
 7. `backend-build` always uses `CGO_ENABLED=0`, so local binaries and the image's binary are the same static, single-file artifact. `make image` builds the image.
 8. Do not wrap AGY's consumer OAuth/headless mode inside this third-party orchestrator: Google's FAQ explicitly disallows it. Use independently issued Gemini API/Enterprise credentials instead; do not copy login tokens or automate account rotation. Keep legacy 9router relays disabled without deleting user data.
 9. ZIP uploads are stored as inert attachments only; validate contents and sizes before saving and never automatically unpack on the server.
@@ -203,12 +203,12 @@ See [agents/git-safety.md](agents/git-safety.md) for the full preflight and reco
 
 ## Verification and CI
 
-1. `make verify` is the mandatory local quality gate; `make build` verifies before producing the binary. It runs guardrails, frontend checks, Go tests and lint, builds the binary, then runs black-box and smoke checks. Full CI uses `make verify-full` for this suite plus browser, isolation and race checks.
+1. Assess risk from changed behavior, dependencies, shared contracts and configuration; file extensions alone do not decide impact. Ordinary Swift changes use affected public-boundary scenarios and relevant static checks. Sensitive changes require focused Security review and named critical scenarios in either mode. Deep-review adds independent Reviewer assessment and broader applicable checks. Unclear impact broadens conservatively. Every task completion path checks the latest required review and every named critical check; missing, failed or exhausted requirements leave work blocked and unverified. `make verify` and `make verify-full` remain available broad gates.
 2. Go uses strict golangci-lint; the frontend uses `svelte-check --fail-on-warnings` and type-aware strict ESLint.
 3. Warnings fail verification. Fix diagnostics instead of silencing them. `//nolint` must name the linter and explain the exception.
 4. Keep exactly two workflow files in `.github/workflows/`: `fast.yml` and `full.yml`. Neither gets extra files or full-release auto-triggers without approval. Shared setup lives in `.github/actions/`.
 5. **Fast** runs on pushes to `dev` (and pull requests targeting `dev`, without publishing). Its `guardrails` job runs `make guardrails shellcheck`; `backend-test` runs `make backend-test`. These gate the app image build and the conditional sandbox image build. Pushes publish images; the sandbox image rebuilds only when its inputs change. Documentation-only changes skip Fast.
-6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. From a clean checkout, `make verify-full` runs frontend checks, Go lint, build and smoke, black-box tests, Playwright e2e, Docker isolation and race checks. It merges and publishes only when every check passes.
+6. **Full** is manual (`workflow_dispatch`) and runs only from `dev`. Its boolean `release` input defaults to false. `make verify-full` runs frontend checks, Go lint, build and smoke, black-box tests, Playwright e2e, Docker isolation and race checks. Each release-capable job independently requires explicit release, `dev`, and successful prerequisites. The merge must match the verified `GITHUB_SHA`; branch drift fails it. Build from the returned merge SHA and deploy the image tag derived from that same SHA.
 7. Fast keeps only guardrails and Go tests as quick code gates; Full owns frontend, lint, build, smoke, black-box, browser, isolation and race checks. Neither workflow may weaken its assigned checks or the repository guardrails.
 8. CI uses committed lockfiles, deterministic installs, and official caches. Never cache `node_modules`. CI verifies dependency drift instead of fixing it.
 9. Third-party Actions are pinned to full commit SHAs with the version documented beside them.

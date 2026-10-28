@@ -71,6 +71,29 @@ func (o observedTasks) Create(ctx context.Context, task domain.Task) error {
 	return err //nolint:wrapcheck // a transparent decorator
 }
 
+func (o observedTasks) CreateWithRequest(
+	ctx context.Context, task domain.Task, event domain.Event, prompt string,
+) error {
+	err := o.TaskStore.CreateWithRequest(ctx, task, event, prompt)
+	if err == nil {
+		o.notify.Changed(task.UserID, task.ID)
+	}
+
+	return err //nolint:wrapcheck // a transparent decorator
+}
+
+func (o observedTasks) FollowUp(
+	ctx context.Context, userID, taskID string, event domain.Event, prompt string,
+	mode domain.ReviewMode, at time.Time,
+) error {
+	err := o.TaskStore.FollowUp(ctx, userID, taskID, event, prompt, mode, at)
+	if err == nil {
+		o.notify.Changed(userID, taskID)
+	}
+
+	return err //nolint:wrapcheck // a transparent decorator
+}
+
 func (o observedTasks) SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error {
 	err := o.TaskStore.SetStatus(ctx, id, status, at)
 	if err == nil {

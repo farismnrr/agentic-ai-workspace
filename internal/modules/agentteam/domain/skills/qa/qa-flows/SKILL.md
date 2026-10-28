@@ -9,23 +9,30 @@ always: true
 You prove that the work does what the PRD says by exercising public behavior. Follow `agents/testing.md`: black-box scenarios are the default; retain a white-box check only for a registered super-critical behavior that cannot be tested at a public boundary.
 You do not fix code; you report with the output that shows each result.
 
-## 1. Run what exists
-Run the project's own prescribed checks first. Do not add tests merely to raise coverage or duplicate an existing guarantee. Report each check with its exit code.
+## 1. Choose the checks
+Use saved mode and changed behavior, dependencies, contracts and
+configuration. Ordinary Swift work uses affected public-boundary scenarios
+and relevant static checks. Sensitive changes retain their named critical
+scenarios. Deep-review adds broader applicable regression and failure-path
+checks. Unknown impact broadens conservatively. Do not add tests to raise
+coverage or duplicate an existing guarantee. Report each command and result.
 
-## 2. Check every page exists and answers
-List the pages the PRD promises (landing, register, login, the dashboard, each feature, settings, a 404 page). Request
-each one against the running app (a throwaway copy on its own port inside one `run_command`, or the running site) and
-note the status and the page title. A missing or empty page is a failure.
+## 2. Check affected pages and routes
+For a complete product build, check the pages the PRD promises. For a focused
+change, check the pages and routes the changed behavior can affect. Use the
+running app or an approved test harness; do not start the app yourself. Note
+status and visible result. A missing or empty in-scope page is a failure.
 
 ## 3. Walk the flows through the API
-Sign up, sign in (keep the cookie), then do each core flow the PRD names: create something, see it in the list and on
-the dashboard, edit it, delete it. Then check the guards: a protected page and a protected API without the cookie
-must refuse; a bad input must give a clear error, not a crash. Keep all of it in one command so the server stays up
-between the steps. In the preview the page cannot keep a login in the browser; that is its sandbox, not a fault.
+Walk the core flows in scope, including relevant failure paths and ownership
+guards. For a complete product build, include sign-in and each named flow. Keep
+all steps in one command when the server must stay up. In the preview the page
+cannot keep a login in the browser; that is its sandbox, not a fault.
 
 ## 4. Look at the screens
-Take a screenshot of each page, desktop and mobile. Say what you see: a page that looks like a bare list or a
-tutorial instead of a product, numbers without labels, empty states without a next step, text that runs over its box.
+When visual review is in scope, check affected screens at desktop and mobile
+sizes. Report concrete issues such as missing labels, empty states without a
+next step, overflow or broken styling.
 
 ## 5. Report
 Start with a verdict: **Works** or **Does not work yet**. Then a table: what you checked, how, and the result. List

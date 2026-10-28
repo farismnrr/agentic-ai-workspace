@@ -60,8 +60,17 @@ func (s *Service) now() time.Time {
 }
 
 // FollowUp adds a message to a task that is waiting for review, finished or stopped.
-func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) error {
-	if err := validatePrompt(strings.TrimSpace(text)); err != nil {
+type FollowUpInput struct {
+	Text       string
+	ReviewMode string
+}
+
+func (s *Service) FollowUp(ctx context.Context, userID, taskID string, in FollowUpInput) error {
+	return s.followUp(ctx, userID, taskID, in, true)
+}
+
+func (s *Service) followUp(ctx context.Context, userID, taskID string, in FollowUpInput, trusted bool) error {
+	if err := validatePrompt(strings.TrimSpace(in.Text)); err != nil {
 		return err
 	}
 
@@ -69,24 +78,43 @@ func (s *Service) FollowUp(ctx context.Context, userID, taskID, text string) err
 	if err != nil {
 		return err
 	}
-	if task.ArchivedAt != nil {
-		return domain.ErrWrongState
+	if followErr := canFollowUp(task); followErr != nil {
+		return followErr
 	}
 
-	switch {
-	case task.Source != "":
-		return domain.ErrWrongState
-	case task.Status.Running():
-		return domain.ErrBusy
-	case task.Status == domain.StatusNeedsInput:
-		return domain.ErrNeedsAnswer
+	requested := in.ReviewMode
+	text := ""
+	if trusted {
+		text = in.Text
+	} else {
+		requested = ""
 	}
-
-	if err := s.say(ctx, task.ID, text); err != nil {
+	mode, err := requestedReviewMode(requested, text, task.ReviewMode)
+	if err != nil {
 		return err
 	}
+	event, prompt, err := s.prepareOwnerRequest(ctx, task.ID, task.ProjectID, in.Text)
+	if err != nil {
+		return err
+	}
+	if err := s.deps.Tasks.FollowUp(ctx, userID, task.ID, event, prompt, mode, s.deps.Now()); err != nil {
+		return fmt.Errorf("save task follow-up: %w", err)
+	}
+	s.dispatcher.Enqueue(task.ID, task.ProjectID)
+	return nil
+}
 
-	return s.requeue(ctx, task)
+func canFollowUp(task domain.Task) error {
+	if task.ArchivedAt != nil || task.Source != "" {
+		return domain.ErrWrongState
+	}
+	if task.Status.Running() {
+		return domain.ErrBusy
+	}
+	if task.Status == domain.StatusNeedsInput {
+		return domain.ErrNeedsAnswer
+	}
+	return nil
 }
 
 // Get returns one of the person's tasks.

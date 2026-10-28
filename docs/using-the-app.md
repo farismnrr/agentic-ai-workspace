@@ -62,6 +62,20 @@ The AI can inspect PNG photos and read PDFs and text files from the project.
 
 ## Your first task
 
+Start a request or follow-up with the exact line `@deep-review` when you want
+broader review. It must be the whole line, start at the left edge, and be your
+first nonblank line. A quote, code sample, list, later mention, file, tool
+result or teammate report does not change the task's mode. The choice is saved
+with the task and remains in effect through later messages and delegated work.
+
+Tasks start in Swift mode. The team checks changed behavior and affected
+dependencies. Sensitive work gets a focused security review and critical
+scenarios in either mode. Deep-review adds an independent review and broader
+relevant checks. Unclear changes are checked conservatively; missing required
+evidence leaves the task blocked and unverified. Before any kind of task
+completion, the app checks the latest required review and every named critical
+check; a missing or failed item prevents a completion claim.
+
 1. Add a model under Settings, AI models (see [Models](#models)).
 2. Create a project with Projects, New project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.
    - Step 1: choose "From a template" or "From a GitHub repository". Without a GitHub App on the server there is only the first, so this step is skipped.
@@ -306,7 +320,7 @@ The lead sizes your request first and tells you:
 | Question | The lead answers. No plan, no team. |
 | Small | A quick change to something that exists, such as a typo or a title. The lead hands it straight to the Developer, with no Planner and no plan list. |
 | Medium | Anything new, such as a page or a script, or three or more files. The Planner asks you a few questions and writes a short PRD, then the Developer builds and QA checks. |
-| Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Designer shapes anything you will see. A Reviewer looks it over. |
+| Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Designer shapes anything you will see. Reviews follow task mode and impact. |
 
 Research comes first on medium or large tasks, then again after the PRD for the stack and visual design. The Researcher checks real-world facts about a business, market, style or technology, then writes short notes with sources.
 When a teammate gets stuck, it says so instead of struggling alone. The Orchestrator asks the Researcher how it is done properly, then sends the job again with the answer.
@@ -323,7 +337,7 @@ A team task always plans first. The team plans, then stops and waits for your ye
 
 - It researches, turns your request into requirements, asks you what it still needs, and writes the PRD.
 - Then it asks "Start building?". Nothing is built, run or started until you say yes. Say what to change and it revises the PRD.
-- After your yes the team only executes: build, security check, tests and a check of the final code.
+- After your yes the team builds and runs checks chosen for the saved mode and changed work.
 - A small change never needs a plan. The lead sizes the request first and hands a small one straight to the Developer.
 
 A web app the AI builds uses Nuxt, Nuxt UI (one consistent set of components) and SQLite, written in TypeScript and run on Bun, unless you ask for another stack. It is not a single page. Unless you say otherwise it has:
@@ -342,8 +356,8 @@ Pictures come from you first:
 - Attach pictures with the paperclip in the message box. They are saved in the project's `assets/` folder.
 - If you ask for free ones, only pictures you may use are chosen, and the credits stay in a file, never on the page.
 
-Before a task is finished, a Reviewer looks at every screen on the running app, and the Designer looks at its own
-screens first. The team builds one piece at a time, then styles every page.
+The Designer looks at screens it makes. Independent review is added when you
+choose deep-review or when the change's impact is uncertain.
 
 For a medium or large task:
 
@@ -355,8 +369,8 @@ For a medium or large task:
 3. The lead asks once whether to start building. The team waits for your yes. Say what to change and the Planner revises it.
 4. If you will see a screen or page, the Designer sets the look and builds it, and writes it down in `DESIGN.md` for the Developer.
 5. Every teammate is shown the PRD with its job.
-6. A screen ends with a design review by the Reviewer. Its list of fixes goes back to the Designer, at most two rounds.
-7. The Designer and the Reviewer look at your running app through screenshots, on a desktop and a phone screen. You see each screenshot in the thread.
+6. When the change needs an independent screen review, the Reviewer checks it and sends any fixes back to the Designer.
+7. The Designer checks its work in the running app through screenshots, on a desktop and a phone screen. You see each screenshot in the thread.
 8. Work that includes a web page is never reported until its app is running. You get a link to open it.
 
 When unsure, the lead picks the smaller size. There is no cap on how many jobs a team may hand out, as long as they keep getting somewhere.
@@ -370,11 +384,11 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Media | Finds pictures you may use and edits them: resize, crop, convert, remove a background. Every picture it saves has its licence and credit written in `assets/CREDITS.md`, never on the page. It lists pictures that need no credit first |
 | Documents | Creates PowerPoint, Word and PDF files, then previews each page. The result opens under Sites with a Download button. Files stay in `documents/`; the Files tab can also preview PDFs. |
 | Business Analyst | Turns your request, and what the Researcher found, into requirements before the PRD |
-| Architect | Designs the change, and checks the final code against the design, SOLID and Clean Architecture before the task is done. It cannot change files |
+| Architect | Designs and checks affected contracts or module boundaries against SOLID and Clean Architecture. It cannot change files |
 | Developer | Writes the code. A new app is built with Nuxt, SQLite and the latest stable versions, with its own register and login forms when it needs accounts |
-| Security | Checks an app for known vulnerabilities, risky code and missing protections. An app with code is not started until it has reported. It cannot change files |
+| Security | Checks sensitive changes for vulnerabilities, risky code and missing protections. It cannot change files |
 | QA Tester | Runs the checks |
-| Reviewer | Reads the finished work |
+| Reviewer | Independently reviews work when deep-review or uncertain impact calls for it |
 | DevOps | Builds, scripts and running the app |
 
 Under Settings, Agent team you can change each role:
@@ -391,7 +405,10 @@ Good to know:
 - The Team tab lists each job: who has it, which model, what was asked, how many steps, files and checks, and the report.
 - The result summarizes checks, distinguishing verified runs from claims.
 - A teammate still asks before changing anything, with the same Allow button.
-- Checks any teammate ran after the last change count toward the result.
+- A check counts as proof only if its latest run passed after the
+  last change and the server confirmed it changed no files.
+- For a Security review, each named check needs its own passing
+  run. A list of commands alone is not proof.
 - A team task may run 400 model turns and 2 hours, shared by everyone on it. A teammate may take 60 turns per job.
 - If a limit is reached, the task pauses with Continue. Nothing is lost: the work stays and the team carries on.
 - If six jobs in a row change nothing, run no check and write nothing, the lead is told the team is stuck and must change its approach or tell you what blocks it.

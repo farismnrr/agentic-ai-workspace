@@ -5,6 +5,19 @@ import "time"
 // Status is where a task is in its life. The strings match the app's status labels.
 type Status string
 
+// ReviewMode controls how broadly a task is verified.
+type ReviewMode string
+
+const (
+	ReviewModeSwift      ReviewMode = "swift"
+	ReviewModeDeepReview ReviewMode = "deep-review"
+)
+
+// Valid reports whether the mode is supported.
+func (m ReviewMode) Valid() bool {
+	return m == ReviewModeSwift || m == ReviewModeDeepReview
+}
+
 // Task statuses.
 const (
 	StatusQueued     Status = "queued"
@@ -94,9 +107,10 @@ type Task struct {
 	// ProjectID is the project the task works in.
 	ProjectID string
 	// Effort is how hard the model was asked to think; empty is the provider's default.
-	Effort Effort
-	Status Status
-	Plan   []PlanStep
+	Effort     Effort
+	ReviewMode ReviewMode
+	Status     Status
+	Plan       []PlanStep
 	// ContextUsed and ContextWindow are tokens: what the last model call carried and what the model can hold.
 	// Zero until the first call.
 	ContextUsed   int64

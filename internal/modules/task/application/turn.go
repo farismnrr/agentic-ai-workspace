@@ -52,7 +52,7 @@ func (r *Runner) turn(
 	state.size = reply.Usage.Input + reply.Usage.Output
 	r.saveContext(ctx, task, state)
 
-	return r.record(ctx, task, reply)
+	return r.record(ctx, task, state, reply)
 }
 
 func (r *Runner) recordUsage(ctx context.Context, task domain.Task, usage domain.Usage) {
@@ -62,26 +62,12 @@ func (r *Runner) recordUsage(ctx context.Context, task domain.Task, usage domain
 	})
 }
 
-func (r *Runner) record(ctx context.Context, task domain.Task, reply Reply) (outcome, bool) {
+func (r *Runner) record(ctx context.Context, task domain.Task, state *runState, reply Reply) (outcome, bool) {
 	if len(reply.Blocks) == 0 {
 		return failed("The AI model sent an empty answer.", "Try Continue, or pick another model."), true
 	}
 
-	calls, texts := false, []string{}
-
-	for _, block := range reply.Blocks {
-		_ = r.deps.Transcript.AppendBlock(ctx, task.ID, domain.RoleAssistant, block)
-
-		switch block.Kind {
-		case domain.BlockToolUse:
-			calls = true
-		case domain.BlockText:
-			texts = append(texts, strings.TrimSpace(block.Text))
-		case domain.BlockToolResult:
-		}
-	}
-
-	say := strings.TrimSpace(strings.Join(texts, "\n\n"))
+	calls, say := r.recordBlocks(ctx, task.ID, reply.Blocks)
 	if !calls && r.role != nil {
 		// A teammate that stops asking for tools has said what it has to say: that is its report.
 		return outcome{stop: stopFinished, text: say}, true
@@ -94,12 +80,37 @@ func (r *Runner) record(ctx context.Context, task domain.Task, reply Reply) (out
 	}
 
 	// No tool calls: the model considers itself done.
-	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	events, err := r.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if err != nil {
+		return failed("I lost track of this task's history.", "Try Continue in a moment."), true
+	}
 	if !workDone(events) {
 		return r.answer(ctx, task, say), true
 	}
 
+	blocked, allowed := r.completionGate(ctx, task, state, Call{})
+	if !allowed {
+		if blocked.stop != 0 {
+			return blocked, true
+		}
+		return outcome{}, false
+	}
+
 	return r.complete(ctx, task, say, buildProof(events, nil)), true
+}
+
+func (r *Runner) recordBlocks(ctx context.Context, taskID string, blocks []domain.Block) (bool, string) {
+	calls, texts := false, []string{}
+	for _, block := range blocks {
+		_ = r.deps.Transcript.AppendBlock(ctx, taskID, domain.RoleAssistant, block)
+		if block.Kind == domain.BlockToolUse {
+			calls = true
+		}
+		if block.Kind == domain.BlockText {
+			texts = append(texts, strings.TrimSpace(block.Text))
+		}
+	}
+	return calls, strings.TrimSpace(strings.Join(texts, "\n\n"))
 }
 
 func (r *Runner) say(ctx context.Context, taskID, text string) {

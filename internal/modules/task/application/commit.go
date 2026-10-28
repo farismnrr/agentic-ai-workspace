@@ -70,5 +70,5 @@ func changedSinceCommit(events []domain.Event) bool {
 // isCommit reports whether an event is the command that saved the work, and it worked.
 func isCommit(event domain.Event) bool {
 	return event.Kind == domain.EventAction && event.Run != nil && event.Run.ExitCode == 0 &&
-		saved.MatchString(event.Run.Name)
+		saved.MatchString(event.Run.Command)
 }

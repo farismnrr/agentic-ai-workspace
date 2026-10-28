@@ -137,6 +137,9 @@ func RequireDocker(t *testing.T) {
 	defer cancel()
 	_, err := sandbox.Open(ctx, sandbox.Config{Image: "busybox:1.37", Limits: sandbox.DefaultLimits()})
 	if err != nil {
+		if os.Getenv("GITHUB_ACTIONS") == "true" {
+			t.Fatalf("Docker is required for this CI scenario: %v", err)
+		}
 		t.Skipf("no Docker on this host: %v", err)
 	}
 }
