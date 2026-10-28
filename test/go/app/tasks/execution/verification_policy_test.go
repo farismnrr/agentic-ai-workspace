@@ -446,7 +446,6 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.ToolCall("d1", "delegate", map[string]string{
 			"role": "developer", "brief": "Prepare a Go package for verification",
 		}),
-		apptest.ToolCall("g1", "write_file", map[string]string{"path": "go.mod", "content": "module sample\n\ngo 1.22\n"}),
 		apptest.ToolCall("t1", "write_file", map[string]string{
 			"path": "sample_test.go",
 			"content": "package sample\n\nimport \"testing\"\n\n" +
@@ -464,7 +463,7 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.ToolCall("run", "run_command", map[string]string{"command": "go test ./..."}),
 		apptest.ToolCall("s-report", "report", map[string]string{
 			"summary": securityReport("Verdict: PASS\nChecks:\n- go test ./...",
-				[]string{"go.mod", "sample_test.go"}, []string{"go test ./..."}),
+				[]string{"sample_test.go"}, []string{"go test ./..."}),
 		}),
 		apptest.FinishCall("The package passed its required security check"),
 		// A team can ask to reconcile its plan or save changes before review.
@@ -482,6 +481,8 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.FinishCall("The package passed its required security check"),
 		apptest.FinishCall("The package passed its required security check"),
 	)
+	// Keep go.mod as baseline: changing dependencies would also require an Architect review.
+	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
 		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true,"mode":"swift"}`, apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
