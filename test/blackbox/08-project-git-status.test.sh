@@ -97,4 +97,29 @@ http_request GET "$owner" "/api/projects/$project_id/git/status"
 assert_status "$HTTP_STATUS" 200 'conflicted repository status remains readable'
 assert_json 'any(.files[]; .path == "both.txt" and .conflict)' 'merge conflict is explicit'
 
+outside_name='outside-worktree-secret.txt'
+printf 'outside\n' > "$APP_TMP_DIR/$outside_name"
+printf '\n[core]\n\tworktree = %s\n' "$APP_TMP_DIR" >> "$project_dir/.git/config"
+http_request GET "$owner" "/api/projects/$project_id/git/status"
+assert_status "$HTTP_STATUS" 503 'core.worktree makes the repository unavailable'
+assert_not_contains "$HTTP_BODY_FILE" "$outside_name" 'core.worktree cannot expose outside names'
+
+marker="$APP_TMP_DIR/filter-ran"
+printf '*.txt filter=marker\n' > "$project_dir/.gitattributes"
+printf '\n[filter "marker"]\n\tclean = "touch %s; cat"\n' "$marker" >> "$project_dir/.git/config"
+http_request GET "$owner" "/api/projects/$project_id/git/status"
+assert_status "$HTTP_STATUS" 503 'command-capable filter config makes Git unavailable'
+if [[ -e $marker ]]; then
+  printf 'Git status ran the malicious clean filter.\n' >&2
+  exit 1
+fi
+
+mv "$project_dir/.git" "$APP_TMP_DIR/project-git"
+git init -q "$APP_DATA_DIR"
+printf 'parent repository data\n' > "$APP_DATA_DIR/$outside_name"
+mkdir "$project_dir/.git"
+http_request GET "$owner" "/api/projects/$project_id/git/status"
+assert_status "$HTTP_STATUS" 503 'empty project .git metadata does not fall back to parent repository'
+assert_not_contains "$HTTP_BODY_FILE" "$outside_name" 'parent repository paths are not returned'
+
 assertion_summary

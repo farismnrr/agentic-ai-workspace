@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -28,23 +27,23 @@ func New(root string) *Reader { return &Reader{root: root} }
 
 // Read returns an unavailable snapshot for non-repositories and bounded status otherwise.
 func (r *Reader) Read() (codingdomain.GitSnapshot, error) {
-	metadata, err := os.Lstat(filepath.Join(r.root, ".git"))
+	err := validateGitMetadata(r.root)
 	if errors.Is(err, os.ErrNotExist) {
 		return emptySnapshot(), nil
 	}
-	if err != nil || !metadata.IsDir() {
-		return codingdomain.GitSnapshot{}, errors.New("unsupported git metadata")
+	if err != nil {
+		return codingdomain.GitSnapshot{}, err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
 	defer cancel()
 	output := &boundedBuffer{}
-	cmd := exec.CommandContext(ctx, "git", "-C", r.root, "-c", "core.fsmonitor=false", "status",
-		"--porcelain=v2", "-z", "--branch", "--untracked-files=normal", "--ignore-submodules=none")
-	cmd.Env = []string{"PATH=/usr/bin:/bin", "LANG=C.UTF-8", "GIT_OPTIONAL_LOCKS=0", "GIT_CONFIG_NOSYSTEM=1",
-		"GIT_CONFIG_GLOBAL=/dev/null", "GIT_PAGER=cat", "GIT_TERMINAL_PROMPT=0"}
+	cmd := exec.CommandContext(ctx, "git", gitCommandArgs(r.root, "status",
+		"--porcelain=v2", "-z", "--branch", "--untracked-files=normal", "--ignore-submodules=none")...)
+	cmd.Env = gitEnvironment()
 	cmd.Stdout = output
 	cmd.Stderr = &boundedBuffer{}
+	cmd.WaitDelay = time.Second
 	if err := cmd.Run(); err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return codingdomain.GitSnapshot{}, errors.New("git status timed out")
