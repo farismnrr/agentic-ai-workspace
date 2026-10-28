@@ -467,6 +467,15 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		}),
 		apptest.FinishCall("The package passed its required security check"),
 		// A team can ask to reconcile its plan or save changes before review.
+		// Executable source changes also require an Architect report, even in Swift
+		// when impact cannot be classified from the changed path alone.
+		apptest.ToolCall("a0", "delegate", map[string]string{
+			"role": "architect", "brief": "Review the changed Go package and callers",
+		}),
+		apptest.ToolCall("a-report", "report", map[string]string{
+			"summary": "Verdict: PASS\nReviewed sample_test.go and its affected callers; no contract changes.",
+		}),
+		apptest.FinishCall("Architecture review passed"),
 		apptest.ToolCall("final-plan", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: prepare checked package", "state": "done"},
 			{"title": "Security: verify the package", "state": "done"},
@@ -481,6 +490,7 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.FinishCall("The package passed its required security check"),
 		apptest.FinishCall("The package passed its required security check"),
 	)
+	configureReviewTeam(t, a, "developer", "security", "architect")
 	// Keep go.mod as baseline: changing dependencies would also require an Architect review.
 	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
