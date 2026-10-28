@@ -29,6 +29,60 @@ const browser = await chromium.launch({
   args: ['--no-sandbox'],
 });
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+await page.addInitScript(() => {
+  const NativeEventSource = window.EventSource;
+  const streams: Array<{ reconnect: () => void; send: (name: string, data: unknown) => void }> = [];
+  Object.assign(window, { __taskStreams: streams });
+
+  class ThreadStream extends EventTarget {
+    private native: EventSource;
+    private readonly url: string;
+    onerror: ((event: Event) => void) | null = null;
+    onopen: ((event: Event) => void) | null = null;
+    private state = EventSource.CONNECTING;
+
+    constructor(url: string) {
+      super();
+      this.url = url;
+      this.native = this.open();
+      if (url.includes('/api/tasks/') && url.endsWith('/stream')) {
+        streams.push({
+          reconnect: () => {
+            this.native.close();
+            this.state = EventSource.CONNECTING;
+            this.onerror?.(new Event('error'));
+            this.native = this.open();
+          },
+          send: (name, data) => this.dispatchEvent(new MessageEvent(name, { data: JSON.stringify(data) })),
+        });
+      }
+    }
+
+    private open(): EventSource {
+      const source = new NativeEventSource(this.url);
+      source.onopen = (event): void => {
+        this.state = EventSource.OPEN;
+        this.onopen?.(event);
+      };
+      source.addEventListener('update', (event) => {
+        const update = event as MessageEvent<string>;
+        this.dispatchEvent(new MessageEvent('update', { data: update.data, lastEventId: update.lastEventId }));
+      });
+      source.addEventListener('changed', (event) => this.dispatchEvent(event));
+      source.onerror = (event): void => this.onerror?.(event);
+      return source;
+    }
+
+    close(): void {
+      this.native.close();
+      this.state = EventSource.CLOSED;
+    }
+
+    get readyState(): number { return this.state; }
+  }
+
+  window.EventSource = ThreadStream as unknown as typeof EventSource;
+});
 await page.goto(`${info.base}/login`);
 await page.getByLabel(/email/i).fill(info.email);
 await page.locator('#password').fill(info.password);
@@ -66,6 +120,41 @@ const header = page.locator('main header');
 check('running work shows the header and thread indicator',
   await header.getByText('Working on it', { exact: true }).count() === 1 &&
   await conversation.getByRole('status').filter({ hasText: 'Working on it' }).count() === 1);
+
+await page.evaluate(() => {
+  const streams = (window as Window & { __taskStreams: Array<{ send: (name: string, data: unknown) => void }> }).__taskStreams;
+  streams[0]?.send('delta', { text: 'A persisted reply is being written.' });
+});
+await conversation.getByText('A persisted reply is being written.', { exact: true }).waitFor();
+await page.evaluate(async (taskId) => {
+  const [taskResponse, eventResponse] = await Promise.all([
+    fetch(`/api/tasks/${taskId}`), fetch(`/api/tasks/${taskId}/events?after=0`),
+  ]);
+  const task = await taskResponse.json() as Record<string, unknown>;
+  const events = await eventResponse.json() as Array<{ seq: number; version: number }>;
+  const seq = Math.max(0, ...events.map((event) => event.seq)) + 1;
+  const version = Math.max(0, ...events.map((event) => event.version)) + 1;
+  const message = {
+    id: `browser-message-${seq}`, seq, version, time: new Date().toISOString(),
+    kind: 'message', text: 'A persisted reply is being written.',
+  };
+  const streams = (window as Window & { __taskStreams: Array<{ send: (name: string, data: unknown) => void }> }).__taskStreams;
+  streams[0]?.send('update', { task, events: [message] });
+}, info.running);
+await page.waitForTimeout(100);
+check('persisted reply replaces its live draft while work is still running',
+  await conversation.getByText('A persisted reply is being written.', { exact: true }).count() === 1,
+  `rendered=${await conversation.getByText('A persisted reply is being written.', { exact: true }).count()}`);
+await page.evaluate(() => {
+  const streams = (window as Window & {
+    __taskStreams: Array<{ reconnect: () => void }>;
+  }).__taskStreams;
+  streams[0]?.reconnect();
+});
+await page.waitForTimeout(300);
+check('reconnect reconciles the persisted reply without a stale draft',
+  await conversation.getByText('A persisted reply is being written.', { exact: true }).count() === 1,
+  `rendered=${await conversation.getByText('A persisted reply is being written.', { exact: true }).count()}`);
 
 const log = await page.evaluate(async ({ token, workId }) => {
   const response = await fetch('/api/coding', {
