@@ -3,6 +3,9 @@
 Run the built-binary API and MCP scenarios with `make blackbox`.
 The harness creates disposable data and removes it when each scenario ends.
 The retained Go test inventory is in `go/registry.md`.
+The guardrail script exempts `test/` and `scripts/` from content and size
+checks, while still enforcing test placement and program import boundaries.
+ShellCheck, Go lint, and frontend lint remain separate checks.
 
 The black-box suite needs `curl`, `jq`, `python3`, and `unzip`.
 Run `make smoke` for the built-binary check. Image and sandbox checks need Docker.

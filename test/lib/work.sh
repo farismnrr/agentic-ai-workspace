@@ -13,6 +13,7 @@ work_begin() {
   WORK_RESULT=$(jq -c '.result.structuredContent // (.result.content[0].text | fromjson)' "$HTTP_BODY_FILE")
   WORK_ID=$(jq -r '.work_id' <<<"$WORK_RESULT")
   TASK_ID=$(jq -r '.task_id' <<<"$WORK_RESULT")
+  export WORK_ID TASK_ID
 }
 
 work_log() {

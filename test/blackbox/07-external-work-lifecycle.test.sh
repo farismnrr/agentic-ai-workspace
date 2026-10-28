@@ -72,7 +72,7 @@ work_task "$jar" "$double_id"
 assert_json '.status == "done" and .proof.proven == false' 'concurrent confirmations remain unproven'
 
 work_begin running
-running_id=$TASK_ID running_work=$WORK_ID
+running_id=$TASK_ID
 work_confirm "$jar" "$running_id"
 assert_status "$HTTP_STATUS" 409 'running work cannot be confirmed'
 http_request POST "$jar" "/api/tasks/$running_id/cancel" '{}'
@@ -81,7 +81,7 @@ work_confirm "$jar" "$running_id"
 assert_status "$HTTP_STATUS" 409 'stopped work cannot be confirmed'
 
 work_begin repeat
-repeat_id=$TASK_ID repeat_work=$WORK_ID
+repeat_work=$WORK_ID
 work_complete "$repeat_work" 'First summary'
 assert_status "$HTTP_STATUS" 200 'complete work once'
 work_complete "$repeat_work" 'Different summary'
@@ -131,7 +131,11 @@ touch "$other_jar"
 http_register "$other_jar" Bob bob@example.test 'correct horse battery'
 assert_status "$HTTP_STATUS" 201 'register second user'
 work_confirm "$other_jar" "$owner_task_id"
-[[ $HTTP_STATUS == 403 || $HTTP_STATUS == 404 ]] && ((ASSERTIONS_PASSED += 1)) || ((ASSERTIONS_FAILED += 1))
+if [[ $HTTP_STATUS == 403 || $HTTP_STATUS == 404 ]]; then
+  ((ASSERTIONS_PASSED += 1))
+else
+  ((ASSERTIONS_FAILED += 1))
+fi
 
 sleep 7
 assert_contains "$APP_LOG" "would abandon $reported_sweep_work reported" 'dry-run logs reported work'

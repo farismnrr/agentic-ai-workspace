@@ -119,7 +119,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 
 ## Size and complexity limits
 
-1. Every human-authored source, config, script, and markup file is limited to 200 lines. `README.md`, `AGENTS.md`, `agents/`, `docs/`, server-maintained `project-notes/` output, and the built-in role skills in `internal/modules/agentteam/domain/skills/` (prompt text, some copied unchanged from upstream under their licence) are exempt: keep each page whole, clear and unambiguous, and never cut information just to fit a line count.
+1. Every human-authored source, config, script, and markup file is limited to 200 lines. `test/`, `scripts/`, `README.md`, `AGENTS.md`, `agents/`, `docs/`, server-maintained `project-notes/` output, and the built-in role skills in `internal/modules/agentteam/domain/skills/` (prompt text, some copied unchanged from upstream under their licence) are exempt from this guardrail: keep each page whole, clear and unambiguous, and never cut information just to fit a line count. Other content guardrails still apply outside `test/` and `scripts/`.
 2. Generated output and dependency lockfiles are exempt.
 3. Go functions are limited by lint to 60 lines / 40 statements and strict complexity thresholds.
 4. Frontend functions are limited by ESLint to 60 lines and complexity 10.
