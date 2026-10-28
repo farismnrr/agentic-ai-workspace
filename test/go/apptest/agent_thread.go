@@ -2,6 +2,8 @@ package apptest
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,15 +28,18 @@ func (a AgentRig) WaitApproving(t *testing.T, id, want string) {
 	t.Helper()
 	deadline := time.Now().Add(waitTimeout)
 	for time.Now().Before(deadline) {
-		switch a.Status(t, id) {
+		status := a.Status(t, id)
+		switch status {
 		case want:
 			return
 		case "needs-input":
 			a.AllowPending(t, id)
+		case "failed", "review", "done":
+			t.Fatalf("task reached %q instead of %q; %s", status, want, a.failureEvents(t, id))
 		}
 		time.Sleep(requestPollInterval)
 	}
-	t.Fatalf("task never reached %q, it is %q; recent events: %+v", want, a.Status(t, id), a.Thread(t, id))
+	t.Fatalf("task never reached %q, it is %q; %s", want, a.Status(t, id), a.failureEvents(t, id))
 }
 
 // WaitApprovals polls until the thread holds the requested number of approvals.
@@ -78,4 +83,24 @@ func (a AgentRig) Thread(t *testing.T, id string) []ThreadEvent {
 		t.Fatal(err)
 	}
 	return events
+}
+
+// failureEvents keeps CI annotations short enough to show the actual failure.
+func (a AgentRig) failureEvents(t *testing.T, id string) string {
+	t.Helper()
+	var details []string
+	for _, event := range a.Thread(t, id) {
+		if event.Kind != "error" && event.Kind != "approval" && event.Kind != "action" {
+			continue
+		}
+		value := fmt.Sprintf("%s/%s: %s", event.Kind, event.Action, event.Text)
+		if len(value) > 200 {
+			value = value[:200]
+		}
+		details = append(details, value)
+	}
+	if len(details) > 8 {
+		details = details[len(details)-8:]
+	}
+	return strings.Join(details, " | ")
 }
