@@ -59,12 +59,12 @@ func (r *Runner) WithProjectEnv(projectID string, source ProjectEnv) *Runner {
 
 // Run starts the task and waits for it, removing the container on timeout.
 func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResult, error) {
-	select {
-	case r.slot <- struct{}{}:
-		defer func() { <-r.slot }()
-	default:
-		return application.RunResult{}, domain.ErrTaskBusy
+	releaseSlot, err := r.acquireSlot(ctx)
+	if err != nil {
+		return application.RunResult{}, err
 	}
+
+	defer releaseSlot()
 
 	release, err := r.engine.acquire(ctx)
 	if err != nil {

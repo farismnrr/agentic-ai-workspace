@@ -66,9 +66,9 @@ func (r *Runner) reviewerNotAsked(ctx context.Context, task domain.Task, state *
 }
 
 // madeAndLooked reports whether a teammate changed screens, and whether it took a screenshot, in the events given.
-func madeAndLooked(events []domain.Event, name string) (changed, looked bool) {
+func madeAndLooked(events []domain.Event, name, jobID string) (changed, looked bool) {
 	for _, event := range events {
-		if event.Agent != name {
+		if !belongsToJob(event, name, jobID) {
 			continue
 		}
 
@@ -88,7 +88,7 @@ func (r *Runner) lookNotTaken(ctx context.Context, task domain.Task, state *runS
 	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, r.since)
-	if changed, looked := madeAndLooked(events, r.role.Name); !changed || looked {
+	if changed, looked := madeAndLooked(events, r.role.Name, r.job); !changed || looked {
 		return false
 	}
 

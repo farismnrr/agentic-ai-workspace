@@ -109,6 +109,7 @@ type Delegation struct {
 	Brief      string
 	Status     string
 	Report     string
+	Scope      []string
 	// StartSeq is the last thread event before the teammate began, so their steps can be found again.
 	StartSeq int64
 }

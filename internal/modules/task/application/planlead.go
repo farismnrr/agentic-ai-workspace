@@ -23,10 +23,16 @@ type leadSession struct {
 	lead    *Runner
 	state   *runState
 	results *capturedResults
+	active  map[string]activeLeadJob
 	// stopped is how the run must end when the program cannot go on: the person has to answer first, or time ran out.
 	stopped *outcome
 	task    domain.Task
 	mu      sync.Mutex
+}
+
+type activeLeadJob struct {
+	scope []string
+	role  AgentRole
 }
 
 // leadOf starts the lead's session when the task has a team; nil when it does not and runs alone.
@@ -44,7 +50,10 @@ func (r *Runner) leadOf(ctx context.Context, task domain.Task) *leadSession {
 	inline := *lead
 	inline.deps.Transcript = results
 
-	return &leadSession{inline: &inline, lead: lead, state: state, results: results, task: task}
+	return &leadSession{
+		inline: &inline, lead: lead, state: state, results: results,
+		active: map[string]activeLeadJob{}, task: task,
+	}
 }
 
 // shape makes the request the lead's: the team's prompt, the server's tools, and only the looking tools of its own.
@@ -98,6 +107,10 @@ func toolOfDef(def domain.ToolDef) CLITool {
 func (l *leadSession) call(ctx context.Context, name string, input json.RawMessage) (string, bool) {
 	if !contains(leadTools, name) {
 		return "There is no tool called " + name + ".", true
+	}
+
+	if name == toolDelegate {
+		return l.callDelegate(ctx, input)
 	}
 
 	l.mu.Lock()
