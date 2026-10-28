@@ -75,7 +75,7 @@ guardrails:
 
 shellcheck:
 	@if command -v shellcheck >/dev/null 2>&1; then \
-		find scripts test -type f -name '*.sh' -exec shellcheck {} +; \
+		find scripts test -type f -name '*.sh' -exec shellcheck -x {} +; \
 	elif [ "$${CI:-}" = true ]; then \
 		echo "shellcheck is required in CI but was not found." >&2; exit 1; \
 	else \
