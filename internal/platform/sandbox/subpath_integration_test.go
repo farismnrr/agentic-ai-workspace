@@ -10,12 +10,12 @@ import (
 	"time"
 )
 
-// Stage 7 uses the actual volume Subpath mount builder used by a deployed app.
-// The test must run against a disposable volume prepopulated by stage7-docker.sh.
-func TestStage7ActualVolumeSubpathsAreIsolated(t *testing.T) {
-	volume, image := os.Getenv("STAGE7_VOLUME"), os.Getenv("STAGE7_IMAGE")
+// This uses the actual volume Subpath mount builder used by a deployed app.
+// Run it against a disposable volume prepopulated by the volume isolation scenario.
+func TestOwnerVolumeSubpathsAreIsolated(t *testing.T) {
+	volume, image := os.Getenv("VOLUME_ISOLATION_VOLUME"), os.Getenv("VOLUME_ISOLATION_IMAGE")
 	if volume == "" || image == "" {
-		t.Skip("STAGE7_VOLUME and STAGE7_IMAGE required for Docker integration")
+		t.Skip("VOLUME_ISOLATION_VOLUME and VOLUME_ISOLATION_IMAGE required for Docker integration")
 	}
 
 	cfg := Config{
@@ -26,7 +26,7 @@ func TestStage7ActualVolumeSubpathsAreIsolated(t *testing.T) {
 	defer cancel()
 	engine, err := Open(ctx, cfg)
 	if err != nil {
-		t.Fatalf("Docker must be available for Stage 7: %v", err)
+		t.Fatalf("Docker must be available for volume isolation: %v", err)
 	}
 
 	for _, scope := range []string{"a", "b"} {

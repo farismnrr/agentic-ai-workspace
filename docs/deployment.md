@@ -318,7 +318,7 @@ Access to the Docker socket is access to the whole machine. To limit the risk:
 
 The application can be released with `EGRESS_GRANTS=false` without a live marimo notebook. Keep the existing `SANDBOX_EGRESS_HOSTS` configuration unchanged. On the Docker host, verify the release image, database backup and restore compatibility, health endpoint, and the Claude/ChatGPT sign-in flow. A broken sign-in or network is a release blocker, not a test to skip.
 
-The Stage 7 Docker-backed Subpath, task socket isolation, public HTTPS grant and HTTP approval checks already passed in a hosted runner (Fast workflow run #40296058816). Do not rerun them just because another agent has no Docker.
+The Docker-backed Subpath, task socket isolation, public HTTPS grant and HTTP approval checks passed in hosted runner Fast run #40296058816. Do not rerun them only because another environment lacks Docker.
 
 Live marimo-pair TLS, WebSocket idle, reconnect, revocation and task-end checks are **DEFERRED / NOT RUN** until a real notebook is available. They do not block a release with grants off, but are required **before removing** the marimo hostname from the global static allowlist.
 

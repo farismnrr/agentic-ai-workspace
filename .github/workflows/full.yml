@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 45
     env:
       SANDBOX_TEST_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
-      STAGE7_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
+      VOLUME_ISOLATION_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -6,6 +6,7 @@ The retained Go white-box inventory is in `whitebox/registry.md`.
 
 The black-box suite needs `curl`, `jq`, `python3`, and `unzip`.
 Run `make smoke` for the built-binary check. Image and sandbox checks need Docker.
+Run `make volume-isolation` for the Docker volume, socket, vendor and grant checks.
 Run `make e2e FLOW=projects` for the projects browser flow against the built
 binary; it needs Chromium.
 
