@@ -49,10 +49,15 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 	ticketed := expectOwnerOpens(t, a, url, page)
 
 	// Private means private: neither a stranger's page nor a script request that merely knows the address.
-	for name, headers := range map[string]map[string]string{"page": anonymous, "script": script} {
-		if got := apptest.Do(t, a.Environment.App, "GET", url, "", headers).Status; got != 403 {
-			t.Fatalf("an anonymous %s request to a private site must be forbidden, got %d", name, got)
-		}
+	// Anonymous navigation may redirect to the app's forbidden page, but
+	// must never receive private site content or a ticketed site URL.
+	denied := apptest.Do(t, a.Environment.App, "GET", url, "", anonymous)
+	if denied.Status != 302 || !strings.HasPrefix(denied.Header.Get("Location"), "/forbidden?next=") {
+		t.Fatalf("anonymous navigation must lead to the forbidden page, got %d %q",
+			denied.Status, denied.Header.Get("Location"))
+	}
+	if got := apptest.Do(t, a.Environment.App, "GET", url, "", script).Status; got != 403 {
+		t.Fatalf("anonymous script request to a private site must be forbidden, got %d", got)
 	}
 
 	// What the page loads itself carries the ticket the owner's visit put in the address.
