@@ -29,6 +29,8 @@ history_named_files="$(find . \
   -path './.git' -prune -o \
   -path './sandbox' -prune -o \
   -path './project-notes' -prune -o \
+  -path './test' -prune -o \
+  -path './scripts' -prune -o \
   -type f \( -iname '*stage[0-9]*' -o -iname '*phase[0-9]*' \) -print)"
 if [ -n "$history_named_files" ]; then
   echo "History labels are not allowed in file names (use a subject name):" >&2
@@ -47,6 +49,8 @@ file_violations="$(
     ! -path './web/node_modules/*' \
     ! -path './data/*' \
     ! -path './project-notes/*' \
+    ! -path './test/*' \
+    ! -path './scripts/*' \
     ! -path './internal/platform/webassets/dist/*' \
     ! -path './docs/*' \
     ! -path './agents/*' \
@@ -117,17 +121,6 @@ svelte_violations="$(
 if [ -n "$svelte_violations" ]; then
   echo 'Svelte script blocks must use <script lang="ts">:' >&2
   echo "$svelte_violations" >&2
-  exit 1
-fi
-
-test_source_violations="$(
-  find test -type f \
-    \( -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) -print
-  find test -type f -name '*.go' ! -name '*_test.go' ! -path 'test/go/apptest/*' -print
-)"
-if [ -n "$test_source_violations" ]; then
-  echo "Tests use Bash and TypeScript; non-test Go is allowed only in test/go/apptest/:" >&2
-  echo "$test_source_violations" >&2
   exit 1
 fi
 

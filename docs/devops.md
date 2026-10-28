@@ -178,6 +178,10 @@ Full is manual and merges only after every full-suite check passes.
 `make blackbox` runs the black-box scenarios. `make smoke`, `make e2e`, and
 `make registry-check` run their named suites.
 
+The guardrail script skips content and size checks inside `test/` and
+`scripts/`. It still checks test placement and program imports from `test/`.
+ShellCheck, Go lint, and frontend lint remain separate checks.
+
 ### Jenkins pipeline
 
 The Jenkinsfile runs six stages, in this order:

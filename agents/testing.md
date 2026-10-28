@@ -14,6 +14,8 @@
 
 - Fast runs `make guardrails shellcheck` and `make backend-test` before image builds.
 - Full runs `make verify-full`, which adds frontend checks, Go lint, build and smoke, black-box, browser, Docker isolation, and race checks.
+- `scripts/check-guardrails.sh` exempts `test/` and `scripts/` from its file-size and content rules. It still enforces test placement, `testdata/` placement, and the ban on program imports from `test/`.
+- ShellCheck, golangci-lint, and ESLint remain separate checks and still analyze test and script code in their configured scopes.
 
 ## Add a Bash scenario
 

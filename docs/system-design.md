@@ -223,7 +223,9 @@ Full runs the broader suite from a clean checkout: frontend checks, Go lint,
 build and smoke, black-box tests, Playwright flows, Docker isolation and
 `-race` checks. It merges and publishes only after every check passes.
 
-Rules in the code: source files stay under 200 lines (documentation is exempt), and functions have size and complexity limits.
+Rules in the code: content files stay under 200 lines, except for `test/`,
+`scripts/` and the documented long-form files. Functions also have size and
+complexity limits. Test and script lint checks remain separate.
 
 Work happens on `dev`. Two GitHub Actions workflows run the same checks:
 
