@@ -71,8 +71,15 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 
 	expectStatus(t, a, "POST", "/api/sites/"+a.Project+"/stop", "", 204)
 
-	if got := apptest.Do(t, a.Environment.App, "GET", url, "", page).Status; got != 404 {
-		t.Fatalf("a stopped site must be gone, got %d", got)
+	// Page navigations to missing sites use the SPA not-found screen, while
+	// subresource requests receive a plain 404. Neither may serve old content.
+	stopped := apptest.Do(t, a.Environment.App, "GET", url, "", page)
+	if stopped.Status != 302 || stopped.Header.Get("Location") != "/not-found" {
+		t.Fatalf("a stopped site must redirect to not-found, got %d %q",
+			stopped.Status, stopped.Header.Get("Location"))
+	}
+	if got := apptest.Do(t, a.Environment.App, "GET", url, "", script).Status; got != 404 {
+		t.Fatalf("a stopped site's resources must be gone, got %d", got)
 	}
 }
 

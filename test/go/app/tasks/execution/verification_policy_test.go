@@ -483,7 +483,7 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.FinishCall("The package passed its required security check"),
 	)
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
-		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true}`, apptest.JSONCookie(a.Cookie))
+		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true,"mode":"swift"}`, apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
 	a.WaitApproving(t, id, "review")
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
