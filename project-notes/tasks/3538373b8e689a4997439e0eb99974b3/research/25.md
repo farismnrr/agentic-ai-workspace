@@ -1,8 +1,8 @@
 # P0 — Investigate External Assistant Lifecycle Desynchronizat…
 
 Task: 3538373b8e689a4997439e0eb99974b3
-Status: done
-Updated: 2026-10-28T06:08:39Z
+Status: working
+Updated: 2026-10-28T06:04:05Z
 
 Reference material; confirm applicability before reusing.
 
