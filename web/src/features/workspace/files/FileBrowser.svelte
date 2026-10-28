@@ -4,6 +4,7 @@
   import Icon from '../../../shared/ui/Icon.svelte';
   import EmptyState from '../../../shared/ui/EmptyState.svelte';
   import { createFileStore } from '../logic/file-store';
+  import { createGitStatusStore } from '../logic/git-status-store';
   import { createFileView } from '../logic/file-view';
   import { deleteFolder, followFiles, saveFile } from '../logic/files-api';
   import ConfirmModal from '../components/ConfirmModal.svelte';
@@ -12,16 +13,16 @@
 
   interface Props {
     projectId: string;
-    /** Paths the open task changed; they are marked in the tree. */
-    changed?: ReadonlySet<string>;
     /** The height of the browser, as a class. */
     height?: string;
   }
 
-  const { projectId, changed = new Set<string>(), height = 'h-[70vh]' }: Props = $props();
+  const { projectId, height = 'h-[70vh]' }: Props = $props();
   const store = untrack(() => createFileStore(projectId));
+  const git = untrack(() => createGitStatusStore(projectId));
   const view = untrack(() => createFileView(projectId));
   const { dirs, expanded } = store;
+  const gitState = git.snapshot;
   const shown = view.state;
   let naming = $state(false);
   let newPath = $state('');
@@ -36,7 +37,7 @@
       clearTimeout(timer);
       timer = setTimeout(() => { void store.reload(); void view.refresh(); }, 300);
     });
-    return () => { clearTimeout(timer); stop(); };
+    return () => { clearTimeout(timer); stop(); git.stop(); };
   });
 
   async function removeFolder(): Promise<void> {
@@ -89,7 +90,7 @@
       {:else if $dirs['.'].length === 0}
         <EmptyState compact icon="folder" title="No files yet" body="Create a file to get started." />
       {:else}
-        <TreeLevel dirs={$dirs} expanded={$expanded} path="." depth={0} selected={$shown.path} {changed} ontoggle={(path: string) => void store.toggle(path)} onopen={(path: string) => void view.open(path)} ondeletefolder={(path: string) => { deleting = path; }} />
+        <TreeLevel dirs={$dirs} expanded={$expanded} path="." depth={0} selected={$shown.path} statuses={$gitState?.files ?? []} ontoggle={(path: string) => void store.toggle(path)} onopen={(path: string) => void view.open(path)} ondeletefolder={(path: string) => { deleting = path; }} />
       {/if}
     </nav>
     <div class="min-h-0 min-w-0 {$shown.path === undefined ? 'hidden @2xl:block' : 'block'}">

@@ -23,6 +23,24 @@ export interface OpenFile {
   binary: boolean;
 }
 
+export interface GitFileStatus {
+  path: string;
+  originalPath?: string;
+  index: string;
+  worktree: string;
+  conflict: boolean;
+  untracked: boolean;
+  submodule: boolean;
+}
+
+export interface GitSnapshot {
+  available: boolean;
+  branch?: string;
+  revision?: string;
+  initial: boolean;
+  files: GitFileStatus[];
+}
+
 const base = (projectId: string): string => `/api/projects/${encodeURIComponent(projectId)}`;
 const query = (path: string): string => `?path=${encodeURIComponent(path)}`;
 
@@ -32,6 +50,9 @@ export const rawUrl = (projectId: string, path: string, download = false): strin
 export const listFiles = (projectId: string, path: string): Promise<FileListing> => request<FileListing>('GET', `${base(projectId)}/files${query(path)}`);
 
 export const readFile = (projectId: string, path: string): Promise<OpenFile> => request<OpenFile>('GET', `${base(projectId)}/file${query(path)}`);
+
+export const readGitStatus = (projectId: string): Promise<GitSnapshot> =>
+  request<GitSnapshot>('GET', `${base(projectId)}/git/status`);
 
 /** Saves an edit; an empty baseHash creates a file that must not exist yet. Fails with code "changed" when it moved on. */
 export const saveFile = (projectId: string, path: string, content: string, baseHash: string): Promise<{ hash: string }> =>
