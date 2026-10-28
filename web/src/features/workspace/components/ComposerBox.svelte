@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import RoleMentionInput from './RoleMentionInput.svelte';
   import type { Snippet } from 'svelte';
   import Icon from '../../../shared/ui/Icon.svelte';
   import ComposerControls from './ComposerControls.svelte';
@@ -49,7 +50,6 @@
 
   let pickerErrors = $state<string[]>([]);
   let dropActive = $state(false);
-
   const uploader = createAttachmentUploader({
     onComplete: (id, result) => {
       attachments = updateAttachment(attachments, id, () => result);
@@ -150,17 +150,8 @@
         Drop files here
       </div>
     {/if}
-    <textarea
-      {id}
-      bind:value={text}
-      {onkeydown}
-      onpaste={inputHandlers.paste}
-      rows="2"
-      {placeholder}
-      disabled={disabled || busy}
-      class="field-sizing-content max-h-52 min-h-14 w-full resize-none bg-transparent
-        px-4 pb-1 pt-3.5 text-sm focus:outline-none"
-    ></textarea>
+    <RoleMentionInput {id} bind:text {placeholder} disabled={disabled || busy}
+      {onkeydown} onpaste={inputHandlers.paste} />
     {#if attachments.length > 0}
       <AttachmentChips {attachments} {busy} waiting={needsProject} onremove={remove} onretry={retry} />
     {/if}

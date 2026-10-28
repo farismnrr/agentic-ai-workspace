@@ -36,9 +36,9 @@ Each connected-app conversation shows as a task beside the work done in the app.
   approval. `get_work_state` returns saved work, questions and decisions.
 - `complete_work` records the external session's outcome. It cannot finish or
   run the internal task created by an approved handoff.
-- `log_message` without a work ID remains a record-only legacy conversation. It
-  never starts work; its reply points the assistant to `begin_work` and lists
-  the enabled roles.
+- Workspace tool calls, including `log_message`, require a tracked work ID and its
+  active role. Start with `begin_work`, then use `set_role` when responsibilities
+  change. Only account/project discovery is available before starting work.
 - Plan shows its steps. Documents separates research from requirements.
   Team shows only roles it declared or used.
 - A saved plan stays a draft until the assistant submits it for your approval.

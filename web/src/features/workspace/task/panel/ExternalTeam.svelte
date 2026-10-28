@@ -13,6 +13,7 @@
     done: { label: 'Done', icon: 'check-circle', tone: 'badge-success' },
     active: { label: 'In progress', icon: 'activity', tone: 'badge-info' },
     pending: { label: 'Pending', icon: 'clock', tone: 'badge-ghost' },
+    waiting: { label: 'Awaiting approval', icon: 'clock', tone: 'badge-warning' },
   };
 </script>
 

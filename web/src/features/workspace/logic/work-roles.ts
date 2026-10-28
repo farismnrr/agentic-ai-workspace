@@ -1,6 +1,6 @@
 import type { ActionEvent, TaskEvent, WorkSummary } from './task-types';
 
-export type WorkRoleState = 'done' | 'active' | 'pending';
+export type WorkRoleState = 'done' | 'active' | 'pending' | 'waiting';
 
 export interface WorkRoleSegment {
   id: string;
@@ -83,15 +83,17 @@ function pendingRoles(events: TaskEvent[], seen: Set<string>): WorkRoleSegment[]
   }));
 }
 
-function finishSegments(segments: WorkRoleSegment[], state: WorkSummary['state']): void {
+function finishSegments(segments: WorkRoleSegment[], work: WorkSummary): void {
   for (const segment of segments.slice(0, -1)) segment.state = 'done';
   const current = segments.at(-1);
-  if (current !== undefined && state !== 'open' && state !== 'blocked') current.state = 'done';
+  if (current === undefined) return;
+  if (work.state !== 'open' && work.state !== 'blocked') current.state = 'done';
+  else if (work.phase === 'awaiting_person' || work.planState === 'ready_for_approval') current.state = 'waiting';
 }
 
 /** Roles are grouped only from recorded role transitions and the begin_work plan. */
 export function workRoleSegments(events: TaskEvent[], work: WorkSummary): WorkRoleSegment[] {
   const { segments, seen } = collectSegments(events, work.id);
-  finishSegments(segments, work.state);
+  finishSegments(segments, work);
   return [...segments, ...pendingRoles(events, seen)];
 }
