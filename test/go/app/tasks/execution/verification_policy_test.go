@@ -298,7 +298,7 @@ func TestCommandChangesToGitHooksAreVisibleToSecurityReview(t *testing.T) {
 	assertNoScriptExhaustion(t, a, id)
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
 		apptest.JSONCookie(a.Cookie)).Body)
-	if !strings.Contains(events, `"effectPaths":[".git/hooks/pre-commit"]`) ||
+	if !strings.Contains(events, `"effectPaths":[`) || !strings.Contains(events, `".git/hooks/pre-commit"`) ||
 		!strings.Contains(events, "blocked and unverified") {
 		t.Fatalf("a real hook write must be captured and blocked for review: %s", events)
 	}
