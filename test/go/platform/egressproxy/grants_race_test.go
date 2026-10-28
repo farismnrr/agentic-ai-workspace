@@ -28,11 +28,11 @@ func TestRevokeRacingNewTunnelsLeavesNoneOpen(t *testing.T) {
 	_ = g.Allow("g1", scopeA, goodHost, time.Now().Add(time.Minute))
 
 	var (
-		wg      sync.WaitGroup
-		mu      sync.Mutex
-		held    []*closer
-		stop    atomic.Bool
-		started = make(chan struct{})
+		wg    sync.WaitGroup
+		mu    sync.Mutex
+		held  []*closer
+		stop  atomic.Bool
+		ready = make(chan bool, 16)
 	)
 
 	for range 16 {
@@ -40,26 +40,15 @@ func TestRevokeRacingNewTunnelsLeavesNoneOpen(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			<-started
-
-			for !stop.Load() {
-				lease, err := g.Lease(scopeA, goodHost)
-				if err != nil {
-					return
-				}
-
-				c := &closer{}
-				lease.Add(c)
-
-				mu.Lock()
-				held = append(held, c)
-				mu.Unlock()
-			}
+			leaseUntilRevoked(g, &stop, &mu, &held, ready)
 		}()
 	}
 
-	close(started)
-	time.Sleep(20 * time.Millisecond)
+	for range 16 {
+		if !<-ready {
+			t.Fatal("a lease worker exited before acquiring a tunnel")
+		}
+	}
 	g.Revoke("g1")
 	stop.Store(true)
 	wg.Wait()
@@ -72,5 +61,30 @@ func TestRevokeRacingNewTunnelsLeavesNoneOpen(t *testing.T) {
 
 	if g.OpenTunnels() != 0 {
 		t.Fatalf("%d slots still held", g.OpenTunnels())
+	}
+}
+
+func leaseUntilRevoked(
+	g *egressproxy.Grants, stop *atomic.Bool, mu *sync.Mutex, held *[]*closer, ready chan<- bool,
+) {
+	firstLease := true
+	for !stop.Load() {
+		lease, err := g.Lease(scopeA, goodHost)
+		if err != nil {
+			if firstLease {
+				ready <- false
+			}
+			return
+		}
+
+		connection := &closer{}
+		lease.Add(connection)
+		mu.Lock()
+		*held = append(*held, connection)
+		mu.Unlock()
+		if firstLease {
+			ready <- true
+			firstLease = false
+		}
 	}
 }
