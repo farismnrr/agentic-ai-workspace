@@ -98,17 +98,19 @@ If no AI model is ready, choose a provider and model in **Settings → AI models
 | Plan | The team's todo list and each step's owner and status |
 | Documents | Plans, requirements and research for this task |
 | Team | Jobs, who did them, and their reports (shown on every task) |
-| Changes | Edits made with the AI's file tools, shown as a diff |
+| Changes | Current Git changes, with file diffs and task history |
 | Files | The whole project: open any file, edit it by hand and save. PDFs and pictures are shown in place, and any file can be downloaded |
 
 About Changes:
 
-- **One diff per file,** against how the task found it, even if the AI edited the file many times.
-- **Green** lines were added and **red** lines removed. `+` and `−` markers
-  make the change clear without relying on color; each file shows its counts.
-- The list shows edits made with the AI's file tools. Changes made through git
-  or shell commands do not appear here.
-- **It updates as the AI works.** Steps, with Undo, is listed under the files.
+- **Current Git changes** include edits made by you, the AI or shell commands.
+  Staged and unstaged changes are shown separately against the current commit.
+- Open a file's diff to compare it with `HEAD`. Deleted paths stay in the list.
+- The Files editor marks added and removed lines against `HEAD`. Unsaved edits
+  remain separate from the saved file status.
+- When Git is clean, active changes and line marks clear. Task steps, evidence
+  and Undo remain under **Task history**.
+- Projects without Git tracking say that comparisons are unavailable.
 
 About Files:
 

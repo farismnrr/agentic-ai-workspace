@@ -13,6 +13,7 @@ type Workspace struct {
 	Reader *application.Service
 	Editor *application.Editor
 	Git    *application.GitStatus
+	Head   *application.GitHead
 }
 
 // Workspaces opens a project's files for the person who owns it; any other person gets domain.ErrNotFound.

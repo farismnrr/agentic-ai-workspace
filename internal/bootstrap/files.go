@@ -52,7 +52,8 @@ func (w ownWorkspaces) Open(ctx context.Context, userID, projectID string) (codi
 	}
 
 	git := codingapp.NewGitStatus(gitstatus.New(dir))
-	return codinghttp.Workspace{Reader: services.Reader, Editor: services.Editor, Git: git}, nil
+	head := codingapp.NewGitHead(gitstatus.New(dir))
+	return codinghttp.Workspace{Reader: services.Reader, Editor: services.Editor, Git: git, Head: head}, nil
 }
 
 // hubChanges carries "the files changed" between the agent, the file screens and every open page.

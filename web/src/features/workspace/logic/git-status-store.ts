@@ -1,4 +1,4 @@
-import { writable, type Readable } from 'svelte/store';
+import { writable, type Readable, type Writable } from 'svelte/store';
 import { readGitStatus, followFiles, type GitFileStatus, type GitSnapshot } from './files-api';
 
 export interface GitStatusStore {
@@ -7,15 +7,45 @@ export interface GitStatusStore {
   stop: () => void;
 }
 
-const unavailable: GitSnapshot = { available: false, initial: false, files: [] };
+interface SharedStatus {
+  snapshot: Writable<GitSnapshot | undefined>;
+  refresh: () => Promise<void>;
+  stop: () => void;
+  users: number;
+}
 
-/** Reads one project's current Git state, never task action history. */
+const unavailable: GitSnapshot = { available: false, initial: false, files: [] };
+const projects = new Map<string, SharedStatus>();
+
+/** Shares one live repository snapshot across the Explorer and task Changes panel. */
 export function createGitStatusStore(projectId: string): GitStatusStore {
+  let shared = projects.get(projectId);
+  if (shared === undefined) {
+    shared = createSharedStatus(projectId);
+    projects.set(projectId, shared);
+  }
+  shared.users += 1;
+  let active = true;
+  return {
+    snapshot: shared.snapshot,
+    refresh: shared.refresh,
+    stop: () => {
+      if (!active) return;
+      active = false;
+      shared.users -= 1;
+      if (shared.users === 0) {
+        shared.stop();
+        projects.delete(projectId);
+      }
+    },
+  };
+}
+
+function createSharedStatus(projectId: string): SharedStatus {
   const snapshot = writable<GitSnapshot>();
   let revision = 0;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let debounce: ReturnType<typeof setTimeout> | undefined;
   let polling: ReturnType<typeof setInterval> | undefined;
-
   const refresh = async (): Promise<void> => {
     const requestId = ++revision;
     try {
@@ -25,10 +55,9 @@ export function createGitStatusStore(projectId: string): GitStatusStore {
       if (requestId === revision) snapshot.set(unavailable);
     }
   };
-
   const schedule = (): void => {
-    clearTimeout(timer);
-    timer = setTimeout(() => void refresh(), 350);
+    clearTimeout(debounce);
+    debounce = setTimeout(() => void refresh(), 350);
   };
   const stopFiles = typeof window === 'undefined' ? () => undefined : followFiles(projectId, schedule);
   const onFocus = (): void => { if (document.visibilityState === 'visible') void refresh(); };
@@ -40,13 +69,13 @@ export function createGitStatusStore(projectId: string): GitStatusStore {
     }, 15000);
   }
   void refresh();
-
   return {
     snapshot,
     refresh,
+    users: 0,
     stop: () => {
       revision += 1;
-      clearTimeout(timer);
+      clearTimeout(debounce);
       clearInterval(polling);
       stopFiles();
       if (typeof window !== 'undefined') {
@@ -57,8 +86,14 @@ export function createGitStatusStore(projectId: string): GitStatusStore {
   };
 }
 
-export const gitStatusByPath = (files: readonly GitFileStatus[]): Map<string, GitFileStatus> =>
-  new Map(files.flatMap((file) => [[file.path, file], ...(file.originalPath ? [[file.originalPath, file]] : [])]));
+export function gitStatusByPath(files: readonly GitFileStatus[]): Map<string, GitFileStatus> {
+  const statuses = new Map<string, GitFileStatus>();
+  for (const file of files) {
+    statuses.set(file.path, file);
+    if (file.originalPath !== undefined) statuses.set(file.originalPath, file);
+  }
+  return statuses;
+}
 
 export function gitStatusLabel(file: GitFileStatus): string {
   if (file.conflict) return 'Conflict';

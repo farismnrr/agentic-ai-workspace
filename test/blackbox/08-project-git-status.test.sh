@@ -21,11 +21,18 @@ project_id=$(jq -r '.id' "$HTTP_BODY_FILE")
 
 http_request GET '' "/api/projects/$project_id/git/status"
 assert_status "$HTTP_STATUS" 401 'anonymous Git status is forbidden'
+http_request GET '' "/api/projects/$project_id/git/head?path=readme.txt"
+assert_status "$HTTP_STATUS" 401 'anonymous Git baseline is forbidden'
 http_request GET "$owner" "/api/projects/$project_id/git/status"
 assert_status "$HTTP_STATUS" 200 'owner reads status for non-Git project'
 assert_json '.available == false and .files == []' 'non-Git project is explicit'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=readme.txt"
+assert_status "$HTTP_STATUS" 200 'owner reads baseline availability for non-Git project'
+assert_json '.available == false and .content == ""' 'non-Git baseline is unavailable, not invented'
 http_request GET "$other" "/api/projects/$project_id/git/status"
 assert_status "$HTTP_STATUS" 404 'another owner cannot read Git status'
+http_request GET "$other" "/api/projects/$project_id/git/head?path=readme.txt"
+assert_status "$HTTP_STATUS" 404 'another owner cannot read Git baseline'
 
 project_dir="$APP_DATA_DIR/projects/$project_id"
 cd "$project_dir"
@@ -61,6 +68,16 @@ assert_json 'any(.files[]; .path == "both.txt" and .index == "M" and .worktree =
   'staged and unstaged changes stay distinct'
 assert_json 'any(.files[]; .path == "untracked.txt" and .untracked)' 'untracked file is reported'
 assert_json 'all(.files[]; .path != ".env" and .path != ".ignored")' 'secret and ignored paths stay hidden'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=space%20%C3%BC%20file.txt"
+assert_status "$HTTP_STATUS" 200 'owner reads a tracked file baseline by encoded path'
+assert_json '.available and .content == "before\n" and (.content | length) < 100' 'HEAD baseline contains the committed text only'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=untracked.txt"
+assert_status "$HTTP_STATUS" 200 'untracked file has an empty HEAD baseline'
+assert_json '.available and .content == ""' 'missing HEAD path is an explicit empty baseline'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=..%2F.env"
+assert_status "$HTTP_STATUS" 404 'traversal baseline path is denied'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=.env"
+assert_status "$HTTP_STATUS" 404 'secret baseline path is denied'
 
 cd "$project_dir"
 git add -u

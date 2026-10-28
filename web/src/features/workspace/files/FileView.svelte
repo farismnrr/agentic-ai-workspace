@@ -10,12 +10,13 @@
   interface Props {
     view: FileView;
     projectId: string;
+    gitVersion: string;
     /** Back to the tree, on a screen too narrow to show both. */
     onback: () => void;
     ondeleted: () => void;
   }
 
-  const { view, projectId, onback, ondeleted }: Props = $props();
+  const { view, projectId, gitVersion, onback, ondeleted }: Props = $props();
   // A view never changes for the life of this component: the browser makes a new one per project.
   const shown = untrack(() => view.state);
   const binaryPreview = $derived(
@@ -31,6 +32,11 @@
       : 'It is removed from the project. The AI or you can bring it back with Undo while its change is listed.',
   );
   let confirming = $state(false);
+
+  $effect(() => {
+    const version = gitVersion;
+    if (version !== '') untrack(() => void view.refresh());
+  });
 
   // On the window, not the section: pressing a button in it (Keep mine) can remove that button and with it the focus.
   function onkeydown(event: KeyboardEvent): void {
@@ -77,7 +83,7 @@
     {:else if $shown.file !== undefined}
       {#if $shown.file.truncated}<p class="mx-3 mt-2 text-xs text-[var(--brand-text-secondary)]">This file is large, so only the start is shown and it cannot be edited here.</p>{/if}
       <div class="min-h-0 flex-1">
-        {#key $shown.path}<CodeEditor path={$shown.path} value={$shown.draft} readOnly={!editable} onchange={view.edit} />{/key}
+        {#key $shown.path}<CodeEditor path={$shown.path} value={$shown.draft} original={$shown.head?.available && !$shown.head.binary && !$shown.head.truncated ? $shown.head.content : undefined} readOnly={!editable} onchange={view.edit} />{/key}
       </div>
     {/if}
   {:else}
