@@ -7,7 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/gitstatus"
 	codinghttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/http"
+	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	projectdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/domain"
@@ -44,7 +46,13 @@ func (w ownWorkspaces) Open(ctx context.Context, userID, projectID string) (codi
 		return codinghttp.Workspace{}, err
 	}
 
-	return codinghttp.Workspace{Reader: services.Reader, Editor: services.Editor}, nil
+	dir, err := w.tools.folders.Dir(projectID)
+	if err != nil {
+		return codinghttp.Workspace{}, fmt.Errorf("resolve project folder: %w", err)
+	}
+
+	git := codingapp.NewGitStatus(gitstatus.New(dir))
+	return codinghttp.Workspace{Reader: services.Reader, Editor: services.Editor, Git: git}, nil
 }
 
 // hubChanges carries "the files changed" between the agent, the file screens and every open page.

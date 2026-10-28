@@ -2,9 +2,8 @@
   import { onDestroy, untrack } from 'svelte';
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
-  import ChangedFile from '../../changes/ChangedFile.svelte';
-  import { changesCopy } from '../../content/changes-copy';
   import { createFileChanges } from '../../logic/changes-store';
+  import { createGitStatusStore, gitStatusLabel } from '../../logic/git-status-store';
   import type { Change } from '../../logic/task-types';
   import EvidenceBadge from '../thread/EvidenceBadge.svelte';
 
@@ -17,9 +16,9 @@
 
   const { taskId, projectId, changes, onundo }: Props = $props();
   const store = untrack(() => createFileChanges(taskId, projectId));
-  const files = store.files;
+  const gitStore = untrack(() => createGitStatusStore(projectId));
+  const git = gitStore.snapshot;
   const loaded = store.loaded;
-  let opened = $state<Record<string, boolean>>({});
 
   // Each step of the AI adds a change, which may not have reached the files stream yet.
   $effect(() => {
@@ -27,25 +26,33 @@
     untrack(() => { if (steps >= 0) void store.refresh(); });
   });
 
-  onDestroy(store.stop);
-  const isOpen = (path: string, index: number): boolean => opened[path] ?? index === 0;
+  onDestroy(() => { store.stop(); gitStore.stop(); });
 </script>
 
 <div class="flex flex-col gap-3">
-  {#if $files.length === 0 && changes.length === 0}
-    <EmptyState compact bordered icon="pencil" title="No changes yet" body={changesCopy.empty} />
+  {#if $git === undefined}
+    <div class="grid place-items-center py-6"><span class="loading loading-spinner" aria-label="Loading Git status"></span></div>
+  {:else if !$git.available}
+    <div class="alert alert-info alert-soft text-sm" role="status">Git tracking is not available for this project.</div>
+  {:else if $git.files.length === 0}
+    <EmptyState compact bordered icon="pencil" title="No active Git changes" body="Saved files match the current commit. Task steps remain in history below." />
   {:else}
-    {#if $files.length > 0}
-      <p class="text-sm font-medium">{$files.length} {$files.length === 1 ? 'file' : 'files'} changed</p>
-      {#each $files as change, index (change.path)}
-        <ChangedFile {change} open={isOpen(change.path, index)} ontoggle={() => { opened = { ...opened, [change.path]: !isOpen(change.path, index) }; }} />
+    <p class="text-sm font-medium">{$git.files.length} active {$git.files.length === 1 ? 'change' : 'changes'}</p>
+    <ul class="flex flex-col divide-y divide-[var(--brand-border)] rounded-lg border border-[var(--brand-border)] bg-base-100">
+      {#each $git.files as file (file.path)}
+        <li class="flex min-w-0 flex-wrap items-center gap-2 px-3 py-2 text-sm">
+          <span class="badge badge-warning badge-sm">{gitStatusLabel(file)}</span>
+          <code class="min-w-0 flex-1 truncate">{file.originalPath ? `${file.originalPath} → ${file.path}` : file.path}</code>
+          <span class="text-xs text-[var(--brand-text-secondary)]">Index: {file.index} · Working tree: {file.worktree}</span>
+        </li>
       {/each}
-    {:else if !$loaded}
-      <div class="grid place-items-center py-6"><span class="loading loading-spinner"></span></div>
-    {/if}
+    </ul>
+  {/if}
 
-    <details class="rounded-lg border border-[var(--brand-border)] bg-base-100 p-3" open={$files.length === 0}>
-      <summary class="cursor-pointer text-sm font-medium">Steps, with Undo ({changes.length})</summary>
+  {#if changes.length > 0 || !$loaded}
+    <details class="rounded-lg border border-[var(--brand-border)] bg-base-100 p-3" open={$git?.files.length === 0}>
+      <summary class="cursor-pointer text-sm font-medium">Task history: steps with Undo ({changes.length})</summary>
+      {#if !$loaded}<div class="grid place-items-center py-4"><span class="loading loading-spinner" aria-label="Loading task history"></span></div>{/if}
       <ul class="mt-2 flex flex-col gap-2">
         {#each changes as change (change.id)}
           <li class="rounded-lg border border-[var(--brand-border)] p-3 text-sm">

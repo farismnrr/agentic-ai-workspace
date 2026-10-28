@@ -30,5 +30,5 @@
   {:else if tab === 'documents'}<ProjectDocuments taskId={task.id} projectId={task.projectId} updatedAt={task.updatedAt} />
   {:else if tab === 'team'}<TeamTab {events} waiting={task.status === 'needs-input'} source={task.source} work={task.work} />
   {:else if tab === 'changes'}{#key task.id}<ChangesTab taskId={task.id} projectId={task.projectId} {changes} {onundo} />{/key}
-  {:else}<FilesTab projectId={task.projectId} {changes} />{/if}
+  {:else}<FilesTab projectId={task.projectId} />{/if}
 </div>
