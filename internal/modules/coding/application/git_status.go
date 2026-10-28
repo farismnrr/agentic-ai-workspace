@@ -1,6 +1,10 @@
 package application
 
-import "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+import (
+	"fmt"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+)
 
 // GitStatusReader reads the current state of one project repository.
 type GitStatusReader interface {
@@ -22,7 +26,11 @@ func NewGitStatus(reader GitStatusReader) *GitStatus {
 
 // Read returns the current bounded repository snapshot.
 func (s *GitStatus) Read() (domain.GitSnapshot, error) {
-	return s.reader.Read()
+	snapshot, err := s.reader.Read()
+	if err != nil {
+		return domain.GitSnapshot{}, fmt.Errorf("read project Git status: %w", err)
+	}
+	return snapshot, nil
 }
 
 // GitHead reads one bounded file baseline through its adapter.
@@ -32,4 +40,10 @@ type GitHead struct{ reader GitHeadReader }
 func NewGitHead(reader GitHeadReader) *GitHead { return &GitHead{reader: reader} }
 
 // Read returns a safe HEAD baseline for one repository-relative file path.
-func (s *GitHead) Read(path string) (domain.GitHead, error) { return s.reader.ReadHead(path) }
+func (s *GitHead) Read(path string) (domain.GitHead, error) {
+	head, err := s.reader.ReadHead(path)
+	if err != nil {
+		return domain.GitHead{}, fmt.Errorf("read project Git HEAD: %w", err)
+	}
+	return head, nil
+}

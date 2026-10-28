@@ -110,7 +110,7 @@ About Changes:
   remain separate from the saved file status.
 - When Git is clean, active changes and line marks clear. Task steps, evidence
   and Undo remain under **Task history**.
-- Projects without Git tracking say that comparisons are unavailable.
+- Projects without Git tracking or with unsupported repository metadata say that comparisons are unavailable.
 
 About Files:
 
