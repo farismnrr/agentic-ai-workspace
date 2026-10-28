@@ -135,7 +135,7 @@ func RequireDocker(t *testing.T) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), commandTimeout)
 	defer cancel()
-	_, err := sandbox.Open(ctx, sandbox.Config{Image: "busybox:1.37", Limits: sandbox.DefaultLimits()})
+	_, err := sandbox.Open(ctx, sandbox.Config{Image: testSandboxImage, Limits: sandbox.DefaultLimits()})
 	if err != nil {
 		if os.Getenv("GITHUB_ACTIONS") == "true" {
 			t.Fatalf("Docker is required for this CI scenario: %v", err)
