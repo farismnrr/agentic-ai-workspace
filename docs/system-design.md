@@ -46,16 +46,21 @@ internal/modules/<feature>/
   adapter/                HTTP, database and other implementations
 internal/platform/        config, egress, HTTP server, embedded web app
 test/                     black-box, e2e and smoke suites
+  go/                     Go tests, harness, registry and checker
+    apptest/              shared in-process HTTP test harness
+    app/                  app-level integration tests
+    modules/              module integration and critical tests
+    platform/             process-wide adapter tests
   blackbox/               Bash scenarios against the built binary
   e2e/                    Playwright flows in TypeScript
   smoke/                  binary, image, sandbox and volume isolation checks
   lib/                    shared Bash harness and assertions
   fixtures/               static test inputs
-  whitebox/               retained Go test registry and guardrail
 ```
 
-Go white-box tests stay beside the Go code they exercise. The registry under
-`test/whitebox/` explains each retained exception.
+All tests live under `test/`; none sit beside program code. The untouched
+`sandbox/starter/` template is the only exception. The Go test registry is in
+`test/go/registry.md`.
 
 - **Dependencies point inward:** `adapter -> application -> domain`.
 - **A domain rule never knows** which HTTP framework or database is used. That keeps it easy to test and to replace.

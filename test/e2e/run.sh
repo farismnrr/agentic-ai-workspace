@@ -64,7 +64,7 @@ else
   fi
 
   (cd "$REPO_ROOT" && env "$host_dir=$dir" SANDBOX_TEST_IMAGE="$image" \
-    go test ./internal/bootstrap/ -run "$host_test" -count=1 -timeout 8m) \
+    go test ./test/go/app/sites/ -run "$host_test" -count=1 -timeout 8m) \
     >"$dir/server.log" 2>&1 &
   host_pid=$!
   deadline=$((SECONDS + 120))
