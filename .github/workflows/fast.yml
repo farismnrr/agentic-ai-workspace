@@ -1,8 +1,8 @@
 name: Fast
 
-# Quick feedback loop: guardrails and Go tests gate the image path. Pushes to dev
-# publish the dev image to GHCR; pull requests only build it. Full provides broader
-# verification and releases only after an explicit dispatch input; see full.yml.
+# Quick feedback: scoped compile checks, module integrity and image smoke.
+# Expensive guardrails and full Go tests run in the manually dispatched Full workflow.
+# Pushes to dev publish only the dev image, never a production release.
 on:
   push:
     branches: [dev]
@@ -22,35 +22,35 @@ env:
   CI: true
 
 jobs:
-  guardrails:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: make guardrails shellcheck
-
-  backend-test:
+  quick-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup-go
-      - name: Run backend tests
+      - name: Verify module integrity and patch whitespace
+        run: |
+          go mod verify
+          git diff --check "${{ github.event.pull_request.base.sha || github.event.before }}" HEAD
+      - name: Compile changed Go packages without running the full test suite
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         shell: bash
         run: |
-          set -o pipefail
-          if ! make backend-test 2>&1 | tee backend-test.log; then
-            awk '/^--- FAIL:|^# |^FAIL|^panic:|^fatal error:/ { print; context=2; next }
-                 context > 0 { print; context-- }' backend-test.log |
-              head -40 | while IFS= read -r line; do
-                echo "::error title=Backend test failure::${line}"
-              done
-            exit 1
-          fi
+          set -euo pipefail
+          declare -A packages=()
+          while IFS= read -r file; do
+            [[ -n "$file" && -d "$(dirname "$file")" ]] || continue
+            packages["./$(dirname "$file")"]=1
+          done < <(git diff --name-only "$BASE" HEAD -- '*.go')
+          # Always compile the task runner, including when only workflow files change.
+          packages[./internal/modules/task/application]=1
+          mapfile -t selected < <(printf '%s\n' "${!packages[@]}" | sort)
+          printf 'Compiling packages: %s\n' "${selected[*]}"
+          go test -run '^$' "${selected[@]}"
 
   # The toolbox image changes rarely, so it is rebuilt only when what goes into it changed. A new branch, a
   # rewritten history or any doubt counts as changed; full always builds it.
@@ -72,7 +72,7 @@ jobs:
           changed=true
           if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
             if git diff --quiet "$BASE" HEAD -- sandbox test/smoke/sandbox.test.sh \
-              .github/actions/build-image .github/workflows/fast.yml; then
+              .github/actions/build-image; then
               changed=false
             fi
           fi
@@ -80,7 +80,7 @@ jobs:
 
   # The two images build in parallel: the sandbox image is the slow one, and nothing makes the app image wait for it.
   image-app:
-    needs: [guardrails, backend-test]
+    needs: [quick-checks]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -99,7 +99,7 @@ jobs:
           retention-days: 1
 
   image-app-publish:
-    needs: [guardrails, backend-test, image-app]
+    needs: [quick-checks, image-app]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -115,7 +115,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   image-sandbox:
-    needs: [changes, guardrails, backend-test]
+    needs: [changes, quick-checks]
     if: needs.changes.outputs.sandbox == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
