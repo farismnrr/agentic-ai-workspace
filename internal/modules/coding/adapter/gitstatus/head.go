@@ -6,14 +6,18 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
-const maxHeadBytes = codingdomain.MaxReadBytes
+const (
+	maxHeadBytes      = codingdomain.MaxReadBytes
+	maxHeadObjectSize = 4 * maxHeadBytes
+)
 
 // ReadHead returns only a small text blob from this repository's HEAD.
 func (r *Reader) ReadHead(rawPath string) (codingdomain.GitHead, error) {
@@ -21,12 +25,12 @@ func (r *Reader) ReadHead(rawPath string) (codingdomain.GitHead, error) {
 	if err != nil {
 		return codingdomain.GitHead{}, err
 	}
-	metadata, err := os.Lstat(filepath.Join(r.root, ".git"))
+	err = validateGitMetadata(r.root)
 	if errors.Is(err, os.ErrNotExist) {
 		return codingdomain.GitHead{Available: false}, nil
 	}
-	if err != nil || !metadata.IsDir() {
-		return codingdomain.GitHead{}, errors.New("unsupported git metadata")
+	if err != nil {
+		return codingdomain.GitHead{}, err
 	}
 
 	if _, err := runGit(r.root, 1024, "rev-parse", "--verify", "HEAD^{commit}"); err != nil {
@@ -50,18 +54,40 @@ func (r *Reader) ReadHead(rawPath string) (codingdomain.GitHead, error) {
 	if object == "" {
 		return codingdomain.GitHead{Available: true, Content: ""}, nil
 	}
+	sizeOutput, err := runGit(r.root, 64, "cat-file", "-s", object)
+	if err != nil {
+		return codingdomain.GitHead{}, err
+	}
+	size, err := strconv.ParseInt(strings.TrimSpace(string(sizeOutput)), 10, 64)
+	if err != nil || size < 0 {
+		return codingdomain.GitHead{}, errors.New("invalid git blob size")
+	}
+	if size > maxHeadObjectSize {
+		return codingdomain.GitHead{}, errors.New("git blob exceeds read limit")
+	}
 	content, err := runGit(r.root, maxHeadBytes+1, "cat-file", "blob", object)
 	if err != nil {
 		return codingdomain.GitHead{}, err
 	}
+	truncated := size > maxHeadBytes
+	if len(content) > maxHeadBytes {
+		content = utf8Boundary(content[:maxHeadBytes])
+	}
 	if bytes.IndexByte(content, 0) >= 0 || !utf8.Valid(content) {
 		return codingdomain.GitHead{Available: true, Binary: true}, nil
 	}
-	truncated := len(content) > maxHeadBytes
-	if truncated {
-		content = content[:maxHeadBytes]
-	}
 	return codingdomain.GitHead{Available: true, Content: string(content), Truncated: truncated}, nil
+}
+
+func utf8Boundary(data []byte) []byte {
+	start := len(data) - 1
+	for start > 0 && data[start]&0xc0 == 0x80 {
+		start--
+	}
+	if !utf8.FullRune(data[start:]) {
+		return data[:start]
+	}
+	return data
 }
 
 func headObject(data []byte, wanted string) (string, error) {
@@ -83,15 +109,17 @@ func headObject(data []byte, wanted string) (string, error) {
 }
 
 func runGit(root string, limit int, args ...string) ([]byte, error) {
+	if err := validateGitMetadata(root); err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
 	defer cancel()
 	output := &prefixBuffer{limit: limit}
-	commandArgs := append([]string{"-C", root, "-c", "core.fsmonitor=false"}, args...)
-	cmd := exec.CommandContext(ctx, "git", commandArgs...)
-	cmd.Env = []string{"PATH=/usr/bin:/bin", "LANG=C.UTF-8", "GIT_OPTIONAL_LOCKS=0", "GIT_CONFIG_NOSYSTEM=1",
-		"GIT_CONFIG_GLOBAL=/dev/null", "GIT_PAGER=cat", "GIT_TERMINAL_PROMPT=0", "GIT_ATTR_NOSYSTEM=1"}
+	cmd := exec.CommandContext(ctx, "git", gitCommandArgs(root, args...)...)
+	cmd.Env = gitEnvironment()
 	cmd.Stdout = output
 	cmd.Stderr = &boundedBuffer{}
+	cmd.WaitDelay = time.Second
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
