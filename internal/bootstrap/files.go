@@ -51,8 +51,9 @@ func (w ownWorkspaces) Open(ctx context.Context, userID, projectID string) (codi
 		return codinghttp.Workspace{}, fmt.Errorf("resolve project folder: %w", err)
 	}
 
-	git := codingapp.NewGitStatus(gitstatus.New(dir))
-	head := codingapp.NewGitHead(gitstatus.New(dir))
+	gitReader := gitstatus.New(dir)
+	git := codingapp.NewGitStatus(gitReader)
+	head := codingapp.NewGitHead(gitReader)
 	return codinghttp.Workspace{Reader: services.Reader, Editor: services.Editor, Git: git, Head: head}, nil
 }
 

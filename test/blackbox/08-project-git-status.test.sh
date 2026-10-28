@@ -42,6 +42,9 @@ git config user.email 'blackbox@example.test'
 printf 'before\n' > 'space ü file.txt'
 printf 'before\n' > 'staged.txt'
 printf 'before\n' > 'both.txt'
+head -c 262145 /dev/zero | tr '\0' x > 'large.txt'
+printf 'before\0after' > 'binary.bin'
+ln -s /etc/passwd 'outside-link'
 printf '.ignored\n' > .gitignore
 git add .
 git commit -qm 'initial files'
@@ -74,14 +77,37 @@ assert_json '.available and .content == "before\n" and (.content | length) < 100
 http_request GET "$owner" "/api/projects/$project_id/git/head?path=untracked.txt"
 assert_status "$HTTP_STATUS" 200 'untracked file has an empty HEAD baseline'
 assert_json '.available and .content == ""' 'missing HEAD path is an explicit empty baseline'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=large.txt"
+assert_status "$HTTP_STATUS" 200 'large text baseline stays bounded'
+assert_json '.available and .truncated and (.content | length) == 262144' 'large text is truncated at the read limit'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=binary.bin"
+assert_status "$HTTP_STATUS" 200 'binary baseline is identified'
+assert_json '.available and .binary and .content == ""' 'binary contents are not returned'
+http_request GET "$owner" "/api/projects/$project_id/git/head?path=outside-link"
+assert_status "$HTTP_STATUS" 200 'tracked symlink baseline is read from its Git object'
+assert_json '.available and .content == "/etc/passwd"' 'Git symlink target is returned as text, never followed'
 http_request GET "$owner" "/api/projects/$project_id/git/head?path=..%2F.env"
 assert_status "$HTTP_STATUS" 404 'traversal baseline path is denied'
 http_request GET "$owner" "/api/projects/$project_id/git/head?path=.env"
 assert_status "$HTTP_STATUS" 404 'secret baseline path is denied'
 
+cp "$project_dir/.git/config" "$APP_TMP_DIR/git-config"
+mv "$project_dir/.git/config" "$APP_TMP_DIR/git-config-original"
+ln -s "$APP_TMP_DIR/git-config" "$project_dir/.git/config"
+http_request GET "$owner" "/api/projects/$project_id/git/status"
+assert_status "$HTTP_STATUS" 503 'Git config symlink is rejected'
+rm "$project_dir/.git/config"
+mv "$APP_TMP_DIR/git-config-original" "$project_dir/.git/config"
+
 cd "$project_dir"
+git add untracked.txt
 git add -u
 git commit -qm 'save status fixture'
+cd "$REPO_ROOT"
+http_request GET "$owner" "/api/projects/$project_id/git/status"
+assert_status "$HTTP_STATUS" 200 'owner reads status after commit'
+assert_json '.available and .files == []' 'committing changes clears active Git markers'
+cd "$project_dir"
 git branch -M main
 git checkout -qb conflict-side
 printf 'side\n' > both.txt
