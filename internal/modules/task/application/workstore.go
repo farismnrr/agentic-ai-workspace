@@ -48,15 +48,16 @@ type WorkOp struct {
 
 // WorkPatch contains optional changes to the external work record.
 type WorkPatch struct {
-	State           *domain.WorkState
-	PlanState       *domain.PlanPhase
-	RoleKey         *string
-	RoleName        *string
-	PlanRev         *int64
-	NextStep        *int64
-	EndedAt         *time.Time
-	ClearReportedAt bool
-	SupersedePlan   bool
+	State            *domain.WorkState
+	CompletionReason *string
+	PlanState        *domain.PlanPhase
+	RoleKey          *string
+	RoleName         *string
+	PlanRev          *int64
+	NextStep         *int64
+	EndedAt          *time.Time
+	ClearReportedAt  bool
+	SupersedePlan    bool
 }
 
 // TaskPatch contains optional changes to the task fields owned by work operations.

@@ -62,24 +62,25 @@ type WorkSummary struct {
 
 // ExternalWork is the persisted identity and lifecycle record for a work session.
 type ExternalWork struct {
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	ReportedAt *time.Time
-	ID         string
-	TaskID     string
-	UserID     string
-	ProjectID  string
-	Client     string
-	State      WorkState
-	PlanState  PlanPhase
-	RoleKey    string
-	RoleName   string
-	IdemKey    string
-	IdemHash   string
-	EndedAt    int64
-	Rev        int64
-	PlanRev    int64
-	NextStep   int64
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	ReportedAt       *time.Time
+	ID               string
+	TaskID           string
+	UserID           string
+	ProjectID        string
+	Client           string
+	State            WorkState
+	CompletionReason string
+	PlanState        PlanPhase
+	RoleKey          string
+	RoleName         string
+	IdemKey          string
+	IdemHash         string
+	EndedAt          int64
+	Rev              int64
+	PlanRev          int64
+	NextStep         int64
 }
 
 // External work inputs are bounded before they are persisted or exported.

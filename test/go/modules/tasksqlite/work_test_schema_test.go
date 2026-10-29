@@ -43,7 +43,7 @@ CREATE TABLE external_works (
  rev INTEGER NOT NULL DEFAULT 0, plan_rev INTEGER NOT NULL DEFAULT 0, next_step INTEGER NOT NULL DEFAULT 1,
  idem_key TEXT NOT NULL DEFAULT '', idem_hash TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL,
 	updated_at INTEGER NOT NULL, ended_at INTEGER, reported_at INTEGER,
- plan_state TEXT NOT NULL DEFAULT 'draft'
+ plan_state TEXT NOT NULL DEFAULT 'draft', completion_reason TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE external_plan_revisions (
  id TEXT PRIMARY KEY, work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE,
