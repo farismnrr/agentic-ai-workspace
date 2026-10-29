@@ -18,6 +18,8 @@ const (
 	CLIChange
 	// CLICommand is a step that ran a command.
 	CLICommand
+	// CLIUsage is trustworthy last-model-call context occupancy, not cumulative token usage.
+	CLIUsage
 )
 
 // CLIEvent is one thing the program reported, already in plain words.
@@ -29,6 +31,8 @@ type CLIEvent struct {
 	Files     []string
 	ExitCode  int
 	Kind      CLIEventKind
+	Used      int64
+	Window    int64
 	// TimedOut is true when a command was stopped for taking too long.
 	TimedOut bool
 }
