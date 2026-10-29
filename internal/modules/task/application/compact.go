@@ -63,39 +63,44 @@ func compactThreshold(window int64) int64 {
 // summary comes back, the conversation goes on as it is.
 func (r *Runner) compactIfNeeded(
 	ctx context.Context, task domain.Task, state *runState, c compaction, transcript []domain.Message,
-) []domain.Message {
+) ([]domain.Message, bool) {
 	messages := sinceSummary(transcript)
 
 	size := state.size
-	if size == 0 {
-		size = estimateTokens(c.system, c.tools, messages)
-	}
+	// A previous call's usage does not include newly appended tool results or user input.
+	size = max(size, estimateTokens(c.system, c.tools, messages))
 
 	window := r.deps.Windows.ContextWindow(ctx, task.UserID, task.ProviderID, task.Model)
 	state.window = window
 
-	if size < compactThreshold(window) || state.failed >= maxCompactTries {
-		return messages
+	if size < compactThreshold(window) {
+		return messages, true
+	}
+	state.size = size
+	r.saveContext(ctx, task, state)
+	if state.failed >= maxCompactTries {
+		return nil, false
 	}
 
-	if !r.compact(ctx, task, c, messages) {
+	// A full transcript cannot reliably be used to ask for its own summary.
+	// Drop bulky tool outputs from the summary request before calling the model.
+	if !r.compact(ctx, task, c, clipResults(messages)) {
 		state.failed++
-
-		return messages
+		return nil, false
 	}
 
 	reloaded, err := r.deps.Transcript.LoadTranscript(ctx, task.ID)
 	if err != nil {
 		state.size = 0
 
-		return messages
+		return nil, false
 	}
 
 	shortened := sinceSummary(reloaded)
 	state.size = estimateTokens(c.system, c.tools, shortened)
 	r.saveContext(ctx, task, state)
 
-	return shortened
+	return shortened, true
 }
 
 // saveContext tells the task page how full the model's window is.
@@ -123,9 +128,11 @@ func (r *Runner) compact(ctx context.Context, task domain.Task, c compaction, me
 		return false
 	}
 
-	_ = r.deps.Transcript.AppendBlock(ctx, task.ID, domain.RoleUser, domain.Block{
+	if err := r.deps.Transcript.AppendBlock(ctx, task.ID, domain.RoleUser, domain.Block{
 		Kind: domain.BlockText, Text: summaryLead + text + summaryTail, Summary: true,
-	})
+	}); err != nil {
+		return false
+	}
 	r.say(ctx, task.ID, compactNote)
 
 	return true

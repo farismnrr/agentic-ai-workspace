@@ -28,6 +28,14 @@ type codexLine struct {
 	Usage struct {
 		Input int64 `json:"input_tokens"`
 	} `json:"usage"`
+	LastTokenUsage struct {
+		Input int64 `json:"input_tokens"`
+	} `json:"last_token_usage"`
+	Info struct {
+		LastTokenUsage struct {
+			Input int64 `json:"input_tokens"`
+		} `json:"last_token_usage"`
+	} `json:"info"`
 }
 
 type codex struct{ out *Stream }
@@ -46,7 +54,9 @@ func (c *codex) line(raw []byte) {
 	case "item.completed":
 		c.item(line)
 	case "turn.completed":
-		c.out.used = line.Usage.Input
+		// Codex turn usage is cumulative and is not the live context occupancy.
+		// Only show an occupancy estimate when the stream supplies a last-call value.
+		c.out.used = max(line.LastTokenUsage.Input, line.Info.LastTokenUsage.Input)
 	case "turn.failed":
 		c.out.reason = "ChatGPT stopped: " + brief(line.Error.Message, errorChars)
 	}
