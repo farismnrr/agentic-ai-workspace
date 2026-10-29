@@ -57,6 +57,11 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 		req.Prompt = reviewModePrompt(task.ReviewMode) + r.notesPrompt() + req.Prompt
 	}
 
+	// A resumed CLI session can have stale occupancy from its previous turn.
+	// Until the vendor reports current usage, do not present the old value as live.
+	if runner.role == nil {
+		_ = runner.deps.Tasks.SetContext(ctx, task.ID, 0, 0)
+	}
 	sink := &planSink{runner: runner, task: task}
 
 	result, err := r.deps.CLI.Run(ctx, req, func(event CLIEvent) { sink.emit(ctx, event) })
@@ -95,6 +100,8 @@ type planSink struct {
 
 func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 	switch event.Kind {
+	case CLIUsage:
+		p.runner.saveMeter(ctx, p.task, CLIResult{Used: event.Used, Window: event.Window})
 	case CLIDelta:
 		if !p.quiet {
 			p.runner.deps.Notify.Delta(p.task.ID, event.Text)

@@ -90,6 +90,7 @@ func (c *claude) line(raw []byte) {
 	case "assistant", "user":
 		if u := line.Message.Usage; line.Type == "assistant" && u.Input+u.CacheRead+u.CacheWrite > 0 {
 			c.out.used = u.Input + u.CacheRead + u.CacheWrite + u.Output
+			c.out.emit(application.CLIEvent{Kind: application.CLIUsage, Used: c.out.used, Window: c.out.window})
 		}
 
 		c.blocks(line.Message.Content)

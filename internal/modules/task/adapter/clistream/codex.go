@@ -36,6 +36,11 @@ type codexLine struct {
 			Input int64 `json:"input_tokens"`
 		} `json:"last_token_usage"`
 	} `json:"info"`
+	TokenInfo struct {
+		LastTokenUsage struct {
+			Input int64 `json:"input_tokens"`
+		} `json:"last_token_usage"`
+	} `json:"token_info"`
 }
 
 type codex struct{ out *Stream }
@@ -53,10 +58,18 @@ func (c *codex) line(raw []byte) {
 		c.out.session = line.ThreadID
 	case "item.completed":
 		c.item(line)
+	case "thread.token_count":
+		if used := line.TokenInfo.LastTokenUsage.Input; used > 0 {
+			c.out.used = used
+			c.out.emit(application.CLIEvent{Kind: application.CLIUsage, Used: used})
+		}
 	case "turn.completed":
 		// Codex turn usage is cumulative and is not the live context occupancy.
 		// Only show an occupancy estimate when the stream supplies a last-call value.
-		c.out.used = max(line.LastTokenUsage.Input, line.Info.LastTokenUsage.Input)
+		if used := max(line.LastTokenUsage.Input, line.Info.LastTokenUsage.Input); used > 0 {
+			c.out.used = used
+			c.out.emit(application.CLIEvent{Kind: application.CLIUsage, Used: used})
+		}
 	case "turn.failed":
 		c.out.reason = "ChatGPT stopped: " + brief(line.Error.Message, errorChars)
 	}
