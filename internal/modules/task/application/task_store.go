@@ -25,6 +25,8 @@ type TaskStore interface {
 	DeleteOwned(ctx context.Context, userID string, ids []string) ([]string, error)
 	SetModel(ctx context.Context, id, providerID, model string, effort domain.Effort) error
 	SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error
+	// FailUnlessDone prevents an asynchronously cancelled runner from reopening a manually stopped task.
+	FailUnlessDone(ctx context.Context, id string, at time.Time) (bool, error)
 	SavePlan(ctx context.Context, id string, plan []domain.PlanStep, at time.Time) error
 	SavePRD(ctx context.Context, id, prd string, at time.Time) error
 	SaveResearch(ctx context.Context, id, research string, at time.Time) error
