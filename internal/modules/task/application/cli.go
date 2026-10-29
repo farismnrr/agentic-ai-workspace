@@ -9,6 +9,8 @@ import (
 
 var programNames = map[string]string{"claude": "Claude", "chatgpt": "ChatGPT"}
 
+const maxCLIReviewContinuations = 9
+
 // runPlan does a task on the person's own plan: the vendor's coding program does the work in the project's
 // folder and this records what it reports, so the thread, the files and the receipt look like any other task.
 func (r *Runner) runPlan(ctx context.Context, task domain.Task) outcome {
@@ -57,29 +59,50 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 		req.Prompt = reviewModePrompt(task.ReviewMode) + r.notesPrompt() + req.Prompt
 	}
 
-	sink := &planSink{runner: runner, task: task}
-	result, sink, fresh, err := r.runCLIWithRecovery(ctx, task, req, sink)
-	if stopped, over := r.limitReached(ctx); over {
-		return stopped
-	}
-	if err != nil {
-		return failed("I could not run "+programNames[program]+" for this task.", "Press Continue to try again.")
-	}
-	if result.Reason == "" {
-		if result.Session != "" {
-			_ = r.deps.Sessions.SaveSession(ctx, task.ID, result.Session)
-		} else if fresh {
-			_ = r.deps.Sessions.SaveSession(ctx, task.ID, "")
+	// A completed CLI turn may still require an independent role's report.
+	// Resume the SAME task/session with the server's review feedback instead
+	// of turning each soft hold into another user-facing failure card.
+	for attempt := range maxCLIReviewContinuations + 1 {
+		sink := &planSink{runner: runner, task: task}
+		result, settled, fresh, runErr := r.runCLIWithRecovery(ctx, task, req, sink)
+		if stopped, over := r.limitReached(ctx); over {
+			return stopped
 		}
+		if runErr != nil {
+			return failed("I could not run "+programNames[program]+" for this task.", "Press Continue to try again.")
+		}
+		if result.Reason == "" {
+			if result.Session != "" {
+				_ = r.deps.Sessions.SaveSession(ctx, task.ID, result.Session)
+				req.Session = result.Session
+			} else if fresh {
+				_ = r.deps.Sessions.SaveSession(ctx, task.ID, "")
+				req.Session = ""
+			}
+		}
+		if lead != nil && lead.stopped != nil {
+			settled.flush(ctx)
+			return *lead.stopped
+		}
+		completed, feedback := settled.finish(ctx, result, lead)
+		if feedback == "" {
+			return completed
+		}
+		if attempt == maxCLIReviewContinuations {
+			return failed("The required review is still missing after automatic continuation.",
+				"Check the Reviewer's availability and recorded report before trying again.")
+		}
+		if req.Session == "" {
+			return failed("Independent review is required, but the CLI did not provide a resumable session.",
+				"Press Continue after the vendor CLI can resume its session.")
+		}
+		req.Prompt = "The server has NOT approved completion of this task. " + feedback +
+			"\nContinue this SAME task and delegate the named verification role. " +
+			"If the plan says all steps are done, add the required review step with update_plan first. " +
+			"Do not repeat completed edits. Only report completion after the independent review is recorded " +
+			"and its findings are resolved."
 	}
-	// Context metering and rollover state are settled by runCLIWithRecovery.
-	if lead != nil && lead.stopped != nil {
-		sink.flush(ctx)
-
-		return *lead.stopped
-	}
-
-	return sink.finish(ctx, result)
+	return failed("The required review could not be completed.", "Review the task's evidence before continuing.")
 }
 
 // planSink turns what the program reports into the task's thread.
@@ -120,7 +143,9 @@ func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 			Text: event.Text, Technical: event.Technical,
 			Run: &domain.RunInfo{
 				Name: checkName(event.Technical), Command: event.Technical,
-				EffectPaths: event.Files, EffectsKnown: len(event.Files) > 0,
+				// Read-only checks do not have file effects. Unknown commands
+				// remain conservative, even when no paths were reported.
+				EffectPaths: event.Files, EffectsKnown: len(event.Files) > 0 || knownNonMutatingCommand(event.Technical),
 				ExitCode: event.ExitCode, TimedOut: event.TimedOut,
 			},
 		})
@@ -143,13 +168,16 @@ func (p *planSink) step(ctx context.Context, event domain.Event) {
 }
 
 // finish ends the task like the agent's own loop does: work gets a receipt, a plain answer does not.
-func (p *planSink) finish(ctx context.Context, result CLIResult) outcome {
+// finish distinguishes a terminal result from a soft completion hold. A soft
+// hold returns the server's exact review instruction for the SAME CLI session.
+func (p *planSink) finish(ctx context.Context, result CLIResult, lead *leadSession) (outcome, string) {
 	if result.Reason != "" {
 		p.flush(ctx)
 		if isCLIContextOverflow(result.Reason) {
-			return failed("AI context is full and automatic session recovery did not succeed.", "Press Continue to retry or shorten the input.")
+			return failed("AI context is full and automatic session recovery did not succeed.",
+				"Press Continue to retry or shorten the input."), ""
 		}
-		return failed(result.Reason, "Press Continue to try again.")
+		return failed(result.Reason, "Press Continue to try again."), ""
 	}
 
 	summary := p.pending
@@ -159,23 +187,44 @@ func (p *planSink) finish(ctx context.Context, result CLIResult) outcome {
 
 	events, err := p.runner.deps.Events.EventsAfter(ctx, p.task.ID, 0)
 	if err != nil {
-		return failed("I lost track of this task's history.", "Press Continue in a moment.")
+		return failed("I lost track of this task's history.", "Press Continue in a moment."), ""
 	}
 
 	if workDone(events) {
 		state := &runState{roster: p.runner.roster(ctx, p.task)}
-		blocked, allowed := p.runner.completionGate(ctx, p.task, state, Call{})
+		if lead != nil {
+			state = lead.state
+		}
+		gateID := ""
+		if lead != nil {
+			gateID = "cli-completion-gate"
+		}
+		// The CLI bridge owns a captured-result channel, not the model's
+		// normal transcript. Review feedback must be captured there so it can
+		// be sent as the next turn's prompt instead of silently disappearing.
+		gateRunner := p.runner
+		if lead != nil {
+			gateRunner = lead.inline
+		}
+		blocked, allowed := gateRunner.completionGate(ctx, p.task, state, Call{ID: gateID})
 		if !allowed {
 			if blocked.stop != 0 {
-				return blocked
+				return blocked, ""
 			}
-			return failed("This work is blocked until its required review is recorded.",
-				"Press Continue after the review has completed.")
+			if lead == nil {
+				return failed("Independent verification is required but no team lead can delegate it.",
+					"Enable the applicable reviewer role and continue with a team."), ""
+			}
+			feedback := strings.TrimSpace(lead.results.take(gateID).text)
+			if feedback == "" {
+				return failed("The required review could not be scheduled.",
+					"Check the team's review roles and restart verification."), ""
+			}
+			return outcome{}, feedback
 		}
-		return p.runner.complete(ctx, p.task, summary, buildProof(events, nil))
+		return p.runner.complete(ctx, p.task, summary, buildProof(events, nil)), ""
 	}
-
-	return p.runner.answer(ctx, p.task, summary)
+	return p.runner.answer(ctx, p.task, summary), ""
 }
 
 const maxCheckName = 60
