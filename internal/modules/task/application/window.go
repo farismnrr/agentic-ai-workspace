@@ -30,9 +30,15 @@ func (s *Service) workSummary(ctx context.Context, task domain.Task) *domain.Wor
 	phase := domain.DeriveWorkPhase(work, s.now(), domain.WorkPhaseThresholds{
 		IdleAfter: s.workIdleAfter,
 	})
+	completionReason := ""
+	if work.State == domain.WorkCompleted && task.Proof != nil && !task.Proof.Proven &&
+		(task.Summary == "Auto-completed (inactive); unverified — no final report was received" ||
+			task.Summary == "Auto-completed after reported result; unverified") {
+		completionReason = "auto_completed_unverified"
+	}
 	return &domain.WorkSummary{
 		ID: work.ID, UpdatedAt: work.UpdatedAt, State: work.State, PlanState: work.PlanState, Role: work.RoleKey,
-		Phase:      phase,
+		Phase: phase, CompletionReason: completionReason,
 		ReportedAt: work.ReportedAt,
 		RoleName:   work.RoleName, Actor: work.Client, Revision: work.Rev,
 		CurrentRevision: currentRevision, PlanRev: work.PlanRev,
