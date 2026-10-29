@@ -23,7 +23,9 @@ type Completion struct {
 	Already  bool         `json:"already,omitempty"`
 }
 
-// Complete closes or blocks one work session and derives proof only from server events.
+// Complete closes or blocks one work session. Its required summary is the
+// final report, persisted in the task summary and completion event. Timeout
+// completion is a separate unverified path and needs no fabricated report.
 func (w *Works) Complete(ctx context.Context, userID, client, projectID, workID, outcome, summary string,
 	claims []string,
 ) (Completion, error) {
