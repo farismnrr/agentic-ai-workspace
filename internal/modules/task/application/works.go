@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	defaultWorksIdleAfter   = 30 * time.Minute
-	defaultWorkAbandonAfter = 2 * time.Hour
+	defaultWorksIdleAfter   = 10 * time.Minute
+	defaultWorkAbandonAfter = 15 * time.Minute
 )
 
 // Works contains the use cases for a connected app's explicit work session.
@@ -44,7 +44,7 @@ func NewWorks(deps Deps, store WorkStore, plans PlanStore, questions QuestionSto
 	return &Works{
 		deps: deps, store: store, plans: plans, questions: questions,
 		limits: workLimiter{buckets: map[string]map[int64]int{}}, thresholds: thresholds,
-		sweepMode: "dry-run", dryRunSeen: map[string]struct{}{},
+		sweepMode: "on", dryRunSeen: map[string]struct{}{},
 	}
 }
 

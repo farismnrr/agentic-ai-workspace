@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	defaultWorkIdleAfter    = 30 * time.Minute
-	defaultWorkAbandonAfter = 2 * time.Hour
+	defaultWorkIdleAfter    = 10 * time.Minute
+	defaultWorkAbandonAfter = 15 * time.Minute
 	defaultWorkSweepEvery   = time.Minute
 )
 
@@ -26,16 +26,14 @@ func workDurations() (time.Duration, time.Duration, time.Duration) {
 		log.Printf("WORK_ABANDON_AFTER must be greater than WORK_IDLE_AFTER; using %s", minimum)
 		abandon = minimum
 	}
-	if abandon < time.Hour || abandon > 3*time.Hour {
-		log.Printf("WORK_ABANDON_AFTER=%s is outside the recommended 1h–3h range", abandon)
-	}
+
 	return idle, abandon, sweep
 }
 
 func workSweepMode() string {
 	mode := strings.TrimSpace(os.Getenv("WORK_SWEEP_MODE"))
 	if mode == "" {
-		return "dry-run"
+		return "on"
 	}
 	if mode != "on" && mode != "dry-run" && mode != "off" {
 		log.Printf("WORK_SWEEP_MODE must be on, dry-run, or off; using dry-run")
