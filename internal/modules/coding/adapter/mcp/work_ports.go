@@ -31,6 +31,7 @@ type BeginWorkInput struct {
 	Summary        string
 	Role           string
 	IdempotencyKey string
+	NewTask        bool
 	PlannedRoles   []string
 }
 

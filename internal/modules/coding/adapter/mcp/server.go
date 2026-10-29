@@ -102,19 +102,22 @@ func (t *tools) recheckWork(ctx context.Context, projectID string) error {
 // serverInstructions are shown to the app's model when it connects. The person follows the work in their own
 // workspace, and only what the model writes down tells them what they asked for.
 const serverInstructions = "These tools work in the person's own workspace, where they follow your work in a thread. " +
-	"Start tracked work with begin_work and an enabled role before any workspace operation. " +
+	"Call begin_work only ONCE per user issue. Use that SAME work_id for all roles and tool calls. " +
+	"A repeated begin_work resumes the open work by default; use new_task=true only for a separate user issue. " +
 	"Pass work_id on every subsequent call, including log_message for the user request. " +
 	"Use set_role before switching between Researcher, Planner, Developer and QA. " +
 	"For tracked work, save your summary with log_message, then call complete_work. " +
 	"Do not call log_message after complete_work. " +
 	"When the person names a project (such as sensio), call list_projects and give its id as project to the other " +
-	"tools; without a project you work in your own. begin_work is mandatory even for small tasks; " +
+	"tools; without a project you work in your own. begin_work is mandatory for tracked work, " +
+	"but do not begin a separate task for each role, tool call, research step, or quick check; " +
 	"provide the required initial enabled non-lead role key; switch role labels as useful (Researcher, " +
 	"Planner, Developer, QA, Security), pass work_id to each " +
 	"work tool, save the plan and requirements, then call submit_plan for the person's approval. Do not report " +
 	"completed until the person has reviewed the plan. There is one assistant: roles are labels, " +
 	"no other agent is called, " +
-	"and permissions do not change. Start a web app with start_site, never with a shell command."
+	"and permissions do not change. Delegated work belongs to the SAME user issue/task. " +
+	"Start a web app with start_site, never with a shell command."
 
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {

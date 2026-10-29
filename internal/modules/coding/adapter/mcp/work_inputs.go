@@ -7,6 +7,7 @@ type beginWorkInput struct {
 	Summary        string   `json:"summary"`
 	Role           string   `json:"role" jsonschema:"enabled non-lead role key to use first; required"`
 	IdempotencyKey string   `json:"idempotency_key,omitempty"`
+	NewTask        bool     `json:"new_task,omitempty" jsonschema:"true only when starting an independent user issue; otherwise the existing open work is reused"`
 	PlannedRoles   []string `json:"planned_roles,omitempty"`
 }
 

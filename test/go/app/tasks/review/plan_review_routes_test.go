@@ -139,3 +139,45 @@ func TestAppCanRequestChangesForSubmittedRevision(t *testing.T) {
 	}
 	apptest.MustContain(t, result.Body, `"decision":"changes_requested"`)
 }
+
+func TestApprovedPlanHandoffDoesNotSpamTopLevelTasks(t *testing.T) {
+	env, cookie, _, taskID, _ := submittedExternalPlan(t)
+	gateway := apptest.NewGateway(t, apptest.FinishCall("Done"))
+	provider := apptest.AddProvider(t, env, cookie, gateway.Server.URL, "k").JSON(t)["id"].(string)
+	prefs := apptest.Do(t, env.App, "PUT", "/api/preferences", `{"defaultProviderId":"`+provider+`","defaultModel":"fake-model","rules":[]}`, planSession(cookie))
+	if prefs.Status != 200 {
+		t.Fatalf("provider preference: %d %s", prefs.Status, prefs.Body)
+	}
+	body := `{"revision":1,"idempotencyKey":"handoff-no-task-spam"}`
+	approve := apptest.Do(t, env.App, "POST", "/api/tasks/"+taskID+"/plan/approve", body, planSession(cookie))
+	if approve.Status != 200 {
+		t.Fatalf("approval: %d %s", approve.Status, approve.Body)
+	}
+	approved := apptest.Do(t, env.App, "POST", "/api/tasks/"+taskID+"/plan/approve", body, planSession(cookie))
+	if approved.Status != 200 {
+		t.Fatalf("settled approval: %d %s", approved.Status, approved.Body)
+	}
+	linked, _ := decodePlanApproval(t, approved.Body)["linkedTaskId"].(string)
+	if linked == "" || linked == taskID {
+		t.Fatalf("handoff missing child ID: %s", approve.Body)
+	}
+	list := apptest.Do(t, env.App, "GET", "/api/tasks", "", planSession(cookie))
+	var visible []struct {
+		ID     string `json:"id"`
+		Origin string `json:"originTaskId"`
+	}
+	if err := json.Unmarshal(list.Body, &visible); err != nil {
+		t.Fatal(err)
+	}
+	if len(visible) != 1 || visible[0].ID != taskID {
+		t.Fatalf("handoff leaked internal task: %+v", visible)
+	}
+	child := apptest.Do(t, env.App, "GET", "/api/tasks/"+linked, "", planSession(cookie))
+	if child.Status != 200 || child.JSON(t)["originTaskId"] != taskID {
+		t.Fatalf("child history inaccessible: %d %s", child.Status, child.Body)
+	}
+	retry := apptest.Do(t, env.App, "POST", "/api/tasks/"+taskID+"/plan/approve", body, planSession(cookie))
+	if retry.Status != 200 || decodePlanApproval(t, retry.Body)["linkedTaskId"] != linked {
+		t.Fatalf("handoff replay generated another child: %s", retry.Body)
+	}
+}

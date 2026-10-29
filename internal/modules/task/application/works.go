@@ -56,6 +56,7 @@ type BeginInput struct {
 	Summary        string
 	Role           string
 	IdempotencyKey string
+	NewTask        bool
 	PlannedRoles   []string
 }
 
@@ -76,9 +77,6 @@ const (
 
 // Begin starts a work session without merging it into the legacy 30-minute thread.
 func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
-	if err := w.limits.allow(in.UserID, true, w.now()); err != nil {
-		return BeginResult{}, err
-	}
 	clean, role, planned, hash, roster, err := w.prepareBegin(ctx, in)
 	if err != nil {
 		return BeginResult{}, err
@@ -92,6 +90,23 @@ func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
 	}
 	if resumed {
 		return w.beginResult(prior, true, roster), nil
+	}
+	if !in.NewTask {
+		active, found, findErr := w.store.LatestActiveWork(ctx, in.UserID, in.Client, in.ProjectID)
+		if findErr != nil {
+			return BeginResult{}, fmt.Errorf("find active work: %w", findErr)
+		}
+		if found {
+			if in.IdempotencyKey != "" {
+				if err := w.store.RegisterBeginAlias(ctx, in.UserID, in.Client, in.ProjectID, in.IdempotencyKey, hash, active.ID); err != nil {
+					return BeginResult{}, fmt.Errorf("record resumed begin key: %w", err)
+				}
+			}
+			return w.beginResult(active, true, roster), nil
+		}
+	}
+	if err := w.limits.allow(in.UserID, true, w.now()); err != nil {
+		return BeginResult{}, err
 	}
 	if err := w.checkCaps(ctx, in.UserID, in.ProjectID); err != nil {
 		return BeginResult{}, err

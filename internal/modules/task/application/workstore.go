@@ -13,6 +13,8 @@ type WorkStore interface {
 	Commit(ctx context.Context, change WorkChange) ([]domain.Event, int64, error)
 	FindWork(ctx context.Context, userID, client, projectID, workID string) (domain.ExternalWork, error)
 	FindIdempotent(ctx context.Context, userID, client, projectID, key string) (domain.ExternalWork, bool, error)
+	LatestActiveWork(ctx context.Context, userID, client, projectID string) (domain.ExternalWork, bool, error)
+	RegisterBeginAlias(ctx context.Context, userID, client, projectID, key, hash, workID string) error
 	FindOp(ctx context.Context, workID, opKey string) (WorkOp, bool, error)
 	StaleOpen(ctx context.Context, userID string, before time.Time) ([]domain.ExternalWork, error)
 	StaleOpenAll(ctx context.Context, before time.Time) ([]domain.ExternalWork, error)

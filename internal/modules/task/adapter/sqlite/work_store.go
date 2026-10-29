@@ -92,6 +92,57 @@ func (s *Store) FindIdempotent(
 		WHERE user_id = ? AND client = ? AND project_id = ? AND idem_key = ? AND idem_key <> ''`,
 		userID, client, projectID, key))
 	if errors.Is(err, sql.ErrNoRows) {
+		var workID, hash string
+		err = s.db.QueryRowContext(ctx, `SELECT work_id, idem_hash FROM external_work_begin_aliases
+			WHERE user_id = ? AND client = ? AND project_id = ? AND idem_key = ?`,
+			userID, client, projectID, key).Scan(&workID, &hash)
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ExternalWork{}, false, nil
+		}
+		if err != nil {
+			return domain.ExternalWork{}, false, fmt.Errorf("find begin alias: %w", err)
+		}
+		work, err = scanWork(s.db.QueryRowContext(ctx, `SELECT `+workColumns+` FROM external_works
+			WHERE id = ? AND user_id = ? AND client = ? AND project_id = ?`, workID, userID, client, projectID))
+		if err == nil {
+			work.IdemHash = hash
+		}
+		return work, err == nil, err
+	}
+	return work, err == nil, err
+}
+
+// RegisterBeginAlias records the idempotency key of a role-specific begin that
+// reused an existing task. The original key's ownership is never modified.
+func (s *Store) RegisterBeginAlias(ctx context.Context, userID, client, projectID, key, hash, workID string) error {
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO external_work_begin_aliases
+		(user_id, client, project_id, idem_key, idem_hash, work_id)
+		VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+		userID, client, projectID, key, hash, workID); err != nil {
+		return fmt.Errorf("save begin alias: %w", err)
+	}
+	mapped, found, err := s.FindIdempotent(ctx, userID, client, projectID, key)
+	if err != nil {
+		return fmt.Errorf("verify begin alias: %w", err)
+	}
+	if !found || mapped.ID != workID || mapped.IdemHash != hash {
+		return domain.ErrKeyReused
+	}
+	return nil
+}
+
+// LatestActiveWork keeps one in-progress issue per owner, connected app and project
+// unless the caller explicitly starts another issue. Never joins another client.
+func (s *Store) LatestActiveWork(
+	ctx context.Context, userID, client, projectID string,
+) (domain.ExternalWork, bool, error) {
+	work, err := scanWork(s.db.QueryRowContext(ctx, `SELECT `+workColumns+` FROM external_works
+        WHERE user_id = ? AND client = ? AND project_id = ?
+        AND state IN ('open', 'blocked')
+        AND EXISTS (SELECT 1 FROM tasks t WHERE t.id = external_works.task_id AND t.archived_at IS NULL)
+        ORDER BY updated_at DESC, created_at DESC, rowid DESC LIMIT 1`,
+		userID, client, projectID))
+	if errors.Is(err, sql.ErrNoRows) {
 		return domain.ExternalWork{}, false, nil
 	}
 	return work, err == nil, err
