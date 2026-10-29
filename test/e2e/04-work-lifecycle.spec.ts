@@ -193,7 +193,7 @@ check('reported task can be stopped', await page.getByRole('button', { name: 'St
 
 const idle = await task(info.idle);
 await page.goto(info.base + path(info.idle, idle.projectId));
-await page.locator('main header').getByText('No updates for over 30 min', { exact: true }).waitFor({ timeout: 10000 });
+await page.locator('main header').getByText('Inactive — awaiting automatic closure', { exact: true }).waitFor({ timeout: 10000 });
 check('idle task has no working indicator',
   await page.getByRole('log', { name: 'Conversation' }).getByText('Working on it', { exact: true }).count() === 0);
 check('idle task has Mark complete and Stop',
