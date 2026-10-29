@@ -71,7 +71,7 @@ const activityCopy: Partial<Record<WorkPhase, Pick<WorkStatusPresentation, 'icon
   blocked: { iconStatus: 'needs-input', label: 'Needs your attention', hint: 'This work is blocked and needs your attention.' },
   reported: { iconStatus: 'review', label: 'Reported, not confirmed', hint: 'The assistant has given its answer.' },
   idle: {
-    iconStatus: 'needs-input', label: 'No updates for over 30 min',
+    iconStatus: 'needs-input', label: 'Inactive — awaiting automatic closure',
     hint: 'There have been no recent updates. Mark complete only if the work is finished.',
   },
 };

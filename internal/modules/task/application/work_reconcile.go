@@ -24,7 +24,7 @@ func (w *Works) Reconcile(ctx context.Context) error {
 	if w.sweepMode == "off" {
 		return nil
 	}
-	cutoff := w.now().Add(-w.thresholds.AbandonAfter)
+	cutoff := w.now().Add(-w.thresholds.IdleAfter)
 	if w.sweepMode == "on" {
 		if err := w.interruptRunningCalls(ctx, &cutoff); err != nil {
 			return err
@@ -35,7 +35,10 @@ func (w *Works) Reconcile(ctx context.Context) error {
 		return fmt.Errorf("list stale work for reconciliation: %w", err)
 	}
 	for _, work := range works {
-		if waitingOnPerson(work.PlanState) {
+		if waitingOnPerson(work.PlanState) || w.hasRunningCall(ctx, work) {
+			continue
+		}
+		if w.now().Sub(work.UpdatedAt) < w.inactivityTimeout(ctx, work) {
 			continue
 		}
 		if w.sweepMode == "dry-run" {
@@ -106,21 +109,44 @@ func (w *Works) logCapCandidate(work domain.ExternalWork) {
 		work.ID, state, w.thresholds.IdleAfter)
 }
 
+// inactivityTimeout allows longer for sessions that have recorded actual work.
+func (w *Works) inactivityTimeout(ctx context.Context, work domain.ExternalWork) time.Duration {
+	if work.ReportedAt != nil {
+		return w.thresholds.IdleAfter
+	}
+	events, err := w.deps.Events.EventsAfter(ctx, work.TaskID, 0)
+	if err != nil {
+		return w.thresholds.AbandonAfter // Fail conservatively if history is unavailable.
+	}
+	for _, event := range events {
+		if event.Work != nil && event.Work.ID == work.ID &&
+			(event.Kind == domain.EventAction || event.Kind == domain.EventResearch ||
+				event.Kind == domain.EventPlan || event.Kind == domain.EventPRD || event.Kind == domain.EventReceipt) {
+			return w.thresholds.AbandonAfter
+		}
+	}
+	return w.thresholds.IdleAfter
+}
+
 func (w *Works) abandon(ctx context.Context, work domain.ExternalWork) error {
 	now := w.now()
-	state, ended := domain.WorkAbandoned, now
-	status, text, kind := abandonmentResult(work.ReportedAt != nil)
+	state, status := domain.WorkCompleted, domain.StatusDone
+	text := "Auto-completed (inactive); unverified — no final report was received"
+	if work.ReportedAt != nil {
+		text = "Auto-completed after reported result; unverified"
+	}
+	proof := &domain.Proof{Proven: false}
 	_, _, err := w.store.Commit(ctx, WorkChange{
 		WorkID: work.ID, UserID: work.UserID, ExpectRev: work.Rev,
-		Patch:  &WorkPatch{State: &state, EndedAt: &ended},
-		Task:   &TaskPatch{Status: statusPtr(status)},
-		Events: []domain.Event{abandonmentEvent(work.ID, now, text, kind)},
+		Patch:  &WorkPatch{State: &state, EndedAt: &now},
+		Task:   &TaskPatch{Status: &status, Summary: &text, Proof: proof},
+		Events: []domain.Event{workEvent(work, domain.EventReceipt, text, "", now)},
 	})
 	if errors.Is(err, domain.ErrStaleRevision) {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("abandon stale work: %w", err)
+		return fmt.Errorf("auto-complete inactive work: %w", err)
 	}
 	w.notify(ctx, domain.Task{ID: work.TaskID, UserID: work.UserID})
 	return nil
