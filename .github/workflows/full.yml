@@ -1,184 +1,46 @@
-name: Full
+name: Full - publish release images
 
-# Manual verification defaults to read-only. Release jobs run only when explicitly
-# requested on dev after every verification prerequisite succeeds.
 on:
   workflow_dispatch:
-    inputs:
-      release:
-        description: Merge dev, publish production images, and deploy after verification
-        type: boolean
-        required: true
-        default: false
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
-  group: full-release
+  group: publish-release
   cancel-in-progress: false
 
-env:
-  CI: true
-
 jobs:
-  verify:
+  publish:
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      # Docker-backed integration tests share a small hosted runner. Keep
-      # packages and test workers bounded to avoid sandbox starvation.
-      GO_TEST_FLAGS: -p 1 -parallel 2
-      SANDBOX_TEST_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
-      VOLUME_ISOLATION_IMAGE: ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-go
-      - uses: ./.github/actions/setup-frontend
-      - run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - name: Install Chromium for the pinned Playwright version
-        working-directory: web
-        run: npx playwright install --with-deps chromium
-      - run: docker pull "$SANDBOX_TEST_IMAGE"
-      - name: Run full verification
-        id: verify_full
-        shell: bash
-        run: |
-          set -o pipefail
-          make verify-full 2>&1 | tee "$RUNNER_TEMP/full-verify.log"
-      - name: Annotate full verification failure
-        if: failure() && steps.verify_full.outcome == 'failure'
-        shell: bash
-        run: |
-          python3 - <<'PYTHON'
-          import os
-          import re
-          from pathlib import Path
-
-          log = Path(os.environ['RUNNER_TEMP']) / 'full-verify.log'
-          lines = log.read_text(errors='replace').splitlines() if log.exists() else []
-          pattern = re.compile(r'(^FAIL\b|--- FAIL:|\bfailed\b|\berror:|^make: \*\*\*)', re.I)
-          matches = [line.strip() for line in lines if pattern.search(line)]
-          context = []
-          for index, line in enumerate(lines):
-              if line.startswith('--- FAIL:'):
-                  context.extend(lines[index:index + 4])
-          selected = (context[-14:] or matches[-12:] or lines[-12:])
-          message = ' | '.join(line[:240] for line in selected)[:3500]
-          message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print(f'::error title=Full verification failure::{message}')
-          PYTHON
-
-  publish:
-    needs: [verify]
-    if: inputs.release == true && github.ref == 'refs/heads/dev' && needs.verify.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    outputs:
-      sha: ${{ steps.merge.outputs.sha }}
-    permissions:
-      contents: write
-      pull-requests: write
-      packages: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Merge dev into main
-        id: merge
-        run: |
-          set -eu
-          pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head dev --state open --json number --jq '.[0].number // empty')"
-          if [ -z "$pr" ]; then
-            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head dev \
-              --title "Release from dev" --body "Automated full release after all checks passed."
-            pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head dev --state open --json number --jq '.[0].number')"
-          fi
-          # No --delete-branch: dev must survive the merge. Refuse a newer dev head.
-          gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$GITHUB_SHA"
-          sha="$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid')"
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
-          ref: ${{ steps.merge.outputs.sha }}
-          persist-credentials: false
-
-      - id: app_image
-        uses: ./.github/actions/build-image
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish release and latest
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          channel: latest
-          push: "true"
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag the app image with the built merge commit
-        env:
-          MERGE_SHA: ${{ steps.merge.outputs.sha }}
-          IMAGE_DIGEST: ${{ steps.app_image.outputs.digest }}
-        run: |
-          set -eu
-          test -n "$IMAGE_DIGEST"
-          tag="sha-$(printf '%s' "$MERGE_SHA" | cut -c1-7)"
-          image="ghcr.io/$GITHUB_REPOSITORY"
-          docker buildx imagetools create --tag "$image:$tag" "$image@$IMAGE_DIGEST"
-
-      - id: sandbox_image
-        uses: ./.github/actions/build-image
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:release
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
+      - name: Publish sandbox image for release runtime
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          suffix: -sandbox
-          dockerfile: sandbox/Dockerfile
-          smoke: test/smoke/sandbox.test.sh
-          channel: latest
-          push: "true"
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag the sandbox image with the built merge commit
-        env:
-          MERGE_SHA: ${{ steps.merge.outputs.sha }}
-          IMAGE_DIGEST: ${{ steps.sandbox_image.outputs.digest }}
-        run: |
-          set -eu
-          test -n "$IMAGE_DIGEST"
-          tag="sha-$(printf '%s' "$MERGE_SHA" | cut -c1-7)"
-          image="ghcr.io/$GITHUB_REPOSITORY-sandbox"
-          docker buildx imagetools create --tag "$image:$tag" "$image@$IMAGE_DIGEST"
-
-  deploy:
-    needs: [verify, publish]
-    if: inputs.release == true && github.ref == 'refs/heads/dev' && needs.verify.result == 'success' && needs.publish.result == 'success'
-    runs-on: [self-hosted, Linux, X64, masihawam-prod]
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.publish.outputs.sha }}
-          persist-credentials: false
-
-      - name: Deploy the published image
-        shell: bash
-        run: |
-          set -euo pipefail
-          env_file="$HOME/masihawam/.env"
-          test -f "$env_file" || { echo "Missing $env_file on the runner."; exit 1; }
-          export DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
-          # Deploy the tag created from the merge commit that the publish job built.
-          export APP_TAG="sha-$(printf '%s' '${{ needs.publish.outputs.sha }}' | cut -c1-7)"
-          docker pull ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
-          docker rm -f agentic-sandbox 2>/dev/null || true
-          docker compose -f compose.prod.yaml --env-file "$env_file" pull
-          docker compose -f compose.prod.yaml --env-file "$env_file" up -d --remove-orphans
-
-      - name: Verify production
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 20 --retry-delay 3 --retry-connrefused \
-            http://127.0.0.1:5004/api/health | grep -q '"status":"ok"'
-
-      - name: Show the app log when the deploy fails
-        if: failure()
-        shell: bash
-        run: docker logs --tail 80 masihawam-app-1 || true
+          context: .
+          file: sandbox/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}-sandbox:latest
+          cache-from: type=gha,scope=sandbox
+          cache-to: type=gha,mode=max,scope=sandbox

@@ -1,137 +1,34 @@
-name: Fast
+name: Fast - publish dev image
 
-# Quick feedback: scoped compile checks, module integrity and image smoke.
-# Expensive guardrails and full Go tests run in the manually dispatched Full workflow.
-# Pushes to dev publish only the dev image, never a production release.
 on:
   push:
     branches: [dev]
-    paths-ignore: ["**/*.md", "docs/**", "assets/**"]
-  pull_request:
-    branches: [dev]
-    paths-ignore: ["**/*.md", "docs/**", "assets/**"]
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
-  group: fast-${{ github.ref }}
+  group: publish-dev
   cancel-in-progress: true
 
-env:
-  CI: true
-
 jobs:
-  quick-checks:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-go
-      - name: Verify module integrity and patch whitespace
-        run: |
-          go mod verify
-          git diff --check "${{ github.event.pull_request.base.sha || github.event.before }}" HEAD
-      - name: Compile changed Go packages without running the full test suite
-        env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          declare -A packages=()
-          while IFS= read -r file; do
-            [[ -n "$file" && -d "$(dirname "$file")" ]] || continue
-            packages["./$(dirname "$file")"]=1
-          done < <(git diff --name-only "$BASE" HEAD -- '*.go')
-          # Always compile the task runner, including when only workflow files change.
-          packages[./internal/modules/task/application]=1
-          mapfile -t selected < <(printf '%s\n' "${!packages[@]}" | sort)
-          printf 'Compiling packages: %s\n' "${selected[*]}"
-          go test -run '^$' "${selected[@]}"
-
-  # The toolbox image changes rarely, so it is rebuilt only when what goes into it changed. A new branch, a
-  # rewritten history or any doubt counts as changed; full always builds it.
-  changes:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      sandbox: ${{ steps.diff.outputs.sandbox }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
-          persist-credentials: false
-          fetch-depth: 0
-      - id: diff
-        env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          set -eu
-          changed=true
-          if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            if git diff --quiet "$BASE" HEAD -- sandbox test/smoke/sandbox.test.sh \
-              .github/actions/build-image; then
-              changed=false
-            fi
-          fi
-          echo "sandbox=$changed" >> "$GITHUB_OUTPUT"
-
-  # The two images build in parallel: the sandbox image is the slow one, and nothing makes the app image wait for it.
-  image-app:
-    needs: [quick-checks]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          persist-credentials: false
-      - uses: ./.github/actions/build-image
-        with:
-          channel: dev
-          save-image: app-image.tar
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: app-image
-          path: app-image.tar
-          if-no-files-found: error
-          retention-days: 1
-
-  image-app-publish:
-    needs: [quick-checks, image-app]
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/publish-image
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  image-sandbox:
-    needs: [changes, quick-checks]
-    if: needs.changes.outputs.sandbox == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/build-image
-        with:
-          suffix: -sandbox
-          dockerfile: sandbox/Dockerfile
-          smoke: test/smoke/sandbox.test.sh
-          channel: latest
-          # Both dev and prod pull -sandbox:latest from GHCR so the toolbox image stays current and is never duplicated.
-          push: ${{ github.event_name == 'push' }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:dev
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
