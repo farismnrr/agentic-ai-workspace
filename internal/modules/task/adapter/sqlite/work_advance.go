@@ -19,11 +19,11 @@ func advanceWork(ctx context.Context, tx *sql.Tx, change application.WorkChange,
 	result, err := tx.ExecContext(ctx, `UPDATE external_works SET rev = rev + 1, updated_at = ?,
 		state = COALESCE(?, state), role_key = COALESCE(?, role_key), role_name = COALESCE(?, role_name),
 		plan_rev = COALESCE(?, plan_rev), next_step = COALESCE(?, next_step), ended_at = COALESCE(?, ended_at),
-		plan_state = COALESCE(?, plan_state),
+		plan_state = COALESCE(?, plan_state), completion_reason = COALESCE(?, completion_reason),
 		reported_at = CASE WHEN ? THEN NULL ELSE reported_at END
 		WHERE id = ? AND user_id = ? AND rev = ?`, now.Unix(), value(patch.State), value(patch.RoleKey),
 		value(patch.RoleName), value(patch.PlanRev), value(patch.NextStep), nullTime(patch.EndedAt),
-		value(patch.PlanState), patch.ClearReportedAt,
+		value(patch.PlanState), value(patch.CompletionReason), patch.ClearReportedAt,
 		change.WorkID, change.UserID, change.ExpectRev)
 	if err != nil {
 		return 0, fmt.Errorf("advance work revision: %w", err)

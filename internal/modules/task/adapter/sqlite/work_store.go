@@ -12,7 +12,7 @@ import (
 )
 
 const workColumns = `id, task_id, user_id, project_id, client, state, role_key, role_name,
-	rev, plan_rev, next_step, idem_key, idem_hash, created_at, updated_at, ended_at, plan_state, reported_at`
+	rev, plan_rev, next_step, idem_key, idem_hash, created_at, updated_at, ended_at, plan_state, reported_at, completion_reason`
 
 // CreateWork atomically creates the task, work row, and initial request event.
 // A repeated idempotency key returns the existing row without creating a task.
@@ -52,11 +52,11 @@ func (s *Store) CreateWork(ctx context.Context, create application.WorkCreate) (
 
 func insertExternalWork(ctx context.Context, tx *sql.Tx, work domain.ExternalWork) (bool, error) {
 	result, err := tx.ExecContext(ctx, `INSERT INTO external_works (`+workColumns+`) VALUES
-		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(user_id, client, project_id, idem_key) WHERE idem_key <> '' DO NOTHING`,
 		work.ID, work.TaskID, work.UserID, work.ProjectID, work.Client, string(work.State), work.RoleKey, work.RoleName,
 		work.Rev, work.PlanRev, work.NextStep, work.IdemKey, work.IdemHash, work.CreatedAt.Unix(), work.UpdatedAt.Unix(),
-		nullUnix(work.EndedAt), string(work.PlanState), nullTime(work.ReportedAt))
+		nullUnix(work.EndedAt), string(work.PlanState), nullTime(work.ReportedAt), work.CompletionReason)
 	if err != nil {
 		return false, fmt.Errorf("insert work: %w", err)
 	}

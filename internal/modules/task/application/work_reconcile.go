@@ -141,9 +141,10 @@ func (w *Works) autoCompleteInactive(ctx context.Context, work domain.ExternalWo
 		text = "Auto-completed after reported result; unverified"
 	}
 	proof := &domain.Proof{Proven: false}
+	reason := "auto_completed_unverified"
 	_, _, err := w.store.Commit(ctx, WorkChange{
 		WorkID: work.ID, UserID: work.UserID, ExpectRev: work.Rev,
-		Patch:  &WorkPatch{State: &state, EndedAt: &now},
+		Patch:  &WorkPatch{State: &state, EndedAt: &now, CompletionReason: &reason},
 		Task:   &TaskPatch{Status: &status, Summary: &text, Proof: proof},
 		Events: []domain.Event{autoCompletionEvent(work, text, now)},
 	})
