@@ -21,3 +21,32 @@ func TestBoundedSummaryInputInitialFull(t *testing.T) {
 		t.Fatal("lost user instructions")
 	}
 }
+
+func TestBoundedSummaryNeverReplaysOrphanToolCalls(t *testing.T) {
+	messages := []domain.Message{
+		{Role: domain.RoleUser, Blocks: []domain.Block{{Kind: domain.BlockText, Text: "Original request: no deletes"}}},
+		{Role: domain.RoleAssistant, Blocks: []domain.Block{{Kind: domain.BlockToolUse, ID: "u1", Name: "run_command", Input: []byte(`{"command":"echo safe"}`)}}},
+		{Role: domain.RoleUser, Blocks: []domain.Block{{Kind: domain.BlockToolResult, ID: "r1", Text: strings.Repeat("tool output ", 150000)}}},
+		{Role: domain.RoleUser, Blocks: []domain.Block{{Kind: domain.BlockText, Text: "Latest instruction: continue safely " + strings.Repeat("猫🙂", 70000)}}},
+	}
+	input := boundedSummaryInput("system", nil, messages, 16000)
+	if got := estimateTokens("system", nil, withAsk(input)); got >= 8000 {
+		t.Fatalf("summary exceeded half-window: %d", got)
+	}
+	for _, message := range input {
+		for _, block := range message.Blocks {
+			if block.Kind != domain.BlockText || block.ID != "" {
+				t.Fatalf("raw executable tool block leaked: %+v", block)
+			}
+		}
+	}
+	var text string
+	for _, message := range input {
+		for _, block := range message.Blocks {
+			text += block.Text
+		}
+	}
+	if !strings.Contains(text, "Original request") || !strings.Contains(text, "Latest instruction") {
+		t.Fatal("original or latest instructions lost")
+	}
+}

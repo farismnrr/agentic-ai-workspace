@@ -14,9 +14,8 @@ func (r *Runner) saveMeter(ctx context.Context, task domain.Task, result CLIResu
 	}
 
 	window := result.Window
-	if window <= 0 && r.deps.Windows != nil {
-		window = r.deps.Windows.ContextWindow(ctx, task.UserID, task.ProviderID, task.Model)
+	if window <= 0 {
+		return // vendor did not report a window: don't manufacture a percentage
 	}
-
 	_ = r.deps.Tasks.SetContext(ctx, task.ID, min(result.Used, window), window)
 }

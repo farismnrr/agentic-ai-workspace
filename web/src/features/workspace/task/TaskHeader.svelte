@@ -37,7 +37,7 @@
       {#if workStatus.hint !== ''} · {workStatus.hint}{/if}
     </p>
     <span class="flex-1 md:hidden"></span>
-    <ContextMeter used={task.contextUsed} window={task.contextWindow} />
+    <ContextMeter used={task.contextUsed} window={task.contextWindow} state={task.contextState} />
     {#if !archived && workStatus.canStop}<button class="btn btn-outline btn-sm" type="button" aria-label="Stop work" onclick={onstop}>Stop</button>{/if}
     {#if !archived && workStatus.canConfirm}<button class="btn btn-primary btn-sm" type="button" onclick={onconfirm}>Mark complete</button>{/if}
     {#if !archived && !external && task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
@@ -48,5 +48,5 @@
       {#if workStatus.hint !== ''} · {workStatus.hint}{/if}
     </p>
   {/if}
-  <div class="flex pb-2 sm:hidden"><ContextMeter used={task.contextUsed} window={task.contextWindow} phone /></div>
+  <div class="flex pb-2 sm:hidden"><ContextMeter used={task.contextUsed} window={task.contextWindow} state={task.contextState} phone /></div>
 </header>

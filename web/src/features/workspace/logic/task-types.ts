@@ -159,6 +159,7 @@ export interface Task {
   /** Tokens the last model call carried and the model's window; both 0 before the first call. */
   contextUsed: number;
   contextWindow: number;
+  contextState: 'unknown' | 'measured' | 'compacting' | 'failed';
   createdAt: string;
   updatedAt: string;
   /** ISO timestamp when this task was pinned; null when it is not pinned. */

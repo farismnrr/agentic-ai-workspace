@@ -57,27 +57,24 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 		req.Prompt = reviewModePrompt(task.ReviewMode) + r.notesPrompt() + req.Prompt
 	}
 
-	// A resumed CLI session can have stale occupancy from its previous turn.
-	// Until the vendor reports current usage, do not present the old value as live.
-	if runner.role == nil {
-		_ = runner.deps.Tasks.SetContext(ctx, task.ID, 0, 0)
-	}
 	sink := &planSink{runner: runner, task: task}
-
-	result, err := r.deps.CLI.Run(ctx, req, func(event CLIEvent) { sink.emit(ctx, event) })
-
+	result, sink, fresh, err := r.runCLIWithRecovery(ctx, task, req, sink)
 	if stopped, over := r.limitReached(ctx); over {
 		return stopped
 	}
-
 	if err != nil {
 		return failed("I could not run "+programNames[program]+" for this task.", "Press Continue to try again.")
 	}
-
-	if result.Session != "" {
-		_ = r.deps.Sessions.SaveSession(ctx, task.ID, result.Session)
+	if result.Reason == "" {
+		if result.Session != "" {
+			_ = r.deps.Sessions.SaveSession(ctx, task.ID, result.Session)
+		} else if fresh {
+			_ = r.deps.Sessions.SaveSession(ctx, task.ID, "")
+		}
 	}
-	runner.saveMeter(ctx, task, result)
+	if result.Reason == "" {
+		runner.saveMeter(ctx, task, result)
+	}
 
 	if lead != nil && lead.stopped != nil {
 		sink.flush(ctx)
@@ -90,6 +87,7 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 
 // planSink turns what the program reports into the task's thread.
 type planSink struct {
+	didStep bool
 	runner  *Runner
 	pending string
 	last    string
@@ -100,6 +98,8 @@ type planSink struct {
 
 func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 	switch event.Kind {
+	case CLIActivity:
+		p.didStep = true
 	case CLIUsage:
 		p.runner.saveMeter(ctx, p.task, CLIResult{Used: event.Used, Window: event.Window})
 	case CLIDelta:
@@ -136,6 +136,7 @@ func (p *planSink) flush(ctx context.Context) {
 }
 
 func (p *planSink) step(ctx context.Context, event domain.Event) {
+	p.didStep = true
 	event.Kind, event.Time = domain.EventAction, p.runner.deps.Now()
 	_, _ = p.runner.deps.Events.AppendEvent(ctx, p.task.ID, event)
 }
@@ -144,7 +145,9 @@ func (p *planSink) step(ctx context.Context, event domain.Event) {
 func (p *planSink) finish(ctx context.Context, result CLIResult) outcome {
 	if result.Reason != "" {
 		p.flush(ctx)
-
+		if isCLIContextOverflow(result.Reason) {
+			return failed("AI context is full and automatic session recovery did not succeed.", "Press Continue to retry or shorten the input.")
+		}
 		return failed(result.Reason, "Press Continue to try again.")
 	}
 

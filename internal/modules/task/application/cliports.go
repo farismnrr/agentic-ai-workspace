@@ -20,6 +20,9 @@ const (
 	CLICommand
 	// CLIUsage is trustworthy last-model-call context occupancy, not cumulative token usage.
 	CLIUsage
+	// CLIActivity flags a started vendor tool operation. It is not a completed
+	// step, but a failed run must not blindly replay it in a fresh session.
+	CLIActivity
 )
 
 // CLIEvent is one thing the program reported, already in plain words.
