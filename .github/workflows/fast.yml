@@ -32,3 +32,12 @@ jobs:
           tags: ghcr.io/${{ github.repository }}:dev
           cache-from: type=gha,scope=app
           cache-to: type=gha,mode=max,scope=app
+      - name: Publish sandbox image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: sandbox/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}-sandbox:latest
+          cache-from: type=gha,scope=sandbox
+          cache-to: type=gha,mode=max,scope=sandbox
