@@ -94,6 +94,12 @@ CREATE UNIQUE INDEX external_plan_handoff_task_idx ON external_plan_handoffs(int
 CREATE INDEX external_plan_handoff_due_idx ON external_plan_handoffs(state,next_attempt_at);
 CREATE UNIQUE INDEX external_works_idempotency_idx
  ON external_works(user_id,client,project_id,idem_key) WHERE idem_key <> '';
+CREATE TABLE external_work_begin_aliases (
+    user_id TEXT NOT NULL, client TEXT NOT NULL, project_id TEXT NOT NULL,
+    idem_key TEXT NOT NULL, idem_hash TEXT NOT NULL,
+    work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE,
+    PRIMARY KEY(user_id, client, project_id, idem_key)
+);
 CREATE TABLE external_work_ops (
  work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE, op_key TEXT NOT NULL,
  tool TEXT NOT NULL, req_hash TEXT NOT NULL, response BLOB NOT NULL, at INTEGER NOT NULL,

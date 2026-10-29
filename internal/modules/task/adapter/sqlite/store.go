@@ -105,7 +105,9 @@ func reviewMode(mode domain.ReviewMode) string {
 
 // List returns a person's tasks, newest activity first.
 func (s *Store) List(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error) {
-	return s.list(ctx, userID, projectID, limit, `archived_at IS NULL`)
+	// Internal chat and approved handoff tasks remain addressable by ID but do
+	// not appear as separate top-level issues beside their external parent.
+	return s.list(ctx, userID, projectID, limit, `archived_at IS NULL AND origin_task_id IS NULL`)
 }
 
 // All returns active and archived tasks for server maintenance and document exports.

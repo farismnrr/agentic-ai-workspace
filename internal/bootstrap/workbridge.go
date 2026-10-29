@@ -36,7 +36,8 @@ func (a appWorks) Begin(ctx context.Context, user, client, project string,
 ) (codingmcp.BeginWorkResult, error) {
 	result, err := a.works.Begin(ctx, taskapp.BeginInput{
 		UserID: user, Client: client, ProjectID: project,
-		Summary: in.Summary, Role: in.Role, IdempotencyKey: in.IdempotencyKey, PlannedRoles: in.PlannedRoles,
+		Summary: in.Summary, Role: in.Role, IdempotencyKey: in.IdempotencyKey,
+		NewTask: in.NewTask, PlannedRoles: in.PlannedRoles,
 	})
 	if err != nil {
 		return codingmcp.BeginWorkResult{}, workBridgeError("begin work", err)

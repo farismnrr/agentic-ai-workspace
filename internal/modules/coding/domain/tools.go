@@ -67,7 +67,10 @@ var (
 	}
 	// External work lifecycle tools share log_message's existing read switch.
 	ToolBeginWork = workTool("begin_work", "Begin work",
-		"Start a separate tracked work session. Supply role as an enabled non-lead role key; it is required.")
+		"Start or resume ONE tracked work session for the current user issue. Reuse its work_id "+
+			"through all roles; use set_role to change roles. A second begin_work automatically resumes the "+
+			"open issue in the same app/project. Use new_task=true ONLY when the user explicitly starts "+
+			"an independent issue. Supply an enabled non-lead role key.")
 	ToolSetRole = workTool("set_role", "Set work role",
 		"Label the role used for this work; this does not change permissions.")
 	ToolUpdatePlan       = workTool("update_plan", "Update work plan", "Save the steps for this work session.")
