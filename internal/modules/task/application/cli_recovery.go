@@ -78,8 +78,15 @@ func (r *Runner) runCLIWithRecovery(ctx context.Context, task domain.Task, req C
 	}
 	if (fresh && finalFailure != "") || isCLIContextOverflow(finalFailure) {
 		sink.runner.setCompactionState(ctx, task, "failed")
-	} else if fresh && (result.Used <= 0 || result.Window <= 0) {
-		sink.runner.setCompactionState(ctx, task, "unknown")
+	} else if finalFailure == "" {
+		// A successful rollover must leave the transient "compacting" state.
+		// Prefer the last-call meter; if unavailable, retain a valid streamed
+		// measurement, otherwise clear the stale pre-compaction usage.
+		if result.Used > 0 && result.Window > 0 {
+			sink.runner.saveMeter(ctx, task, result)
+		} else if fresh && !sink.meterKnown && sink.runner.role == nil {
+			_ = sink.runner.deps.Tasks.SetContext(ctx, task.ID, 0, 0)
+		}
 	}
 	return result, sink, fresh, err
 }

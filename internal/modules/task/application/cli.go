@@ -72,10 +72,7 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 			_ = r.deps.Sessions.SaveSession(ctx, task.ID, "")
 		}
 	}
-	if result.Reason == "" {
-		runner.saveMeter(ctx, task, result)
-	}
-
+	// Context metering and rollover state are settled by runCLIWithRecovery.
 	if lead != nil && lead.stopped != nil {
 		sink.flush(ctx)
 
@@ -87,11 +84,12 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 
 // planSink turns what the program reports into the task's thread.
 type planSink struct {
-	didStep bool
-	runner  *Runner
-	pending string
-	last    string
-	task    domain.Task
+	didStep    bool
+	meterKnown bool
+	runner     *Runner
+	pending    string
+	last       string
+	task       domain.Task
 	// quiet keeps the program's typing out of the task's own reply: a teammate's words are shown as steps.
 	quiet bool
 }
@@ -101,7 +99,10 @@ func (p *planSink) emit(ctx context.Context, event CLIEvent) {
 	case CLIActivity:
 		p.didStep = true
 	case CLIUsage:
-		p.runner.saveMeter(ctx, p.task, CLIResult{Used: event.Used, Window: event.Window})
+		if p.runner.role == nil && event.Used > 0 && event.Window > 0 {
+			p.runner.saveMeter(ctx, p.task, CLIResult{Used: event.Used, Window: event.Window})
+			p.meterKnown = true
+		}
 	case CLIDelta:
 		if !p.quiet {
 			p.runner.deps.Notify.Delta(p.task.ID, event.Text)
