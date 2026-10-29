@@ -10,7 +10,7 @@ CREATE TABLE tasks (
  review_mode TEXT NOT NULL DEFAULT 'swift' CHECK (review_mode IN ('swift', 'deep-review')),
  provider_id TEXT NOT NULL, model TEXT NOT NULL, plan TEXT NOT NULL DEFAULT '[]', proof TEXT,
  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, source TEXT NOT NULL DEFAULT '',
- context_used INTEGER NOT NULL DEFAULT 0, context_window INTEGER NOT NULL DEFAULT 0,
+ context_used INTEGER NOT NULL DEFAULT 0, context_window INTEGER NOT NULL DEFAULT 0, context_state TEXT NOT NULL DEFAULT 'unknown',
  effort TEXT NOT NULL DEFAULT '', team INTEGER NOT NULL DEFAULT 0, prd TEXT NOT NULL DEFAULT '',
  research TEXT NOT NULL DEFAULT '', plan_first INTEGER NOT NULL DEFAULT 0,
  follow_settings INTEGER NOT NULL DEFAULT 0, pinned_at INTEGER, archived_at INTEGER,

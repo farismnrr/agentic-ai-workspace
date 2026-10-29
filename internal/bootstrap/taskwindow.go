@@ -26,8 +26,21 @@ func (p *plans) chosenWindow(ctx context.Context, req taskapp.CLIRequest) int64 
 	return sizes[model]
 }
 
-// shownWindow is the window the meter counts against: the size the person chose, held to what the program says
-// the model can really take.
+// catalogWindow is a real model-reported size for the selected vendor model;
+// unknown/default aliases are left unknown rather than inventing 200K.
+func catalogWindow(models []cliagentdomain.Model, selected string) int64 {
+	if selected == "" || selected == cliagentdomain.DefaultModel {
+		return 0
+	}
+	for _, model := range models {
+		if model.ID == selected {
+			return model.ContextWindow
+		}
+	}
+	return 0
+}
+
+// shownWindow uses the selected limit, capped to a reported model limit when available.
 func shownWindow(chosen, reported int64) int64 {
 	if chosen <= 0 {
 		return reported

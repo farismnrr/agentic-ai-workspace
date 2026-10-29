@@ -59,3 +59,62 @@ func TestClaudeEmitsLiveContextFromAssistantUsage(t *testing.T) {
 		t.Fatalf("live context usage %d, want 2800", got.Used)
 	}
 }
+
+func TestCodexStartedToolPreventsUnsafeAutomaticReplay(t *testing.T) {
+	var started int
+	stream := clistream.New("chatgpt", func(event application.CLIEvent) {
+		if event.Kind == application.CLIActivity {
+			started++
+		}
+	})
+	_, err := io.WriteString(stream, "{\"type\":\"item.started\",\"item\":{\"type\":\"command_execution\",\"command\":\"touch file\"}}\n")
+	if err != nil || started != 1 {
+		t.Fatalf("command start not recorded: %d %v", started, err)
+	}
+}
+func TestClaudeToolUsePreventsUnsafeAutomaticReplay(t *testing.T) {
+	var started int
+	stream := clistream.New("claude", func(event application.CLIEvent) {
+		if event.Kind == application.CLIActivity {
+			started++
+		}
+	})
+	_, err := io.WriteString(stream, "{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"id\":\"u1\",\"name\":\"Bash\",\"input\":{\"command\":\"touch file\"}}]}}\n")
+	if err != nil || started != 1 {
+		t.Fatalf("tool use start not recorded: %d %v", started, err)
+	}
+}
+func TestClaudeUsesLastModelsWindowInsteadOfLargestModel(t *testing.T) {
+	stream := clistream.New("claude", func(application.CLIEvent) {})
+	_, err := io.WriteString(stream, "{\"type\":\"assistant\",\"message\":{\"model\":\"small\",\"usage\":{\"input_tokens\":24000},\"content\":[]}}\n{\"type\":\"result\",\"modelUsage\":{\"small\":{\"contextWindow\":32000},\"large\":{\"contextWindow\":200000}},\"result\":\"done\"}\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := stream.Result()
+	if got.Window != 32000 || got.Used != 24000 {
+		t.Fatalf("wrong model window: %+v", got)
+	}
+}
+func TestClaudeMultipleUnknownWindowsRemainUnknown(t *testing.T) {
+	stream := clistream.New("claude", func(application.CLIEvent) {})
+	_, err := io.WriteString(stream, "{\"type\":\"result\",\"modelUsage\":{\"a\":{\"contextWindow\":32000},\"b\":{\"contextWindow\":200000}},\"result\":\"done\"}\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stream.Result().Window != 0 {
+		t.Fatal("guessed window of an unidentified model")
+	}
+}
+
+func TestClaudeStartedToolStreamingPreventsReplay(t *testing.T) {
+	var starts int
+	stream := clistream.New("claude", func(event application.CLIEvent) {
+		if event.Kind == application.CLIActivity {
+			starts++
+		}
+	})
+	_, err := io.WriteString(stream, `{"type":"stream_event","event":{"type":"content_block_start","content_block":{"type":"tool_use","id":"toolu-1","name":"Bash"}}}`+"\n")
+	if err != nil || starts != 1 {
+		t.Fatalf("streaming tool start not tracked: %d, %v", starts, err)
+	}
+}

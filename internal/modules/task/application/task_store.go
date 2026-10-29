@@ -30,6 +30,7 @@ type TaskStore interface {
 	SaveResearch(ctx context.Context, id, research string, at time.Time) error
 	Finish(ctx context.Context, id, summary string, proof *domain.Proof, at time.Time) error
 	SetContext(ctx context.Context, id string, used, window int64) error
+	SetContextState(ctx context.Context, id, state string) error
 	Running(ctx context.Context) ([]domain.Task, error)
 	DeleteProject(ctx context.Context, userID, projectID string) error
 	DeleteAll(ctx context.Context, userID string) error

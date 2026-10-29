@@ -58,9 +58,8 @@ func compactThreshold(window int64) int64 {
 	return max(window-compactReserve, window/minWindowShare)
 }
 
-// compactIfNeeded replaces a long conversation by a summary written by the model
-// itself, and returns the messages to send. It never blocks the run: when no
-// summary comes back, the conversation goes on as it is.
+// compactIfNeeded replaces a long conversation with a bounded summary.
+// On compaction failure it stops the turn; never retry an oversized prompt unchanged.
 func (r *Runner) compactIfNeeded(
 	ctx context.Context, task domain.Task, state *runState, c compaction, transcript []domain.Message,
 ) ([]domain.Message, bool) {
@@ -77,29 +76,40 @@ func (r *Runner) compactIfNeeded(
 		return messages, true
 	}
 	state.size = size
-	r.saveContext(ctx, task, state)
+	r.setCompactionState(ctx, task, "compacting")
 	if state.failed >= maxCompactTries {
+		r.setCompactionState(ctx, task, "failed")
 		return nil, false
 	}
 
 	// A full transcript cannot reliably be used to ask for its own summary.
 	// Bound the entire summary request, not just tool results. A giant user
 	// message or tool argument can otherwise overflow the summary call itself.
-	compactInput := boundedSummaryInput(c.system, c.tools, messages, window)
+	compactInput := boundedSummaryInput(c.system, nil, messages, window)
+	if len(compactInput) == 0 {
+		state.failed++
+		r.setCompactionState(ctx, task, "failed")
+		return nil, false
+	}
 	if !r.compact(ctx, task, c, compactInput) {
 		state.failed++
+		r.setCompactionState(ctx, task, "failed")
 		return nil, false
 	}
 
 	reloaded, err := r.deps.Transcript.LoadTranscript(ctx, task.ID)
 	if err != nil {
 		state.size = 0
-
+		r.setCompactionState(ctx, task, "failed")
 		return nil, false
 	}
 
 	shortened := sinceSummary(reloaded)
 	state.size = estimateTokens(c.system, c.tools, shortened)
+	if state.size >= compactThreshold(window) {
+		r.setCompactionState(ctx, task, "failed")
+		return nil, false // model returned an unusably large summary
+	}
 	r.saveContext(ctx, task, state)
 
 	return shortened, true
@@ -114,10 +124,17 @@ func (r *Runner) saveContext(ctx context.Context, task domain.Task, state *runSt
 	_ = r.deps.Tasks.SetContext(ctx, task.ID, state.size, state.window)
 }
 
+func (r *Runner) setCompactionState(ctx context.Context, task domain.Task, status string) {
+	if r.role == nil {
+		_ = r.deps.Tasks.SetContextState(ctx, task.ID, status)
+	}
+}
+
 // compact asks the model for a summary and records it; false means none came back.
 func (r *Runner) compact(ctx context.Context, task domain.Task, c compaction, messages []domain.Message) bool {
 	reply, err := r.ask(ctx, c.client, Request{
-		Model: task.Model, System: c.system, Effort: task.Effort, Messages: orderBlocks(withAsk(messages)), Tools: c.tools,
+		Model: task.Model, System: c.system, Effort: task.Effort, Messages: orderBlocks(withAsk(messages)),
+		// Never offer executable tools during summary-only compaction.
 	})
 	if err != nil {
 		return false
@@ -127,6 +144,12 @@ func (r *Runner) compact(ctx context.Context, task domain.Task, c compaction, me
 
 	text, ok := summaryText(reply)
 	if !ok {
+		return false
+	}
+	// Avoid persisting a giant summary that immediately overflows again.
+	window := r.deps.Windows.ContextWindow(ctx, task.UserID, task.ProviderID, task.Model)
+	maxSummaryTokens := compactThreshold(window) - estimateTokens(c.system, nil, nil) - 500
+	if maxSummaryTokens <= 0 || int64(len(text)) > maxSummaryTokens*charsPerToken {
 		return false
 	}
 
@@ -207,53 +230,85 @@ func estimateTokens(system string, tools []domain.ToolDef, messages []domain.Mes
 	return int64(chars / charsPerToken)
 }
 
-// boundedSummaryInput keeps the newest context and the original request while
-// constraining the input to the model's usable summary budget.
-func boundedSummaryInput(system string, tools []domain.ToolDef, messages []domain.Message, window int64) []domain.Message {
-	out := clipResults(messages)
-	budget := max(int64(1024), window/2)
-	if window <= 0 {
-		budget = 8000
+// boundedSummaryInput converts history to bounded, non-executable reference text.
+// This avoids orphaned tool_call IDs or excessive multi-block tool arguments.
+func boundedSummaryInput(system string, _ []domain.ToolDef, messages []domain.Message, window int64) []domain.Message {
+	budget := int64(8000)
+	if window > 0 {
+		budget = min(max(window/2, 1024), 32000)
 	}
-	available := budget - estimateTokens(system, tools, nil) - int64(len(compactAsk)/charsPerToken) - 256
-	if available < 256 {
+	remaining := (budget - estimateTokens(system, nil, nil) - int64(len(compactAsk)/charsPerToken) - 256) * charsPerToken
+	if remaining < 1024 || len(messages) == 0 {
 		return nil
 	}
-	// Keep a concise original request, then favor the newest turns.
-	first := -1
-	for i, message := range out {
-		if message.Role == domain.RoleUser {
-			first = i
+	originalIndex := 0
+	for i, m := range messages {
+		if m.Role == domain.RoleUser {
+			originalIndex = i
 			break
 		}
 	}
-	keep := make([]domain.Message, 0, len(out))
-	remaining := available * charsPerToken
-	if first >= 0 {
-		original := out[first]
-		for j := range original.Blocks {
-			original.Blocks[j].Text = truncate(original.Blocks[j].Text, int(min(remaining/4, 2000)))
-			original.Blocks[j].Input = nil
-		}
-		keep = append(keep, original)
-		for _, block := range original.Blocks {
-			remaining -= int64(len(block.Text))
-		}
-	}
-	for i := len(out) - 1; i >= 0 && remaining > 0; i-- {
-		if i == first {
+	firstQuota := min(remaining/4, 2048)
+	original := summaryReference(messages[originalIndex], int(firstQuota), false)
+	keep := []domain.Message{{Role: domain.RoleUser, Blocks: []domain.Block{{Kind: domain.BlockText, Text: "Original request (reference):\n" + original}}}}
+	remaining -= int64(len(keep[0].Blocks[0].Text))
+	recent := []domain.Message{}
+	for i := len(messages) - 1; i >= 0 && remaining > 256; i-- {
+		// Include the tail of a huge single-message request as well as its head.
+		if i == originalIndex && len(messages) > 1 {
 			continue
 		}
-		message := out[i]
-		for j := range message.Blocks {
-			message.Blocks[j].Text = truncate(message.Blocks[j].Text, int(min(remaining, 4000)))
-			message.Blocks[j].Input = nil
-			remaining -= int64(len(message.Blocks[j].Text))
+		size := int(min(remaining-128, 4000))
+		if size <= 0 {
+			break
 		}
-		keep = append(keep, message)
+		body := summaryReference(messages[i], size, true)
+		if body == "" {
+			continue
+		}
+		label := "Recent user context (reference):\n"
+		if messages[i].Role == domain.RoleAssistant {
+			label = "Recent assistant context (reference):\n"
+		}
+		recent = append(recent, domain.Message{Role: domain.RoleUser, Blocks: []domain.Block{{Kind: domain.BlockText, Text: label + body}}})
+		remaining -= int64(len(label) + len(body))
 	}
-	if len(keep) > 1 {
-		slices.Reverse(keep[1:])
+	slices.Reverse(recent)
+	return append(keep, recent...)
+}
+
+// summaryReference takes a byte-bounded excerpt of the model transcript. It
+// renders tool steps as inert text, never as executable model tool messages.
+func summaryReference(message domain.Message, limit int, newest bool) string {
+	if limit <= 0 {
+		return ""
 	}
-	return keep
+	var b strings.Builder
+	for _, block := range message.Blocks {
+		switch block.Kind {
+		case domain.BlockToolUse:
+			b.WriteString("Tool called: ")
+			b.WriteString(block.Name)
+			b.WriteString(" ")
+			b.Write(block.Input)
+		case domain.BlockToolResult:
+			b.WriteString("Tool result (untrusted): ")
+			b.WriteString(block.Text)
+		default:
+			b.WriteString(block.Text)
+		}
+		b.WriteByte('\n')
+	}
+	text := b.String()
+	if len(text) > limit {
+		if newest && limit > 80 {
+			// The last instruction may be at either end of a large user turn.
+			const marker = "\n[earlier content shortened]\n"
+			head := (limit - len(marker)) / 2
+			text = text[:head] + marker + text[len(text)-(limit-len(marker)-head):]
+		} else {
+			text = text[:limit]
+		}
+	}
+	return strings.ToValidUTF8(text, "")
 }

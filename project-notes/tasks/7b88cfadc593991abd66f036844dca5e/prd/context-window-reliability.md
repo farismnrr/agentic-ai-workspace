@@ -24,3 +24,30 @@ Context meter may show a full window indefinitely, especially on resumed Codex/C
 ## Traceability
 - PRD -> research -> plan -> implementation -> black-box evidence -> review -> commit.
 - Previous partial fix: 9ec545f. New implementation must explicitly report any remaining unverified vendor behavior.
+
+## Implementation and verification — 2026-10-29
+
+Implemented on `dev`:
+
+- API model: preflight at resume when transcript is already full; bounded, non-executable summary input retains original and latest instructions; summary failure is fail-closed and records `failed`, never replays a huge prompt.
+- Overflow recovery: one bounded summary and one reduced retry, explicit failure if model refuses again.
+- CLI sessions: measured-full and failed resume safely fork to a new vendor session without deleting old session; a context-limit failure retries at most once and only if no tool/command/file effect started. Task history carries forward. A fresh session can be saved only after success.
+- Context meter: schema migration `064_task_context_state.sql` adds `unknown | measured | compacting | failed`; API and SSE expose states; UI displays each truthfully. Unknown vendor context does not masquerade as 0% or 100%.
+- Usage: Claude last assistant model selection and per-call tokens; Codex last-call token event (not cumulative); updates during streaming when vendor data includes a trustworthy model window.
+
+### Evidence / traceability
+
+| AC | Test / fixture | Status |
+| --- | --- | --- |
+| Initially-full resume preflight | `go test ./test/go/app/tasks/execution -run TestInitiallyFull -count=1` (app API + scripted local model server + database) | PASS |
+| Compaction input bounded and not executable | `go test ./internal/modules/task/application -run TestBoundedSummary -count=1` | PASS |
+| CLI native error recovery safety / bounded retries | `go test ./internal/modules/task/application -run TestCLI -count=1` (scripted vendor-runner boundary) | PASS |
+| Codex / Claude streaming usage and effects | `go test ./test/go/modules/clistream -count=1` (vendor output fixtures) | PASS |
+| UI measured, compacting, failed and unknown | `bash test/e2e/run.sh context` (real app + Chromium) | PASS |
+| Prior user-task lifecycle preserved | `bash test/e2e/run.sh lifecycle` | PASS |
+| Relevant modules and API | `go test ./... -count=1 -timeout 120s` | PASS |
+| Frontend diagnostics | `cd web && npm run check` | PASS |
+
+**Environment boundary:** The runtime here does not have a Docker daemon or authenticated vendor CLI sessions. Actual live Claude Code/Codex service behavior cannot be attested from this environment; the parser, runner, and browser contracts are verified with repeatable boundary fixtures. A Docker-enabled host should run an additional real-vendor smoke test before labeling vendor service integration externally certified.
+
+The critical task-spam regression is tracked separately in `project-notes/backlog/orchestrator-delegation-task-spam.md`; it is intentionally not part of this fix.

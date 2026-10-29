@@ -56,6 +56,10 @@ func (c *codex) line(raw []byte) {
 	switch line.Type {
 	case "thread.started":
 		c.out.session = line.ThreadID
+	case "item.started":
+		if line.Item.Type == "command_execution" || line.Item.Type == "file_change" {
+			c.out.emit(application.CLIEvent{Kind: application.CLIActivity})
+		}
 	case "item.completed":
 		c.item(line)
 	case "thread.token_count":

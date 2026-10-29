@@ -35,18 +35,29 @@ func isOverflow(err error) bool {
 func (r *Runner) askShorter(
 	ctx context.Context, task domain.Task, state *runState, c compaction, client Model, request Request,
 ) (Reply, error) {
+	r.setCompactionState(ctx, task, "compacting")
 	transcript, err := r.deps.Transcript.LoadTranscript(ctx, task.ID)
-	if err != nil || !r.compact(ctx, task, c, clipResults(sinceSummary(transcript))) {
+	var compactInput []domain.Message
+	if err == nil {
+		compactInput = boundedSummaryInput(c.system, nil, sinceSummary(transcript), state.window)
+	}
+	if err != nil || len(compactInput) == 0 || !r.compact(ctx, task, c, compactInput) {
+		r.setCompactionState(ctx, task, "failed")
 		return Reply{}, &domain.ModelError{Message: "Context is full and automatic compaction failed. Retry after reducing the conversation or switching to a larger context window."}
 	}
 
 	reloaded, err := r.deps.Transcript.LoadTranscript(ctx, task.ID)
 	if err != nil {
+		r.setCompactionState(ctx, task, "failed")
 		return Reply{}, &domain.ModelError{Message: "Context was compacted but could not reload the summary."}
 	}
 
 	shortened := sinceSummary(reloaded)
 	state.size = estimateTokens(c.system, c.tools, shortened)
+	if state.size >= compactThreshold(state.window) {
+		r.setCompactionState(ctx, task, "failed")
+		return Reply{}, &domain.ModelError{Message: "The compacted context is still too large for the selected model."}
+	}
 	r.saveContext(ctx, task, state)
 
 	if !state.noImages {
@@ -55,7 +66,11 @@ func (r *Runner) askShorter(
 
 	request.Messages = orderBlocks(shortened)
 
-	return r.askSeeing(ctx, client, request, state)
+	reply, askErr := r.askSeeing(ctx, client, request, state)
+	if isOverflow(askErr) {
+		r.setCompactionState(ctx, task, "failed")
+	}
+	return reply, askErr
 }
 
 // clipResults is a copy of the conversation whose tool results are cut short.

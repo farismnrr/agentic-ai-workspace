@@ -18,7 +18,7 @@ const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
 	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, ` +
-	`plan_first, follow_settings, pinned_at, archived_at, work_id, linked_task_id, origin_task_id, review_mode`
+	`plan_first, follow_settings, pinned_at, archived_at, work_id, linked_task_id, origin_task_id, review_mode, context_state`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
