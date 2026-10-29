@@ -37,12 +37,12 @@ func (r *Runner) askShorter(
 ) (Reply, error) {
 	transcript, err := r.deps.Transcript.LoadTranscript(ctx, task.ID)
 	if err != nil || !r.compact(ctx, task, c, clipResults(sinceSummary(transcript))) {
-		return r.ask(ctx, client, request) // nothing shorter to send: let the model's own words be the error
+		return Reply{}, &domain.ModelError{Message: "Context is full and automatic compaction failed. Retry after reducing the conversation or switching to a larger context window."}
 	}
 
 	reloaded, err := r.deps.Transcript.LoadTranscript(ctx, task.ID)
 	if err != nil {
-		return r.ask(ctx, client, request)
+		return Reply{}, &domain.ModelError{Message: "Context was compacted but could not reload the summary."}
 	}
 
 	shortened := sinceSummary(reloaded)
