@@ -19,6 +19,11 @@ func (s *Store) UpdateWorkCall(
 		return domain.Event{}, fmt.Errorf("begin work call update: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	// A late tool response must not mutate a session already auto-completed.
+	var state string
+	if err := tx.QueryRowContext(ctx, `SELECT state FROM external_works WHERE id = ? AND task_id = ?`, workID, taskID).Scan(&state); err != nil || state != string(domain.WorkOpen) && state != string(domain.WorkBlocked) {
+		return domain.Event{}, domain.ErrWorkClosed
+	}
 	prior, err := scanEvent(tx.QueryRowContext(ctx,
 		`SELECT `+eventColumns+` FROM task_events WHERE task_id = ? AND id = ?`, taskID, eventID))
 	if err != nil || prior.Work == nil || prior.Work.ID != workID {

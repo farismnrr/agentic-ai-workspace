@@ -25,11 +25,9 @@ func (w *Works) Reconcile(ctx context.Context) error {
 		return nil
 	}
 	cutoff := w.now().Add(-w.thresholds.IdleAfter)
-	if w.sweepMode == "on" {
-		if err := w.interruptRunningCalls(ctx, &cutoff); err != nil {
-			return err
-		}
-	}
+	// Running commands may legitimately exceed the inactivity window. Never
+	// interrupt them merely because their parent work has been quiet.
+
 	works, err := w.store.StaleOpenAll(ctx, cutoff)
 	if err != nil {
 		return fmt.Errorf("list stale work for reconciliation: %w", err)
@@ -121,7 +119,8 @@ func (w *Works) inactivityTimeout(ctx context.Context, work domain.ExternalWork)
 	for _, event := range events {
 		if event.Work != nil && event.Work.ID == work.ID &&
 			(event.Kind == domain.EventAction || event.Kind == domain.EventResearch ||
-				event.Kind == domain.EventPlan || event.Kind == domain.EventPRD || event.Kind == domain.EventReceipt) {
+				event.Kind == domain.EventPlan || event.Kind == domain.EventPRD ||
+				event.Kind == domain.EventMessage || event.Kind == domain.EventReceipt) {
 			return w.thresholds.AbandonAfter
 		}
 	}
@@ -140,7 +139,7 @@ func (w *Works) abandon(ctx context.Context, work domain.ExternalWork) error {
 		WorkID: work.ID, UserID: work.UserID, ExpectRev: work.Rev,
 		Patch:  &WorkPatch{State: &state, EndedAt: &now},
 		Task:   &TaskPatch{Status: &status, Summary: &text, Proof: proof},
-		Events: []domain.Event{workEvent(work, domain.EventReceipt, text, "", now)},
+		Events: []domain.Event{autoCompletionEvent(work, text, now)},
 	})
 	if errors.Is(err, domain.ErrStaleRevision) {
 		return nil
@@ -150,6 +149,12 @@ func (w *Works) abandon(ctx context.Context, work domain.ExternalWork) error {
 	}
 	w.notify(ctx, domain.Task{ID: work.TaskID, UserID: work.UserID})
 	return nil
+}
+
+func autoCompletionEvent(work domain.ExternalWork, text string, now time.Time) domain.Event {
+	event := workEvent(work, domain.EventMessage, text, "", now)
+	event.Work.Outcome = "auto_completed_unverified"
+	return event
 }
 
 func abandonmentResult(reported bool) (domain.Status, string, domain.EventKind) {
