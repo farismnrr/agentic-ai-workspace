@@ -67,7 +67,7 @@ func (w *Works) abandonAtCap(ctx context.Context, _ string, work domain.External
 		w.logCapCandidate(work)
 		return nil
 	}
-	return w.abandon(ctx, work)
+	return w.autoCompleteInactive(ctx, work)
 }
 
 func (w *Works) hasRunningCall(ctx context.Context, work domain.ExternalWork) bool {

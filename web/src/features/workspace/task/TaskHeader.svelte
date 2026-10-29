@@ -26,6 +26,9 @@
   <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 sm:min-h-12 sm:flex-nowrap sm:py-0">
     <h1 class="line-clamp-2 w-full min-w-0 text-[15px] font-semibold leading-snug sm:line-clamp-1 sm:w-auto">{task.title}</h1>
     <StatusBadge status={workStatus.iconStatus} label={statusLabel} />
+    {#if external && task.status === 'done' && task.summary?.startsWith('Auto-completed')}
+      <span class="badge badge-warning badge-sm" title="Closed after inactivity; completion was not verified">Auto Done · Unverified</span>
+    {/if}
     {#if task.work?.state === 'blocked'}<span class="badge badge-warning badge-sm">Blocked</span>{/if}
     {#if task.team}<span class="badge badge-soft badge-sm">Team</span>{/if}
     <p class="hidden min-w-0 flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">
