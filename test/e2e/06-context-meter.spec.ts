@@ -29,6 +29,11 @@ try {
  await page.reload();
  await page.getByText('Compacting context…',{exact:true}).first().waitFor({timeout:15000});
  console.log('PASS browser shows active compaction instead of stale red');
+ seed(7300,32000,'measured');
+ await page.reload();
+ await page.getByText('7K / 32K · 23%',{exact:true}).waitFor({timeout:15000});
+ if(await page.getByText('Compacting context…',{exact:true}).count())throw Error('compacting label remained after successful compact');
+ console.log('PASS browser returns to latest measured context after compaction');
  seed(31000,32000,'failed');
  await page.reload();
  await page.getByText('Context compaction failed',{exact:true}).first().waitFor({timeout:15000});
