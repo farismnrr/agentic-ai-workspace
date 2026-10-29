@@ -41,22 +41,23 @@ type WorkRef struct {
 
 // WorkSummary is the safe, read-only work detail attached to a task response.
 type WorkSummary struct {
-	UpdatedAt       time.Time  `json:"updatedAt"`
-	ReportedAt      *time.Time `json:"reportedAt,omitempty"`
-	ID              string     `json:"id"`
-	State           WorkState  `json:"state"`
-	Phase           WorkPhase  `json:"phase"`
-	PlanState       PlanPhase  `json:"planState"`
-	Role            string     `json:"role,omitempty"`
-	RoleName        string     `json:"roleName,omitempty"`
-	Actor           string     `json:"actor"`
-	Decision        string     `json:"decision,omitempty"`
-	HandoffState    string     `json:"handoffState,omitempty"`
-	LinkedTaskID    string     `json:"linkedTaskId,omitempty"`
-	Revision        int64      `json:"revision"`
-	CurrentRevision int64      `json:"currentRevision"`
-	PlanRev         int64      `json:"planRev"`
-	Stale           bool       `json:"stale"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	ReportedAt       *time.Time `json:"reportedAt,omitempty"`
+	ID               string     `json:"id"`
+	State            WorkState  `json:"state"`
+	CompletionReason string     `json:"completionReason,omitempty"`
+	Phase            WorkPhase  `json:"phase"`
+	PlanState        PlanPhase  `json:"planState"`
+	Role             string     `json:"role,omitempty"`
+	RoleName         string     `json:"roleName,omitempty"`
+	Actor            string     `json:"actor"`
+	Decision         string     `json:"decision,omitempty"`
+	HandoffState     string     `json:"handoffState,omitempty"`
+	LinkedTaskID     string     `json:"linkedTaskId,omitempty"`
+	Revision         int64      `json:"revision"`
+	CurrentRevision  int64      `json:"currentRevision"`
+	PlanRev          int64      `json:"planRev"`
+	Stale            bool       `json:"stale"`
 }
 
 // ExternalWork is the persisted identity and lifecycle record for a work session.

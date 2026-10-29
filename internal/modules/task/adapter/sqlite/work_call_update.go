@@ -29,6 +29,9 @@ func (s *Store) UpdateWorkCall(
 	if err != nil || prior.Work == nil || prior.Work.ID != workID {
 		return domain.Event{}, domain.ErrNotFound
 	}
+	if prior.Work.Phase != "running" {
+		return domain.Event{}, domain.ErrWorkClosed
+	}
 	event, work, err := updateWorkCallEvent(ctx, tx, taskID, eventID, prior, event)
 	if err != nil {
 		return domain.Event{}, err
@@ -76,7 +79,7 @@ func updateWorkCallEvent(
 	}
 	if err := tx.QueryRowContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
 		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?)
-		WHERE task_id = ? AND id = ? RETURNING version`,
+		WHERE task_id = ? AND id = ? AND json_extract(body, '$.work.phase') = 'running' RETURNING version`,
 		body, event.Undo, taskID, taskID, eventID).Scan(&event.Version); err != nil {
 		return domain.Event{}, domain.WorkRef{}, fmt.Errorf("update work call event: %w", err)
 	}
