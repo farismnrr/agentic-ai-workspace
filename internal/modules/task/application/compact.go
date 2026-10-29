@@ -83,8 +83,10 @@ func (r *Runner) compactIfNeeded(
 	}
 
 	// A full transcript cannot reliably be used to ask for its own summary.
-	// Drop bulky tool outputs from the summary request before calling the model.
-	if !r.compact(ctx, task, c, clipResults(messages)) {
+	// Bound the entire summary request, not just tool results. A giant user
+	// message or tool argument can otherwise overflow the summary call itself.
+	compactInput := boundedSummaryInput(c.system, c.tools, messages, window)
+	if !r.compact(ctx, task, c, compactInput) {
 		state.failed++
 		return nil, false
 	}
@@ -203,4 +205,55 @@ func estimateTokens(system string, tools []domain.ToolDef, messages []domain.Mes
 	}
 
 	return int64(chars / charsPerToken)
+}
+
+// boundedSummaryInput keeps the newest context and the original request while
+// constraining the input to the model's usable summary budget.
+func boundedSummaryInput(system string, tools []domain.ToolDef, messages []domain.Message, window int64) []domain.Message {
+	out := clipResults(messages)
+	budget := max(int64(1024), window/2)
+	if window <= 0 {
+		budget = 8000
+	}
+	available := budget - estimateTokens(system, tools, nil) - int64(len(compactAsk)/charsPerToken) - 256
+	if available < 256 {
+		return nil
+	}
+	// Keep a concise original request, then favor the newest turns.
+	first := -1
+	for i, message := range out {
+		if message.Role == domain.RoleUser {
+			first = i
+			break
+		}
+	}
+	keep := make([]domain.Message, 0, len(out))
+	remaining := available * charsPerToken
+	if first >= 0 {
+		original := out[first]
+		for j := range original.Blocks {
+			original.Blocks[j].Text = truncate(original.Blocks[j].Text, int(min(remaining/4, 2000)))
+			original.Blocks[j].Input = nil
+		}
+		keep = append(keep, original)
+		for _, block := range original.Blocks {
+			remaining -= int64(len(block.Text))
+		}
+	}
+	for i := len(out) - 1; i >= 0 && remaining > 0; i-- {
+		if i == first {
+			continue
+		}
+		message := out[i]
+		for j := range message.Blocks {
+			message.Blocks[j].Text = truncate(message.Blocks[j].Text, int(min(remaining, 4000)))
+			message.Blocks[j].Input = nil
+			remaining -= int64(len(message.Blocks[j].Text))
+		}
+		keep = append(keep, message)
+	}
+	if len(keep) > 1 {
+		slices.Reverse(keep[1:])
+	}
+	return keep
 }
