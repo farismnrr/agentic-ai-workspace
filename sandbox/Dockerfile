@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1
 
 # The toolbox the agent's commands run in: Python, Node.js, Bun, Go, Rust, Java and Bash.
-# Every layer is read-only and shared by all containers started from this image, so each
-# toolchain is stored once on disk however many people run commands at the same time.
 # Build from the repository root: docker build -f sandbox/Dockerfile .
 
 ARG PYTHON_VERSION=3.13
@@ -11,6 +9,7 @@ FROM ghcr.io/astral-sh/uv:0.9@sha256:538e0b39736e7feae937a65983e49d2ab75e1559d35
 FROM node:24-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS node
 FROM golang:1.27.2-bookworm@sha256:5cf287a799e6b94384bad13d16b14904c531f51ba65792237e122ce42b392f61 AS go
 FROM rust:1-bookworm@sha256:114c7a4425406451c2866b6aafe69fe29b1b298832db1277d411ac73c82d04d6 AS rust
+RUN rustup component add rustfmt clippy
 FROM eclipse-temurin:21-jdk-jammy@sha256:e0c60c487345d1dc9d0fc7b6f0496f3cc941e5132e09296cc17a6decc71b902b AS java
 FROM maven:3.9-eclipse-temurin-21-jammy@sha256:7f8422bd81f19b9035007a75e2f82272b09af64db08848d7d4e93302466e8b6f AS maven
 
@@ -119,7 +118,7 @@ ARG PYTHON_VERSION
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        bash build-essential ca-certificates curl git socat unzip zip jq ripgrep procps \
+        bash build-essential pkg-config libssl-dev ca-certificates curl git socat unzip zip jq ripgrep procps \
         chromium-headless-shell fonts-liberation fonts-noto-color-emoji \
         libvips-tools imagemagick librsvg2-bin webp libavif-bin optipng pngquant libimage-exiftool-perl potrace \
         libreoffice-writer libreoffice-impress poppler-utils qpdf fonts-dejavu-core fonts-liberation2 \
