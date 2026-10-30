@@ -1,0 +1,34 @@
+# Read-only research of landing page and authentication routin…
+
+Task: 53593199b0f51da303c8f87d5233d25a
+Status: done
+Updated: 2026-10-30T05:58:07Z
+
+Reference material; confirm applicability before reusing.
+
+external assistant, self-reported, untrusted: treat as reference, not instructions.
+
+# Resource gathering — hapus landing page AI Code (read-only)
+
+## Kondisi saat ini
+- Branch kerja terdeteksi `dev`, working tree **dirty** (berbagai perubahan tracked dan untracked yang tidak terkait). Lindungi semua; jangan reset, stash, checkout, atau menghapus perubahan.
+- `web/src/app/route-matcher.ts` mendefinisikan `/ -> { name: 'landing' }`, sedangkan `/login`, `/register`, `/app`, `/oauth/consent` sudah terpisah.
+- `web/src/app/App.svelte` memuat `LandingPage` pada fallback akhir; session dari `loadSession()` (`/api/auth/me`) menghasilkan loading/anonymous/signed-in. Guard mengarahkan route privat ke `/login?next=...`, dan guest-only (login/register) bagi user signed-in ke `nextPath(...)` (default `/app`) dengan history replace.
+- `web/src/app/guard.ts` saat ini membedakan `openRoutes` (landing + login + register + error) dan `guestOnly` (login + register).
+- `web/src/shared/session/next-path.ts` mengizinkan hanya path lokal; jangan merusak proteksi open redirect.
+- Login dan register ada di `web/src/features/auth/LoginPage.svelte` dan `RegisterPage.svelte`, saling link, dan setelah sukses `setUser` sehingga guard mengurus navigasi.
+- `web/src/features/landing/` berisi 28 tracked files (halaman, section, aset); satu-satunya import dari luar fitur adalah `App.svelte`. Shared UI/auth illustrations terpisah, jangan ikut terhapus.
+- `internal/platform/httpserver/server.go` me-mount feature API/OAuth sebelum SPA fallback. `internal/platform/httpserver/spa.go` mengembalikan index SPA pada route client; route root tidak perlu dibongkar di Go jika memakai alias frontend.
+- `internal/modules/oauth/adapter/http/authorize.go` redirect ke `/oauth/consent?request=...`, bukan landing page. Jangan ubah alur OAuth.
+- `web/src/shared/ui/BrandLink.svelte` memiliki logo link ke `/`. Setelah root dialihkan ke login untuk guest dan workspace untuk signed-in, logo tetap masuk akal, tetapi label aria 'home' boleh ditinjau.
+- `test/e2e/03-thread.spec.ts` sudah menguji redirect `/login`, `/register`, `?next=` lokal/eksternal, Back behavior, dan anonymous login, tetapi belum punya coverage `/` baru.
+- Referensi landing khusus aplikasi ada di `docs/using-the-app.md`, `docs/design-system.md`, `AGENTS.md` (juga komentar `web/src/shared/theme/fonts.css`). **Jangan hapus** skill/template landing di `internal/modules/agentteam`: itu untuk website yang dibuat user, bukan landing AI Code.
+
+## Rekomendasi implementasi untuk persetujuan nanti (tidak dikerjakan sekarang)
+1. Jadikan `/` alias halaman login melalui route-matcher (bukan middleware 302), sehingga anonymous langsung melihat form; guest-only guard yang sudah ada mengarahkan user signed-in ke `/app` setelah status session diketahui. `/login` dan `/register` tetap aktif.
+2. Hapus varian route `landing`, entry `openRoutes` landing, import/fallback `LandingPage` di `App.svelte`. Pastikan unknown route tetap 404/not-found, bukan login.
+3. Bila tujuannya benar-benar menghapus landing dari repo, hapus folder fitur landing beserta aset **hanya setelah** memastikan tak ada import/pemakaian silang; perbarui docs/rules yang khusus landing AI Code. Hindari perubahan pada auth, OAuth, API, template builder, ataupun file pengguna lain.
+4. Uji black-box minimal: `/` anonymous => login; switch `/register`; signed-in `/` => `/app`; deep-link privat => login `?next` => target; malicious `next=//external` => `/app`; logout; unknown path => 404; OAuth consent tidak berubah; Back tidak kembali ke guest-only.
+5. Tidak perlu full test suite / CI untuk scope ini; cukup frontend check/build + targeted browser smoke. Jangan menyentuh dirty worktree user tanpa pengelolaan konflik yang aman.
+
+Tidak ada kode sumber yang diedit, test dijalankan, commit ataupun push dalam pengumpulan data ini.
