@@ -1,7 +1,6 @@
 export type SettingsTab = 'models' | 'persona' | 'team' | 'spaces' | 'connected' | 'integrations' | 'activity' | 'usage' | 'notifications' | 'database' | 'account';
 
 export type Route =
-  | { name: 'landing' }
   | { name: 'not-found' }
   | { name: 'forbidden' }
   | { name: 'login' }
@@ -23,7 +22,7 @@ const settingsTabs: readonly string[] = ['models', 'persona', 'team', 'spaces', 
 const isSettingsTab = (value: string | undefined): value is SettingsTab => value !== undefined && settingsTabs.includes(value);
 
 const staticRoutes: Record<string, Route> = {
-  '/': { name: 'landing' }, '/not-found': { name: 'not-found' }, '/forbidden': { name: 'forbidden' },
+  '/': { name: 'login' }, '/not-found': { name: 'not-found' }, '/forbidden': { name: 'forbidden' },
   '/login': { name: 'login' }, '/register': { name: 'register' }, '/oauth/consent': { name: 'consent' },
   '/app': { name: 'home' }, '/app/tasks': { name: 'tasks' }, '/app/archive': { name: 'archive' },
   '/app/inbox': { name: 'inbox' }, '/app/projects': { name: 'projects' }, '/app/projects/new': { name: 'new-project' },

@@ -6,7 +6,7 @@ Add a model, create a project, and describe what you need. The AI shows every st
 
 | Address | What it is |
 | --- | --- |
-| `/` | Landing page |
+| `/` | Sign-in form for visitors; signed-in users go to the workspace |
 | `/login`, `/register` | Sign in, create an account. If you are already signed in, they take you straight to the dashboard (or to the page in `?next=`) |
 | `/app` | Your workspace: home, inbox, projects, tasks and settings |
 

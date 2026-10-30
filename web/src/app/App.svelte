@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import LandingPage from '../features/landing/LandingPage.svelte';
   import ErrorPage from '../features/errors/ErrorPage.svelte';
   import LoginPage from '../features/auth/LoginPage.svelte';
   import RegisterPage from '../features/auth/RegisterPage.svelte';
@@ -77,8 +76,6 @@
   <TaskPage projectId={$route.projectId} taskId={$route.taskId} />
 {:else if $route.name === 'settings'}
   <SettingsPage tab={$route.tab} />
-{:else if $route.name === 'not-found' || $route.name === 'forbidden'}
-  <ErrorPage kind={$route.name} />
 {:else}
-  <LandingPage />
+  <ErrorPage kind={$route.name} />
 {/if}
