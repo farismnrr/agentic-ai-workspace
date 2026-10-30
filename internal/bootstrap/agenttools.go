@@ -17,7 +17,6 @@ import (
 	envapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/env/application"
 	extensionapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/extension/application"
 	githubapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/application"
-	molabapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/molab/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -49,7 +48,6 @@ type agentTools struct {
 	egress     *egressruntime.Runtime
 	git        func(projectID string) codingrunner.GitSource
 	reach      codingrunner.Reach
-	molab      *molabapp.Sessions
 	molabTasks *taskapp.Service
 	public     string
 	mu         sync.Mutex
@@ -140,8 +138,7 @@ func (a *agentTools) Risk(name string) taskdomain.Risk {
 		codingdomain.ToolDownloadAsset.Name:
 		return taskdomain.RiskLow
 	case codingdomain.ToolDeleteFile.Name, codingdomain.ToolMoveFile.Name,
-		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite, toolScreenshotSession,
-		toolMoLabExecute:
+		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite, toolScreenshotSession:
 		return taskdomain.RiskMedium
 	}
 

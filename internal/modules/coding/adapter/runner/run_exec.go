@@ -20,7 +20,7 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command}
 	// A one-shot MoLab container receives ONLY its explicit credential, never
 	// project-wide variables or Git credentials from unrelated task commands.
-	token, scoped := ctx.Value(oneShotEnvKey{}).(string)
+	molab, scoped := ctx.Value(oneShotEnvKey{}).(molabRun)
 	var projectValues map[string]string
 	if !scoped {
 		var err error
@@ -36,7 +36,7 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 
 	hosts, granted := r.egressHosts(ctx, hasGit)
 	if scoped {
-		hosts, granted = nil, Granted{}
+		hosts, granted = []string{molab.host}, Granted{}
 	} // No project database/gateway privileges in MoLab containers.
 	_ = r.engine.prepare(ctx, r.dir, &spec, docker, hosts...) // without a socket the command just has no network
 	projectValues, granting := granted.Apply(&spec, projectValues)
@@ -47,7 +47,7 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	}
 	if scoped {
 		// Explicit session-only environment goes into this single disposable container.
-		baseEnv = append(baseEnv, "MARIMO_TOKEN="+token)
+		baseEnv = append(baseEnv, "MARIMO_TOKEN="+molab.token)
 	}
 	spec.Env = MergeProjectEnvironment(baseEnv, projectValues)
 

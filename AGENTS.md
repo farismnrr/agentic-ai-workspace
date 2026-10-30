@@ -41,9 +41,9 @@ Three audiences, three places. Never mix them.
 3. `make image` and `make sandbox-image` are permitted for isolated developer experiments only and use local image names, never GHCR publication names. Do not substitute local builds for published artifacts.
 4. Before telling a person to pull, verify the publishing GitHub Actions run succeeded. If the status cannot be confirmed, report that uncertainty and do not claim a GHCR image exists.
 
-## Ephemeral external credentials
+## Live MoLab from chat
 
-MoLab bearer tokens are supplied through the authenticated, same-origin task pairing form only. They live in the app process's memory for up to 30 minutes and one task; they are never written to Project Env, SQLite, transcripts, tool arguments or logs. Only the internal task-scoped `marimo_execute` tool may use one token through an isolated one-shot sandbox. Revoke/cancel active operations on disconnect, task termination, replacement or expiry. Never tell users to paste bearer tokens into the agent chat, run shell commands with them, or enable global MoLab network access. Egress grants stay off until verified live on a Docker-enabled host.
+When a person provides a running MoLab URL and access code together in their task chat, the internal marimo_execute tool uses that same chat automatically. No special pairing task, UI, TTL manager or manual egress approval is needed. The app validates the exact sb-*.sb.molab.run HTTPS hostname and grants only the one-shot command access through the existing public-only proxy. Never place the access code in a shell command, Project Env, or a tool argument. Chat content itself remains in the user's task history. If the notebook or access expires, explain the error and ask for new chat details.
 
 ## Clean Architecture dependency rule
 

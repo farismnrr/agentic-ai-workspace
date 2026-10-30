@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	egressruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/adapter/runtime"
-	molabruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/molab/adapter/runtime"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	taskhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/http"
 	tasknotes "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/notefiles"
@@ -35,9 +34,6 @@ func newAgent(
 	var taskStore taskapp.TaskStore = store
 	if tools.egress != nil {
 		taskStore = egressruntime.Tasks(store, tools.egress.TaskEnded)
-	}
-	if tools.molab != nil {
-		taskStore = molabruntime.Tasks{TaskStore: taskStore, Forget: tools.molab.Forget}
 	}
 
 	deps := taskapp.Observe(taskapp.Deps{

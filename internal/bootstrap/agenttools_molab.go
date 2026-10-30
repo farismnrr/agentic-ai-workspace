@@ -3,90 +3,93 @@ package bootstrap
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	molabapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/molab/application"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 const toolMoLabExecute = "marimo_execute"
-const inspectionCode = "import marimo._code_mode as cm; help(cm)"
+const inspectionCode = "import marimo._code_mode as cm; print(dir(cm))"
 
 func molabExecuteDefinition() taskdomain.ToolDef {
 	return taskdomain.ToolDef{
 		Name:        toolMoLabExecute,
-		Description: "Execute Python in the notebook paired to this task using its temporary secret. First call inspects marimo._code_mode. Never ask for or include token or URL in tool arguments. Requires approved task egress.",
-		Schema:      json.RawMessage(`{"type":"object","properties":{"code":{"type":"string","description":"Python to execute in the active MoLab notebook; code must not contain a token"}},"required":["code"],"additionalProperties":false}`),
+		Description: "Run Python in a MoLab notebook using the HTTPS URL and temporary token the USER supplied in chat. The app selects both from the same user message automatically; neither belongs in tool arguments. No separate pairing UI or egress approval.",
+		Schema:      json.RawMessage(`{"type":"object","properties":{"code":{"type":"string","description":"Python to execute in the notebook"}},"required":["code"],"additionalProperties":false}`),
 	}
 }
 
 func (a *agentTools) executeMoLab(ctx context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {
-	if a.molab == nil || a.molabTasks == nil || scope.TaskID == "" || scope.ProjectID == "" || scope.UserID == "" {
-		return problem("A task-scoped MoLab session is not available.")
-	}
-	if a.egress == nil {
-		return problem("Per-task network grants are disabled. An administrator must verify and enable EGRESS_GRANTS before MoLab access.")
+	if a.molabTasks == nil || scope.TaskID == "" || scope.ProjectID == "" || scope.UserID == "" {
+		return problem("MoLab requires an active conversation in an AI Code project.")
 	}
 	task, err := a.molabTasks.Get(ctx, scope.UserID, scope.TaskID)
-	if err != nil || task.ProjectID != scope.ProjectID {
-		return problem("MoLab access denied for this task.")
-	}
-	if task.Status == taskdomain.StatusDone || task.Status == taskdomain.StatusFailed || task.ArchivedAt != nil {
-		a.molab.Forget(scope.TaskID)
-		return problem("This task has ended. Its MoLab pairing was discarded.")
-	}
-	session, err := a.molab.Get(scope.TaskID, scope.UserID, scope.ProjectID)
-	if err != nil {
-		return problem("No active MoLab pairing. Ask the user to add a fresh URL and token using the task's secure Connect MoLab form.")
+	if err != nil || task.ProjectID != scope.ProjectID || task.ArchivedAt != nil ||
+		task.Status == taskdomain.StatusDone || task.Status == taskdomain.StatusFailed {
+		return problem("The task is closed or is not yours. Start or continue your own conversation.")
 	}
 	var input struct {
 		Code string `json:"code"`
 	}
-	if err := json.Unmarshal(call.Input, &input); err != nil || len(input.Code) > 32000 || strings.TrimSpace(input.Code) == "" {
-		return problem("MoLab code must be nonempty Python and at most 32 KB.")
+	if json.Unmarshal(call.Input, &input) != nil || strings.TrimSpace(input.Code) == "" || len(input.Code) > 32000 {
+		return problem("Provide Python code (at most 32 KB) in marimo_execute.")
 	}
-	code := input.Code
-	first := !session.Inspected
-	if first {
-		code = inspectionCode
+	events, err := a.molabTasks.Events(ctx, scope.UserID, scope.TaskID, 0)
+	if err != nil {
+		return problem("Could not read the current chat request for MoLab.")
 	}
-	// Use the same project's serialized runner. Its one-shot mode does not receive
-	// project variables or Git secrets, and cannot be invoked from generic run_command.
+	cred, err := molabapp.FromChat(events)
+	if err != nil {
+		return problem("No valid MoLab URL + token together in a user chat message. Send both in the chat and try again.")
+	}
 	_, err = a.services(scope.ProjectID)
 	if err != nil {
-		return problem("Project sandbox is unavailable.")
+		return problem("The sandbox is unavailable for this project.")
 	}
 	a.mu.Lock()
 	runner := a.runners[scope.ProjectID]
 	a.mu.Unlock()
 	if runner == nil {
-		return problem("Project sandbox is unavailable.")
+		return problem("The sandbox is unavailable for this project.")
 	}
-	command := codingdomain.Task{
-		Name:           "marimo-pair",
-		Command:        []string{"bash", "/usr/local/share/marimo-pair/scripts/execute-code.sh", "--url", session.URL, "-c", code},
-		TimeoutSeconds: 120,
-	}
-	executionCtx, release := session.Bound(taskContext(ctx, scope))
-	defer release()
-	result, err := runner.RunMoLab(executionCtx, command, session.Token)
-	if err != nil {
-		return problem("MoLab execution could not start in the isolated task sandbox.")
-	}
-	// Never return credentials even if the remote kernel inadvertently echoes them.
-	output := strings.ReplaceAll(result.Output, session.Token, "[REDACTED]")
-	if result.ExitCode != 0 {
-		if strings.Contains(output, "Failed to connect") || strings.Contains(output, "401") || strings.Contains(output, "403") {
-			a.molab.Forget(scope.TaskID)
-			return problem("MoLab connection was rejected or ended. Pair a fresh notebook using the secure task form.")
+	run := func(code string) (string, bool) {
+		command := codingdomain.Task{
+			Name:           "marimo-pair",
+			Command:        []string{"bash", "/usr/local/share/marimo-pair/scripts/execute-code.sh", "--url", cred.URL, "-c", code},
+			TimeoutSeconds: 120,
 		}
-		return problem(fmt.Sprintf("MoLab execution failed (exit %d). %s", result.ExitCode, output))
+		result, runErr := runner.RunMoLab(taskContext(ctx, scope), command, cred.Token, cred.Host)
+		if runErr != nil {
+			return "MoLab execution could not start. Check sandbox availability.", false
+		}
+		output := strings.ReplaceAll(result.Output, cred.Token, "[REDACTED]")
+		if result.ExitCode != 0 {
+			return molabError(output), false
+		}
+		return output, true
 	}
-	if first {
-		a.molab.MarkInspected(scope.TaskID, session)
-		return taskapp.ToolResult{Output: "Connected and inspected marimo._code_mode successfully. Call marimo_execute again with the intended Python. " + output}
+	output, ok := run(inspectionCode + "\n" + input.Code)
+	if !ok {
+		return problem(output)
 	}
-	return taskapp.ToolResult{Output: "MoLab Python executed successfully. " + output}
+	return taskapp.ToolResult{Output: "MoLab code executed: " + output}
+}
+
+func molabError(output string) string {
+	lower := strings.ToLower(output)
+	switch {
+	case strings.Contains(lower, "401"), strings.Contains(lower, "403"), strings.Contains(lower, "unauthorized"),
+		strings.Contains(lower, "forbidden"), strings.Contains(lower, "token"):
+		return "MoLab refused the token (expired or invalid). Send a fresh URL + token in chat."
+	case strings.Contains(lower, "no active sessions"), strings.Contains(lower, "no session"):
+		return "MoLab is running but no notebook session is open. Open a notebook in MoLab and retry."
+	case strings.Contains(lower, "could not connect"), strings.Contains(lower, "failed to connect"),
+		strings.Contains(lower, "resolve"), strings.Contains(lower, "timed out"), strings.Contains(lower, "could not reach"):
+		return "MoLab is unavailable or terminated. Start a new MoLab session, then send its URL + token in chat."
+	default:
+		return "MoLab could not execute the code. Check that the notebook is running and review the Python error: " + output
+	}
 }

@@ -3,17 +3,14 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 76 Go test files contain 166 top-level test functions:
-66 registered test files contain 166 functions and 10 support files contain no test functions.
+After this slice, 75 Go test files contain 163 top-level test functions:
+65 registered test files contain 163 functions and 10 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
-| `test/go/app/molab/api_test.go::TestMoLabPairingHTTPIsOwnerOnlyAndNeverReturnsTokens` | auth/authz | In-process HTTP contract verifies authenticated owner-only pairing, CSRF, no-store, token redaction and disconnect without Docker. | none |
-| `test/go/app/molab/api_test.go::TestDisabledMoLabPairingNeverAcceptsSecret` | auth/authz | A disabled network-grant deployment must reject credentials rather than retaining unusable secrets. | none |
-| `test/go/modules/molab/session_test.go::TestPairingIsVolatileAndTaskScoped` | crypto/credentials | Confirms task-scoped RAM-only secrets cannot cross user, task or project and status cannot reveal token. | none |
-| `test/go/modules/molab/session_test.go::TestPairingExpiresAndRestarts` | crypto/credentials | Deterministically verifies 30-minute expiration and no persistence across manager restart. | none |
-| `test/go/modules/molab/session_test.go::TestOnlyExactSecureMoLabOrigins` | sandbox/egress/SSRF | Rejects malicious URL authority, userinfo, ports, private targets and insecure HTTP before storage. | none |
-| `test/go/modules/molab/session_test.go::TestDisconnectAndReplacementCancelInFlightExecution` | critical concurrency/data loss | Verifies disconnect and replacement cancel in-flight kernel access without waiting for TTL. | none |
+| `test/go/modules/molab/chat_test.go::TestMoLabReadsLatestUserURLAndTokenFromSameChatMessage` | auth/authz | The most recent same-message values are used, not unrelated assistant text. | none |
+| `test/go/modules/molab/chat_test.go::TestMoLabNeverCombinesDifferentUserMessages` | auth/authz | Rejects combining credentials from different requests. | none |
+| `test/go/modules/molab/chat_test.go::TestMoLabRejectsUnsafeOrMalformedURLs` | sandbox/egress/SSRF | Rejects unsafe URL destinations before the proxy is opened. | none |
 | `test/go/app/activity/work_activity_test.go::TestRecorderRedactsExternalWorkToolActivityWithoutWorkID` | crypto/credentials | Checks secret redaction before sensitive coding-tool activity reaches the shared activity log. | none |
 | `test/go/app/activity/workbridge_redaction_test.go::TestWorkBridgeReportsSecretRedactions` | crypto/credentials | Checks external-work summaries report when secret-like text was removed. | none |
 | `test/go/app/egressgrant/api_off_test.go::TestEgressAPIDoesNotExistWhenFlagOff` | app-level integration | Authenticated HTTP requests confirm disabled grant endpoints stay absent. | none |
