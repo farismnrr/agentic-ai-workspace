@@ -1,5 +1,5 @@
 // Actual browser and task API after full, compacted, and unknown usage states.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 const { chromium } = createRequire(import.meta.url)(process.env.PW as string) as typeof import('../../web/node_modules/playwright');
@@ -7,7 +7,8 @@ const info=JSON.parse(readFileSync(process.argv[2] as string,'utf8')) as {base:s
 function seed(used:number,window:number,state:'unknown'|'measured'|'compacting'|'failed'='measured'):void {
   execFileSync('python3',['-c',`import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); c.execute("UPDATE tasks SET context_used=?, context_window=?, context_state=? WHERE id=?",(int(sys.argv[3]),int(sys.argv[4]),sys.argv[5],sys.argv[2])); c.commit(); c.close()`,info.db,info.task,String(used),String(window),state]);
 }
-const browser=await chromium.launch({executablePath:'/usr/bin/chromium-headless-shell',args:['--no-sandbox']});
+const executablePath = process.env.CHROMIUM_BIN || (existsSync('/usr/bin/chromium-headless-shell') ? '/usr/bin/chromium-headless-shell' : undefined);
+const browser=await chromium.launch({...(executablePath ? { executablePath } : {}),args:['--no-sandbox']});
 try {
  const page=await browser.newPage({viewport:{width:1280,height:900}});
  await page.goto(info.base+'/login');

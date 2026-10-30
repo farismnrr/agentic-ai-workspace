@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)(process.env.PW as string) as typeof import('../../web/node_modules/playwright');
 const info = JSON.parse(readFileSync(process.argv[2] as string, 'utf8')) as {base:string;email:string;password:string;task:string;project:string};
-const browser = await chromium.launch({executablePath:'/usr/bin/chromium-headless-shell',args:['--no-sandbox']});
+const executablePath = process.env.CHROMIUM_BIN || (existsSync('/usr/bin/chromium-headless-shell') ? '/usr/bin/chromium-headless-shell' : undefined);
+const browser = await chromium.launch({...(executablePath ? { executablePath } : {}),args:['--no-sandbox']});
 try {
   const page = await browser.newPage();
   await page.goto(info.base+'/login');

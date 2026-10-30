@@ -2,7 +2,7 @@
 // The task's model started a page and took two screenshots of it with the real sandbox and browser; this checks
 // that the thread shows the agent's markdown as formatted text and the screenshots as images.
 // Usage: PW=<playwright dir> node e2e-thread.ts <info.json> <screenshot dir>
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PW as string) as
@@ -17,8 +17,9 @@ function check(name: string, ok: boolean, detail = ''): void {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail === '' ? '' : `  - ${detail}`}`);
 }
 
+const executablePath = process.env.CHROMIUM_BIN || (existsSync('/usr/bin/chromium-headless-shell') ? '/usr/bin/chromium-headless-shell' : undefined);
 const browser = await chromium.launch({
-  executablePath: '/usr/bin/chromium-headless-shell',
+  ...(executablePath ? { executablePath } : {}),
   args: ['--no-sandbox'],
 });
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
@@ -110,6 +111,7 @@ await page.getByRole('tab', { name: 'Changes' }).click();
 await page.getByText('2 files changed').waitFor({ timeout: 15000 });
 const readme = page.locator('section[aria-label="Changes in README.md"]');
 const notes = page.locator('section[aria-label="Changes in notes.md"]');
+await notes.getByText('+3').waitFor({ timeout: 10000 });
 check('a file the task made is Added with its lines counted', (await notes.innerText()).includes('Added') && (await notes.innerText()).includes('+3'), (await notes.innerText()).replace(/\n/g, ' '));
 await readme.getByRole('button').first().waitFor();
 await readme.getByRole('button').first().click();
