@@ -106,6 +106,18 @@ async function capture(cdp: Cdp, origin: string, shot: Shot, width: number, heig
   }
   const page = await cdp.send('Runtime.evaluate', { expression: 'location.pathname', returnByValue: true });
   if ((page.result as { value?: string }).value === '/login') throw new Error(`session was not accepted for ${shot.path}`);
+  const geometry = await cdp.send('Runtime.evaluate', {
+    expression: '({scrollWidth: document.documentElement.scrollWidth, viewport: window.innerWidth})',
+    returnByValue: true,
+  });
+  const bounds = (geometry.result as { value?: { scrollWidth: number; viewport: number } }).value;
+  if (bounds && bounds.scrollWidth > bounds.viewport + 1) {
+    const offenders = await cdp.send('Runtime.evaluate', {
+      expression: '[...document.querySelectorAll("body *")].filter(e => { const r=e.getBoundingClientRect(); return r.width>0 && r.right>innerWidth+1 && r.left < r.right; }).sort((a,b)=>b.getBoundingClientRect().right-a.getBoundingClientRect().right).slice(0,6).map(e=>({tag:e.tagName,class:String(e.className).slice(0,100),right:Math.round(e.getBoundingClientRect().right)}))',
+      returnByValue: true,
+    });
+    throw new Error(`horizontal overflow on ${shot.path} at ${String(width)}px: ${String(bounds.scrollWidth)}px document. Offenders: ${JSON.stringify((offenders.result as { value?: unknown }).value)}`);
+  }
   const png = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   const suffix = width === 1280 ? 'desktop' : width === 390 ? 'mobile' : `${String(width)}-desktop`;
   writeFileSync(join(out, `${shot.name}-${suffix}.png`), Buffer.from(String(png.data), 'base64'));

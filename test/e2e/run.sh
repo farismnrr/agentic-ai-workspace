@@ -130,17 +130,19 @@ elif [[ $flow == git ]]; then
   project_dir="$APP_DATA_DIR/projects/$project_id"
   mkdir -p "$project_dir/src"
   printf 'first line\nold line\nlast line\n' >"$project_dir/src/tracked.txt"
-  printf 'untracked\n' >"$project_dir/new.txt"
   git -C "$project_dir" init -q
   git -C "$project_dir" config user.name 'Browser Test'
   git -C "$project_dir" config user.email 'browser@example.test'
   git -C "$project_dir" add src/tracked.txt
   git -C "$project_dir" commit -qm 'initial file'
-  printf 'first line\nnew line\nlast line\n' >"$project_dir/src/tracked.txt"
   http_request POST "$cookie_jar" /api/tasks \
     "$(jq -cn --arg project "$project_id" '{projectId:$project,prompt:"Git browser check",providerId:"plan:claude",model:"default",team:false}')"
   assert_status "$HTTP_STATUS" 201 'create Git browser task'
   task_id=$(jq -r '.id' "$HTTP_BODY_FILE")
+  # Task startup initializes its workspace and can rewrite files; make Git edits afterwards.
+  printf 'first line\nnew line\nlast line\n' >"$project_dir/src/tracked.txt"
+  printf 'untracked\n' >"$project_dir/new.txt"
+  git -C "$project_dir" status --short | grep -F 'M src/tracked.txt'
   info_file="$APP_TMP_DIR/info.json"
   jq -n --arg base "$APP_BASE" --arg email "$email" --arg password "$password" \
     --arg project "$project_id" --arg task "$task_id" \

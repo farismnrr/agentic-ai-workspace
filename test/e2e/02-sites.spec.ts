@@ -20,7 +20,7 @@ function check(name: string, ok: boolean, detail = ''): void {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail === '' ? '' : `  - ${detail}`}`);
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ executablePath: '/usr/bin/chromium-headless-shell', args: ['--no-sandbox'] });
 const owner = await browser.newContext();
 const page = await owner.newPage();
 

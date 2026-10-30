@@ -29,7 +29,7 @@ const snapshot = await page.evaluate(async (projectId) => {
   const response = await fetch(`/api/projects/${projectId}/git/status`);
   return await response.json() as { available: boolean; files: Array<{ path: string }> };
 }, info.project);
-check('Git API reports the fixture changes', snapshot.available && snapshot.files.some((file) => file.path === 'src/tracked.txt'));
+check('Git API reports the fixture changes', snapshot.available && snapshot.files.some((file) => file.path === 'src/tracked.txt'), JSON.stringify(snapshot).slice(0, 500));
 const head = await page.evaluate(async (projectId) => {
   const response = await fetch(`/api/projects/${projectId}/git/head?path=src%2Ftracked.txt`);
   return await response.json() as { available: boolean; content: string };
