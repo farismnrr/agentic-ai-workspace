@@ -32,6 +32,7 @@ func (a *agentTools) otherTools() map[string]func(context.Context, taskapp.ToolS
 	return map[string]func(context.Context, taskapp.ToolScope, taskapp.Call) taskapp.ToolResult{
 		toolRequestEgress:     a.executeEgress,
 		toolDockerHostStatus:  a.executeDockerHostStatus,
+		toolMoLabExecute:      a.executeMoLab,
 		toolScreenshot:        a.executeShot,
 		toolScreenshotSession: a.executeScreenshotSession,
 		toolDeployExtension: func(ctx context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {

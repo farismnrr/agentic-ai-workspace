@@ -17,8 +17,10 @@ import (
 	envapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/env/application"
 	extensionapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/extension/application"
 	githubapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/github/application"
+	molabapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/molab/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
+	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 	webapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/web/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
@@ -39,6 +41,7 @@ type agentTools struct {
 	web        *webapp.Service
 	backups    *codingbackup.Store
 	cache      map[string]codingmcp.Services
+	runners    map[string]*codingrunner.Runner
 	handlers   map[string]toolHandler
 	github     *githubapp.Service
 	owners     projectOwners
@@ -46,6 +49,8 @@ type agentTools struct {
 	egress     *egressruntime.Runtime
 	git        func(projectID string) codingrunner.GitSource
 	reach      codingrunner.Reach
+	molab      *molabapp.Sessions
+	molabTasks *taskapp.Service
 	public     string
 	mu         sync.Mutex
 }
@@ -60,6 +65,7 @@ func newAgentTools(
 
 	tools := &agentTools{
 		folders: folders, public: publicURL, engine: engine, backups: backups, cache: map[string]codingmcp.Services{},
+		runners: make(map[string]*codingrunner.Runner),
 	}
 	tools.handlers = toolHandlers()
 
@@ -102,6 +108,7 @@ func (a *agentTools) services(projectID string) (codingmcp.Services, error) {
 		Sites:  projectSites{tools: a, projectID: projectID}, ProjectID: projectID,
 	}
 	a.cache[projectID] = services
+	a.runners[projectID] = run
 
 	return services, nil
 }
@@ -119,7 +126,7 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 	}
 
 	defs = append(defs, siteDefinitions()...)
-	defs = append(defs, dockerHostStatusDefinition())
+	defs = append(defs, dockerHostStatusDefinition(), molabExecuteDefinition())
 	defs = append(defs, extensionDefinition(), ciLogsDefinition())
 	defs = append(defs, screenshotDefinition(), screenshotSessionDefinition(), viewImageDefinition())
 
@@ -133,7 +140,8 @@ func (a *agentTools) Risk(name string) taskdomain.Risk {
 		codingdomain.ToolDownloadAsset.Name:
 		return taskdomain.RiskLow
 	case codingdomain.ToolDeleteFile.Name, codingdomain.ToolMoveFile.Name,
-		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite, toolScreenshotSession:
+		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite, toolScreenshotSession,
+		toolMoLabExecute:
 		return taskdomain.RiskMedium
 	}
 

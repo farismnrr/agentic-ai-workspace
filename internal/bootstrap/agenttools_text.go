@@ -127,6 +127,9 @@ func (a *agentTools) Describe(call taskapp.Call) taskapp.Described {
 	if call.Name == toolRequestEgress {
 		return describeEgress(call.Input)
 	}
+	if call.Name == toolMoLabExecute {
+		return said("Used the paired MoLab notebook", "May I run Python in this task's MoLab notebook?", "marimo_execute")
+	}
 
 	var in toolArgs
 

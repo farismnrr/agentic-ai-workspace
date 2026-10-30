@@ -41,6 +41,10 @@ Three audiences, three places. Never mix them.
 3. `make image` and `make sandbox-image` are permitted for isolated developer experiments only and use local image names, never GHCR publication names. Do not substitute local builds for published artifacts.
 4. Before telling a person to pull, verify the publishing GitHub Actions run succeeded. If the status cannot be confirmed, report that uncertainty and do not claim a GHCR image exists.
 
+## Ephemeral external credentials
+
+MoLab bearer tokens are supplied through the authenticated, same-origin task pairing form only. They live in the app process's memory for up to 30 minutes and one task; they are never written to Project Env, SQLite, transcripts, tool arguments or logs. Only the internal task-scoped `marimo_execute` tool may use one token through an isolated one-shot sandbox. Revoke/cancel active operations on disconnect, task termination, replacement or expiry. Never tell users to paste bearer tokens into the agent chat, run shell commands with them, or enable global MoLab network access. Egress grants stay off until verified live on a Docker-enabled host.
+
 ## Clean Architecture dependency rule
 
 Dependencies point inward toward policy. Frameworks and I/O are outer details.
