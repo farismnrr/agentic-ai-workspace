@@ -4,6 +4,7 @@ package apptest
 import (
 	"database/sql"
 	"io/fs"
+	"os"
 	"testing"
 	"testing/fstest"
 
@@ -16,6 +17,21 @@ import (
 )
 
 const publicURL = "https://example.test"
+
+const defaultToolboxImage = "ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest"
+
+// ToolboxImage returns the configured fixture image, or the repository toolbox image.
+func ToolboxImage() string {
+	if image := os.Getenv("SANDBOX_TEST_IMAGE"); image != "" {
+		return image
+	}
+	return defaultToolboxImage
+}
+
+// ToolboxConfig configures command scenarios with the same image used by real tasks.
+func ToolboxConfig(cfg *config.Config) {
+	cfg.SandboxImage = ToolboxImage()
+}
 
 // Environment owns an in-process app and its isolated database and files.
 type Environment struct {

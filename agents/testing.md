@@ -15,6 +15,13 @@
 - Fast runs `make guardrails shellcheck` and `make backend-test` before image builds.
 - Full runs `make verify-full`, which adds frontend checks, Go lint, build and smoke, black-box, browser, Docker isolation, and race checks.
 
+## Docker-backed app command fixtures
+
+- `apptest` defaults to BusyBox for scenarios that do not execute project commands. Command scenarios use `apptest.ToolboxConfig` so the assembled app launches the supported toolbox image with Bash, Go and Git.
+- `SANDBOX_TEST_IMAGE` overrides the toolbox image for these tests. CI should use the toolbox image published from `sandbox/Dockerfile`; a running Docker daemon alone does not prove Bash or the required toolchains exist.
+- `apptest.RequireDocker` checks Docker and makes the selected toolbox image available. Local runs without Docker skip; CI runs fail if Docker is unavailable. Keep Go fixtures small and seed their module and test files before task edits when the check is meant to prove a later change.
+- Test command fixtures stay within the sandbox's default 2 GiB memory and 1 CPU limits. Give real checks a bounded timeout and inspect task events on failure, including command and exit status; never persist raw command output in production task events.
+
 ## Impact-based task verification
 
 - Assess impact from changed behavior, dependencies, shared contracts and configuration; extensions alone are not enough. Ordinary Swift work runs affected public-boundary scenarios and relevant static checks; do not require every suite or review role by default.

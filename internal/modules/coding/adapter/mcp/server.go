@@ -102,12 +102,14 @@ func (t *tools) recheckWork(ctx context.Context, projectID string) error {
 // serverInstructions are shown to the app's model when it connects. The person follows the work in their own
 // workspace, and only what the model writes down tells them what they asked for.
 const serverInstructions = "These tools work in the person's own workspace, where they follow your work in a thread. " +
-	"Start each request by calling log_message with role user and what the person asked, in their words. " +
+	"Start tracked work with begin_work and an enabled role before any workspace operation. " +
+	"Pass work_id on every subsequent call, including log_message for the user request. " +
+	"Use set_role before switching between Researcher, Planner, Developer and QA. " +
 	"For tracked work, save your summary with log_message, then call complete_work. " +
 	"Do not call log_message after complete_work. " +
 	"When the person names a project (such as sensio), call list_projects and give its id as project to the other " +
-	"tools; without a project you work in your own. For substantial requests, call begin_work first (small tasks may " +
-	"skip it) and provide the required initial enabled non-lead role key; switch role labels as useful (Researcher, " +
+	"tools; without a project you work in your own. begin_work is mandatory even for small tasks; " +
+	"provide the required initial enabled non-lead role key; switch role labels as useful (Researcher, " +
 	"Planner, Developer, QA, Security), pass work_id to each " +
 	"work tool, save the plan and requirements, then call submit_plan for the person's approval. Do not report " +
 	"completed until the person has reviewed the plan. There is one assistant: roles are labels, " +

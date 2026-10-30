@@ -104,8 +104,9 @@ func researcherTaskRig(t *testing.T, brief, report string) apptest.AgentRig {
 
 func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.T) {
 	t.Parallel()
+	apptest.RequireDocker(t)
 
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: make hello.txt", "state": "pending"},
 		}}),
@@ -115,9 +116,10 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 		apptest.ToolCall("r1", "report", map[string]string{"summary": "Made it"}),
 		apptest.FinishCall("Made hello.txt"), // held: the work is not saved in git yet
 		apptest.ToolCall("d2", "delegate", map[string]string{"role": "devops", "brief": "Commit and push"}),
-		// the test sandbox has no bash, so the commit cannot succeed: the hold gives up after a few tries
-		apptest.ToolCall("c1", "run_command", map[string]string{"command": "ship \"Add hello\""}),
-		apptest.ToolCall("r2", "report", map[string]string{"summary": "Could not save"}),
+		apptest.ToolCall("c1", "run_command", map[string]string{
+			"command": "printf 'approved\\n' > approval.txt",
+		}),
+		apptest.ToolCall("r2", "report", map[string]string{"summary": "Ran the approved command"}),
 		apptest.FinishCall("Made hello.txt"),
 		apptest.FinishCall("Made hello.txt"),
 		apptest.FinishCall("Made hello.txt"),
@@ -146,6 +148,9 @@ func TestTeammateNeedsApprovalThenResumesFromItsOwnSavedConversation(t *testing.
 
 	if data, err := os.ReadFile(a.File("hello.txt")); err != nil || string(data) != "hi" {
 		t.Fatalf("after the yes the teammate's step runs: %q %v", data, err)
+	}
+	if data, err := os.ReadFile(a.File("approval.txt")); err != nil || string(data) != "approved\n" {
+		t.Fatalf("the approved teammate command must run in its saved conversation: %q %v", data, err)
 	}
 
 	apptest.MustContain(t, apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id, "",

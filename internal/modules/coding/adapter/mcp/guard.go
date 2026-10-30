@@ -79,6 +79,15 @@ func guarded[In, Out any](
 			return refusal, none, nil
 		}
 
+		// Workspace operations must belong to a tracked session with an explicit role.
+		// Only account/project discovery and begin_work can bootstrap that session.
+		if workID == "" && info.Name != domain.ToolWhoami.Name &&
+			info.Name != domain.ToolListProjects.Name && info.Name != domain.ToolBeginWork.Name {
+			entry.Outcome, entry.Detail = OutcomeFailed, "work role required"
+			g.record(ctx, entry)
+			return failure("Start with begin_work and an enabled role; pass its work_id to every workspace tool. Use set_role before changing responsibilities.", nil), none, nil
+		}
+
 		state := g.newState(ctx, info, &entry, req, workID)
 		who := context.WithValue(ctx, identityKey{}, identity{
 			User: token.UserID, Client: client, Project: projectOf(in), WorkID: workIDOf(in),
