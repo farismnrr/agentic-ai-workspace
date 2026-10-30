@@ -92,7 +92,6 @@ Every empty list, panel or page uses the shared empty state:
 
 ## Brand details
 
-- **Paper:** the landing page uses a flat `base-200` canvas, `base-100` cards and hand-drawn line illustrations. No gradients or glows.
 - **Marker:** emphasis inside a heading uses the shared `Marker` component, a lime highlighter stroke driven by `--brand-marker`.
 - **Marketing buttons:** primary buttons may be pill-shaped.
 - **Logo:** a rounded primary-olive tile with a white "o..n" mark, beside the Inter wordmark "Masih Awam". Favicon and manifest icons in `web/public/` use the same tile.

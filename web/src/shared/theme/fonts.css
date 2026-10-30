@@ -1,4 +1,4 @@
-/* Latin subsets only: the landing is English and every extra subset would be embedded in the binary. */
+/* Latin subsets only: keep the embedded frontend binary small. */
 @font-face {
   font-family: "Newsreader Variable";
   font-style: normal;

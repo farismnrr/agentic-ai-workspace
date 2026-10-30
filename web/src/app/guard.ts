@@ -1,6 +1,6 @@
 import type { Route } from './router';
 
-const openRoutes: readonly Route['name'][] = ['landing', 'login', 'register', 'not-found', 'forbidden'];
+const openRoutes: readonly Route['name'][] = ['login', 'register', 'not-found', 'forbidden'];
 
 const guestRoutes: readonly Route['name'][] = ['login', 'register'];
 
