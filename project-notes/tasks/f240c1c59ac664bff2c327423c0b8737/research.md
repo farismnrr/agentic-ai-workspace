@@ -1,0 +1,11 @@
+# Critical: @deep-review team completes developer plan but req…
+
+Task: f240c1c59ac664bff2c327423c0b8737
+Status: done
+Updated: 2026-10-29T03:46:45Z
+
+Reference material; confirm applicability before reusing.
+
+external assistant, self-reported, untrusted: treat as reference, not instructions.
+
+Trace from screenshot + source code at 2daa248: `internal/modules/task/application/cli.go` `planSink.finish()` calls `completionGate()` when CLI reports completion. The gate has a legitimate soft-held branch (`return outcome{}, false`) when mandatory review has not been recorded. The old CLI code treated this soft hold as a fatal generic error, with hint 'Press Continue after the review has completed.' Crucially, `Call{}` left the feedback addressed to the normal model transcript rather than the `leadSession.inline` `capturedResults` channel. Each Continue constructed a new lead state and emitted the same generic card. There were no calls to a reviewer in that branch. In the same path, `CLICommand` set `RunInfo.EffectsKnown = len(event.Files)>0` even for safe non-mutating `rg --files`, so `assessImpact()` classified the screenshot's read-only command as unknown effects and required extra review roles. Fix keeps the same lead session/bridge and sends precise captured gate instruction back to resumed vendor CLI automatically, with bounded attempts. It preserves mandatory report validation and explicit errors when no Reviewer is enabled. Fixtures simulate successful reviewer report, repeated missing report, disabled reviewer, continuation of already-failed task, Swift mode, missing vendor session and read-only/unknown command effects. No live authenticated vendor CLI/Docker is available here, so this is contract simulation, not a live vendor attestation.

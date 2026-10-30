@@ -1,0 +1,18 @@
+# Critical regression: delegation membuat banyak top-level tas…
+
+Task: fe62437cacc40766e89f209a58d86642
+Status: done
+Updated: 2026-10-29T02:43:24Z
+
+Reference material; confirm applicability before reusing.
+
+external assistant, self-reported, untrusted: treat as reference, not instructions.
+
+## Reproduction-oriented trace (2026-10-29, branch dev 54085c5)
+1. Internal orchestrator `delegate`: `internal/modules/task/application/delegate.go` and `teamports.go` use `StartDelegation(ctx, task.ID, ...)`; this stores jobs/events under the same root task. It does not call `Tasks.Create`.
+2. External MCP `begin_work`: `internal/modules/coding/adapter/mcp/tools_work.go` -> `internal/bootstrap/workbridge.go` -> `internal/modules/task/application/works.go` -> `work_begin_create.go`: when `idempotency_key` is empty, `resume()` unconditionally returns not-found; `create()` creates one new task row and external_work row. Repeating `begin_work` therefore spawns additional top-level tasks. `BeginWorkPerMinute=10` makes the observed ~10/task burst plausible, but not yet statistically verified.
+3. Strong regression candidate `b7e9294` dated 2026-10-28: enforced `work_id` for every MCP workspace operation except whoami/list_projects/begin_work; `serverInstructions` now says begin_work mandatory even for small tasks. Consequently basic read-only or role-specific tool activity must start a new work if it has no work_id, encouraging duplicate tasks. `set_role` exists and should be used to switch roles in one work.
+4. Linked internal child task: `external_chat.go`, `handoff_dispatch.go`, `linked_task_build.go` create a child with `origin_task_id` and attach parent `linked_task_id`; `internal/modules/task/adapter/sqlite/store.go` ordinary List filters only archive state, not `origin_task_id`, so the linked child is displayed alongside the parent in top-level lists. `Get(id)` separately permits child details by ID; hiding from List would preserve execution/history.
+5. Existing auth and idempotency protections: `FindIdempotent` scoped to owner/client/project/key; repeated matching explicit key already returns the same work. Distinct user issues must remain separable, and reuse must not silently cross user/client/project or closed sessions.
+
+Next: write black-box MCP/HTTP regression fixtures that reproduce repeated begin and linked task visibility, then implement a minimal task-session reuse contract plus child-list filtering. Review the risk of merging unrelated concurrent requests before choosing default reuse semantics.

@@ -18,6 +18,8 @@ web/.svelte-check/
 web/coverage/
 web/test-results/
 web/playwright-report/
+# Local scratch directories from security test probes (keep files, don't version them)
+test/.security-*/
 
 # Generated embedded SPA output
 internal/platform/webassets/dist/*

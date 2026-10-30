@@ -2,12 +2,33 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md; working; 2026-10-22T06:18:27Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md; working; 2026-10-22T06:18:27Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md; working; 2026-10-22T06:18:27Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md; working; 2026-10-22T06:18:27Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md; working; 2026-10-22T06:18:27Z
-- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md; working; 2026-10-22T06:18:27Z
+- [Read-only research of landing page and authentication routin…](tasks/53593199b0f51da303c8f87d5233d25a/research.md) — project-notes/tasks/53593199b0f51da303c8f87d5233d25a/research.md; done; 2026-10-30T05:58:07Z
+- [Read-only research of landing page and authentication routin…](tasks/53593199b0f51da303c8f87d5233d25a/research/32.md) — project-notes/tasks/53593199b0f51da303c8f87d5233d25a/research/32.md; done; 2026-10-30T05:58:07Z
+- [Critical: @deep-review team completes developer plan but req…](tasks/f240c1c59ac664bff2c327423c0b8737/plan.md) — project-notes/tasks/f240c1c59ac664bff2c327423c0b8737/plan.md; done; 2026-10-29T03:46:45Z
+- [Critical: @deep-review team completes developer plan but req…](tasks/f240c1c59ac664bff2c327423c0b8737/requirements.md) — project-notes/tasks/f240c1c59ac664bff2c327423c0b8737/requirements.md; done; 2026-10-29T03:46:45Z
+- [Critical: @deep-review team completes developer plan but req…](tasks/f240c1c59ac664bff2c327423c0b8737/research.md) — project-notes/tasks/f240c1c59ac664bff2c327423c0b8737/research.md; done; 2026-10-29T03:46:45Z
+- [Critical: @deep-review team completes developer plan but req…](tasks/f240c1c59ac664bff2c327423c0b8737/prd/35.md) — project-notes/tasks/f240c1c59ac664bff2c327423c0b8737/prd/35.md; done; 2026-10-29T03:46:45Z
+- [Critical: @deep-review team completes developer plan but req…](tasks/f240c1c59ac664bff2c327423c0b8737/research/36.md) — project-notes/tasks/f240c1c59ac664bff2c327423c0b8737/research/36.md; done; 2026-10-29T03:46:45Z
+- [Quick fix: manually stopped task should become Done, not Nee…](tasks/b07573c596c729ba3b891893bb634e40/requirements.md) — project-notes/tasks/b07573c596c729ba3b891893bb634e40/requirements.md; done; 2026-10-29T03:28:49Z
+- [Quick fix: manually stopped task should become Done, not Nee…](tasks/b07573c596c729ba3b891893bb634e40/prd/13.md) — project-notes/tasks/b07573c596c729ba3b891893bb634e40/prd/13.md; done; 2026-10-29T03:28:49Z
+- [Critical regression: delegation membuat banyak top-level tas…](tasks/fe62437cacc40766e89f209a58d86642/plan.md) — project-notes/tasks/fe62437cacc40766e89f209a58d86642/plan.md; done; 2026-10-29T02:43:24Z
+- [Critical regression: delegation membuat banyak top-level tas…](tasks/fe62437cacc40766e89f209a58d86642/requirements.md) — project-notes/tasks/fe62437cacc40766e89f209a58d86642/requirements.md; done; 2026-10-29T02:43:24Z
+- [Critical regression: delegation membuat banyak top-level tas…](tasks/fe62437cacc40766e89f209a58d86642/research.md) — project-notes/tasks/fe62437cacc40766e89f209a58d86642/research.md; done; 2026-10-29T02:43:24Z
+- [Critical regression: delegation membuat banyak top-level tas…](tasks/fe62437cacc40766e89f209a58d86642/prd/11.md) — project-notes/tasks/fe62437cacc40766e89f209a58d86642/prd/11.md; done; 2026-10-29T02:43:24Z
+- [Critical regression: delegation membuat banyak top-level tas…](tasks/fe62437cacc40766e89f209a58d86642/research/14.md) — project-notes/tasks/fe62437cacc40766e89f209a58d86642/research/14.md; done; 2026-10-29T02:43:24Z
+- [PRD-first: reliable context window compaction and live CLI m…](tasks/7b88cfadc593991abd66f036844dca5e/plan.md) — project-notes/tasks/7b88cfadc593991abd66f036844dca5e/plan.md; done; 2026-10-29T02:05:10Z
+- [PRD-first: reliable context window compaction and live CLI m…](tasks/7b88cfadc593991abd66f036844dca5e/requirements.md) — project-notes/tasks/7b88cfadc593991abd66f036844dca5e/requirements.md; done; 2026-10-29T02:05:10Z
+- [PRD-first: reliable context window compaction and live CLI m…](tasks/7b88cfadc593991abd66f036844dca5e/research.md) — project-notes/tasks/7b88cfadc593991abd66f036844dca5e/research.md; done; 2026-10-29T02:05:10Z
+- [PRD-first: reliable context window compaction and live CLI m…](tasks/7b88cfadc593991abd66f036844dca5e/research/6.md) — project-notes/tasks/7b88cfadc593991abd66f036844dca5e/research/6.md; done; 2026-10-29T02:05:10Z
+- [PRD-first: reliable context window compaction and live CLI m…](tasks/7b88cfadc593991abd66f036844dca5e/prd/7.md) — project-notes/tasks/7b88cfadc593991abd66f036844dca5e/prd/7.md; done; 2026-10-29T02:05:10Z
+- [Trace context window and compaction](tasks/6366675de901efd89be4a29c095d4842/research.md) — project-notes/tasks/6366675de901efd89be4a29c095d4842/research.md; done; 2026-10-29T01:11:26Z
+- [Trace context window and compaction](tasks/6366675de901efd89be4a29c095d4842/research/10.md) — project-notes/tasks/6366675de901efd89be4a29c095d4842/research/10.md; done; 2026-10-29T01:11:26Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/plan.md; done; 2026-10-22T06:38:07Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/requirements.md; done; 2026-10-22T06:38:07Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research.md; done; 2026-10-22T06:38:07Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/57.md; done; 2026-10-22T06:38:07Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/prd/61.md; done; 2026-10-22T06:38:07Z
+- [coba pull dr origin kode terbaru dong, terus report apakah s…](tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md) — project-notes/tasks/3b0f1c122f5e93a06b8c7040cd29e90f/research/72.md; done; 2026-10-22T06:38:07Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/plan.md; done; 2026-10-21T13:38:46Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/requirements.md; done; 2026-10-21T13:38:46Z
 - [sambil parallel revisi dong](tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md) — project-notes/tasks/8c584e822e8dcb789ebd960e2a5f7918/research.md; done; 2026-10-21T13:38:46Z
