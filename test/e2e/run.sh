@@ -4,8 +4,8 @@ set -euo pipefail
 REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 flow=${1:-}
 case "$flow" in
-  projects|sites|thread|lifecycle|git) ;;
-  *) printf 'Usage: %s {projects|sites|thread|lifecycle|git}\n' "$0" >&2; exit 2 ;;
+  projects|sites|thread|lifecycle|git|context) ;;
+  *) printf 'Usage: %s {projects|sites|thread|lifecycle|git|context}\n' "$0" >&2; exit 2 ;;
 esac
 
 source "$REPO_ROOT/test/lib/app.sh"
@@ -90,6 +90,30 @@ elif [[ $flow == lifecycle ]]; then
   shots=${shots:-$APP_TMP_DIR}
   mkdir -p "$shots"
   spec=04-work-lifecycle.spec.ts
+elif [[ $flow == context ]]; then
+  make -C "$REPO_ROOT" frontend >/dev/null
+  app_init
+  app_start
+  cookie_jar="$APP_TMP_DIR/browser.cookies"
+  touch "$cookie_jar"
+  email="context-${APP_PORT}@example.test"
+  password='correct horse battery'
+  http_register "$cookie_jar" 'Context browser test' "$email" "$password"
+  assert_status "$HTTP_STATUS" 201 'register context user'
+  http_project_create "$cookie_jar" 'Context meter project'
+  assert_status "$HTTP_STATUS" 201 'create context project'
+  project_id=$(jq -r '.id' "$HTTP_BODY_FILE")
+  http_request POST "$cookie_jar" /api/tasks \
+    "$(jq -cn --arg project "$project_id" '{projectId:$project,prompt:"Context meter fixture",providerId:"plan:claude",model:"default",team:false}')"
+  assert_status "$HTTP_STATUS" 201 'create context task'
+  task_id=$(jq -r '.id' "$HTTP_BODY_FILE")
+  info_file="$APP_TMP_DIR/info.json"
+  jq -n --arg base "$APP_BASE" --arg email "$email" --arg password "$password" \
+    --arg project "$project_id" --arg task "$task_id" --arg db "$APP_DATA_DIR/workspace.db" \
+    '{base:$base,email:$email,password:$password,project:$project,task:$task,db:$db}' >"$info_file"
+  shots=${shots:-$APP_TMP_DIR}
+  mkdir -p "$shots"
+  spec=06-context-meter.spec.ts
 elif [[ $flow == git ]]; then
   make -C "$REPO_ROOT" frontend >/dev/null
   app_init

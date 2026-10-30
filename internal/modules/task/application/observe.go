@@ -103,6 +103,14 @@ func (o observedTasks) SetStatus(ctx context.Context, id string, status domain.S
 	return err //nolint:wrapcheck // a transparent decorator
 }
 
+func (o observedTasks) FailUnlessDone(ctx context.Context, id string, at time.Time) (bool, error) {
+	changed, err := o.TaskStore.FailUnlessDone(ctx, id, at)
+	if err == nil && changed {
+		o.notify.Changed(o.owners.of(ctx, id), id)
+	}
+	return changed, err
+}
+
 func (o observedTasks) SavePlan(ctx context.Context, id string, plan []domain.PlanStep, at time.Time) error {
 	err := o.TaskStore.SavePlan(ctx, id, plan, at)
 	if err == nil {
@@ -128,6 +136,14 @@ func (o observedTasks) SetContext(ctx context.Context, id string, used, window i
 	}
 
 	return err //nolint:wrapcheck // a transparent decorator
+}
+
+func (o observedTasks) SetContextState(ctx context.Context, id, state string) error {
+	err := o.TaskStore.SetContextState(ctx, id, state)
+	if err == nil {
+		o.notify.Changed(o.owners.of(ctx, id), id)
+	}
+	return err //nolint:wrapcheck // transparent decorator
 }
 
 type observedEvents struct {

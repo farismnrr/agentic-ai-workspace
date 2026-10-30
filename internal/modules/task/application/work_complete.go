@@ -23,7 +23,9 @@ type Completion struct {
 	Already  bool         `json:"already,omitempty"`
 }
 
-// Complete closes or blocks one work session and derives proof only from server events.
+// Complete closes or blocks one work session. Its required summary is the
+// final report, persisted in the task summary and completion event. Timeout
+// completion is a separate unverified path and needs no fabricated report.
 func (w *Works) Complete(ctx context.Context, userID, client, projectID, workID, outcome, summary string,
 	claims []string,
 ) (Completion, error) {
@@ -87,11 +89,13 @@ func (w *Works) Stop(ctx context.Context, userID, client, projectID, workID stri
 	if work.State != domain.WorkOpen && work.State != domain.WorkBlocked {
 		return domain.ErrWorkClosed
 	}
-	state, status, ended := domain.WorkStopped, domain.StatusFailed, w.now()
-	event := workEvent(work, domain.EventError, "Stopped by you", "", ended)
+	state, status, ended := domain.WorkStopped, domain.StatusDone, w.now()
+	summary, reason := "Stopped by you", "manual_stop"
+	event := workEvent(work, domain.EventMessage, summary, "", ended)
 	event.Work.Outcome = string(state)
+	// User-requested stop is terminal but not proof of completed work.
 	return w.appendMutation(ctx, work, &TaskPatch{Status: &status},
-		&WorkPatch{State: &state, EndedAt: &ended}, []domain.Event{event})
+		&WorkPatch{State: &state, EndedAt: &ended, CompletionReason: &reason}, []domain.Event{event})
 }
 
 func (w *Works) loadWorkTask(ctx context.Context, userID, client, projectID, workID string) (

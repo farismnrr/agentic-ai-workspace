@@ -41,7 +41,12 @@ oauth_code_token "$jar" 'openid email coding:read coding:write' "$resource"
 assert_status "$HTTP_STATUS" 200 'write-scoped OAuth token issued'
 write_token=$(jq -r '.access_token' "$HTTP_BODY_FILE")
 refresh_token=$(jq -r '.refresh_token' "$HTTP_BODY_FILE")
-mcp_call_tool "$write_token" write_file '{"path":"scope-check.txt","content":"written"}'
+mcp_call_tool "$write_token" begin_work '{"role":"developer","summary":"Verify write-scoped MCP access"}'
+assert_status "$HTTP_STATUS" 200 'write-scoped client can start tracked work'
+assert_json '(.result.structuredContent.work_id // "") | length > 0' 'tracked work has an id'
+work_id=$(jq -r '.result.structuredContent.work_id' "$HTTP_BODY_FILE")
+mcp_call_tool "$write_token" write_file "$(jq -cn --arg work_id "$work_id" \
+  '{work_id:$work_id,path:"scope-check.txt",content:"written"}')"
 assert_status "$HTTP_STATUS" 200 'write-scoped tool request reaches MCP'
 assert_json 'has("result") and (.result.isError // false) == false' 'tool call succeeds with its scope'
 

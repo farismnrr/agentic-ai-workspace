@@ -53,7 +53,7 @@ After this slice, 74 Go test files contain 160 top-level test functions:
 | `test/go/app/tools/tool_switches_test.go::TestToolSwitchesStartOffForWritingAndRunning` | app-level integration | Exercises tool configuration through the assembled HTTP app. | none |
 | `test/go/app/tools/tool_switches_test.go::TestWriteToolRefusesUntilSwitchedOn` | app-level integration | Exercises MCP tool permissions and workspace effects through the app. | none |
 | `test/go/app/tools/tool_switches_test.go::TestMissingScopeAsksForStepUpSignIn` | app-level integration | Exercises MCP scope enforcement through the assembled app. | none |
-| `test/go/app/tools/tool_switches_test.go::TestUndoRestoresTheFileOnce` | app-level integration | Exercises activity undo through the assembled app. | none |
+| `test/go/app/tools/tool_switches_test.go::TestTrackedEditUndoLivesInTaskChanges` | app-level integration | Checks tracked edits do not expose duplicate activity-feed undo. | none |
 | `test/go/app/tools/tool_switches_test.go::TestUndoIsRefusedAfterALaterChangeAndForOtherPeople` | app-level integration | Exercises stale and owner-bound activity undo through HTTP. | none |
 | `test/go/app/tools/tool_switches_test.go::TestTasksRunOnlyWhenSwitchedOnAndNeverExposeTheirFile` | app-level integration | Exercises task tool switching through MCP and the assembled app. | none |
 | `test/go/app/egress/egress_host_test.go::TestTheProxyAndTheDomainSpellHostsTheSame` | security | Compares canonical host normalization at the domain and proxy boundary. | none |
@@ -80,7 +80,7 @@ After this slice, 74 Go test files contain 160 top-level test functions:
 | `test/go/app/account/origin_test.go::TestCORSFollowsConfiguredOrigins` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
 | `test/go/app/account/password_test.go::TestChangingPasswordKeepsOnlyThisDevice` | app-level integration | Exercises account behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
 | `test/go/app/connectors/connected_apps_test.go::TestEachConnectedAppWorksInAProjectNamedAfterIt` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
-| `test/go/app/connectors/connected_apps_test.go::TestAppsFirstCallsAtOnceStillMakeOneProject` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
+| `test/go/app/connectors/connected_apps_test.go::TestConcurrentTrackedCallsStillReuseOneProject` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
 | `test/go/app/connectors/connected_projects_test.go::TestAConnectedAppWorksInAnyProjectByItsProjectID` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
 | `test/go/app/connectors/connected_projects_test.go::TestAConnectedAppsWorkShowsInItsThreadWhileItRuns` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
 | `test/go/app/connectors/e2e_test.go::TestUnauthenticatedCallPointsToResourceMetadata` | app-level integration | Exercises connectors behavior through the assembled HTTP or MCP app. | `test/blackbox/` scenarios |
@@ -184,3 +184,4 @@ After this slice, 74 Go test files contain 160 top-level test functions:
 - `test/go/platform/egressproxy/extra_test.go` provides the fake dial adapter used by retained grant-path checks.
 - `test/go/platform/egressproxy/rig_test.go` provides the rig used by retained grant-path checks.
 - `test/go/app/tasks/projects/assertions_test.go` provides the shared response assertion for project integration checks.
+- `test/go/app/connectors/tracked_work_test.go` provides the shared tracked connected-app work session fixture.

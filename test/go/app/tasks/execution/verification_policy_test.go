@@ -299,7 +299,7 @@ func TestCommandChangesToGitHooksAreVisibleToSecurityReview(t *testing.T) {
 	assertNoScriptExhaustion(t, a, id)
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
 		apptest.JSONCookie(a.Cookie)).Body)
-	if !strings.Contains(events, `"effectPaths":[".git/hooks/pre-commit"]`) ||
+	if !strings.Contains(events, `"effectPaths":[`) || !strings.Contains(events, `".git/hooks/pre-commit"`) ||
 		!strings.Contains(events, "blocked and unverified") {
 		t.Fatalf("a real hook write must be captured and blocked for review: %s", events)
 	}
@@ -370,11 +370,15 @@ func assertFakeExecutorDidNotProve(t *testing.T, a apptest.AgentRig, id, command
 	response := apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id, "",
 		apptest.JSONCookie(a.Cookie))
 	proof, _ := response.JSON(t)["proof"].(map[string]any)
-	if proof["proven"] != false {
+	// A blocked sensitive task may have no receipt; absence of proof is not success.
+	if proof != nil && proof["proven"] != false {
 		t.Fatalf("replacement executor must not prove the task: %v", proof)
 	}
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
 		apptest.JSONCookie(a.Cookie)).Body)
+	if proof == nil && !strings.Contains(events, "blocked and unverified") {
+		t.Fatalf("missing proof must be caused by the mandatory security gate: %s", events)
+	}
 	if !strings.Contains(events, `"command":"`+command+`"`) ||
 		!strings.Contains(events, `"exitCode":0`) || strings.Contains(events, `"testExecuted":true`) {
 		t.Fatalf("the successful wrapper must be visible but not count as executed tests: %s", events)
@@ -443,7 +447,6 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.ToolCall("d1", "delegate", map[string]string{
 			"role": "developer", "brief": "Prepare a Go package for verification",
 		}),
-		apptest.ToolCall("g1", "write_file", map[string]string{"path": "go.mod", "content": "module sample\n\ngo 1.22\n"}),
 		apptest.ToolCall("t1", "write_file", map[string]string{
 			"path": "sample_test.go",
 			"content": "package sample\n\nimport \"testing\"\n\n" +
@@ -461,12 +464,45 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.ToolCall("run", "run_command", map[string]string{"command": "go test ./..."}),
 		apptest.ToolCall("s-report", "report", map[string]string{
 			"summary": securityReport("Verdict: PASS\nChecks:\n- go test ./...",
-				[]string{"go.mod", "sample_test.go"}, []string{"go test ./..."}),
+				[]string{"sample_test.go"}, []string{"go test ./..."}),
 		}),
 		apptest.FinishCall("The package passed its required security check"),
+		// A team can ask to reconcile its plan or save changes before review.
+		// Executable source changes also require an Architect report, even in Swift
+		// when impact cannot be classified from the changed path alone.
+		apptest.ToolCall("a0", "delegate", map[string]string{
+			"role": "architect", "brief": "Review the changed Go package and callers",
+		}),
+		apptest.ToolCall("a-report", "report", map[string]string{
+			"summary": "Verdict: PASS\nReviewed sample_test.go and its affected callers; no contract changes.",
+		}),
+		apptest.FinishCall("Architecture review passed"),
+		apptest.ToolCall("v0", "delegate", map[string]string{
+			"role": "reviewer", "brief": "Independently review the checked package",
+		}),
+		apptest.ToolCall("v-report", "report", map[string]string{
+			"summary": "Verdict: PASS\nReviewed sample_test.go and the recorded passing go test ./... evidence.",
+		}),
+		apptest.FinishCall("Independent review passed"),
+		apptest.ToolCall("final-plan", "update_plan", map[string]any{"steps": []map[string]string{
+			{"title": "Developer: prepare checked package", "state": "done"},
+			{"title": "Security: verify the package", "state": "done"},
+		}}),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
+		apptest.FinishCall("The package passed its required security check"),
 	)
+	configureReviewTeam(t, a, "developer", "security", "architect", "reviewer")
+	// Keep go.mod as baseline: changing dependencies would also require an Architect review.
+	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
-		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true}`, apptest.JSONCookie(a.Cookie))
+		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true,"mode":"swift"}`, apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
 	a.WaitApproving(t, id, "review")
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
@@ -505,6 +541,11 @@ func TestRenamedDeveloperCannotSatisfyStableSecurityReview(t *testing.T) {
 			`{"choices":[{"message":{"content":"Token handling is complete."}}],`,
 			`"usage":{"prompt_tokens":30,"completion_tokens":10}}`,
 		}, ""),
+		// Refused completion must exhaust the bounded review attempts.
+		apptest.FinishCall("Token handling is complete"),
+		apptest.FinishCall("Token handling is complete"),
+		apptest.FinishCall("Token handling is complete"),
+		apptest.FinishCall("Token handling is complete"),
 	)
 	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	a.PutFile(t, "internal/modules/auth/token_test.go", "package auth\n\nimport \"testing\"\n\n"+

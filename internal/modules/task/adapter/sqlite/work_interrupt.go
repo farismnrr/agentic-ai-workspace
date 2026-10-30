@@ -49,7 +49,7 @@ func runningCalls(ctx context.Context, tx *sql.Tx, before *time.Time) ([]running
 	rows, err := tx.QueryContext(ctx, `SELECT w.id, w.task_id, w.user_id, e.body
 		FROM external_works w JOIN task_events e ON e.task_id = w.task_id
 		WHERE w.state = 'open' AND w.plan_state NOT IN ('ready_for_approval', 'awaiting_clarification')
-		AND (? = 1 OR w.updated_at <= ?)
+		AND (? = 1 OR e.at <= ?)
 		AND json_extract(e.body, '$.work.id') = w.id
 		AND json_extract(e.body, '$.work.phase') = 'running' ORDER BY w.task_id, e.seq`, all, cutoff)
 	if err != nil {

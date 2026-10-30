@@ -18,10 +18,7 @@ type BeginResult struct {
 }
 
 func (r BeginResult) MarshalJSON() ([]byte, error) {
-	idempotency := "none"
-	if r.mode != beginWithoutKey {
-		idempotency = "keyed"
-	}
+	idempotency := r.Idempotency
 	encoded, err := json.Marshal(beginResponse{
 		Roles: r.Roles, WorkID: r.WorkID, Idempotency: idempotency, Resumed: r.mode == beginResumed,
 	})

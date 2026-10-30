@@ -49,10 +49,15 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 	ticketed := expectOwnerOpens(t, a, url, page)
 
 	// Private means private: neither a stranger's page nor a script request that merely knows the address.
-	for name, headers := range map[string]map[string]string{"page": anonymous, "script": script} {
-		if got := apptest.Do(t, a.Environment.App, "GET", url, "", headers).Status; got != 403 {
-			t.Fatalf("an anonymous %s request to a private site must be forbidden, got %d", name, got)
-		}
+	// Anonymous navigation may redirect to the app's forbidden page, but
+	// must never receive private site content or a ticketed site URL.
+	denied := apptest.Do(t, a.Environment.App, "GET", url, "", anonymous)
+	if denied.Status != 302 || !strings.HasPrefix(denied.Header.Get("Location"), "/forbidden?next=") {
+		t.Fatalf("anonymous navigation must lead to the forbidden page, got %d %q",
+			denied.Status, denied.Header.Get("Location"))
+	}
+	if got := apptest.Do(t, a.Environment.App, "GET", url, "", script).Status; got != 403 {
+		t.Fatalf("anonymous script request to a private site must be forbidden, got %d", got)
 	}
 
 	// What the page loads itself carries the ticket the owner's visit put in the address.
@@ -66,8 +71,15 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 
 	expectStatus(t, a, "POST", "/api/sites/"+a.Project+"/stop", "", 204)
 
-	if got := apptest.Do(t, a.Environment.App, "GET", url, "", page).Status; got != 404 {
-		t.Fatalf("a stopped site must be gone, got %d", got)
+	// Page navigations to missing sites use the SPA not-found screen, while
+	// subresource requests receive a plain 404. Neither may serve old content.
+	stopped := apptest.Do(t, a.Environment.App, "GET", url, "", page)
+	if stopped.Status != 302 || stopped.Header.Get("Location") != "/not-found" {
+		t.Fatalf("a stopped site must redirect to not-found, got %d %q",
+			stopped.Status, stopped.Header.Get("Location"))
+	}
+	if got := apptest.Do(t, a.Environment.App, "GET", url, "", script).Status; got != 404 {
+		t.Fatalf("a stopped site's resources must be gone, got %d", got)
 	}
 }
 

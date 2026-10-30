@@ -9,7 +9,10 @@ import (
 // withWindow fills in the model's context window for a task that has not recorded one yet,
 // so the page can show how full it is before the next model call.
 func (s *Service) withWindow(ctx context.Context, task domain.Task) domain.Task {
-	if task.ContextWindow == 0 && task.Model != "" && s.deps.Windows != nil {
+	// Plan-backed Claude/Codex sessions have their own window settings. Do not
+	// substitute the API provider's generic 200K fallback when usage is unknown.
+	_, planRuntime := domain.PlanRuntime(task.ProviderID)
+	if !planRuntime && task.ContextWindow == 0 && task.Model != "" && s.deps.Windows != nil {
 		task.ContextWindow = s.deps.Windows.ContextWindow(ctx, task.UserID, task.ProviderID, task.Model)
 	}
 	if work := s.workSummary(ctx, task); work != nil {
@@ -32,7 +35,7 @@ func (s *Service) workSummary(ctx context.Context, task domain.Task) *domain.Wor
 	})
 	return &domain.WorkSummary{
 		ID: work.ID, UpdatedAt: work.UpdatedAt, State: work.State, PlanState: work.PlanState, Role: work.RoleKey,
-		Phase:      phase,
+		Phase: phase, CompletionReason: work.CompletionReason,
 		ReportedAt: work.ReportedAt,
 		RoleName:   work.RoleName, Actor: work.Client, Revision: work.Rev,
 		CurrentRevision: currentRevision, PlanRev: work.PlanRev,

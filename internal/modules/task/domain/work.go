@@ -41,44 +41,46 @@ type WorkRef struct {
 
 // WorkSummary is the safe, read-only work detail attached to a task response.
 type WorkSummary struct {
-	UpdatedAt       time.Time  `json:"updatedAt"`
-	ReportedAt      *time.Time `json:"reportedAt,omitempty"`
-	ID              string     `json:"id"`
-	State           WorkState  `json:"state"`
-	Phase           WorkPhase  `json:"phase"`
-	PlanState       PlanPhase  `json:"planState"`
-	Role            string     `json:"role,omitempty"`
-	RoleName        string     `json:"roleName,omitempty"`
-	Actor           string     `json:"actor"`
-	Decision        string     `json:"decision,omitempty"`
-	HandoffState    string     `json:"handoffState,omitempty"`
-	LinkedTaskID    string     `json:"linkedTaskId,omitempty"`
-	Revision        int64      `json:"revision"`
-	CurrentRevision int64      `json:"currentRevision"`
-	PlanRev         int64      `json:"planRev"`
-	Stale           bool       `json:"stale"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	ReportedAt       *time.Time `json:"reportedAt,omitempty"`
+	ID               string     `json:"id"`
+	State            WorkState  `json:"state"`
+	CompletionReason string     `json:"completionReason,omitempty"`
+	Phase            WorkPhase  `json:"phase"`
+	PlanState        PlanPhase  `json:"planState"`
+	Role             string     `json:"role,omitempty"`
+	RoleName         string     `json:"roleName,omitempty"`
+	Actor            string     `json:"actor"`
+	Decision         string     `json:"decision,omitempty"`
+	HandoffState     string     `json:"handoffState,omitempty"`
+	LinkedTaskID     string     `json:"linkedTaskId,omitempty"`
+	Revision         int64      `json:"revision"`
+	CurrentRevision  int64      `json:"currentRevision"`
+	PlanRev          int64      `json:"planRev"`
+	Stale            bool       `json:"stale"`
 }
 
 // ExternalWork is the persisted identity and lifecycle record for a work session.
 type ExternalWork struct {
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	ReportedAt *time.Time
-	ID         string
-	TaskID     string
-	UserID     string
-	ProjectID  string
-	Client     string
-	State      WorkState
-	PlanState  PlanPhase
-	RoleKey    string
-	RoleName   string
-	IdemKey    string
-	IdemHash   string
-	EndedAt    int64
-	Rev        int64
-	PlanRev    int64
-	NextStep   int64
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	ReportedAt       *time.Time
+	ID               string
+	TaskID           string
+	UserID           string
+	ProjectID        string
+	Client           string
+	State            WorkState
+	CompletionReason string
+	PlanState        PlanPhase
+	RoleKey          string
+	RoleName         string
+	IdemKey          string
+	IdemHash         string
+	EndedAt          int64
+	Rev              int64
+	PlanRev          int64
+	NextStep         int64
 }
 
 // External work inputs are bounded before they are persisted or exported.

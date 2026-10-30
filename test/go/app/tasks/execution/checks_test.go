@@ -69,6 +69,7 @@ func TestPassingCheckAfterTheLastChangeMakesTheWorkProven(t *testing.T) {
 		apptest.ToolCall("r1", "run_task", map[string]string{"name": "hello"}),
 		apptest.FinishCall("Made the page and checked it"),
 	)
+	// A no-op shell command is not evidence of a real test execution.
 	a.PutFile(t, "go.mod", "module checks-fixture\n\ngo 1.22\n")
 	a.PutFile(t, "fixture_test.go", "package fixture\n\nimport \"testing\"\n\n"+
 		"func TestFixture(t *testing.T) { if 1+1 != 2 { t.Fatal(\"bad\") } }\n")

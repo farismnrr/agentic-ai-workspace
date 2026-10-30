@@ -36,7 +36,8 @@ func (t *tools) beginWork(ctx context.Context, in beginWorkInput) (BeginWorkResu
 		return BeginWorkResult{}, report{}, err
 	}
 	result, err := svc.Begin(ctx, who.User, who.Client, projectID, BeginWorkInput{
-		Summary: in.Summary, Role: in.Role, IdempotencyKey: in.IdempotencyKey, PlannedRoles: in.PlannedRoles,
+		Summary: in.Summary, Role: in.Role, IdempotencyKey: in.IdempotencyKey,
+		NewTask: in.NewTask, PlannedRoles: in.PlannedRoles,
 	})
 	return result, report{}, workToolError("begin work", err)
 }

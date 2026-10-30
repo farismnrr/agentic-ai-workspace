@@ -10,7 +10,7 @@ CREATE TABLE tasks (
  review_mode TEXT NOT NULL DEFAULT 'swift' CHECK (review_mode IN ('swift', 'deep-review')),
  provider_id TEXT NOT NULL, model TEXT NOT NULL, plan TEXT NOT NULL DEFAULT '[]', proof TEXT,
  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, source TEXT NOT NULL DEFAULT '',
- context_used INTEGER NOT NULL DEFAULT 0, context_window INTEGER NOT NULL DEFAULT 0,
+ context_used INTEGER NOT NULL DEFAULT 0, context_window INTEGER NOT NULL DEFAULT 0, context_state TEXT NOT NULL DEFAULT 'unknown',
  effort TEXT NOT NULL DEFAULT '', team INTEGER NOT NULL DEFAULT 0, prd TEXT NOT NULL DEFAULT '',
  research TEXT NOT NULL DEFAULT '', plan_first INTEGER NOT NULL DEFAULT 0,
  follow_settings INTEGER NOT NULL DEFAULT 0, pinned_at INTEGER, archived_at INTEGER,
@@ -43,7 +43,7 @@ CREATE TABLE external_works (
  rev INTEGER NOT NULL DEFAULT 0, plan_rev INTEGER NOT NULL DEFAULT 0, next_step INTEGER NOT NULL DEFAULT 1,
  idem_key TEXT NOT NULL DEFAULT '', idem_hash TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL,
 	updated_at INTEGER NOT NULL, ended_at INTEGER, reported_at INTEGER,
- plan_state TEXT NOT NULL DEFAULT 'draft'
+ plan_state TEXT NOT NULL DEFAULT 'draft', completion_reason TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE external_plan_revisions (
  id TEXT PRIMARY KEY, work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE,
@@ -94,6 +94,12 @@ CREATE UNIQUE INDEX external_plan_handoff_task_idx ON external_plan_handoffs(int
 CREATE INDEX external_plan_handoff_due_idx ON external_plan_handoffs(state,next_attempt_at);
 CREATE UNIQUE INDEX external_works_idempotency_idx
  ON external_works(user_id,client,project_id,idem_key) WHERE idem_key <> '';
+CREATE TABLE external_work_begin_aliases (
+    user_id TEXT NOT NULL, client TEXT NOT NULL, project_id TEXT NOT NULL,
+    idem_key TEXT NOT NULL, idem_hash TEXT NOT NULL,
+    work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE,
+    PRIMARY KEY(user_id, client, project_id, idem_key)
+);
 CREATE TABLE external_work_ops (
  work_id TEXT NOT NULL REFERENCES external_works(id) ON DELETE CASCADE, op_key TEXT NOT NULL,
  tool TEXT NOT NULL, req_hash TEXT NOT NULL, response BLOB NOT NULL, at INTEGER NOT NULL,

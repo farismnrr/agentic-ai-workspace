@@ -52,14 +52,22 @@ func (p *plans) Run(
 		return taskapp.CLIResult{}, err
 	}
 
-	return p.execute(ctx, req, emit, docker, spec, window)
+	// The chosen override controls vendor flags; the catalog window is only
+	// used for display when no override was set.
+	measuredWindow := shownWindow(window, catalogWindow(models, req.Model))
+	return p.execute(ctx, req, emit, docker, spec, window, measuredWindow)
 }
 
 func (p *plans) execute(
 	ctx context.Context, req taskapp.CLIRequest, emit func(taskapp.CLIEvent),
-	docker *sandbox.Docker, spec sandbox.Spec, window int64,
+	docker *sandbox.Docker, spec sandbox.Spec, window, measuredWindow int64,
 ) (taskapp.CLIResult, error) {
-	stream := clistream.New(req.Program, emit)
+	stream := clistream.New(req.Program, func(event taskapp.CLIEvent) {
+		if event.Kind == taskapp.CLIUsage {
+			event.Window = shownWindow(measuredWindow, event.Window)
+		}
+		emit(event)
+	})
 
 	res, err := docker.Run(ctx, spec, stream)
 	if err != nil {
@@ -67,7 +75,7 @@ func (p *plans) execute(
 	}
 
 	result := stream.Result()
-	result.Window = shownWindow(window, result.Window)
+	result.Window = shownWindow(measuredWindow, result.Window)
 	if res.ExitCode != 0 && result.Reason == "" {
 		result.Reason = programNames[req.Program] + " stopped before it finished."
 	}

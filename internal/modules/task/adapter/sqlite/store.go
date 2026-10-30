@@ -18,7 +18,7 @@ const legacyMode = "risky"
 
 const taskColumns = `id, project_id, user_id, title, summary, status, provider_id, model, plan, proof, ` +
 	`created_at, updated_at, source, context_used, context_window, effort, team, prd, research, ` +
-	`plan_first, follow_settings, pinned_at, archived_at, work_id, linked_task_id, origin_task_id, review_mode`
+	`plan_first, follow_settings, pinned_at, archived_at, work_id, linked_task_id, origin_task_id, review_mode, context_state`
 
 // Store persists tasks, their thread, the model transcript and usage in SQLite.
 type Store struct {
@@ -105,7 +105,9 @@ func reviewMode(mode domain.ReviewMode) string {
 
 // List returns a person's tasks, newest activity first.
 func (s *Store) List(ctx context.Context, userID, projectID string, limit int) ([]domain.Task, error) {
-	return s.list(ctx, userID, projectID, limit, `archived_at IS NULL`)
+	// Internal chat and approved handoff tasks remain addressable by ID but do
+	// not appear as separate top-level issues beside their external parent.
+	return s.list(ctx, userID, projectID, limit, `archived_at IS NULL AND origin_task_id IS NULL`)
 }
 
 // All returns active and archived tasks for server maintenance and document exports.
@@ -149,7 +151,25 @@ func (s *Store) Running(ctx context.Context) ([]domain.Task, error) {
 
 // SetStatus changes a task's status.
 func (s *Store) SetStatus(ctx context.Context, id string, status domain.Status, at time.Time) error {
-	return s.exec(ctx, `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?`, string(status), at.Unix(), id)
+	// A worker cancelled just as it starts must never reopen a task that the
+	// owner manually stopped. Follow-up explicitly requeues through FollowUp.
+	return s.exec(ctx, `UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?
+		AND (status <> 'done' OR ? = 'done')`, string(status), at.Unix(), id, string(status))
+}
+
+// FailUnlessDone atomically records a runner failure unless a person has
+// already marked the task Done by stopping it. No transient failed status leaks.
+func (s *Store) FailUnlessDone(ctx context.Context, id string, at time.Time) (bool, error) {
+	result, err := s.db.ExecContext(ctx, `UPDATE tasks SET status = 'failed', updated_at = ?
+		WHERE id = ? AND status <> 'done'`, at.Unix(), id)
+	if err != nil {
+		return false, fmt.Errorf("settle task failure: %w", err)
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("count settled task: %w", err)
+	}
+	return count > 0, nil
 }
 
 // SavePlan replaces a task's plan.
@@ -179,7 +199,7 @@ func (s *Store) Finish(ctx context.Context, id, summary string, proof *domain.Pr
 		return fmt.Errorf("encode proof: %w", err)
 	}
 
-	return s.exec(ctx, `UPDATE tasks SET status = 'review', summary = ?, proof = ?, updated_at = ? WHERE id = ?`,
+	return s.exec(ctx, `UPDATE tasks SET status = 'review', summary = ?, proof = ?, updated_at = ? WHERE id = ? AND status <> 'done'`,
 		summary, string(encoded), at.Unix(), id)
 }
 

@@ -190,10 +190,19 @@ await page.locator('main header').getByText('Reported, not confirmed', { exact: 
 check('reported task has no working indicator',
   await page.getByRole('log', { name: 'Conversation' }).getByText('Working on it', { exact: true }).count() === 0);
 check('reported task can be stopped', await page.getByRole('button', { name: 'Stop work' }).count() === 1);
+await page.getByRole('button', { name: 'Stop work' }).click();
+await page.locator('main header').getByText('Done', { exact: true }).waitFor({ timeout: 10000 });
+const manuallyStopped = await page.evaluate(async (taskId) => {
+  const response = await fetch(`/api/tasks/${taskId}`);
+  return await response.json() as { status: string; work: { state: string } };
+}, info.reported);
+check('manual Stop is Done, not Needs Attention, while retaining stopped provenance',
+  manuallyStopped.status === 'done' && manuallyStopped.work.state === 'stopped' &&
+  await page.locator('main header').getByText('Needs attention', { exact: true }).count() === 0);
 
 const idle = await task(info.idle);
 await page.goto(info.base + path(info.idle, idle.projectId));
-await page.locator('main header').getByText('No updates for over 30 min', { exact: true }).waitFor({ timeout: 10000 });
+await page.locator('main header').getByText('Inactive — awaiting automatic closure', { exact: true }).waitFor({ timeout: 10000 });
 check('idle task has no working indicator',
   await page.getByRole('log', { name: 'Conversation' }).getByText('Working on it', { exact: true }).count() === 0);
 check('idle task has Mark complete and Stop',

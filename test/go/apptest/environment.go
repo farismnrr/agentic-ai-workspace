@@ -18,6 +18,9 @@ import (
 
 const publicURL = "https://example.test"
 
+// Integration command tests require bash, git and Go, not just BusyBox utilities.
+const testSandboxImage = "golang:1.27.2-bookworm"
+
 const defaultToolboxImage = "ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest"
 
 // ToolboxImage returns the configured fixture image, or the repository toolbox image.
@@ -60,7 +63,7 @@ func NewEnvServing(t *testing.T, adjust func(*config.Config), frontend fs.FS) En
 
 	cfg := config.Config{
 		Port: "0", PublicURL: publicURL, DataDir: t.TempDir(), CookieSecure: true,
-		SandboxImage: "busybox:1.37", MaxSandboxes: maxSandboxCount,
+		SandboxImage: testSandboxImage, MaxSandboxes: maxSandboxCount,
 		SiteMaxPerUser: sitesPerUser, SiteMaxTotal: maxSitesTotal,
 		AllowedOrigins: []string{"http://localhost:8081", "http://127.0.0.1:8081"},
 		CORSOrigins:    []string{"http://localhost:8081"},
