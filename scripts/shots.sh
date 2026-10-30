@@ -24,7 +24,7 @@ while ! python3 -c 'import socket,sys; s=socket.socket(); s.bind(("127.0.0.1",in
 done
 
 env -i PATH="$PATH" HOME="$HOME" DATA_DIR="$work/data" ADMIN_EMAIL=shots@example.test \
-  PORT="$port" PUBLIC_URL="http://127.0.0.1:$port" "$binary" >"$work/app.log" 2>&1 &
+  EGRESS_GRANTS=true PORT="$port" PUBLIC_URL="http://127.0.0.1:$port" "$binary" >"$work/app.log" 2>&1 &
 server_pid=$!
 origin="http://127.0.0.1:$port"
 for _ in $(seq 1 60); do
@@ -57,7 +57,7 @@ curl -fsS -b "$work/cookies.txt" -H 'Content-Type: application/json' -X PUT \
 tasks_created=0
 for prompt in 'Review the project overview' 'Check the main workflow' 'Prepare a release note'; do
   status="$(curl -sS -b "$work/cookies.txt" -H 'Content-Type: application/json' \
-    -d "$(jq -cn --arg project "$project_id" --arg prompt "$prompt" '{projectId:$project,prompt:$prompt}')" \
+    -d "$(jq -cn --arg project "$project_id" --arg prompt "$prompt" '{projectId:$project,prompt:$prompt,providerId:"plan:claude",model:"default",team:false}')" \
     -o "$work/task.json" -w '%{http_code}' "$origin/api/tasks")"
   case "$status" in
     2*) tasks_created=$((tasks_created + 1)) ;;

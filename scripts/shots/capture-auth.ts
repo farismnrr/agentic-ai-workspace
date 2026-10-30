@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { connect, type Cdp } from '../../sandbox/capture/cdp.ts';
@@ -29,15 +29,24 @@ async function pageSocket(port: number): Promise<string> {
 async function waitForLoad(cdp: Cdp): Promise<void> {
   await Promise.race([
     new Promise<void>((resolve) => cdp.on('Page.loadEventFired', () => resolve())),
-    pause(15000),
+    pause(1500),
   ]);
-  await cdp.send('Runtime.evaluate', {
-    expression: "new Promise((resolve) => document.readyState === 'complete' ? resolve(true) : window.addEventListener('load', () => resolve(true), { once: true }))",
-    awaitPromise: true,
-  });
-  await cdp.send('Runtime.evaluate', { expression: 'document.fonts.ready', awaitPromise: true });
-  await pause(800);
-  await cdp.send('Runtime.evaluate', { expression: 'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))', awaitPromise: true });
+  await Promise.race([
+    cdp.send('Runtime.evaluate', {
+      expression: "new Promise((resolve) => document.readyState === 'complete' ? resolve(true) : window.addEventListener('load', () => resolve(true), { once: true }))",
+      awaitPromise: true,
+    }),
+    pause(1000),
+  ]);
+  await Promise.race([
+    cdp.send('Runtime.evaluate', { expression: 'document.fonts.ready', awaitPromise: true }),
+    pause(1000),
+  ]);
+  await pause(300);
+  await Promise.race([
+    cdp.send('Runtime.evaluate', { expression: 'new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))', awaitPromise: true }),
+    pause(1000),
+  ]);
 }
 
 async function selectTab(cdp: Cdp, tab: string): Promise<void> {
@@ -60,6 +69,13 @@ async function selectTab(cdp: Cdp, tab: string): Promise<void> {
 function defaults(projectId: string): Shot[] {
   const project = `/app/projects/${projectId}`;
   return [
+    { name: 'app-home', path: '/app' },
+    { name: 'inbox', path: '/app/inbox' },
+    { name: 'tasks', path: '/app/tasks' },
+    { name: 'archive', path: '/app/archive' },
+    { name: 'sites', path: '/app/sites' },
+    { name: 'extensions', path: '/app/extensions' },
+    { name: 'projects-new', path: '/app/projects/new' },
     { name: 'projects', path: '/app/projects' },
     { name: 'project-tasks', path: project, tab: 'Tasks' },
     { name: 'project-about', path: project, tab: 'About' },
@@ -69,9 +85,20 @@ function defaults(projectId: string): Shot[] {
     { name: 'project-database-lower', path: project, tab: 'Database', scrollY: 600 },
     { name: 'project-checks', path: project, tab: 'Checks' },
     { name: 'project-files', path: project, tab: 'Files' },
+    { name: 'project-internet-access', path: project, tab: 'Internet access' },
+    { name: 'settings-models', path: '/app/settings/models' },
+    { name: 'settings-persona', path: '/app/settings/persona' },
+    { name: 'settings-team', path: '/app/settings/team' },
+    { name: 'settings-spaces', path: '/app/settings/spaces' },
+    { name: 'settings-connected', path: '/app/settings/connected' },
+    { name: 'settings-integrations', path: '/app/settings/integrations' },
+    { name: 'settings-activity', path: '/app/settings/activity' },
+    { name: 'settings-usage', path: '/app/settings/usage' },
+    { name: 'settings-notifications', path: '/app/settings/notifications' },
     { name: 'settings-database', path: '/app/settings/database' },
     { name: 'settings-database-mysql', path: '/app/settings/database', settingsKind: 'MySQL' },
     { name: 'settings-database-mysql-ca-only', path: '/app/settings/database', settingsKind: 'MySQL', caOnly: true },
+    { name: 'settings-account', path: '/app/settings/account' },
   ];
 }
 
@@ -127,8 +154,16 @@ async function run(): Promise<void> {
   const [origin, jar, out, projectId, ...paths] = process.argv.slice(2);
   if (!origin || !jar || !out || !projectId) throw new Error('usage: capture-auth.ts <origin> <cookie-jar> <output-dir> <project-id> [path...]');
   const profile = mkdtempSync(join(tmpdir(), 'workspace-shots-chrome-'));
-  const browser = spawn('/usr/bin/chromium-headless-shell', [
-    '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars', '--force-color-profile=srgb',
+  const home = process.env.HOME || '';
+  const chromeBin = process.env.CHROMIUM_BIN || [
+    '/usr/bin/chromium-headless-shell',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    join(home, '.local/bin/google-chrome'),
+    join(home, '.cache/ms-playwright/chromium-1243/chrome-linux64/chrome'),
+  ].find((p) => existsSync(p)) || 'chromium';
+  const browser = spawn(chromeBin, [
+    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars', '--force-color-profile=srgb',
     '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
   ], { stdio: 'ignore' });
   let cdp: Cdp | undefined;

@@ -37,6 +37,21 @@ export async function createDiff(options: DiffOptions): Promise<DiffEditor> {
     markerTheme,
     await languageFor(options.path),
   ];
+  if (options.split) {
+    const view = new merge.MergeView({
+      parent: options.parent,
+      gutter: true,
+      highlightChanges: true,
+      collapseUnchanged: collapse,
+      a: { doc: options.before, extensions: common },
+      b: { doc: options.after, extensions: common },
+    });
+    return {
+      destroy: () => {
+        view.destroy();
+      },
+    };
+  }
   const view = new EditorView({
     parent: options.parent,
     doc: options.after,
