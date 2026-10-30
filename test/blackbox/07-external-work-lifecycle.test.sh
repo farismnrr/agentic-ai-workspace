@@ -138,8 +138,8 @@ else
 fi
 
 sleep 7
-assert_contains "$APP_LOG" "would abandon $reported_sweep_work reported" 'dry-run logs reported work'
-assert_contains "$APP_LOG" "would abandon $WORK_ID unreported" 'dry-run logs unreported work'
+assert_contains "$APP_LOG" "would auto-complete $reported_sweep_work reported" 'dry-run logs reported work'
+assert_contains "$APP_LOG" "would auto-complete $WORK_ID unreported" 'dry-run logs unreported work'
 work_task "$jar" "$owner_task_id"
 assert_json '.work.state == "open" and .status != "failed"' 'dry-run leaves unreported work open'
 work_task "$jar" "$reported_sweep_id"
@@ -158,13 +158,13 @@ export WORK_SWEEP_MODE=on
 app_start
 sleep 1
 work_task "$jar" "$owner_task_id"
-assert_json '.status == "failed"' 'unreported work becomes failed'
+assert_json '.status == "done" and .work.state == "completed" and .work.completionReason == "auto_completed_unverified" and .proof.proven == false' 'unreported inactive work becomes done without proof'
 http_request GET "$jar" "/api/tasks/$owner_task_id/events"
-assert_contains "$HTTP_BODY_FILE" 'Lost contact' 'abandonment explains lost contact'
+assert_contains "$HTTP_BODY_FILE" 'Auto-completed (inactive)' 'inactive work records an unverified completion'
 work_task "$jar" "$reported_sweep_id"
-assert_json '.status == "review" and .work.state == "abandoned"' 'reported work becomes ready for review'
+assert_json '.status == "done" and .work.state == "completed" and .work.completionReason == "auto_completed_unverified" and .proof.proven == false' 'reported inactive work is done without proof'
 work_confirm "$jar" "$reported_sweep_id"
-assert_status "$HTTP_STATUS" 409 'abandoned work cannot be confirmed'
+assert_status "$HTTP_STATUS" 409 'auto-completed work cannot be confirmed again'
 work_task "$jar" "$approval_id"
 assert_json '.work.state == "open" and .status != "failed"' 'work waiting for approval stays open'
 

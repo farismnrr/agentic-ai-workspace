@@ -17,6 +17,7 @@ interface BrowserInfo {
   token: string;
 }
 const info = JSON.parse(readFileSync(process.argv[2] as string, 'utf8')) as BrowserInfo;
+const shots = process.argv[3] as string;
 let failures = 0;
 
 function check(name: string, ok: boolean, detail = ''): void {
@@ -221,6 +222,20 @@ const workingLabelCount = await approvalConversation.getByText('Working on it', 
 check('plan approval keeps its label without completion or spinner',
   approvalLabelCount > 0 && completeButtonCount === 0 && spinnerCount === 0 && workingLabelCount === 0,
   `label=${approvalLabelCount}, mark-complete=${completeButtonCount}, spinner=${spinnerCount}, working=${workingLabelCount}`);
+for (const width of [390, 820, 1024, 1440]) {
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(info.base + path(info.approval, approval.projectId));
+  await page.locator('main header').getByText('Ready for approval', { exact: true }).waitFor({ timeout: 10000 });
+  const overflow = await page.evaluate(() => ({ document: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+  check(`approval task ${String(width)}px has no horizontal overflow`, overflow.document <= overflow.viewport + 1, JSON.stringify(overflow));
+  await page.getByRole('tab', { name: 'Plan', exact: true }).click();
+  check(`plan panel visible at ${String(width)}px`, await page.getByRole('tabpanel', { name: 'plan' }).isVisible());
+  await page.screenshot({ path: `${shots}/approval-plan-${String(width)}.png` });
+  for (const tab of ['Documents', 'Team', 'Changes', 'Files']) {
+    await page.getByRole('tab', { name: tab, exact: true }).click();
+    check(`${tab} panel visible at ${String(width)}px`, await page.getByRole('tabpanel', { name: tab.toLowerCase() }).isVisible());
+  }
+}
 await browser.close();
 console.log(failures === 0 ? '\nALL PASSED' : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);
