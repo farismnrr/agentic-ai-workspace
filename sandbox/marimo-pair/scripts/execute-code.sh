@@ -143,7 +143,7 @@ unset token MARIMO_TOKEN  # curl children must never inherit notebook credential
 if [[ -n "$session" ]]; then
   session_id="$session"
 else
-  sessions_resp=$(curl -sf --connect-timeout 5 "${auth_args[@]+"${auth_args[@]}"}" "${base}/api/sessions") || {
+  sessions_resp=$(curl -sSf --connect-timeout 5 "${auth_args[@]+"${auth_args[@]}"}" "${base}/api/sessions") || {
     echo "Failed to connect to marimo server at ${base}" >&2
     case "$base" in
       *//127.0.0.1:*|*//localhost:*)
@@ -241,7 +241,7 @@ while { IFS= read -r line || [[ -n "$line" ]]; } && [[ "$done_received" == false
       unparsed="${unparsed}${line}"$'\n'
       ;;
   esac
-done < <(curl -sN -X POST "${base}/api/kernel/execute" \
+done < <(curl -sSfN --connect-timeout 5 --max-time 110 -X POST "${base}/api/kernel/execute" \
   -H "Content-Type: application/json" \
   -H "Marimo-Session-Id: ${session_id}" \
   ${auth_args[@]+"${auth_args[@]}"} \

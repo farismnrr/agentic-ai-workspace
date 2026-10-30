@@ -49,3 +49,16 @@ if bash "$repo/sandbox/marimo-pair/scripts/execute-code.sh" --url "$url" --token
 fi
 grep -q 'disabled' "$work/out"
 echo 'PASS insecure remote URL and token argument rejected'
+
+if REAL_CURL="$curl_bin" PATH="$work/bin:$PATH" MARIMO_TOKEN=wrong-synthetic-code-123 \
+  bash "$repo/sandbox/marimo-pair/scripts/execute-code.sh" --url "$url" -c '1 + 1' >"$work/out" 2>&1; then
+  echo 'FAIL: invalid session code was accepted'; exit 1
+fi
+grep -q '401' "$work/out"
+echo 'PASS revoked/invalid session code returns HTTP 401'
+
+if bash "$repo/sandbox/marimo-pair/scripts/execute-code.sh" --url 'http://127.0.0.1:1/' -c '1 + 1' >"$work/out" 2>&1; then
+  echo 'FAIL: terminated notebook appeared available'; exit 1
+fi
+grep -q 'Failed to connect' "$work/out"
+echo 'PASS terminated notebook returns connection error'

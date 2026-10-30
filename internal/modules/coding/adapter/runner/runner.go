@@ -60,10 +60,11 @@ func (r *Runner) WithProjectEnv(projectID string, source ProjectEnv) *Runner {
 
 // RunMoLab is a one-shot sandbox invocation. It never receives Project Env
 // or Git credentials, and the bearer token lives only for this invocation.
-func (r *Runner) RunMoLab(ctx context.Context, task domain.Task, token string) (application.RunResult, error) {
-	return r.Run(context.WithValue(ctx, oneShotEnvKey{}, token), task)
+func (r *Runner) RunMoLab(ctx context.Context, task domain.Task, token, host string) (application.RunResult, error) {
+	return r.Run(context.WithValue(ctx, oneShotEnvKey{}, molabRun{token: token, host: host}), task)
 }
 
+type molabRun struct{ token, host string }
 type oneShotEnvKey struct{}
 
 // Run starts the task and waits for it, removing the container on timeout.

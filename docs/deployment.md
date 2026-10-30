@@ -138,13 +138,11 @@ Your data lives in the Docker volume `agentic-data`. Only `down -v` or `docker v
 docker run --rm -v agentic-data:/data -v "$PWD":/backup alpine tar czf /backup/agentic-data.tar.gz -C /data .
 ```
 
-## Temporary MoLab notebook pairing
+## MoLab from task chat
 
-With an HTTPS `PUBLIC_URL` and verified per-task egress grants enabled, open a task and select **MoLab notebook → Connect**. Paste the temporary HTTPS notebook URL and token into the private form, not the chat.
+To use a running MoLab notebook, send its HTTPS URL and temporary access token together in an ordinary task chat. The internal agent calls marimo_execute automatically; no special task, Connect form, manual network grant or Project Env is necessary. The isolated command reaches only that validated MoLab hostname via the HTTPS proxy.
 
-The app holds the credential only in RAM, bound to the task for at most 30 minutes. Disconnecting or ending the task clears it. Restarting the app also loses every pairing.
-
-The internal developer agent uses `marimo_execute` after the task's exact host is approved. It never needs a command-line `--token` or Project Env. Vendor CLI subprocesses cannot yet access this memory-only pairing. Until live MoLab security checks pass, leave `EGRESS_GRANTS=false`; the form refuses credentials when the feature is disabled.
+If the notebook stops or access expires, the tool explains what happened. Send a fresh URL and token in the same chat. These details remain part of task chat history, but are not stored in a separate MoLab credential database.
 
 ## Troubleshooting
 

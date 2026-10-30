@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 
 	accountapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/account/application"
 	cliagentsqlite "github.com/farismnrr/agentic-ai-workspace/internal/modules/cliagent/adapter/sqlite"
-	molabapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/molab/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/project/adapter/folder"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	siteagentsession "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/adapter/agentsession"
@@ -38,7 +36,6 @@ func Wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 	engine, egress, closeProxy := newSandboxEngine(cfg, db)
-	molabSessions := molabapp.NewSessions(time.Now)
 	agentSessions := siteagentsession.New()
 	spaceStore, permissions := newPermissions(db, registry)
 	auth := httpserver.RequireSession(sess)
@@ -50,7 +47,6 @@ func Wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	tools.molab = molabSessions
 	projects, projectMount, projectSettings, err := projectFeatures(
 		db, cfg, models, folders, tools, account, auth, sameOrigin)
 	if err != nil {
@@ -77,20 +73,16 @@ func Wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 		return nil, nil, err
 	}
 
-	molabMount := newMoLabMount(molabSessions, tasks, auth, sameOrigin, egress != nil && strings.HasPrefix(cfg.PublicURL, "https://"))
 	cleanUpOnDelete(account, projects, sites, tasks, tools)
 	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, works, registry, log, permissions, oauth, sess, sameOrigin)
 
 	mounts := joinMounts(
-		[]httpserver.Mount{accountMount, oauthMount, projectMount, egressMount, molabMount}, projectSettings, agentMounts,
+		[]httpserver.Mount{accountMount, oauthMount, projectMount, egressMount}, projectSettings, agentMounts,
 		[]httpserver.Mount{newExport(account, models, projects, tasks, folders, auth)},
 		models.mounts, []httpserver.Mount{githubMount, newTemplate(tools, projects, auth, sameOrigin)},
 		[]httpserver.Mount{tools.plans.mount(auth, sameOrigin)}, spaceMounts)
 
-	molabCtx, molabCancel := context.WithCancel(context.Background())
-	molabDone := make(chan struct{})
-	go func() { defer close(molabDone); molabSessions.SweepUntil(molabCtx) }()
-	return mounts, func() { molabCancel(); <-molabDone; stop(); agentSessions.Close(); closeProxy() }, nil
+	return mounts, func() { stop(); agentSessions.Close(); closeProxy() }, nil
 }
 
 func routePolicies(cfg config.Config) (fiber.Handler, fiber.Handler) {
