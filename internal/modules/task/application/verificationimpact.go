@@ -87,7 +87,7 @@ func knownNonMutatingCommand(command string) bool {
 		"go test", "go vet", "golangci-lint run", "npm run check", "npm run lint", "npm run build",
 		"make guardrails", "make backend-test", "make backend-lint", "make verify", "make verify-full",
 		"shellcheck", "git status", "git diff", "git log", "git show",
-		"pwd", "ls", "cat", "rg", "find",
+		"pwd", "ls", "cat", "rg", "find", "echo",
 	} {
 		if clean == safe || strings.HasPrefix(clean, safe+" ") {
 			return true

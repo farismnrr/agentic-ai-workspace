@@ -1,5 +1,5 @@
 // Browser black-box coverage of the current New Project wizard, not the removed legacy dialog.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PW as string) as
@@ -12,7 +12,8 @@ function check(label:string, pass:boolean, detail=''):void {
   if (!pass) failures++;
 }
 
-const browser = await chromium.launch({ executablePath:'/usr/bin/chromium-headless-shell', args:['--no-sandbox'] });
+const executablePath = process.env.CHROMIUM_BIN || (existsSync('/usr/bin/chromium-headless-shell') ? '/usr/bin/chromium-headless-shell' : undefined);
+const browser = await chromium.launch({ ...(executablePath ? { executablePath } : {}), args: ['--no-sandbox'] });
 try {
   const page = await (await browser.newContext({viewport:{width:1280,height:900}})).newPage();
   const errors:string[] = [];
