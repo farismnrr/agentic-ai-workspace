@@ -133,8 +133,17 @@ show_containers() {
 }
 
 start_app() {
-  say "Starting the app (the first time downloads two images, so it can take a few minutes) ..."
-  (cd "$INSTALL_DIR" && docker compose -f "$COMPOSE_FILE" up -d)
+  say "Pulling matching app and sandbox from GHCR (no local build) ..."
+  image="ghcr.io/farismnrr/agentic-ai-workspace"
+  app_ref="$image:$CHANNEL"
+  sandbox_ref="$image-sandbox:$CHANNEL"
+  docker pull "$app_ref" || die "GHCR app image is unavailable: $app_ref"
+  docker pull "$sandbox_ref" || die "GHCR sandbox image is unavailable: $sandbox_ref"
+  app_sha=$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$app_ref")
+  sandbox_sha=$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$sandbox_ref")
+  [ "${#app_sha}" -eq 40 ] && [ "$app_sha" = "$sandbox_sha" ] || die "app/sandbox revisions differ; wait for GHCR publication to finish."
+  say "GHCR image pair verified: $app_sha"
+  (cd "$INSTALL_DIR" && docker compose -f "$COMPOSE_FILE" up -d --pull never)
   healthy=0
   wait_healthy && healthy=1
   show_containers

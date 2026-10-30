@@ -14,19 +14,20 @@ MAX_FILE_LINES := 200
 # Build version shown by /api/health and the X-App-Version header; CI passes the commit.
 VERSION ?= dev
 FLOW ?= all
-SANDBOX_TEST_IMAGE ?= ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
+SANDBOX_TEST_IMAGE ?= ghcr.io/farismnrr/agentic-ai-workspace-sandbox:dev
 GO_TEST_FLAGS ?=
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-.PHONY: help image sandbox-image redeploy-dev e2e build backend-build run verify verify-full guardrails shellcheck frontend frontend-deps frontend-verify backend-test backend-lint backend-verify blackbox smoke docker-boundary volume-isolation registry-check clean
+.PHONY: help image sandbox-image redeploy-dev redeploy-latest e2e build backend-build run verify verify-full guardrails shellcheck frontend frontend-deps frontend-verify backend-test backend-lint backend-verify blackbox smoke docker-boundary volume-isolation registry-check clean
 
 help:
 	@echo "make build    - build frontend assets and the single static binary ($(BIN_PATH))"
 	@echo "make run      - build and run on PORT (default $(PORT)); use make verify for quality gates"
-	@echo "make image    - build the Docker image ($(IMAGE):latest and :dev, what the compose files use)"
-	@echo "make sandbox-image - build the toolbox image the agent's commands run in"
-	@echo "make redeploy-dev - pull the app image published from dev and recreate the app container"
+	@echo "make image    - LOCAL DEV ONLY; never deploy a locally built image to hosts"
+	@echo "make sandbox-image - LOCAL DEV ONLY; published sandbox must come from GHCR"
+	@echo "make redeploy-dev - pull matching :dev app + sandbox from GHCR, then recreate app"
+	@echo "make redeploy-latest - pull matching :latest images from GHCR, then recreate app"
 	@echo "make smoke    - smoke-test the built binary"
 	@echo "make e2e      - run browser flows (or FLOW=projects, sites, thread or lifecycle)"
 	@echo "make verify-full - run verify, black-box, smoke, browser and isolation checks"
@@ -48,17 +49,23 @@ run: build
 	@PORT="$(PORT)" "./$(BIN_PATH)"
 
 image:
-	docker build -t $(IMAGE):latest -t $(IMAGE):dev .
+	docker build -t agentic-ai-workspace-local:dev .
 
 # The toolbox the agent's commands run in. Use it locally with SANDBOX_IMAGE=$(IMAGE)-sandbox:latest make run.
 sandbox-image:
-	docker build -f sandbox/Dockerfile -t $(IMAGE)-sandbox:latest .
+	docker build -f sandbox/Dockerfile -t agentic-ai-workspace-sandbox-local:dev .
 
 # Pull the app and sandbox images published from dev and recreate the app container.
 redeploy-dev:
-	docker pull $(IMAGE)-sandbox:latest
-	docker compose -f compose.dev.yaml pull
-	docker compose -f compose.dev.yaml up -d --wait --remove-orphans app
+	bash scripts/pull-ghcr-pair.sh dev
+	DOCKER_GID=$$(stat -c %g /var/run/docker.sock) SANDBOX_IMAGE=$(IMAGE)-sandbox:dev \
+		docker compose -f compose.dev.yaml up -d --wait --pull never --remove-orphans app
+
+# Stable channel has its own matching GHCR images. No host-side builds.
+redeploy-latest:
+	bash scripts/pull-ghcr-pair.sh latest
+	DOCKER_GID=$$(stat -c %g /var/run/docker.sock) SANDBOX_IMAGE=$(IMAGE)-sandbox:latest \
+		docker compose -f compose.latest.yaml up -d --wait --pull never --remove-orphans app
 
 smoke:
 	@./test/run.sh smoke
