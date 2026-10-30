@@ -45,6 +45,8 @@ services:
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
     volumes:
       - agentic-data:/data
+      # Trusted app only: it launches isolated sandboxes through the host daemon.
+      # Do not mount this socket into sandbox containers (root-equivalent access).
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
       - "${DOCKER_GID:?set DOCKER_GID=$(stat -c %g /var/run/docker.sock)}"

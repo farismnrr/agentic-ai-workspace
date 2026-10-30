@@ -142,6 +142,14 @@ docker run --rm -v agentic-data:/data -v "$PWD":/backup alpine tar czf /backup/a
 
 ## Troubleshooting
 
+**Docker host bridge (no Docker-in-Docker):** The trusted app already mounts the host Docker socket. It launches isolated task containers through the Docker Engine API. Never mount that socket or give an unrestricted Docker CLI to an agent sandbox.
+
+Internal agents with execution permission can call `docker_host_status`. It follows the `run_command` switch and only checks whether the app can reach its daemon.
+
+On the Docker-enabled host, run `bash scripts/check-docker-host.sh dev` (or `latest`/`prod`). The script checks daemon connectivity, Compose, socket group permissions and sandbox isolation without modifying the host. For production, set `COMPOSE_ENV_FILE` to the actual environment file.
+
+A separate remote coding sandbox without Docker cannot gain host access by changing the deployed Compose configuration.
+
 | Problem | Fix |
 | --- | --- |
 | `DOCKER_GID` is required | `export DOCKER_GID=$(stat -c %g /var/run/docker.sock)`, or add it to `.env` |

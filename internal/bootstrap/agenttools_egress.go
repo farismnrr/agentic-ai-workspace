@@ -31,6 +31,7 @@ func (a *agentTools) egressDefinitions() []taskdomain.ToolDef {
 func (a *agentTools) otherTools() map[string]func(context.Context, taskapp.ToolScope, taskapp.Call) taskapp.ToolResult {
 	return map[string]func(context.Context, taskapp.ToolScope, taskapp.Call) taskapp.ToolResult{
 		toolRequestEgress:     a.executeEgress,
+		toolDockerHostStatus:  a.executeDockerHostStatus,
 		toolScreenshot:        a.executeShot,
 		toolScreenshotSession: a.executeScreenshotSession,
 		toolDeployExtension: func(ctx context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {
