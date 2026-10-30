@@ -26,6 +26,9 @@
   <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 sm:min-h-12 sm:flex-nowrap sm:py-0">
     <h1 class="line-clamp-2 w-full min-w-0 text-[15px] font-semibold leading-snug sm:line-clamp-1 sm:w-auto">{task.title}</h1>
     <StatusBadge status={workStatus.iconStatus} label={statusLabel} />
+    {#if external && task.status === 'done' && task.work?.completionReason === 'auto_completed_unverified'}
+      <span class="badge badge-warning badge-sm" title="Closed after inactivity; completion was not verified">Auto Done · Unverified</span>
+    {/if}
     {#if task.work?.state === 'blocked'}<span class="badge badge-warning badge-sm">Blocked</span>{/if}
     {#if task.team}<span class="badge badge-soft badge-sm">Team</span>{/if}
     <p class="hidden min-w-0 flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">
@@ -34,7 +37,7 @@
       {#if workStatus.hint !== ''} · {workStatus.hint}{/if}
     </p>
     <span class="flex-1 md:hidden"></span>
-    <ContextMeter used={task.contextUsed} window={task.contextWindow} />
+    <ContextMeter used={task.contextUsed} window={task.contextWindow} state={task.contextState} />
     {#if !archived && workStatus.canStop}<button class="btn btn-outline btn-sm" type="button" aria-label="Stop work" onclick={onstop}>Stop</button>{/if}
     {#if !archived && workStatus.canConfirm}<button class="btn btn-primary btn-sm" type="button" onclick={onconfirm}>Mark complete</button>{/if}
     {#if !archived && !external && task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}
@@ -45,5 +48,5 @@
       {#if workStatus.hint !== ''} · {workStatus.hint}{/if}
     </p>
   {/if}
-  <div class="flex pb-2 sm:hidden"><ContextMeter used={task.contextUsed} window={task.contextWindow} phone /></div>
+  <div class="flex pb-2 sm:hidden"><ContextMeter used={task.contextUsed} window={task.contextWindow} state={task.contextState} phone /></div>
 </header>

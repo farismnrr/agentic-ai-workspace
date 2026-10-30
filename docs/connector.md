@@ -27,9 +27,12 @@ Each connected app works in its own project, named after it (ChatGPT works in "C
 
 Each connected-app conversation shows as a task beside the work done in the app.
 
-- For tracked work, the AI app starts with `begin_work` and must choose an
-  enabled role. It can change roles later with `set_role`. Roles describe the
-  assistant's work; they do not start another AI or change its permissions.
+- One user issue stays **one visible task** through planning, research, coding,
+  verification and role changes. The assistant starts with `begin_work` once,
+  saves that `work_id`, and uses `set_role` for subsequent roles. Calling
+  `begin_work` again resumes its open session by default, without another task.
+  Only an independent user request needs `new_task: true`. An explicit
+  `idempotency_key` protects retries, including keys used to resume the issue.
 - `save_research` stores research and sources. `finish_research` closes a
   research round. `ask_question` saves a question for you to answer in the app.
 - `update_plan` saves a draft. `submit_plan` sends its revision for your
@@ -37,8 +40,11 @@ Each connected-app conversation shows as a task beside the work done in the app.
 - `complete_work` records the external session's outcome. It cannot finish or
   run the internal task created by an approved handoff.
 - Workspace tool calls, including `log_message`, require a tracked work ID and its
-  active role. Start with `begin_work`, then use `set_role` when responsibilities
-  change. Only account/project discovery is available before starting work.
+  active role. Start with `begin_work` once per user issue, reuse the same
+  work ID for all roles and tool calls, and use `set_role` when responsibilities change.
+  Only account/project discovery is available before starting work.
+- The task list hides internal child chat and approved plan handoff tasks,
+  while their IDs and histories remain accessible from the parent task.
 - Plan shows its steps. Documents separates research from requirements.
   Team shows only roles it declared or used.
 - A saved plan stays a draft until the assistant submits it for your approval.

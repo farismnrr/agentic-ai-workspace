@@ -82,7 +82,7 @@ func scanWork(row scanner) (domain.ExternalWork, error) {
 	var planState string
 	err := row.Scan(&work.ID, &work.TaskID, &work.UserID, &work.ProjectID, &work.Client, &state,
 		&work.RoleKey, &work.RoleName, &work.Rev, &work.PlanRev, &work.NextStep, &work.IdemKey,
-		&work.IdemHash, &created, &updated, &ended, &planState, &reported)
+		&work.IdemHash, &created, &updated, &ended, &planState, &reported, &work.CompletionReason)
 	if err != nil {
 		return domain.ExternalWork{}, fmt.Errorf("scan work: %w", err)
 	}

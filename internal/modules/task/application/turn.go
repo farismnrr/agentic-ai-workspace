@@ -28,7 +28,10 @@ func (r *Runner) turn(
 
 	system := r.system(ctx, task, state)
 	shrink := compaction{client: client, system: system, tools: offered}
-	messages := r.compactIfNeeded(ctx, task, state, shrink, transcript)
+	messages, ready := r.compactIfNeeded(ctx, task, state, shrink, transcript)
+	if !ready {
+		return failed("Context is full and automatic compaction did not succeed.", "Retry, reduce the conversation, or choose a model with a larger context window."), true
+	}
 
 	if !state.noImages {
 		messages = r.withImages(ctx, task, messages)

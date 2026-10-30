@@ -15,6 +15,7 @@ MAX_FILE_LINES := 200
 VERSION ?= dev
 FLOW ?= all
 SANDBOX_TEST_IMAGE ?= ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest
+GO_TEST_FLAGS ?=
 GOLANGCI_LINT_VERSION := $(shell cat .golangci-lint-version)
 GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
@@ -97,7 +98,7 @@ frontend-verify: frontend-deps
 
 backend-test:
 	go mod tidy -diff
-	go test ./cmd/... ./internal/... ./test/go/...
+	go test $(GO_TEST_FLAGS) ./cmd/... ./internal/... ./test/go/...
 
 backend-lint:
 	$(GOLANGCI_LINT) run ./cmd/... ./internal/... ./test/go/...

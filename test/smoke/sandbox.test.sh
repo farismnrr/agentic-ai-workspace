@@ -14,6 +14,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
     cd /tmp
     printf "package main\nfunc main(){println(\"go-ok\")}\n" > m.go && go run m.go
     echo "fn main(){println!(\"rust-ok\");}" > r.rs && rustc r.rs -o r && ./r
+    pkg-config --version > /dev/null && rustfmt --version > /dev/null && echo rust-tools-ok
     printf "class H{public static void main(String[] a){System.out.println(\"java-ok\");}}" > H.java && java H.java
     test "$(bash -lc "command -v cargo rustc go java mvn" | wc -l)" -eq 5 && sh -lc "command -v cargo && command -v go" > /dev/null && echo login-shell-ok
     python3 -c "print(\"python-ok\")"
@@ -46,7 +47,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "java-ok" "login-shell-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "ticket-prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok" "docs-ok" "guard-ok" "ship-ok"; do
+for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "rust-tools-ok" "java-ok" "login-shell-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "ticket-prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok" "docs-ok" "guard-ok" "ship-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 

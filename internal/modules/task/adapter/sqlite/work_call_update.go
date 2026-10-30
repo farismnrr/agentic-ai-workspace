@@ -19,10 +19,18 @@ func (s *Store) UpdateWorkCall(
 		return domain.Event{}, fmt.Errorf("begin work call update: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	// A late tool response must not mutate a session already auto-completed.
+	var state string
+	if err := tx.QueryRowContext(ctx, `SELECT state FROM external_works WHERE id = ? AND task_id = ?`, workID, taskID).Scan(&state); err != nil || state != string(domain.WorkOpen) && state != string(domain.WorkBlocked) {
+		return domain.Event{}, domain.ErrWorkClosed
+	}
 	prior, err := scanEvent(tx.QueryRowContext(ctx,
 		`SELECT `+eventColumns+` FROM task_events WHERE task_id = ? AND id = ?`, taskID, eventID))
 	if err != nil || prior.Work == nil || prior.Work.ID != workID {
 		return domain.Event{}, domain.ErrNotFound
+	}
+	if prior.Work.Phase != "running" {
+		return domain.Event{}, domain.ErrWorkClosed
 	}
 	event, work, err := updateWorkCallEvent(ctx, tx, taskID, eventID, prior, event)
 	if err != nil {
@@ -71,7 +79,7 @@ func updateWorkCallEvent(
 	}
 	if err := tx.QueryRowContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
 		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?)
-		WHERE task_id = ? AND id = ? RETURNING version`,
+		WHERE task_id = ? AND id = ? AND json_extract(body, '$.work.phase') = 'running' RETURNING version`,
 		body, event.Undo, taskID, taskID, eventID).Scan(&event.Version); err != nil {
 		return domain.Event{}, domain.WorkRef{}, fmt.Errorf("update work call event: %w", err)
 	}

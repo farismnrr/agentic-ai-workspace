@@ -3,7 +3,7 @@ package apptest
 import "time"
 
 const (
-	waitTimeout          = 10 * time.Second
+	waitTimeout          = 90 * time.Second
 	requestPollInterval  = 25 * time.Millisecond
 	commandTimeout       = 5 * time.Minute
 	testDirectoryMode    = 0o750

@@ -15,7 +15,7 @@ const (
 
 // Archived returns a person's archived tasks, newest activity first.
 func (s *Store) Archived(ctx context.Context, userID string, limit int) ([]domain.Task, error) {
-	return s.list(ctx, userID, "", limit, `archived_at IS NOT NULL`)
+	return s.list(ctx, userID, "", limit, `archived_at IS NOT NULL AND origin_task_id IS NULL`)
 }
 
 // Archive records the first archive time and leaves the pin intact.

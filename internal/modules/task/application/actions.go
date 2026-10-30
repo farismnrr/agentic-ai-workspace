@@ -88,13 +88,20 @@ func (s *Service) Cancel(ctx context.Context, userID, taskID string) error {
 	}
 
 	switch s.dispatcher.Cancel(task.ID) {
-	case CancelRunning:
+	case CancelRunning, CancelQueued:
+		// Stopping is an explicit terminal user decision, not an AI failure.
+		// The runner's late failure settle is guarded by FailUnlessDone.
+		if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, s.deps.Now()); err != nil {
+			return fmt.Errorf("mark manually stopped task done: %w", err)
+		}
 		s.revokeAgentSession(task)
+		_, err := s.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
+			Kind: domain.EventMessage, Text: "Stopped by you", Time: s.deps.Now(),
+		})
+		if err != nil {
+			return fmt.Errorf("record manual stop: %w", err)
+		}
 		return nil
-	case CancelQueued:
-		err := s.fail(ctx, task.ID, "Stopped before I started.", "Press Continue when you want me to begin.")
-		s.revokeAgentSession(task)
-		return err
 	case CancelNone:
 	}
 

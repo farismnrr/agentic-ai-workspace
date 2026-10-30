@@ -107,13 +107,16 @@ func workDocument(markdown string, sources []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if document == "" || len(sources) > domain.MaxWorkSources {
-		return "", domain.ErrBadRequest
+	if document == "" {
+		return "", fmt.Errorf("markdown is required: %w", domain.ErrBadRequest)
+	}
+	if len(sources) > domain.MaxWorkSources {
+		return "", fmt.Errorf("at most 30 sources: %w", domain.ErrBadRequest)
 	}
 	for _, source := range sources {
 		clean, cleanErr := sanitizeText(source, maxSourceURLLength)
 		if cleanErr != nil || !validSource(clean) {
-			return "", domain.ErrBadRequest
+			return "", fmt.Errorf("sources must be valid http or https URLs: %w", domain.ErrBadRequest)
 		}
 		document += "\n\nSource: " + clean
 	}

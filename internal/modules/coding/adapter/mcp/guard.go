@@ -85,7 +85,10 @@ func guarded[In, Out any](
 			info.Name != domain.ToolListProjects.Name && info.Name != domain.ToolBeginWork.Name {
 			entry.Outcome, entry.Detail = OutcomeFailed, "work role required"
 			g.record(ctx, entry)
-			return failure("Start with begin_work and an enabled role; pass its work_id to every workspace tool. Use set_role before changing responsibilities.", nil), none, nil
+			return failure(
+				"Start with begin_work and an enabled role; pass its work_id to every workspace tool. "+
+					"Use set_role before changing responsibilities.", nil,
+			), none, nil
 		}
 
 		state := g.newState(ctx, info, &entry, req, workID)

@@ -1,7 +1,6 @@
 import type { PlanReviewData } from './plan-review-types';
 
 export type TaskStatus = 'queued' | 'planning' | 'working' | 'needs-input' | 'review' | 'done' | 'failed';
-
 export type Risk = 'low' | 'medium' | 'high';
 
 /** Work handed to a teammate, handed back, or given up. */
@@ -14,6 +13,7 @@ export interface WorkSummary {
   id: string;
   updatedAt: string;
   state: WorkState;
+  completionReason?: 'auto_completed_unverified';
   phase: 'running' | 'awaiting_person' | 'blocked' | 'reported' | 'idle' |
     'completed' | 'failed' | 'stopped' | 'abandoned';
   planState?: 'draft' | 'awaiting_clarification' | 'ready_for_approval' | 'approved' | 'handed_off';
@@ -158,6 +158,7 @@ export interface Task {
   /** Tokens the last model call carried and the model's window; both 0 before the first call. */
   contextUsed: number;
   contextWindow: number;
+  contextState: 'unknown' | 'measured' | 'compacting' | 'failed';
   createdAt: string;
   updatedAt: string;
   /** ISO timestamp when this task was pinned; null when it is not pinned. */

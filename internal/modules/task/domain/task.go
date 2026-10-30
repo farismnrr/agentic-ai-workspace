@@ -115,6 +115,8 @@ type Task struct {
 	// Zero until the first call.
 	ContextUsed   int64
 	ContextWindow int64
+	// ContextState distinguishes measured, unknown, compacting, and failed.
+	ContextState string
 	// Team is true when the agent hands work to teammates instead of doing it all itself.
 	Team bool
 	// PlanFirst is true for a task in plan mode: the team stops when the PRD is written and nobody builds until the

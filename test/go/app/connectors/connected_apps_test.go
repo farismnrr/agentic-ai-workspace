@@ -57,7 +57,8 @@ func TestEachConnectedAppWorksInAProjectNamedAfterIt(t *testing.T) {
 	for _, clientID := range []string{chatgpt, gemini, chatgpt} {
 		token := apptest.Connect(t, env.App, cookie, clientID, "coding:read coding:write")
 		workID := beginTrackedWork(t, env.App, token, "")
-		apptest.CallTool(t, env.App, token, "write_file", `{"work_id":"`+workID+`","path":"note.txt","content":"from `+clientID+`"}`)
+		apptest.CallTool(t, env.App, token, "write_file",
+			`{"work_id":"`+workID+`","path":"note.txt","content":"from `+clientID+`"}`)
 	}
 
 	byName := map[string]projectRow{}

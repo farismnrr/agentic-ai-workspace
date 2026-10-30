@@ -12,6 +12,10 @@ type claudeLine struct {
 		Window int64 `json:"contextWindow"`
 	} `json:"modelUsage"`
 	Event struct {
+		Type         string `json:"type"`
+		ContentBlock struct {
+			Type string `json:"type"`
+		} `json:"content_block"`
 		Delta struct {
 			Type string `json:"type"`
 			Text string `json:"text"`
@@ -21,6 +25,7 @@ type claudeLine struct {
 	SessionID string `json:"session_id"`
 	Result    string `json:"result"`
 	Message   struct {
+		Model   string          `json:"model"`
 		Content json.RawMessage `json:"content"`
 		Usage   claudeUsage     `json:"usage"`
 	} `json:"message"`
@@ -68,8 +73,9 @@ type claudeInput struct {
 }
 
 type claude struct {
-	out   *Stream
-	calls map[string]claudeBlock
+	out       *Stream
+	calls     map[string]claudeBlock
+	lastModel string
 }
 
 func newClaude(out *Stream) *claude {
@@ -84,12 +90,19 @@ func (c *claude) line(raw []byte) {
 
 	switch line.Type {
 	case "stream_event":
+		if line.Event.Type == "content_block_start" && line.Event.ContentBlock.Type == "tool_use" {
+			c.out.emit(application.CLIEvent{Kind: application.CLIActivity})
+		}
 		if line.Event.Delta.Type == "text_delta" && line.Event.Delta.Text != "" {
 			c.out.emit(application.CLIEvent{Kind: application.CLIDelta, Text: line.Event.Delta.Text})
 		}
 	case "assistant", "user":
 		if u := line.Message.Usage; line.Type == "assistant" && u.Input+u.CacheRead+u.CacheWrite > 0 {
+			if line.Message.Model != "" {
+				c.lastModel = line.Message.Model
+			}
 			c.out.used = u.Input + u.CacheRead + u.CacheWrite + u.Output
+			c.out.emit(application.CLIEvent{Kind: application.CLIUsage, Used: c.out.used, Window: c.out.window})
 		}
 
 		c.blocks(line.Message.Content)
@@ -112,6 +125,7 @@ func (c *claude) blocks(content json.RawMessage) {
 			}
 		case "tool_use":
 			c.calls[block.ID] = block
+			c.out.emit(application.CLIEvent{Kind: application.CLIActivity})
 		case "tool_result":
 			c.report(block)
 		}
@@ -175,10 +189,19 @@ func (c *claude) finish(line claudeLine) {
 	c.out.session = line.SessionID
 	c.out.summary = line.Result
 
-	for _, usage := range line.ModelUsage {
-		c.out.window = max(c.out.window, usage.Window)
+	// A result can list multiple models. Never use another model's larger
+	// window to make the last model's context appear less full.
+	if usage, ok := line.ModelUsage[c.lastModel]; ok {
+		c.out.window = usage.Window
+	} else if len(line.ModelUsage) == 1 {
+		for _, usage := range line.ModelUsage {
+			c.out.window = usage.Window
+		}
 	}
 
+	if c.out.used > 0 && c.out.window > 0 {
+		c.out.emit(application.CLIEvent{Kind: application.CLIUsage, Used: c.out.used, Window: c.out.window})
+	}
 	if line.IsError {
 		c.out.reason = "Claude stopped: " + brief(line.Result, errorChars)
 	}

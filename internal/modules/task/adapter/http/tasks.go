@@ -36,8 +36,9 @@ type taskPayload struct {
 	Work         *domain.WorkSummary `json:"work,omitempty"`
 	Plan         []domain.PlanStep   `json:"plan"`
 	// ContextUsed and ContextWindow are tokens; both are zero before the first model call.
-	ContextUsed   int64 `json:"contextUsed"`
-	ContextWindow int64 `json:"contextWindow"`
+	ContextUsed   int64  `json:"contextUsed"`
+	ContextWindow int64  `json:"contextWindow"`
+	ContextState  string `json:"contextState"`
 	// Team is true when the agent leads a team of teammates on this task.
 	Team bool `json:"team"`
 	// PlanFirst is true when the team stops at the PRD and waits for the person.
@@ -54,7 +55,7 @@ func toPayload(t domain.Task) taskPayload {
 		PRD:       t.PRD, Research: t.Research, Proof: t.Proof,
 		Plan:      append([]domain.PlanStep{}, t.Plan...),
 		CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt, PinnedAt: t.PinnedAt, ArchivedAt: t.ArchivedAt,
-		ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow,
+		ContextUsed: t.ContextUsed, ContextWindow: t.ContextWindow, ContextState: t.ContextState,
 	}
 }
 

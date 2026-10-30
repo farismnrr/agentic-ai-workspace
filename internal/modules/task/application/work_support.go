@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -59,30 +58,16 @@ func (w *Works) abandonIdleAtCap(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (w *Works) abandonAtCap(ctx context.Context, userID string, work domain.ExternalWork) error {
-	if waitingOnPerson(work.PlanState) || w.hasRunningCall(ctx, work) {
+func (w *Works) abandonAtCap(ctx context.Context, _ string, work domain.ExternalWork) error {
+	if waitingOnPerson(work.PlanState) || work.State != domain.WorkOpen || w.hasRunningCall(ctx, work) ||
+		w.now().Sub(work.UpdatedAt) < w.inactivityTimeout(ctx, work) {
 		return nil
 	}
 	if w.sweepMode == "dry-run" {
 		w.logCapCandidate(work)
 		return nil
 	}
-	now := w.now()
-	state := domain.WorkAbandoned
-	status, text, kind := abandonmentResult(work.ReportedAt != nil)
-	_, _, err := w.store.Commit(ctx, WorkChange{
-		WorkID: work.ID, UserID: userID, ExpectRev: work.Rev,
-		Patch:  &WorkPatch{State: &state, EndedAt: &now},
-		Task:   &TaskPatch{Status: statusPtr(status)},
-		Events: []domain.Event{abandonmentEvent(work.ID, now, text, kind)},
-	})
-	if err != nil && !errors.Is(err, domain.ErrStaleRevision) {
-		return fmt.Errorf("abandon idle work at project cap: %w", err)
-	}
-	if err == nil {
-		w.notify(ctx, domain.Task{ID: work.TaskID, UserID: userID})
-	}
-	return nil
+	return w.autoCompleteInactive(ctx, work)
 }
 
 func (w *Works) hasRunningCall(ctx context.Context, work domain.ExternalWork) bool {
