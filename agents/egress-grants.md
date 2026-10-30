@@ -4,6 +4,10 @@ Design and status of `internal/modules/egressgrant`. Agent-only. Read before tou
 
 **Status: stages 1–6 implemented and verified; the Docker verification gate passed on a hosted runner (Fast #40296058816). Live marimo-pair compatibility is DEFERRED because no notebook/login fixture is available, not PASS. This deferral does not block releasing the app with `EGRESS_GRANTS=false` or a separately approved limited non-marimo canary. It still blocks removing the static marimo allowlist. Production activation requires explicit authorization and the applicable safety checks below.**
 
+## MoLab pairing (2026-10-30)
+
+The app now has a memory-only, task-scoped MoLab pairing route and an internal `marimo_execute` tool. Credentials arrive through a secret input on the task page and never enter Project Env or model transcripts. Session TTL is 30 minutes; disconnect/replacement/expiry and task-end callbacks cancel active operations and remove pairing. The one-shot sandbox command gets no project variables, Git credentials or project gateway/database grants. **Vendor CLI subprocesses do not receive pairing credentials**; their vendored skill documentation alone does not count as live integration. `EGRESS_GRANTS` remains off until a real MoLab host passes end-to-end authorization, TLS, revocation and idle/reconnect tests.
+
 ## Decisions (user, 2026-10-26)
 
 - Approvers: the project owner and admins, through the UI only. An agent may request, never approve, deny or revoke.

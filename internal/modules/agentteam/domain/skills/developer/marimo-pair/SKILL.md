@@ -1,14 +1,15 @@
 ---
 name: marimo-pair
-description: Pair with an approved running marimo/MoLab notebook from this task's isolated sandbox.
+description: Pair with a running marimo/MoLab notebook using a temporary, task-scoped connection.
 ---
 
-Use this skill only when the person explicitly asks to work with a marimo notebook. It grants neither network permission nor credentials.
+Only use this when the user wants to work with a marimo notebook. **Never request or accept a MoLab bearer token in chat.** It must go through the secure "Connect" form attached to this task.
 
-1. Read the pinned upstream protocol with `run_command`: `cat /usr/local/share/marimo-pair/SKILL.md`. The official scripts and references are under `/usr/local/share/marimo-pair/`, baked into the sandbox image.
-2. If the exact notebook host is blocked, call `request_egress` with only that hostname and a clear reason, when this tool is available. Wait for owner/admin approval. Never bypass the task egress proxy or widen the static allowlist.
-3. A token-authenticated notebook requires `MARIMO_TOKEN` set securely in this task's execution environment. Never ask for tokens in chat, echo them, place them in code, put them in command arguments, or pass `--token`. If no scoped secret is available, report a blocker rather than impersonating a successful pairing.
-4. After authorization, use `run_command` to execute `bash /usr/local/share/marimo-pair/scripts/execute-code.sh --url <the-user-provided-HTTPS-url> -c 'import marimo._code_mode as cm; help(cm)'`. This read-only inspection must succeed before other notebook code.
-5. Follow the upstream marimo instructions; for durable changes, use `marimo._code_mode` and do not edit live notebook files directly. Never claim a toast, cell edit or successful connection without its returned result.
+1. To read marimo documentation, use the pinned bundled skill at `/usr/local/share/marimo-pair/SKILL.md` in the sandbox. Do not run `npx skills add` at runtime.
+2. If there is no active pairing, tell the user to open this task's **MoLab notebook → Connect** form and submit the temporary notebook HTTPS URL and token. Neither is persisted to the task transcript or Project Env.
+3. Request access to the notebook's *exact* hostname via `request_egress` and wait for owner/admin approval. Never use a global allowlist, direct host networking or bypass the proxy.
+4. Call `marimo_execute` with only `{"code":"<Python>"}`. **Never pass a token, URL or secret in arguments.** The app obtains the per-task token from volatile memory and executes the pinned script in a one-shot isolated sandbox. The first call always inspects `marimo._code_mode`; call it again for actual task code after the inspection succeeds.
+5. For durable notebook edits use `marimo._code_mode` API and never edit the live notebook source directly. Confirm success from the returned tool result, not from assumptions.
+6. If pairing expires, task ends, remote notebook disconnects or permission is denied, stop and request new pairing; do not fabricate success.
 
-Only task roles with command execution may use this workflow. No vendor/agent may approve its own egress request.
+Native vendor CLI subprocesses can read the vendored documentation, but do not inherit these ephemeral credentials. The `marimo_execute` operation is available only to the internal execution-enabled agent using the authenticated task tool path.

@@ -58,6 +58,14 @@ func (r *Runner) WithProjectEnv(projectID string, source ProjectEnv) *Runner {
 	return r
 }
 
+// RunMoLab is a one-shot sandbox invocation. It never receives Project Env
+// or Git credentials, and the bearer token lives only for this invocation.
+func (r *Runner) RunMoLab(ctx context.Context, task domain.Task, token string) (application.RunResult, error) {
+	return r.Run(context.WithValue(ctx, oneShotEnvKey{}, token), task)
+}
+
+type oneShotEnvKey struct{}
+
 // Run starts the task and waits for it, removing the container on timeout.
 func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResult, error) {
 	releaseSlot, err := r.acquireSlot(ctx)
@@ -94,50 +102,6 @@ const (
 	stoppedBig = "\nStopped: the workspace grew past its size limit."
 	stoppedOOM = "\nStopped: it used more memory than allowed."
 )
-
-func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.CancelFunc) application.RunResult {
-	out := &tail{limit: domain.MaxOutputBytes}
-
-	docker, err := r.engine.Docker(ctx)
-	if err != nil {
-		return finish(ctx, err, sandbox.Result{}, out, 0)
-	}
-
-	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command}
-	projectValues, err := r.projectValues(ctx)
-	if err != nil {
-		return application.RunResult{ExitCode: -1, Output: "could not load project environment"}
-	}
-
-	git, hasGit := r.credentials(ctx)
-
-	hosts, granted := r.egressHosts(ctx, hasGit)
-	_ = r.engine.prepare(ctx, r.dir, &spec, docker, hosts...) // without a socket the command just has no network
-	projectValues, granting := granted.Apply(&spec, projectValues)
-	baseEnv := append(environment(spec), granting...)
-
-	if hasGit && spec.Egress != "" {
-		baseEnv = append(baseEnv, gitEnvironment(git)...)
-	}
-	spec.Env = MergeProjectEnvironment(baseEnv, projectValues)
-
-	over := watchSize(ctx, r.dir, r.quota, cancel)
-
-	started := time.Now()
-	res, err := docker.Run(ctx, spec, out)
-	result := finish(ctx, err, res, out, time.Since(started))
-
-	switch {
-	case over.Load():
-		result.TimedOut, result.ExitCode = false, -1
-		result.Output += stoppedBig
-	case res.OOMKilled:
-		result.ExitCode = -1
-		result.Output += stoppedOOM
-	}
-
-	return result
-}
 
 func (r *Runner) credentials(ctx context.Context) (Git, bool) {
 	if r.git == nil {

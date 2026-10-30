@@ -77,7 +77,7 @@ func toolsFor(role teamdomain.Role) []string {
 	// A read-only Docker host ping is mediated by the app. Execution-enabled roles
 	// can request status, but do not gain the daemon socket or arbitrary host commands.
 	if role.Can(teamdomain.AccessExec) {
-		names = append(names, toolDockerHostStatus)
+		names = append(names, toolDockerHostStatus, toolMoLabExecute)
 	}
 
 	if !role.Lead && role.Can(teamdomain.AccessWeb) {

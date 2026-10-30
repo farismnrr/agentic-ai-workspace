@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	egressruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/egressgrant/adapter/runtime"
+	molabruntime "github.com/farismnrr/agentic-ai-workspace/internal/modules/molab/adapter/runtime"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	taskhttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/http"
 	tasknotes "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/notefiles"
@@ -35,6 +36,9 @@ func newAgent(
 	if tools.egress != nil {
 		taskStore = egressruntime.Tasks(store, tools.egress.TaskEnded)
 	}
+	if tools.molab != nil {
+		taskStore = molabruntime.Tasks{TaskStore: taskStore, Forget: tools.molab.Forget}
+	}
 
 	deps := taskapp.Observe(taskapp.Deps{
 		Notes: tasknotes.New(tools.folders.Dir), Tasks: taskStore, Events: store, Transcript: store, Usage: store,
@@ -55,6 +59,7 @@ func newAgent(
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
 	service := taskapp.NewService(deps, scheduler)
+	tools.molabTasks = service
 	works, handoffs := wireExternalWorkflows(service, store, hub, deps, cfg)
 	service.UseWorkIdleAfter(cfg.WorkIdleAfter)
 	works.UseSweepMode(cfg.WorkSweepMode)
