@@ -53,9 +53,9 @@
   {/if}
 
   {#if $extensions.length === 0 && $loaded}
-    <EmptyState class="mt-6" bordered icon="puzzle" title={extensionsCopy.empty.title} body={extensionsCopy.empty.body}>
+    <div class="mt-6 overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100"><EmptyState compact icon="puzzle" title={extensionsCopy.empty.title} body={extensionsCopy.empty.body}>
       <a class="btn btn-primary btn-sm rounded-lg" href="/app">{extensionsCopy.empty.action}</a>
-    </EmptyState>
+    </EmptyState></div>
   {:else}
     <div class="mt-6 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
       <ul class="divide-y divide-[var(--brand-border)]">

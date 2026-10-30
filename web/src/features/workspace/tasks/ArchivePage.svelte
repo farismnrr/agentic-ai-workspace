@@ -40,8 +40,9 @@
     </div>
     <p class="mt-1 text-sm text-[var(--brand-text-secondary)]">Archived tasks stay here until you restore or delete them.</p>
   </header>
+  <section class="overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100" aria-label="Archived tasks">
   {#if !loaded}
-    <SkeletonList rows={5} />
+    <div class="p-3"><SkeletonList rows={5} /></div>
   {:else if error !== ''}
     <div class="alert alert-error" role="alert">{error} <button class="btn btn-sm" type="button" onclick={() => void load()}>Retry</button></div>
   {:else if archived.length === 0}
@@ -49,4 +50,5 @@
   {:else}
     <TaskSelection tasks={archived} archived onchanged={changed} />
   {/if}
+  </section>
 </SettingsFrame>

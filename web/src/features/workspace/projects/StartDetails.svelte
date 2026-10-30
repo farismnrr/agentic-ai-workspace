@@ -35,7 +35,7 @@
   const incomplete = $derived(name.trim() === '' || idBlocked || (source === 'github' && repo === '') || (source === 'new' && repoName.trim() === ''));
 </script>
 
-<form class="max-w-xl" onsubmit={(event) => { event.preventDefault(); onsubmit(); }}>
+<form class="max-w-xl rounded-xl border border-[var(--brand-border)] bg-base-100 p-4 sm:p-5" onsubmit={(event) => { event.preventDefault(); onsubmit(); }}>
   <h2 class="text-lg font-semibold">{newProjectCopy.detailsHeading}</h2>
   {#if source === 'github'}<RepoPicker value={repo} onpick={pick} />{/if}
   <NameField bind:name />

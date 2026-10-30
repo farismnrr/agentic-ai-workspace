@@ -85,7 +85,7 @@
   </div>
   {#if error !== ''}<p class="alert alert-error text-sm" role="alert">{error}</p>{/if}
   {#if success !== ''}<p class="alert alert-success text-sm" role="status">{success}</p>{/if}
-  <form class="rounded-box border border-base-300 p-4 space-y-3" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
+  <form class="space-y-3 rounded-xl border border-[var(--brand-border)] bg-base-100 p-4" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
     <h3 class="font-medium">Request access manually</h3>
     <p class="text-sm text-base-content/70">For solo tasks or when an agent cannot request access itself.</p>
     <label class="form-control block space-y-1">
@@ -106,16 +106,16 @@
     <button type="submit" class="btn btn-primary btn-sm" disabled={busy || activeTasks.length === 0}>Request access</button>
     {#if activeTasks.length === 0}<p class="text-xs text-base-content/70">Start an active task to request access.</p>{/if}
   </form>
-  <div class="space-y-3">
+  <section class="space-y-3" aria-label="Pending internet access">
     <h3 class="font-medium">Waiting for decision ({pending.length})</h3>
     {#each pending as grant (grant.id)}<GrantRow {grant} {busy} {now} decide={onGrantDecision} />{:else}
-      <p class="text-sm text-base-content/70">No pending requests.</p>
+      <p class="rounded-xl border border-[var(--brand-border)] bg-base-100 p-4 text-sm text-[var(--brand-text-secondary)]">No pending requests.</p>
     {/each}
-  </div>
-  <div class="space-y-3">
+  </section>
+  <section class="space-y-3" aria-label="Previous internet access decisions">
     <h3 class="font-medium">Previous decisions</h3>
     {#each other as grant (grant.id)}<GrantRow {grant} {busy} {now} decide={onGrantDecision} />{:else}
-      <p class="text-sm text-base-content/70">No past decisions.</p>
+      <p class="rounded-xl border border-[var(--brand-border)] bg-base-100 p-4 text-sm text-[var(--brand-text-secondary)]">No past decisions.</p>
     {/each}
-  </div>
+  </section>
 </section>

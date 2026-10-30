@@ -1,5 +1,6 @@
 <script lang="ts">
   import DocText from '../../components/DocText.svelte';
+  import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import { rawUrl, readFile } from '../../logic/files-api';
   import { loadDocuments } from '../../logic/tasks-api';
   import type { ProjectDocument } from '../../logic/tasks-api';
@@ -48,13 +49,13 @@
 </script>
 
 <section aria-label="Project documents">
-  <h2 class="font-semibold">Project documents {#if busy}<span class="loading loading-spinner loading-xs"></span>{/if}</h2>
+  <h2 class="border-b border-[var(--brand-border)] pb-3 font-semibold">Project documents {#if busy}<span class="loading loading-spinner loading-xs"></span>{/if}</h2>
   <p class="my-2 text-sm text-base-content/70">Plans, research and long messages saved in this project. Every task can read them. Earlier plans may still be drafts.</p>
   {#if error !== ''}<p class="text-sm text-error" role="alert">{error}</p>{/if}
-  {#if documents.length === 0 && !busy && error === ''}<p class="text-sm text-base-content/70">Documents appear here when a plan, research or a long message is saved.</p>{/if}
-  <ul class="flex flex-col gap-2 text-sm">
+  {#if documents.length === 0 && !busy && error === ''}<EmptyState compact icon="file-text" title="No documents yet" body="Plans, research and long messages appear here when they're saved." />{/if}
+  <ul class="flex flex-col divide-y divide-[var(--brand-border)] text-sm">
     {#each documents as document (document.path)}
-      <li>
+      <li class="py-3">
         <button type="button" class="link link-primary text-left" onclick={() => void open(document.path)}>{document.path.split('/').slice(3).join('/')}</button>
         <p class="text-xs text-base-content/70">{document.title} · {document.status} · {new Date(document.updatedAt).toLocaleString()}</p>
       </li>

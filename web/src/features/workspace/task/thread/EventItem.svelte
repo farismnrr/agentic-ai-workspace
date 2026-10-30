@@ -53,7 +53,7 @@
   <ChatBubble who="ai" text={event.text} time={clock(event.time)} agent={provenance.role} reportedBy={provenance.provider || undefined} />
 {:else if event.kind !== 'action'}
   <div class="ml-9">
-    <p class="mb-1 flex flex-wrap gap-x-2 text-xs text-[var(--brand-text-secondary)]">
+    <p class="mb-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--brand-text-secondary)]">
       <span>{provenance.label}</span>
       {#if provenance.role !== ''}<span>Agent role: {provenance.role}</span>{/if}
     </p>
@@ -75,7 +75,6 @@
       <PlanReviewCard review={event.planReview} {taskId} {projectId} {readOnly} />
     {:else if event.kind === 'receipt' && isExternalReceipt(event)}
       <div class="rounded-lg border border-[var(--brand-border)] bg-base-100 p-3">
-        <p class="mb-1 text-xs text-[var(--brand-text-secondary)]">{provenance.label}</p>
         <DocText class="text-[15px] leading-6" text={event.text} />
       </div>
     {:else if event.kind === 'receipt'}

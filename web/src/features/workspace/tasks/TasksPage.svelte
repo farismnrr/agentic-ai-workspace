@@ -14,11 +14,13 @@
     <h1 class="text-xl font-semibold">Tasks</h1>
     <p class="mt-1 text-sm text-[var(--brand-text-secondary)]">All your active work in one place.</p>
   </header>
+  <section class="overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100" aria-label="Active tasks">
   {#if !$loaded}
-    <SkeletonList rows={5} />
+    <div class="p-3"><SkeletonList rows={5} /></div>
   {:else if $tasks.length === 0}
     <EmptyState compact icon="check-square" title="No active tasks" body="Start a task from Home and it will appear here." />
   {:else}
     <TaskSelection tasks={$tasks} />
   {/if}
+  </section>
 </AppShell>

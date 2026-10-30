@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../../../../shared/ui/Icon.svelte';
+  import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import DocText from '../../components/DocText.svelte';
   import type { PlanState, PlanStep } from '../../logic/task-types';
 
@@ -16,6 +17,8 @@
   const { plan, prd = '', research = '' }: Props = $props();
 </script>
 
+<section aria-label="Task plan">
+  <h2 class="mb-3 text-sm font-semibold">Plan</h2>
 {#if research !== ''}
   <details class="mb-4 rounded-lg border border-[var(--brand-border)] bg-base-100 px-3 py-2">
     <summary class="cursor-pointer font-medium">Research notes</summary>
@@ -29,7 +32,7 @@
   </details>
 {/if}
 {#if plan.length === 0}
-  <p class="rounded-lg border border-dashed border-[var(--brand-border-strong)] p-4 text-[var(--brand-text-secondary)]">The plan appears here as soon as the AI has made one.</p>
+  <EmptyState compact icon="check-square" title="No plan yet" body="The plan appears here as soon as the AI has made one." />
 {:else}
 <ol class="flex flex-col" aria-label="Plan">
   {#each plan as step, index (step.id)}
@@ -50,3 +53,4 @@
   {/each}
 </ol>
 {/if}
+</section>

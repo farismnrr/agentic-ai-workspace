@@ -70,7 +70,7 @@
   }
 </script>
 
-<div class="mt-3">
+<div>
   <div class="flex flex-wrap items-center gap-3 border-b border-[var(--brand-border)] px-3 py-2">
     <label class="flex items-center gap-2 text-sm">
       <input bind:this={selectAll} class="checkbox checkbox-sm" type="checkbox"
@@ -90,7 +90,7 @@
       </div>
     {/if}
   </div>
-  <p class="min-h-5 px-3 pt-1 text-sm" aria-live="polite">{message}</p>
+  {#if message !== ''}<p class="px-3 py-2 text-sm" role="status" aria-live="polite">{message}</p>{/if}
   {#each tasks as task (task.id)}
     {@const workStatus = workStatusPresentation(task.status, task.work)}
     {@const statusLabel = workStatus.label || statusMeta[task.status].label}

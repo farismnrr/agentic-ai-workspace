@@ -121,10 +121,9 @@ Every empty list, panel or page uses the shared empty state:
 
 ### Workspace
 
-The signed-in app lives under `/app` and uses a compact scale: 14px text, small radii, sans headings, flat rows with hairlines, no card shadows. Only the composer and popups float.
+The signed-in app lives under `/app` and uses a compact scale: 14px text, small radii, sans headings, and no page-card shadows. Only the composer and popups float.
 
-Forms and detail sections reuse `SettingsSection` and `FormField`; lists stay
-flat and use shared empty states instead of nested cards.
+**One function, one quiet surface.** Related title, explanation, controls, empty/loading/error state, and CTA share one outlined `base-100` section. `SettingsSection` provides this by default and exposes `surface={false}` for content that already owns its surface. Task/project lists keep flat, hairline-divided rows **inside** their single section card. Use the shared compact `EmptyState` without a second dashed border within a surface. Do not nest list cards or put a card around each message, task row, menu, code editor, diff or split pane. Preserve semantic approval, question and result cards, plus modal/popover boundaries. Compare populated and empty screens on phone/tablet/desktop before introducing any new wrapper.
 
 - **Pages:** Home, Inbox, Projects, a project, a task, Settings.
 - **Sidebar:** icon rail on desktop, drawer on tablets.

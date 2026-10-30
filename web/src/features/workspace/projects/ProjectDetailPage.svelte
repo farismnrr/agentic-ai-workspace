@@ -80,7 +80,7 @@
       {/if}
     </div>
     <div class="mt-4">
-      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<FileBrowser {projectId} />{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'egress' && accessEnabled}{#key projectId}<AccessPanel {projectId} initial={initialGrants} />{/key}{:else if tab === 'env'}{#key projectId}<VariablesSection {projectId} revision={variableRevision} /><div class="border-t border-base-300"><DatabaseSection {projectId} onenvchange={refreshVariables} /></div><div class="border-t border-base-300"><GatewaySection {projectId} /></div>{/key}{:else}<AboutTab {project} />{/if}
+      {#if tab === 'tasks'}<TasksTab {projectId} />{:else if tab === 'files'}{#key projectId}<div class="overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100"><FileBrowser {projectId} /></div>{/key}{:else if tab === 'checks'}<ChecksTab {projectId} />{:else if tab === 'egress' && accessEnabled}{#key projectId}<AccessPanel {projectId} initial={initialGrants} />{/key}{:else if tab === 'env'}{#key projectId}<VariablesSection {projectId} revision={variableRevision} /><DatabaseSection {projectId} onenvchange={refreshVariables} /><GatewaySection {projectId} />{/key}{:else}<AboutTab {project} />{/if}
     </div>
   {/if}
 </AppShell>
