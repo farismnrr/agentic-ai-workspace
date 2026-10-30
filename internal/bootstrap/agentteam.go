@@ -74,6 +74,12 @@ func toolsFor(role teamdomain.Role) []string {
 	}
 
 	// What the web returns is a stranger's text, so the orchestrator, which holds the person's trust, never reads it raw.
+	// A read-only Docker host ping is mediated by the app. Execution-enabled roles
+	// can request status, but do not gain the daemon socket or arbitrary host commands.
+	if role.Can(teamdomain.AccessExec) {
+		names = append(names, toolDockerHostStatus)
+	}
+
 	if !role.Lead && role.Can(teamdomain.AccessWeb) {
 		names = append(names, toolWebSearch, toolFetchPage)
 	}

@@ -119,6 +119,7 @@ func (a *agentTools) Definitions() []taskdomain.ToolDef {
 	}
 
 	defs = append(defs, siteDefinitions()...)
+	defs = append(defs, dockerHostStatusDefinition())
 	defs = append(defs, extensionDefinition(), ciLogsDefinition())
 	defs = append(defs, screenshotDefinition(), screenshotSessionDefinition(), viewImageDefinition())
 

@@ -116,6 +116,10 @@ func (g toolGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 		states[site] = states[codingdomain.SwitchOf(site)]
 	}
 
+	// Internal-only read-only host diagnostics follow the existing execution switch.
+	// They are never offered to roles without command execution permission.
+	states[toolDockerHostStatus] = states[codingdomain.ToolRunCommand.Name]
+
 	return states, nil
 }
 
