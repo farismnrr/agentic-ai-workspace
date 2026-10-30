@@ -2,6 +2,15 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
+- [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/requirements.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/requirements.md; done; 2026-10-30T06:52:39Z
+- [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/research.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/research.md; done; 2026-10-30T06:52:39Z
+- [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/research/29.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/research/29.md; done; 2026-10-30T06:52:39Z
+- [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/prd/30.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/prd/30.md; done; 2026-10-30T06:52:39Z
+- [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/research/38.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/research/38.md; done; 2026-10-30T06:52:39Z
+- [Deep UI audit and PRD only: review blank/flat workspace scre…](tasks/e0a82830063b6f5992a04f884e412147/requirements.md) — project-notes/tasks/e0a82830063b6f5992a04f884e412147/requirements.md; done; 2026-10-30T06:28:29Z
+- [Deep UI audit and PRD only: review blank/flat workspace scre…](tasks/e0a82830063b6f5992a04f884e412147/research.md) — project-notes/tasks/e0a82830063b6f5992a04f884e412147/research.md; done; 2026-10-30T06:28:29Z
+- [Deep UI audit and PRD only: review blank/flat workspace scre…](tasks/e0a82830063b6f5992a04f884e412147/research/46.md) — project-notes/tasks/e0a82830063b6f5992a04f884e412147/research/46.md; done; 2026-10-30T06:28:29Z
+- [Deep UI audit and PRD only: review blank/flat workspace scre…](tasks/e0a82830063b6f5992a04f884e412147/prd/48.md) — project-notes/tasks/e0a82830063b6f5992a04f884e412147/prd/48.md; done; 2026-10-30T06:28:29Z
 - [Read-only research of landing page and authentication routin…](tasks/53593199b0f51da303c8f87d5233d25a/research.md) — project-notes/tasks/53593199b0f51da303c8f87d5233d25a/research.md; done; 2026-10-30T05:58:07Z
 - [Read-only research of landing page and authentication routin…](tasks/53593199b0f51da303c8f87d5233d25a/research/32.md) — project-notes/tasks/53593199b0f51da303c8f87d5233d25a/research/32.md; done; 2026-10-30T05:58:07Z
 - [Critical: @deep-review team completes developer plan but req…](tasks/f240c1c59ac664bff2c327423c0b8737/plan.md) — project-notes/tasks/f240c1c59ac664bff2c327423c0b8737/plan.md; done; 2026-10-29T03:46:45Z
