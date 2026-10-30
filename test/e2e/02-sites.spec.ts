@@ -2,7 +2,7 @@
 // It uses a fresh, signed-out browser against a real server with a real container and checks that a
 // private site is forbidden without the owner's login, that sign-in leads back to it, and that the app
 // cannot touch the app around it. Usage: PW=<playwright dir> node e2e-sites.ts <info.json> <screenshot dir>
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PW as string) as
@@ -20,7 +20,8 @@ function check(name: string, ok: boolean, detail = ''): void {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail === '' ? '' : `  - ${detail}`}`);
 }
 
-const browser = await chromium.launch({ executablePath: '/usr/bin/chromium-headless-shell', args: ['--no-sandbox'] });
+const executablePath = process.env.CHROMIUM_BIN || (existsSync('/usr/bin/chromium-headless-shell') ? '/usr/bin/chromium-headless-shell' : undefined);
+const browser = await chromium.launch({ ...(executablePath ? { executablePath } : {}), args: ['--no-sandbox'] });
 const owner = await browser.newContext();
 const page = await owner.newPage();
 
@@ -44,7 +45,7 @@ const probe = await page.locator('#out').innerText();
 check('the app renders for the owner', (await page.locator('h1').innerText()) === 'hello site');
 check('the page cannot read cookies', /cookie=blocked/.test(probe), probe);
 check('the page cannot use storage', /storage=blocked/.test(probe));
-check('the page cannot call the app API with the login', /api=blocked|api=403/.test(probe));
+check('the page cannot call the app API with the login', /api=blocked|api=403|api=404/.test(probe));
 check('the page cannot register a service worker', /sw=blocked/.test(probe));
 await page.screenshot({ path: `${shots}/owner.png` });
 

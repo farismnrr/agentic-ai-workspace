@@ -1,5 +1,5 @@
 // External work lifecycle: status, actions, and heartbeat-driven updates.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const { chromium } = createRequire(import.meta.url)(process.env.PW as string) as
@@ -25,8 +25,9 @@ function check(name: string, ok: boolean, detail = ''): void {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail === '' ? '' : `  - ${detail}`}`);
 }
 
+const executablePath = process.env.CHROMIUM_BIN || (existsSync('/usr/bin/chromium-headless-shell') ? '/usr/bin/chromium-headless-shell' : undefined);
 const browser = await chromium.launch({
-  executablePath: '/usr/bin/chromium-headless-shell',
+  ...(executablePath ? { executablePath } : {}),
   args: ['--no-sandbox'],
 });
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();

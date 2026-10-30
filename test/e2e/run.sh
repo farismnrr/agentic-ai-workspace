@@ -20,6 +20,7 @@ if [[ ! -d $playwright_module ]]; then
   exit 1
 fi
 shots=${E2E_SHOTS:-}
+make -C "$REPO_ROOT" frontend >/dev/null
 
 if [[ $flow == projects ]]; then
   app_init
@@ -91,7 +92,6 @@ elif [[ $flow == lifecycle ]]; then
   mkdir -p "$shots"
   spec=04-work-lifecycle.spec.ts
 elif [[ $flow == context ]]; then
-  make -C "$REPO_ROOT" frontend >/dev/null
   app_init
   app_start
   cookie_jar="$APP_TMP_DIR/browser.cookies"
@@ -115,7 +115,6 @@ elif [[ $flow == context ]]; then
   mkdir -p "$shots"
   spec=06-context-meter.spec.ts
 elif [[ $flow == git ]]; then
-  make -C "$REPO_ROOT" frontend >/dev/null
   app_init
   app_start
   cookie_jar="$APP_TMP_DIR/browser.cookies"
@@ -155,7 +154,6 @@ else
   dir=$(mktemp -d)
   host_pid=
   trap 'touch "$dir/done"; if [[ -n ${host_pid:-} ]]; then wait "$host_pid" || true; fi; rm -rf "$dir"' EXIT
-  make -C "$REPO_ROOT" frontend >/dev/null
   if [[ $flow == sites ]]; then
     host_test=TestServeSiteForABrowser
     host_dir=SITES_BROWSER_DIR

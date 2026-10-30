@@ -2,6 +2,7 @@
   import { onDestroy, untrack } from 'svelte';
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
+  import ChangedFile from '../../changes/ChangedFile.svelte';
   import { createFileChanges } from '../../logic/changes-store';
   import { createGitStatusStore, gitStatusLabel } from '../../logic/git-status-store';
   import type { Change } from '../../logic/task-types';
@@ -17,10 +18,24 @@
 
   const { taskId, projectId, changes, onundo }: Props = $props();
   const store = untrack(() => createFileChanges(taskId, projectId));
+  const files = store.files;
   const gitStore = untrack(() => createGitStatusStore(projectId));
   const git = gitStore.snapshot;
   const loaded = store.loaded;
+  let opened = $state<Record<string, boolean>>({});
   let refreshKey = $state(0);
+  let wide = $state(false);
+  let layout = $state('');
+  let box = $state<HTMLDivElement>();
+
+  $effect(() => {
+    if (box === undefined) return;
+    const watch = new ResizeObserver(([entry]) => { wide = (entry?.contentRect.width ?? 0) >= 720; });
+    watch.observe(box);
+    return () => { watch.disconnect(); };
+  });
+
+  const split = $derived(layout === '' ? wide : layout === 'split');
 
   $effect(() => {
     const snapshot = $git;
@@ -34,16 +49,17 @@
   });
 
   onDestroy(() => { store.stop(); gitStore.stop(); });
+  const isOpen = (path: string, index: number): boolean => opened[path] ?? index === 0;
 </script>
 
-<div class="flex flex-col gap-3">
+<div bind:this={box} class="flex flex-col gap-3">
   {#if $git === undefined}
     <div class="grid place-items-center py-6"><span class="loading loading-spinner" aria-label="Loading Git status"></span></div>
   {:else if !$git.available}
     <div class="alert alert-info alert-soft text-sm" role="status">Git tracking is not available for this project.</div>
-  {:else if $git.files.length === 0}
+  {:else if $git.files.length === 0 && $files.length === 0}
     <EmptyState compact icon="pencil" title="No active Git changes" body="Saved files match the current commit. Task steps remain in history below." />
-  {:else}
+  {:else if $git.files.length > 0}
     <p class="text-sm font-medium">Current Git changes · {$git.files.length} {$git.files.length === 1 ? 'file' : 'files'}</p>
     <ul class="flex flex-col divide-y divide-[var(--brand-border)] rounded-lg border border-[var(--brand-border)] bg-base-100">
       {#each $git.files as file (file.path)}
@@ -57,8 +73,23 @@
     </ul>
   {/if}
 
+  {#if $files.length > 0}
+    <div class="flex flex-wrap items-center gap-2">
+      <p class="flex-1 text-sm font-medium">{$files.length} {$files.length === 1 ? 'file' : 'files'} changed</p>
+      <div class="join" role="group" aria-label="How to compare">
+        <button type="button" class="btn btn-xs join-item {split ? '' : 'btn-primary'}" aria-pressed={!split} onclick={() => { layout = 'unified'; }}>Unified</button>
+        <button type="button" class="btn btn-xs join-item {split ? 'btn-primary' : ''}" aria-pressed={split} onclick={() => { layout = 'split'; }}>Split</button>
+      </div>
+    </div>
+    <div class="flex flex-col gap-3">
+      {#each $files as change, index (change.path)}
+        <ChangedFile {change} {split} open={isOpen(change.path, index)} ontoggle={() => { opened = { ...opened, [change.path]: !isOpen(change.path, index) }; }} />
+      {/each}
+    </div>
+  {/if}
+
   {#if changes.length > 0 || !$loaded}
-    <details class="rounded-lg border border-[var(--brand-border)] bg-base-100 p-3" open={$git?.files.length === 0}>
+    <details class="rounded-lg border border-[var(--brand-border)] bg-base-100 p-3" open={$git?.files.length === 0 && $files.length === 0}>
       <summary class="cursor-pointer text-sm font-medium">Task history: steps with Undo ({changes.length})</summary>
       {#if !$loaded}<div class="grid place-items-center py-4"><span class="loading loading-spinner" aria-label="Loading task history"></span></div>{/if}
       <ul class="mt-2 flex flex-col divide-y divide-[var(--brand-border)]">

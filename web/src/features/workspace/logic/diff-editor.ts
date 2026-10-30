@@ -3,6 +3,7 @@ export interface DiffOptions {
   path: string;
   before: string;
   after: string;
+  split?: boolean;
 }
 
 export interface DiffEditor {
