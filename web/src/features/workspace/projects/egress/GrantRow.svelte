@@ -20,7 +20,7 @@
   const created = $derived(new Date(grant.createdAt).toLocaleString());
 </script>
 
-<article class="rounded-box border border-base-300 bg-base-100 p-4 space-y-3">
+<article class="space-y-3 rounded-xl border border-[var(--brand-border)] bg-base-100 p-4">
   <div class="flex flex-wrap items-start justify-between gap-2">
     <div class="min-w-0">
       <p class="break-all font-medium">{grant.host}</p>

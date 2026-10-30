@@ -68,15 +68,20 @@
   onMount(load);
 </script>
 
-<p class="max-w-2xl text-[var(--brand-text-secondary)]">{projectsCopy.checks.intro}</p>
-<p class="mt-1 max-w-2xl text-xs text-[var(--brand-text-tertiary)]">{projectsCopy.checks.warning}</p>
+<section class="overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100" aria-label="Checks">
+  <header class="border-b border-[var(--brand-border)] px-4 py-3">
+    <h2 class="text-sm font-semibold">Checks</h2>
+    <p class="mt-1 max-w-2xl text-[var(--brand-text-secondary)]">{projectsCopy.checks.intro}</p>
+    <p class="mt-1 max-w-2xl text-xs text-[var(--brand-text-secondary)]">{projectsCopy.checks.warning}</p>
+  </header>
 
 {#if loading}
-  <span class="loading loading-spinner loading-sm mt-4" aria-label="Loading"></span>
+  <div class="p-4" role="status"><span class="loading loading-spinner loading-sm" aria-label="Loading checks"></span></div>
 {:else if failed}
-  <p class="mt-4 text-error" role="alert">We could not load the checks. Please try again in a moment.</p>
+  <p class="p-4 text-error" role="alert">We could not load the checks. Please try again in a moment.</p>
 {:else}
-  <div class="mt-4">
+  <div>
+    {#if checks.length > 0}
     <ul class="divide-y divide-[var(--brand-border)]">
       {#each checks as check (check.name)}
         <li class="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -87,16 +92,20 @@
           <button class="btn btn-ghost btn-xs" type="button" onclick={() => { open(check); }}>Edit</button>
           <button class="btn btn-ghost btn-xs btn-square" type="button" aria-label="Remove {check.name}" onclick={() => (removing = check)}><Icon name="trash" class="size-4" /></button>
         </li>
-      {:else}
-        <li><EmptyState compact icon="check-square" title={projectsCopy.checks.empty.title} body="{projectsCopy.checks.empty.body} For example: {projectsCopy.checks.examples.join(', ')}." /></li>
       {/each}
     </ul>
-    <div class="border-t border-[var(--brand-border)] py-3">
+    <div class="border-t border-[var(--brand-border)] px-3 py-2">
       <button class="btn btn-ghost btn-sm" type="button" onclick={() => { open(undefined); }}><Icon name="plus" class="size-4" /> Add a check</button>
     </div>
+    {:else}
+      <EmptyState compact icon="check-square" title={projectsCopy.checks.empty.title} body="{projectsCopy.checks.empty.body} For example: {projectsCopy.checks.examples.join(', ')}.">
+        <button class="btn btn-primary btn-sm" type="button" onclick={() => { open(undefined); }}><Icon name="plus" class="size-4" /> Add a check</button>
+      </EmptyState>
+    {/if}
   </div>
-  {#if error !== '' && !formOpen}<p class="mt-3 text-sm text-error" role="alert">{error}</p>{/if}
+  {#if error !== '' && !formOpen}<p class="border-t border-[var(--brand-border)] px-4 py-3 text-sm text-error" role="alert">{error}</p>{/if}
 {/if}
+</section>
 
 <CheckModal check={editing} bind:show={formOpen} {error} {busy} onsave={save} />
 <ConfirmModal

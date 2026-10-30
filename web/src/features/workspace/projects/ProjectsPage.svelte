@@ -27,14 +27,12 @@
   </div>
 
   {#if !$loaded}
-    <div class="mt-6 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
-      <SkeletonList variant="project" rows={5} />
-    </div>
+    <div class="mt-6 overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100"><SkeletonList variant="project" rows={5} /></div>
   {:else if $projects.length === 0}
-    <EmptyState class="mt-6" bordered icon="folder" title={projectsCopy.empty.title} body={projectsCopy.empty.body} />
+    <div class="mt-6 overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100"><EmptyState compact icon="folder" title={projectsCopy.empty.title} body={projectsCopy.empty.body} /></div>
   {:else if visible.length === 0}
-    <EmptyState class="mt-6" bordered icon="search" title="No project matches “{query}”" body="Try a different name, or clear the search." />
+    <div class="mt-6 overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100"><EmptyState compact icon="search" title="No project matches “{query}”" body="Try a different name, or clear the search." /></div>
   {:else}
-    <div class="mt-6"><ProjectsTable items={visible} /></div>
+    <div class="mt-6 overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100"><ProjectsTable items={visible} /></div>
   {/if}
 </AppShell>

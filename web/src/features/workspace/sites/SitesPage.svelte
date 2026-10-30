@@ -48,9 +48,9 @@
   {#if error !== ''}<p class="mt-3 text-error" role="alert">{error}</p>{/if}
 
   {#if $sites.length === 0}
-    <EmptyState class="mt-6" bordered icon="globe" title={sitesCopy.empty.title} body={sitesCopy.empty.body}>
+    <div class="mt-6 overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100"><EmptyState compact icon="globe" title={sitesCopy.empty.title} body={sitesCopy.empty.body}>
       <a class="btn btn-primary btn-sm rounded-lg" href="/app">{sitesCopy.empty.action}</a>
-    </EmptyState>
+    </EmptyState></div>
   {:else}
     <div class="mt-6 overflow-hidden card border border-[var(--brand-border)] bg-base-100">
       <ul class="divide-y divide-[var(--brand-border)]">

@@ -26,7 +26,7 @@
 {#if external}
   <ExternalTeam {events} {work} actor={work?.actor ?? source} />
 {:else if jobs.length === 0}
-  <EmptyState compact bordered icon="user" title="No one has been called in yet" body="When the lead hands a job to a teammate, who is doing what shows up here." />
+  <EmptyState compact icon="user" title="No one has been called in yet" body="When the lead hands a job to a teammate, who is doing what shows up here." />
 {:else}
   <ul class="flex flex-col gap-2">
     {#each jobs as job (job.id)}

@@ -22,7 +22,7 @@
     <p class="mt-1 text-xs text-[var(--brand-text-secondary)]">Role assignments, objectives and outcomes.</p>
   </header>
   {#if roles.length === 0}
-    <EmptyState compact bordered icon="activity" title="No structured role updates" body="This older external task has no role, step or result details to show." />
+    <EmptyState compact icon="activity" title="No structured role updates" body="This older external task has no role, step or result details to show." />
   {:else}
     <ol class="flex flex-col gap-2">
       {#each roles as role (role.id)}

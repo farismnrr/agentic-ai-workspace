@@ -5,7 +5,7 @@
 </script>
 
 <SettingsSection title={integrationsCopy.title} description={integrationsCopy.intro}>
-  <ul class="list mt-3 rounded-box border border-base-300 bg-base-100">
+  <ul class="list">
     <GitHubIntegration />
   </ul>
 </SettingsSection>

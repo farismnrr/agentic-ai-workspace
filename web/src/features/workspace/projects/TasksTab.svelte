@@ -30,16 +30,17 @@
   const counts = $derived(Object.fromEntries((Object.keys(groups) as Filter[]).map((key) => [key, all.filter(groups[key]).length])));
 </script>
 
-<div class="join flex-wrap" role="group" aria-label="Filter tasks">
+<section class="overflow-hidden rounded-xl border border-[var(--brand-border)] bg-base-100" aria-label="Project tasks">
+<div class="flex flex-wrap gap-2 border-b border-[var(--brand-border)] px-4 py-3" role="group" aria-label="Filter tasks">
   {#each Object.keys(groups) as key (key)}
-    <button type="button" aria-pressed={filter === key} class="join-item btn btn-sm {filter === key ? 'btn-primary' : ''}" onclick={() => (filter = key as Filter)}>
+    <button type="button" aria-pressed={filter === key} class="btn btn-sm {filter === key ? 'btn-primary' : 'btn-ghost'}" onclick={() => (filter = key as Filter)}>
       {labels[key as Filter]} <span class={filter === key ? '' : 'text-base-content/70'}>{counts[key]}</span>
     </button>
   {/each}
 </div>
-<div class="mt-3">
+<div>
   {#if !$loaded}
-    <SkeletonList rows={4} />
+    <div class="p-3"><SkeletonList rows={4} /></div>
   {:else}
   {#if rows.length > 0}
     <TaskSelection tasks={rows} />
@@ -54,3 +55,4 @@
   {/if}
   {/if}
 </div>
+</section>

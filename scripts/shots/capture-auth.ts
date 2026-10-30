@@ -107,7 +107,8 @@ async function capture(cdp: Cdp, origin: string, shot: Shot, width: number, heig
   const page = await cdp.send('Runtime.evaluate', { expression: 'location.pathname', returnByValue: true });
   if ((page.result as { value?: string }).value === '/login') throw new Error(`session was not accepted for ${shot.path}`);
   const png = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-  writeFileSync(join(out, `${shot.name}-${mobile ? 'mobile' : 'desktop'}.png`), Buffer.from(String(png.data), 'base64'));
+  const suffix = width === 1280 ? 'desktop' : width === 390 ? 'mobile' : `${String(width)}-desktop`;
+  writeFileSync(join(out, `${shot.name}-${suffix}.png`), Buffer.from(String(png.data), 'base64'));
 }
 
 async function run(): Promise<void> {
@@ -131,10 +132,14 @@ async function run(): Promise<void> {
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: 'const style = document.createElement("style"); style.textContent = "*{animation:none!important;transition:none!important}"; document.documentElement.append(style);' });
     const cookie = await cdp.send('Network.setCookie', { name: 'session', value: cookieValue(jar), url: origin, path: '/', httpOnly: true, sameSite: 'Lax' });
     if (cookie.success === false) throw new Error('Chromium rejected the session cookie');
+    const widths = (process.env.SHOTS_WIDTHS ?? '1280,390').split(',').map(Number);
+    if (widths.some((width) => !Number.isInteger(width) || width < 320 || width > 2560)) throw new Error('Invalid SHOTS_WIDTHS');
     for (const shot of paths.length ? customShots(paths) : defaults(projectId)) {
-      for (const size of [{ width: 1280, height: 800, mobile: false }, { width: 390, height: 844, mobile: true }]) {
-        await capture(cdp, origin, shot, size.width, size.height, size.mobile, out);
-        console.log(join(out, `${shot.name}-${size.mobile ? 'mobile' : 'desktop'}.png`));
+      for (const width of widths) {
+        const mobile = width < 600;
+        await capture(cdp, origin, shot, width, mobile ? 844 : 900, mobile, out);
+        const suffix = width === 1280 ? 'desktop' : width === 390 ? 'mobile' : `${String(width)}-desktop`;
+        console.log(join(out, `${shot.name}-${suffix}.png`));
       }
     }
   } finally {

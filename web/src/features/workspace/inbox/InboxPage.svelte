@@ -27,8 +27,10 @@
 
 <AppShell crumbs={[{ label: 'Inbox' }]} width="split">
   {#if items.length === 0}
-    <div class="grid flex-1 place-items-center p-8">
-      <EmptyState icon="check-circle" title="You're all caught up" body="Nothing is waiting for you right now. When the AI needs an answer or your OK, it shows up here." />
+    <div class="flex flex-1 justify-center p-4 pt-8 sm:p-8">
+      <section class="h-fit w-full max-w-2xl rounded-xl border border-[var(--brand-border)] bg-base-100" aria-label="Inbox status">
+        <EmptyState compact icon="check-circle" title="You're all caught up" body="Nothing is waiting for you right now. When the AI needs an answer or your OK, it shows up here." />
+      </section>
     </div>
   {:else}
     <div class="flex flex-1 lg:h-[calc(100dvh-3rem)]">
