@@ -156,6 +156,8 @@ COPY sandbox/docsite.py /usr/local/share/docsite/docsite.py
 COPY sandbox/removebg.py /usr/local/bin/removebg
 COPY sandbox/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 COPY sandbox/sandbox-entry.sh /usr/local/bin/sandbox-entry
+# Pinned Apache-2.0 marimo-pair skill, read-only in every task and CLI sandbox.
+COPY sandbox/marimo-pair/ /usr/local/share/marimo-pair/
 COPY sandbox/capture/ /usr/local/share/capture/
 COPY sandbox/guard-command.ts /usr/local/share/guard/guard-command.ts
 # Playwright must use the browser that is here: it cannot download one, the sandbox has no network
