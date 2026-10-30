@@ -103,6 +103,7 @@ func (a *agentTools) services(projectID string) (codingmcp.Services, error) {
 		Reader: codingapp.NewService(files),
 		Editor: codingapp.NewEditor(files, files, a.backups, opaque.Generator{}),
 		Tasks:  codingapp.NewTasks(files, run),
+		MoLab:  projectMoLab{runner: run},
 		Sites:  projectSites{tools: a, projectID: projectID}, ProjectID: projectID,
 	}
 	a.cache[projectID] = services

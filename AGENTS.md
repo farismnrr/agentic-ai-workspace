@@ -45,6 +45,10 @@ Three audiences, three places. Never mix them.
 
 When a person provides a running MoLab URL and access code together in their task chat, the internal marimo_execute tool uses that same chat automatically. No special pairing task, UI, TTL manager or manual egress approval is needed. The app validates the exact sb-*.sb.molab.run HTTPS hostname and grants only the one-shot command access through the existing public-only proxy. Never place the access code in a shell command, Project Env, or a tool argument. Chat content itself remains in the user's task history. If the notebook or access expires, explain the error and ask for new chat details.
 
+## MoLab through connected apps
+
+The coding MCP server exposes `marimo_execute` with the existing `coding:exec` scope and `run_command` permission. It takes the temporary MoLab URL and token from the connected assistant's current chat and does **not** require `begin_work` or create a new AI Code task. The request carries the token transiently, but never log its contents or copy it into container command arguments, Project Env, activity or work history. Continue requiring exact MoLab HTTPS hostname validation and the sandbox egress proxy.
+
 ## Clean Architecture dependency rule
 
 Dependencies point inward toward policy. Frameworks and I/O are outer details.

@@ -144,6 +144,11 @@ To use a running MoLab notebook, send its HTTPS URL and temporary access token t
 
 If the notebook stops or access expires, the tool explains what happened. Send a fresh URL and token in the same chat. These details remain part of task chat history, but are not stored in a separate MoLab credential database.
 
+**Connected ChatGPT or Gemini:** After deploying the GHCR App + Sandbox images, refresh the AI Code connector.
+Its `marimo_execute` tool accepts a temporary MoLab URL, token and Python code directly from chat,
+without creating an AI Code task. It requires `coding:exec` and the existing Run command switch.
+The token travels in the MCP request but is not stored in AI Code activity logs or Docker command arguments.
+
 ## Troubleshooting
 
 **Docker host bridge (no Docker-in-Docker):** The trusted app already mounts the host Docker socket. It launches isolated task containers through the Docker Engine API. Never mount that socket or give an unrestricted Docker CLI to an agent sandbox.

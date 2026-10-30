@@ -5,14 +5,12 @@ import (
 	"encoding/json"
 	"strings"
 
-	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	molabapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/molab/application"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 const toolMoLabExecute = "marimo_execute"
-const inspectionCode = "import marimo._code_mode as cm; print(dir(cm))"
 
 func molabExecuteDefinition() taskdomain.ToolDef {
 	return taskdomain.ToolDef{
@@ -55,41 +53,9 @@ func (a *agentTools) executeMoLab(ctx context.Context, scope taskapp.ToolScope, 
 	if runner == nil {
 		return problem("The sandbox is unavailable for this project.")
 	}
-	run := func(code string) (string, bool) {
-		command := codingdomain.Task{
-			Name:           "marimo-pair",
-			Command:        []string{"bash", "/usr/local/share/marimo-pair/scripts/execute-code.sh", "--url", cred.URL, "-c", code},
-			TimeoutSeconds: 120,
-		}
-		result, runErr := runner.RunMoLab(taskContext(ctx, scope), command, cred.Token, cred.Host)
-		if runErr != nil {
-			return "MoLab execution could not start. Check sandbox availability.", false
-		}
-		output := strings.ReplaceAll(result.Output, cred.Token, "[REDACTED]")
-		if result.ExitCode != 0 {
-			return molabError(output), false
-		}
-		return output, true
+	result := molabapp.Execute(taskContext(ctx, scope), runner, cred.URL, cred.Token, input.Code)
+	if result.Problem != "" {
+		return problem(result.Problem)
 	}
-	output, ok := run(inspectionCode + "\n" + input.Code)
-	if !ok {
-		return problem(output)
-	}
-	return taskapp.ToolResult{Output: "MoLab code executed: " + output}
-}
-
-func molabError(output string) string {
-	lower := strings.ToLower(output)
-	switch {
-	case strings.Contains(lower, "401"), strings.Contains(lower, "403"), strings.Contains(lower, "unauthorized"),
-		strings.Contains(lower, "forbidden"), strings.Contains(lower, "token"):
-		return "MoLab refused the token (expired or invalid). Send a fresh URL + token in chat."
-	case strings.Contains(lower, "no active sessions"), strings.Contains(lower, "no session"):
-		return "MoLab is running but no notebook session is open. Open a notebook in MoLab and retry."
-	case strings.Contains(lower, "could not connect"), strings.Contains(lower, "failed to connect"),
-		strings.Contains(lower, "resolve"), strings.Contains(lower, "timed out"), strings.Contains(lower, "could not reach"):
-		return "MoLab is unavailable or terminated. Start a new MoLab session, then send its URL + token in chat."
-	default:
-		return "MoLab could not execute the code. Check that the notebook is running and review the Python error: " + output
-	}
+	return taskapp.ToolResult{Output: "MoLab code executed: " + result.Output}
 }

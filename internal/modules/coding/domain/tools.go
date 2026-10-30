@@ -41,6 +41,12 @@ func writeTool(name, title, description string) ToolInfo {
 	return ToolInfo{Name: name, Title: title, Description: description, Scope: ScopeWrite, Group: GroupWrite}
 }
 
+// ToolMarimoExecute invokes the pinned marimo-pair skill in a one-shot sandbox.
+var ToolMarimoExecute = ToolInfo{
+	Name: "marimo_execute", Title: "Execute MoLab notebook code", Scope: ScopeExec, Group: GroupExec,
+	Description: "Use a temporary MoLab HTTPS URL and token the person sent in this conversation to run Python in a live notebook. Supply url, token and code. No pairing form, extra task or permanent credentials.",
+}
+
 // The tools the coding space offers.
 var (
 	ToolListFiles = readTool("list_files", "List files",
@@ -197,7 +203,7 @@ func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolListProjects,
 		ToolLogMessage,
-		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand, ToolScreenshotSession,
+		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand, ToolMarimoExecute, ToolScreenshotSession,
 		ToolApprovePlan,
 	}
 }

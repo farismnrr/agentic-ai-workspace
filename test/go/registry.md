@@ -3,11 +3,15 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 75 Go test files contain 163 top-level test functions:
-65 registered test files contain 163 functions and 10 support files contain no test functions.
+After this slice, 77 Go test files contain 167 top-level test functions:
+67 registered test files contain 167 functions and 10 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
+| `test/go/app/molab/mcp_test.go::TestChatGPTMoLabToolIsDiscoverableAndWorksWithoutCreatingATask` | auth/authz | Exercises OAuth MCP discovery, permission switch, no-work standalone tool and credential-free activity logging. | none |
+| `test/go/app/molab/mcp_test.go::TestChatGPTMoLabRequiresExecScope` | auth/authz | Verifies step-up consent is required for coding:exec. | none |
+| `test/go/modules/molab/execute_test.go::TestMCPExecutionInspectsBeforeRunningAndKeepsSecretOutOfArgv` | sandbox/privilege | Confirms inspection-first, exact hostname and no token in sandbox argv. | none |
+| `test/go/modules/molab/execute_test.go::TestMCPExecutionRefusesInvalidOriginAndRedactsServerEcho` | crypto/credentials | Stops dangerous hosts and redacts echoed tokens before output. | none |
 | `test/go/modules/molab/chat_test.go::TestMoLabReadsLatestUserURLAndTokenFromSameChatMessage` | auth/authz | The most recent same-message values are used, not unrelated assistant text. | none |
 | `test/go/modules/molab/chat_test.go::TestMoLabNeverCombinesDifferentUserMessages` | auth/authz | Rejects combining credentials from different requests. | none |
 | `test/go/modules/molab/chat_test.go::TestMoLabRejectsUnsafeOrMalformedURLs` | sandbox/egress/SSRF | Rejects unsafe URL destinations before the proxy is opened. | none |
