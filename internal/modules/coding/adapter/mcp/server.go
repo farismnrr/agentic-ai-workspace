@@ -19,6 +19,7 @@ type Services struct {
 	Tasks  *application.Tasks
 	// Sites starts and stops the web app of this workspace's project.
 	Sites SiteRunner
+	MoLab MoLabExecutor
 	// ProjectID is the project this workspace is.
 	ProjectID string
 }
@@ -118,7 +119,9 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"completed until the person has reviewed the plan. There is one assistant: roles are labels, " +
 	"no other agent is called, " +
 	"and permissions do not change. Delegated work belongs to the SAME user issue/task. " +
-	"Start a web app with start_site, never with a shell command."
+	"Start a web app with start_site, never with a shell command. " +
+	"marimo_execute is a standalone MoLab operation: the person may supply url and token in this conversation; " +
+	"it needs coding:exec permission but never needs begin_work or a new task. Do not echo or log tokens."
 
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
@@ -133,6 +136,7 @@ func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	t.addReadTools(server)
 	t.addWriteTools(server)
 	t.addExecTools(server)
+	t.addMoLabTools(server)
 	t.addLogTools(server)
 	t.addSiteTools(server)
 	t.addProjectTools(server)

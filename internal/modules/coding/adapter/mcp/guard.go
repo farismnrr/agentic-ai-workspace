@@ -82,7 +82,8 @@ func guarded[In, Out any](
 		// Workspace operations must belong to a tracked session with an explicit role.
 		// Only account/project discovery and begin_work can bootstrap that session.
 		if workID == "" && info.Name != domain.ToolWhoami.Name &&
-			info.Name != domain.ToolListProjects.Name && info.Name != domain.ToolBeginWork.Name {
+			info.Name != domain.ToolListProjects.Name && info.Name != domain.ToolBeginWork.Name &&
+			info.Name != domain.ToolMarimoExecute.Name {
 			entry.Outcome, entry.Detail = OutcomeFailed, "work role required"
 			g.record(ctx, entry)
 			return failure(

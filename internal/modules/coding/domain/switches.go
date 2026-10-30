@@ -3,7 +3,7 @@ package domain
 // followsRunCommand are the tools that are on exactly when run_command is.
 var followsRunCommand = map[string]bool{
 	ToolStartSite.Name: true, ToolStopSite.Name: true, ToolScreenshot.Name: true, ToolDeployExtension.Name: true,
-	ToolRequestEgress.Name: true, ToolCILogs.Name: true,
+	ToolRequestEgress.Name: true, ToolCILogs.Name: true, ToolMarimoExecute.Name: true,
 }
 
 var followsLogMessage = map[string]bool{
