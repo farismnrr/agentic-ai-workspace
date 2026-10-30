@@ -128,17 +128,32 @@ func TestToolsAreListedWithSecuritySchemes(t *testing.T) {
 
 func TestReadFileThroughMCP(t *testing.T) {
 	t.Parallel()
-
 	env := apptest.NewEnv(t)
 	app := env.App
 	cookie, clientID := signedInClient(t, app)
 	apptest.SeedWorkspace(t, env, cookie, "ChatGPT")
 	token := apptest.Connect(t, app, cookie, clientID, "coding:read")
 
-	call := rpc("tools/call", `{"name":"read_file","arguments":{"path":"hello.txt"}}`)
-	mustContain(t, apptest.Do(t, app, "POST", "/api/coding", call, mcpHeaders(token)).Body, "hello from the workspace")
+	// No session means no role attribution: fail closed before reading any file.
+	unaffiliated := rpc("tools/call", `{"name":"read_file","arguments":{"path":"hello.txt"}}`)
+	mustContain(t, apptest.Do(t, app, "POST", "/api/coding", unaffiliated, mcpHeaders(token)).Body,
+		`"isError":true`, "Start with begin_work")
 
-	secret := rpc("tools/call", `{"name":"read_file","arguments":{"path":".env"}}`)
+	begin := apptest.CallTool(t, app, token, "begin_work", `{"role":"researcher","summary":"Read the workspace for research"}`)
+	var envelope struct {
+		Result struct {
+			Structured struct {
+				WorkID string `json:"work_id"`
+			} `json:"structuredContent"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(begin.Body, &envelope); err != nil || envelope.Result.Structured.WorkID == "" {
+		t.Fatalf("begin_work did not return a tracked session: %v %s", err, begin.Body)
+	}
+	workID := envelope.Result.Structured.WorkID
+	call := rpc("tools/call", `{"name":"read_file","arguments":{"work_id":"`+workID+`","path":"hello.txt"}}`)
+	mustContain(t, apptest.Do(t, app, "POST", "/api/coding", call, mcpHeaders(token)).Body, "hello from the workspace")
+	secret := rpc("tools/call", `{"name":"read_file","arguments":{"work_id":"`+workID+`","path":".env"}}`)
 	mustContain(t, apptest.Do(t, app, "POST", "/api/coding", secret, mcpHeaders(token)).Body, "not available")
 }
 

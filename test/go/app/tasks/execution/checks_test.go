@@ -64,16 +64,24 @@ func TestPassingCheckAfterTheLastChangeMakesTheWorkProven(t *testing.T) {
 	t.Parallel()
 	apptest.RequireDocker(t)
 
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("w1", "write_file", map[string]string{"path": "page.txt", "content": "hi"}),
 		apptest.ToolCall("r1", "run_task", map[string]string{"name": "hello"}),
 		apptest.FinishCall("Made the page and checked it"),
 	)
-	a.PutChecks(t, goodChecks)
+	a.PutFile(t, "go.mod", "module checks-fixture\n\ngo 1.22\n")
+	a.PutFile(t, "fixture_test.go", "package fixture\n\nimport \"testing\"\n\n"+
+		"func TestFixture(t *testing.T) { if 1+1 != 2 { t.Fatal(\"bad\") } }\n")
+	checks := `[{"name":"hello","description":"Runs the seeded Go test",` +
+		`"command":["go","test","./..."],"timeoutSeconds":120}]`
+	a.PutChecks(t, checks)
 
 	id := a.Start(t, "Make a page")
 	a.WaitApproving(t, id, "review")
 
 	task := apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id, "", apptest.JSONCookie(a.Cookie)).Body
 	apptest.MustContain(t, task, `"proven":true`, "Ran 1 check, and it passed", "Verified", `The \"hello\" task passed`)
+	if got := a.Read("page.txt"); got != "hi" {
+		t.Fatalf("the task must leave its expected page content, got %q", got)
+	}
 }

@@ -2,8 +2,16 @@ package apptest
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
+)
+
+const (
+	maxDiagnosticEvents = 24
+	maxDiagnosticText   = 240
+	maxDiagnosticCmd    = 160
 )
 
 // ThreadEvent is one event returned by a task thread API response.
@@ -34,7 +42,42 @@ func (a AgentRig) WaitApproving(t *testing.T, id, want string) {
 		}
 		time.Sleep(requestPollInterval)
 	}
-	t.Fatalf("task never reached %q, it is %q", want, a.Status(t, id))
+	t.Fatalf("task never reached %q: %s", want, a.Diagnostics(t, id))
+}
+
+// Diagnostics returns a bounded task status and event summary for test failures.
+func (a AgentRig) Diagnostics(t *testing.T, id string) string {
+	t.Helper()
+	var events []map[string]any
+	body := Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
+		JSONCookie(a.Cookie)).Body
+	if err := json.Unmarshal(body, &events); err != nil {
+		t.Fatalf("decode task diagnostics: %v", err)
+	}
+	if len(events) > maxDiagnosticEvents {
+		events = events[len(events)-maxDiagnosticEvents:]
+	}
+	lines := make([]string, 0, len(events))
+	for _, event := range events {
+		text, _ := event["text"].(string)
+		if len(text) > maxDiagnosticText {
+			text = text[:maxDiagnosticText] + "…"
+		}
+		kind, _ := event["kind"].(string)
+		line := kind + ": " + text
+		run, _ := event["run"].(map[string]any)
+		command, _ := run["command"].(string)
+		if command != "" {
+			if len(command) > maxDiagnosticCmd {
+				command = command[:maxDiagnosticCmd] + "…"
+			}
+			exitCode, _ := run["exitCode"].(float64)
+			timedOut, _ := run["timedOut"].(bool)
+			line += fmt.Sprintf(" [command=%q exit=%.0f timeout=%t]", command, exitCode, timedOut)
+		}
+		lines = append(lines, line)
+	}
+	return fmt.Sprintf("status=%s events=%s", a.Status(t, id), strings.Join(lines, " | "))
 }
 
 // WaitApprovals polls until the thread holds the requested number of approvals.

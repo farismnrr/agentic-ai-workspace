@@ -33,16 +33,18 @@ func TestAConnectedAppWorksInAnyProjectByItsProjectID(t *testing.T) {
 	listed := apptest.CallTool(t, env.App, token, "list_projects", `{}`)
 	apptest.MustContain(t, listed.Body, `\"id\":\"sensio\"`, `\"default\":true`, "ChatGPT")
 
-	named := apptest.CallTool(t, env.App, token, "read_file", `{"path":"hello.txt","project":"sensio"}`)
+	namedID := beginTrackedWork(t, env.App, token, "sensio")
+	named := apptest.CallTool(t, env.App, token, "read_file", `{"work_id":"`+namedID+`","path":"hello.txt","project":"sensio"}`)
 	apptest.MustContain(t, named.Body, "hi from sensio")
 
 	// Without a project the call stays in the app's own project, which has no such file.
-	own := apptest.CallTool(t, env.App, token, "read_file", `{"path":"hello.txt"}`)
+	ownID := beginTrackedWork(t, env.App, token, "")
+	own := apptest.CallTool(t, env.App, token, "read_file", `{"work_id":"`+ownID+`","path":"hello.txt"}`)
 	if strings.Contains(string(own.Body), "hi from sensio") {
 		t.Fatalf("a call that names no project must stay in the app's own project: %s", own.Body)
 	}
 
-	unknown := apptest.CallTool(t, env.App, token, "read_file", `{"path":"hello.txt","project":"nope"}`)
+	unknown := apptest.CallTool(t, env.App, token, "read_file", `{"work_id":"`+ownID+`","path":"hello.txt","project":"nope"}`)
 	apptest.MustContain(t, unknown.Body, "list_projects")
 }
 
@@ -60,8 +62,9 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 		apptest.MCPHeaders(token))
 	apptest.MustContain(t, init.Body, "log_message", "list_projects")
 
-	apptest.CallTool(t, env.App, token, "list_files", `{}`)
-	apptest.CallTool(t, env.App, token, "run_command", `{"command":"echo hello-from-the-app"}`)
+	workID := beginTrackedWork(t, env.App, token, "")
+	apptest.CallTool(t, env.App, token, "list_files", `{"work_id":"`+workID+`"}`)
+	apptest.CallTool(t, env.App, token, "run_command", `{"work_id":"`+workID+`","command":"echo hello-from-the-app"}`)
 
 	var tasks []struct {
 		ID     string `json:"id"`
@@ -79,8 +82,8 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 		if task.Source == "ChatGPT" {
 			id = task.ID
 
-			if task.Status != "done" {
-				t.Fatalf("the thread is done again once the call ended, got %s", task.Status)
+			if task.Status != "working" {
+				t.Fatalf("tracked external work should remain open until completed, got %s", task.Status)
 			}
 		}
 	}
@@ -90,6 +93,6 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 	}
 
 	events := string(apptest.Do(t, env.App, "GET", "/api/tasks/"+id+"/events", "", apptest.JSONCookie(cookie)).Body)
-	apptest.MustContain(t, []byte(events), "list .", "Running: command: echo hello-from-the-app")
+	apptest.MustContain(t, []byte(events), "list .", `"role":"developer"`)
 	apptest.MustContain(t, []byte(events), "command: echo hello-from-the-app")
 }

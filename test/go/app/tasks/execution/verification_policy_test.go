@@ -166,7 +166,8 @@ func assertNoScriptExhaustion(t *testing.T, a apptest.AgentRig, id string) {
 			a.Gateway.Mu.Lock()
 			requestCount := len(a.Gateway.Requests)
 			a.Gateway.Mu.Unlock()
-			t.Fatalf("script ran out after %d model requests: %s; events=%+v", requestCount, event.Text, a.Thread(t, id))
+			t.Fatalf("script ran out after %d model requests: %s; %s", requestCount, event.Text,
+				a.Diagnostics(t, id))
 		}
 	}
 }
@@ -262,7 +263,7 @@ func TestTrustedFollowupPromotionRollsBackWithMessageFailure(t *testing.T) {
 func TestMultilineCommandRecordsWritesToIgnoredDirtyFiles(t *testing.T) {
 	t.Parallel()
 	apptest.RequireDocker(t)
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("ignore", "write_file", map[string]string{"path": ".gitignore", "content": ".hidden-output\n"}),
 		apptest.ToolCall("dirty", "write_file", map[string]string{"path": ".hidden-output", "content": "before"}),
 		apptest.ToolCall("run", "run_command", map[string]string{
@@ -289,7 +290,7 @@ func TestCommandChangesToGitHooksAreVisibleToSecurityReview(t *testing.T) {
 	t.Parallel()
 	command := "mkdir -p .git/hooks && printf '#!/bin/sh\\nexit 0\\n' > .git/hooks/pre-commit"
 	apptest.RequireDocker(t)
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("run", "run_command", map[string]string{"command": command}),
 		apptest.FinishCall("Updated the project hook"),
 	)
@@ -307,7 +308,7 @@ func TestCommandChangesToGitHooksAreVisibleToSecurityReview(t *testing.T) {
 func TestMutationAfterPassingCheckDoesNotRemainProvenInReceipt(t *testing.T) {
 	t.Parallel()
 	apptest.RequireDocker(t)
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("check", "run_command", map[string]string{"command": "go test ./..."}),
 		apptest.ToolCall("mutate", "run_command", map[string]string{
 			"command": "printf 'changed after test\\n' > README.md",
@@ -346,7 +347,7 @@ func TestReplacementGoTestExecutorsCannotProveSensitiveWork(t *testing.T) {
 		t.Run(command, func(t *testing.T) {
 			t.Parallel()
 			apptest.RequireDocker(t)
-			a := apptest.NewAgentRig(t,
+			a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 				apptest.ToolCall("write", "write_file", map[string]string{
 					"path": "internal/modules/auth/token.go", "content": "package auth\n",
 				}),
@@ -383,7 +384,7 @@ func assertFakeExecutorDidNotProve(t *testing.T, a apptest.AgentRig, id, command
 func TestFailedCurrentGoCheckRemainsInReceiptAfterEarlierPass(t *testing.T) {
 	t.Parallel()
 	apptest.RequireDocker(t)
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("pass", "run_command", map[string]string{"command": "go test -run TestPass ./..."}),
 		apptest.ToolCall("edit", "write_file", map[string]string{"path": "README.md", "content": "Task edited\n"}),
 		apptest.ToolCall("fail", "run_command", map[string]string{"command": "go test -run TestFail ./..."}),
@@ -431,7 +432,7 @@ func TestSharedDependencyChangeRequiresAffectedCallerReview(t *testing.T) {
 func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T) {
 	t.Parallel()
 	apptest.RequireDocker(t)
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: prepare checked package", "state": "active"},
 			{"title": "Security: verify the package", "state": "pending"},
@@ -481,7 +482,7 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 func TestRenamedDeveloperCannotSatisfyStableSecurityReview(t *testing.T) {
 	t.Parallel()
 	apptest.RequireDocker(t)
-	a := apptest.NewAgentRig(t,
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig,
 		apptest.ToolCall("plan", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: change token handling", "state": "active"},
 		}}),
@@ -656,7 +657,7 @@ func securityEvidenceCases() []securityEvidenceCase {
 func securityEvidenceScenario(t *testing.T, test securityEvidenceCase) {
 	t.Helper()
 	steps := securityEvidenceSteps(test)
-	a := apptest.NewAgentRig(t, steps...)
+	a := apptest.NewAgentRigWith(t, apptest.ToolboxConfig, steps...)
 	if test.noTestFiles {
 		a.PutFile(t, "no-tests/package.go", "package notests\n")
 	}
