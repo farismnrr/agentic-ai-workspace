@@ -34,6 +34,13 @@ Three audiences, three places. Never mix them.
 8. Do not wrap AGY's consumer OAuth/headless mode inside this third-party orchestrator: Google's FAQ explicitly disallows it. Use independently issued Gemini API/Enterprise credentials instead; do not copy login tokens or automate account rotation. Keep legacy 9router relays disabled without deleting user data.
 9. ZIP uploads are stored as inert attachments only; validate contents and sizes before saving and never automatically unpack on the server.
 
+## Docker image deployment policy
+
+1. CI builds and publishes the app and sandbox images together to GHCR. The `dev` channel publishes both `:dev` tags; Full publishes both `:latest` and `:release` tags. Both images get immutable `sha-<full-commit>` tags and the source revision label.
+2. Deployment hosts must **pull** the two published GHCR images with `scripts/pull-ghcr-pair.sh`, verify matching commit labels, then recreate the app. Do not build or tag deployment images locally, deploy one image without its pair, or use Docker-in-Docker.
+3. `make image` and `make sandbox-image` are permitted for isolated developer experiments only and use local image names, never GHCR publication names. Do not substitute local builds for published artifacts.
+4. Before telling a person to pull, verify the publishing GitHub Actions run succeeded. If the status cannot be confirmed, report that uncertainty and do not claim a GHCR image exists.
+
 ## Clean Architecture dependency rule
 
 Dependencies point inward toward policy. Frameworks and I/O are outer details.

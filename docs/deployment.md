@@ -43,12 +43,14 @@ curl -fsSL https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main
 - Set `CHANNEL=dev` to get the dev image.
 - It's safe to run again. Your old `.env` is kept as `.env.bak`.
 
-To do the same by hand:
+To set up manually from a repository checkout:
 
 ```bash
-curl -LO https://raw.githubusercontent.com/farismnrr/agentic-ai-workspace/main/compose.latest.yaml
-export DOCKER_GID=$(stat -c %g /var/run/docker.sock)   # lets the app start checks
-docker compose -f compose.latest.yaml up -d
+git clone --branch dev https://github.com/farismnrr/agentic-ai-workspace.git
+cd agentic-ai-workspace
+bash scripts/pull-ghcr-pair.sh latest
+export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
+docker compose -f compose.latest.yaml up -d --pull never
 docker compose -f compose.latest.yaml logs -f app
 ```
 
@@ -56,24 +58,26 @@ The first start downloads the app and toolbox images, so it can take a few minut
 
 | Compose file | Image | Use for |
 | --- | --- | --- |
-| `compose.latest.yaml` | `latest`, from `main` | Stable |
+| `compose.latest.yaml` | `latest`, from the manually dispatched Full workflow | Stable |
 | `compose.dev.yaml` | `dev`, from `dev` | Newest, less tested |
 | `compose.prod.yaml` | `sha-<commit>`, from the Full workflow | Masih Awam production (port 5004) |
 
 Run only one of `latest` and `dev` at a time, because they share a port and a data volume. `compose.prod.yaml` has its own port, volume, and project name. You can pin an exact build with `sha-<commit>`.
 
-### B. Build the image
+### B. Publish in GHCR; deploy by pull
+
+GitHub Actions builds **both app and sandbox images**, pushes immutable `sha-<full-commit>` tags, then promotes the matched pair to `:dev` or `:latest`. Wait for the publication workflow to succeed before updating the host.
+
+From a checkout on the Docker host, pull and verify both images before recreating the app:
 
 ```bash
-git clone https://github.com/farismnrr/agentic-ai-workspace.git
-cd agentic-ai-workspace
-make image            # the app
-make sandbox-image    # the toolbox the AI's commands run in
-export DOCKER_GID=$(stat -c %g /var/run/docker.sock)
-docker compose -f compose.latest.yaml up -d --pull never
+git pull --ff-only origin dev
+make redeploy-dev
 ```
 
-`--pull never` keeps your local build. Don't run `docker compose pull` here, or it replaces your build with the published one.
+For the stable release channel, use `make redeploy-latest`. Both commands call `scripts/pull-ghcr-pair.sh`, which refuses to deploy if image revisions differ. Neither command builds anything on the host.
+
+To download images without restarting the app, run `bash scripts/pull-ghcr-pair.sh dev` (or `latest`). If GHCR needs authentication, sign in to GHCR on the host using a read-only package token.
 
 ### C. Build and run the binary
 
@@ -104,19 +108,13 @@ docker compose -f compose.latest.yaml up -d
 
 ### Update
 
-If you pulled the image (A):
+Only deploy completed GHCR publications. For `dev`, pull both verified images and recreate the app with `make redeploy-dev`. For the stable channel use:
 
 ```bash
-docker compose -f compose.latest.yaml pull
-docker compose -f compose.latest.yaml up -d
+make redeploy-latest
 ```
 
-If you built it yourself (B):
-
-```bash
-make image
-docker compose -f compose.latest.yaml up -d --pull never --force-recreate
-```
+This checks that the pulled app and sandbox images share the exact same source commit. A mismatch aborts before touching the running app. Local images are for development only.
 
 ### Change the port
 

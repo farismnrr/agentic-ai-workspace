@@ -1,4 +1,4 @@
-# Release channel: follows the image published from main (:latest).
+# Release channel: follows the app + sandbox pair published by the Full workflow (:latest).
 # One service: the app, on the host network. Checks run as short-lived containers started through the Docker
 # socket, so the socket is mounted. Anyone who can reach the socket controls the host:
 # run Docker rootless where you can, and keep this server's sign-ups to people you trust.
@@ -7,7 +7,7 @@
 #
 # Settings come from the shell or a .env file next to this one (PUBLIC_URL, CONNECTOR_URL,
 # ALLOWED_ORIGINS, ...), see docs/deployment.md.
-# The image is pulled from GHCR. To use a local build instead, run `make image` first.
+# App :latest and sandbox :latest must be a matching GHCR pair before host deployment.
 services:
   app:
     image: ghcr.io/farismnrr/agentic-ai-workspace:latest

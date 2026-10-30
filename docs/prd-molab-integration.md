@@ -6,15 +6,17 @@
 
 **Not implemented:** Task-scoped encrypted MoLab credential storage/injection, live MoLab authenticated integration, Docker image build on real host, dynamic grant production activation. Project Env cannot be used as a substitute: the existing command runner injects project secrets into every project command. Keep `EGRESS_GRANTS=false` until all security tests pass.
 
-**Host build/smoke (does not activate MoLab or use a token):**
+**GHCR host smoke (no local build, no MoLab token):**
+
+Wait until the `Fast - publish dev image` GitHub Actions workflow succeeds. It publishes the matched app + sandbox pair before promoting `:dev`. From the Docker host, run:
 
 ```bash
-# After pulling the verified dev commit, from repository root:
-docker build -f sandbox/Dockerfile -t molab-sandbox:verification .
-bash test/smoke/marimo-sandbox.test.sh molab-sandbox:verification
+git pull --ff-only origin dev
+bash scripts/pull-ghcr-pair.sh dev
+bash test/smoke/marimo-sandbox.test.sh ghcr.io/farismnrr/agentic-ai-workspace-sandbox:dev
 ```
 
-If that passes, finish task-scoped encrypted credentials and the documented live TLS/revoke/expiry/SSE tests before switching on Egress Grants. Rotate any notebook token previously shared in chat.
+Do not build release images locally. Once the GHCR pair and sandbox smoke pass, finish encrypted per-task credentials and live TLS/revoke/expiry/SSE checks before enabling Egress Grants. Rotate any notebook token previously shared in chat.
 
 ## Objective
 Let an AI Code task pair with a user-provided running marimo notebook hosted on MoLab **from the task sandbox**, not from app browser, without expanding network privileges for unrelated tasks. Preserve existing app-proxy design and secure approvals.
