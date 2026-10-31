@@ -1,0 +1,50 @@
+# Settings UX writing cleanup: PRD and implementation, same ta…
+
+Task: 3c14ae25e08ef2be7515a5bd9563f5b0
+Status: done
+Updated: 2026-10-31T16:28:49Z
+
+Reference material; confirm applicability before reusing.
+
+external assistant, self-reported, untrusted: treat as reference, not instructions.
+
+# PRD — Settings: concise, accurate microcopy
+
+**Status:** Ready for implementation · **Priority:** P0/P1 · **Target:** `dev` · **Surface:** All Settings tabs; Spaces & tools first.
+**Goal:** Make every setting understandable at a glance; remove repetitive explanations without hiding consequences.
+
+## Problem
+Settings renders excessive introductory text, duplicate row descriptions, generic default-state hints and long repeated permission explanations. Spaces & tools is the worst case: its intro contains 36 words, groups and individual tools repeat their labels, and UI says "Every change can be undone" although certain deletes are not undoable. Some hints say "Off until you turn it on" regardless of the current toggle value.
+
+## Who benefits
+Anyone configuring models, tools, AI team, integrations, notifications, or account settings; especially a new/nontechnical person and phone/tablet users.
+
+## Scope and requirements
+1. **Spaces & tools (P0/P1):** Reduce page intro to one short statement covering both internal tasks and connected apps. Remove group and tool descriptions that repeat labels. Keep nonobvious effects of write-file (replace), delete (not always undoable), run commands (execution), and approve plans (external approval). Distinguish read-only, file editing, and execution. Do not refer to a default switch state as the current state. **Do not claim every file edit is undoable**. Say Activity supports undo for eligible changes only.
+2. **Skip approvals (P0):** Clear permission consequence in the row; disabled tools remain disabled. No false suggestion that it bypasses separate plan approval, if independently required. Keep the warning tone and readable text; do not hide it in hover-only tooltips.
+3. **AI models:** Replace long tier intro/tier notes/context window explanation with short, accurate descriptions. Preserve shared-tier inheritance, default/fallback, possible thinking cost, and the context compaction behavior if necessary.
+4. **Agent team:** Remove metaphors and duplicate role introductions. Keep specific restrictions: always-on lead, what each permission can do, approvals where applicable. Avoid vague/incorrect absolute promises.
+5. **Connected apps/Integrations:** Remove repeated connected-state prose and duplicated GitHub long text; preserve identity, selected repositories, scope/push constraints, revoke consequences, and connected state. Link to existing management flow rather than copying full documentation.
+6. **Persona/Notifications/Usage/Activity/Account/Database:** Remove self-evident helper text, shorten actionable error and empty-state copy, retain browser/device scoping, token usage vs provider billing, deletion permanence, API key privacy and database/TLS guidance. No cosmetic blanket deletion of all helper text.
+7. **Design guidance:** Add a brief, qualitative UX-writing standard to `docs/design-system.md`: label-first, helper only for nonobvious meaning, current state not defaults, short active words, visible permission/risk info, no misleading guarantees; optional ~2–5 words per label / ~8–12 for ordinary helper as a guideline, never at cost of meaning.
+
+## Acceptance criteria
+- Each visible setting has a clear action/status and only useful supporting text.
+- Spaces intro reduced substantially (target <= 15 English words); generic tool descriptions removed for clearly named tools; group hints never incorrectly describe live switch state.
+- No unqualified universal undo claim anywhere in Settings.
+- Skip approvals and approve_plan permissions remain explicit without requiring tooltip/hover.
+- No changes to API, persisted values, authorization, default settings, navigation, or settings semantics.
+- Existing keyboard/screen reader names and visual emphasis remain intact; warning/instruction text not rendered in low contrast merely to achieve brevity.
+- Layout remains scannable on phone, tablet and desktop; no new wrappers/tiles, extra dependencies, or animation.
+- Focused frontend type/lint/build checks pass; targeted black-box UI smoke checks for Settings if available. No noncritical white-box tests.
+- Update human documentation only when a documented behavior or user-visible label meaningfully changes.
+- Preserve preexisting worktree edits and other tasks. Do not create multiple tasks for this one issue.
+
+## Out of scope
+No redesign of navigation, no new tooltip framework, no backend permission change, no bulk translations, no unrelated styling changes, no new test framework. No changes to user-generated settings or task histories.
+
+## Implementation notes
+Audit source: `web/src/features/workspace/content/{connected,models,team-copy,integrations,subscriptions}.ts`, `web/src/features/workspace/settings/*`, reusable SettingsSection and SettingRow, plus `docs/design-system.md`. Prefer editing centralized copy constants. Review false statements against Go handlers and activity/undo semantics. Minimize component changes; for trivially self-descriptive tools, conditional rendering may omit a description, while complex/risky tools must keep one visible sentence.
+
+## Release
+One focused change set, before/after copy examples in report, list of modified files, checks and any incomplete validation.

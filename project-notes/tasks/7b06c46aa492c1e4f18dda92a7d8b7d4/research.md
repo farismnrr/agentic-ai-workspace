@@ -1,8 +1,8 @@
 # Deep research external MCP role scope parity with internal O…
 
 Task: 7b06c46aa492c1e4f18dda92a7d8b7d4
-Status: working
-Updated: 2026-10-31T17:05:03Z
+Status: done
+Updated: 2026-10-31T17:17:20Z
 
 Reference material; confirm applicability before reusing.
 

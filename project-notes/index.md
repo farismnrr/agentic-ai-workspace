@@ -2,6 +2,22 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
+- [Deep research external MCP role scope parity with internal O…](tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/requirements.md) — project-notes/tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/requirements.md; done; 2026-10-31T17:17:20Z
+- [Deep research external MCP role scope parity with internal O…](tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research.md) — project-notes/tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research.md; done; 2026-10-31T17:17:20Z
+- [Deep research external MCP role scope parity with internal O…](tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research/11.md) — project-notes/tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research/11.md; done; 2026-10-31T17:17:20Z
+- [Deep research external MCP role scope parity with internal O…](tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/prd/16.md) — project-notes/tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/prd/16.md; done; 2026-10-31T17:17:20Z
+- [Deep review external assistant (ChatGPT/Gemini) orchestratio…](tasks/03666c929e98d731543079501825cddd/requirements.md) — project-notes/tasks/03666c929e98d731543079501825cddd/requirements.md; done; 2026-10-31T16:50:03Z
+- [Deep review external assistant (ChatGPT/Gemini) orchestratio…](tasks/03666c929e98d731543079501825cddd/research.md) — project-notes/tasks/03666c929e98d731543079501825cddd/research.md; done; 2026-10-31T16:50:03Z
+- [Deep review external assistant (ChatGPT/Gemini) orchestratio…](tasks/03666c929e98d731543079501825cddd/research/13.md) — project-notes/tasks/03666c929e98d731543079501825cddd/research/13.md; done; 2026-10-31T16:50:03Z
+- [Deep review external assistant (ChatGPT/Gemini) orchestratio…](tasks/03666c929e98d731543079501825cddd/prd/16.md) — project-notes/tasks/03666c929e98d731543079501825cddd/prd/16.md; done; 2026-10-31T16:50:03Z
+- [Settings UX writing cleanup: PRD and implementation, same ta…](tasks/3c14ae25e08ef2be7515a5bd9563f5b0/plan.md) — project-notes/tasks/3c14ae25e08ef2be7515a5bd9563f5b0/plan.md; done; 2026-10-31T16:28:49Z
+- [Settings UX writing cleanup: PRD and implementation, same ta…](tasks/3c14ae25e08ef2be7515a5bd9563f5b0/requirements.md) — project-notes/tasks/3c14ae25e08ef2be7515a5bd9563f5b0/requirements.md; done; 2026-10-31T16:28:49Z
+- [Settings UX writing cleanup: PRD and implementation, same ta…](tasks/3c14ae25e08ef2be7515a5bd9563f5b0/research.md) — project-notes/tasks/3c14ae25e08ef2be7515a5bd9563f5b0/research.md; done; 2026-10-31T16:28:49Z
+- [Settings UX writing cleanup: PRD and implementation, same ta…](tasks/3c14ae25e08ef2be7515a5bd9563f5b0/prd/3.md) — project-notes/tasks/3c14ae25e08ef2be7515a5bd9563f5b0/prd/3.md; done; 2026-10-31T16:28:49Z
+- [Settings UX writing cleanup: PRD and implementation, same ta…](tasks/3c14ae25e08ef2be7515a5bd9563f5b0/research/6.md) — project-notes/tasks/3c14ae25e08ef2be7515a5bd9563f5b0/research/6.md; done; 2026-10-31T16:28:49Z
+- [Deep audit Settings UI copy vs design guide, especially Spac…](tasks/c9c827625d95272e146d5870083643c5/research.md) — project-notes/tasks/c9c827625d95272e146d5870083643c5/research.md; done; 2026-10-31T16:03:01Z
+- [Deep audit Settings UI copy vs design guide, especially Spac…](tasks/c9c827625d95272e146d5870083643c5/research/10.md) — project-notes/tasks/c9c827625d95272e146d5870083643c5/research/10.md; done; 2026-10-31T16:03:01Z
+- [Use the /marimo-pair skill to pair-program on a running mari…](tasks/2c945a1398a07bf0324a773fb0c2b6bc/plan.md) — project-notes/tasks/2c945a1398a07bf0324a773fb0c2b6bc/plan.md; needs-input; 2026-10-30T16:25:09Z
 - [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/requirements.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/requirements.md; done; 2026-10-30T06:52:39Z
 - [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/research.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/research.md; done; 2026-10-30T06:52:39Z
 - [Exhaustive UI source and route/state coverage audit to expan…](tasks/46bfb43f4550b37a5f4572162d9db753/research/29.md) — project-notes/tasks/46bfb43f4550b37a5f4572162d9db753/research/29.md; done; 2026-10-30T06:52:39Z
