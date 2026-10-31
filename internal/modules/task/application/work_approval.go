@@ -23,6 +23,12 @@ func (w *Works) ApproveFromMCP(ctx context.Context, userID, client, projectID, w
 	if err != nil {
 		return PlanDecisionResult{}, domain.ErrUnknownWork
 	}
+	if work.RoleKey == "" {
+		return PlanDecisionResult{}, domain.ErrBadRole
+	}
+	if _, err := w.availableRole(ctx, userID, work.RoleKey); err != nil {
+		return PlanDecisionResult{}, err
+	}
 	return w.planReviews.ApproveFromMCP(ctx, userID, client, PlanReviewInput{
 		ProjectID: projectID, TaskID: work.TaskID, WorkID: work.ID, Revision: revision,
 		IdempotencyKey: idempotencyKey,

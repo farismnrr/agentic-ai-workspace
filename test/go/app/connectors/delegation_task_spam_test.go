@@ -11,9 +11,11 @@ import (
 type delegatedBegin struct {
 	Result struct {
 		Structured struct {
-			WorkID  string `json:"work_id"`
-			TaskID  string `json:"task_id"`
-			Resumed bool   `json:"resumed"`
+			WorkID   string   `json:"work_id"`
+			TaskID   string   `json:"task_id"`
+			Resumed  bool     `json:"resumed"`
+			Role     string   `json:"role"`
+			Warnings []string `json:"warnings"`
 		} `json:"structuredContent"`
 	} `json:"result"`
 }
@@ -53,6 +55,9 @@ func TestConnectedRoleDelegationsKeepOneVisibleTask(t *testing.T) {
 	if one.Result.Structured.WorkID != two.Result.Structured.WorkID ||
 		one.Result.Structured.TaskID != two.Result.Structured.TaskID || !two.Result.Structured.Resumed {
 		t.Fatalf("delegated role created another top-level task: first=%+v second=%+v", one.Result.Structured, two.Result.Structured)
+	}
+	if two.Result.Structured.Role != "planner" || len(two.Result.Structured.Warnings) == 0 {
+		t.Fatalf("resume must expose active role and warn before switching: %+v", two.Result.Structured)
 	}
 	role := apptest.CallTool(t, env.App, token, "set_role", `{"work_id":"`+one.Result.Structured.WorkID+`","role":"developer"}`)
 	if role.Status != 200 {

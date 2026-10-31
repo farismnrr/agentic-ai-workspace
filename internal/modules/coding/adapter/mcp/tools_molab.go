@@ -2,11 +2,16 @@ package mcp
 
 import (
 	"context"
+	"errors"
+
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
+
+var errMoLabDeveloperRequired = errors.New("MoLab requires the Developer role; use set_role with role developer on this work_id")
 
 // MoLabExecutor runs one explicitly authorized notebook operation in the same
 // isolated sandbox used by AI Code's internal agent.
@@ -39,7 +44,12 @@ func (t *tools) executeMoLab(ctx context.Context, in moLabInput) (MoLabResult, r
 	if err != nil {
 		return MoLabResult{}, report{}, err
 	}
-	if err := t.recheckWork(ctx, svc.ProjectID); err != nil {
+	// RequireRole also revalidates the session against the current enabled roster.
+	who, _ := ctx.Value(identityKey{}).(identity)
+	if err := t.works.RequireRole(ctx, who.User, who.Client, svc.ProjectID, who.WorkID, "developer"); err != nil {
+		if errors.Is(err, taskdomain.ErrBadRole) {
+			return MoLabResult{}, report{}, errMoLabDeveloperRequired
+		}
 		return MoLabResult{}, report{}, err
 	}
 	if svc.MoLab == nil {

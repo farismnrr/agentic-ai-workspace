@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -17,6 +18,10 @@ type appWorks struct{ works *taskapp.Works }
 func (a appWorks) Validate(ctx context.Context, user, client, project, workID string) error {
 	err := a.works.Validate(ctx, user, client, project, workID)
 	return workBridgeError("validate work session", err)
+}
+
+func (a appWorks) RequireRole(ctx context.Context, user, client, project, workID, role string) error {
+	return workBridgeError("require work role", a.works.RequireRole(ctx, user, client, project, workID, role))
 }
 
 func (a appWorks) AvailableRoles(ctx context.Context, user string) ([]codingmcp.WorkRole, error) {
@@ -50,10 +55,20 @@ func (a appWorks) Begin(ctx context.Context, user, client, project string,
 	for _, role := range result.Roles {
 		roles = append(roles, codingmcp.WorkRole{Key: role.Key, Name: role.Name, Purpose: role.Purpose})
 	}
+	warnings := RedactionWarnings(in.Summary)
+	matches := strings.EqualFold(strings.TrimSpace(in.Role), state.Role)
+	for _, role := range roles {
+		if role.Key == state.Role && strings.EqualFold(strings.TrimSpace(in.Role), role.Name) {
+			matches = true
+		}
+	}
+	if result.Resumed && !matches {
+		warnings = append(warnings, "Existing task uses role "+state.Role+"; use set_role to switch to "+in.Role+".")
+	}
 	return codingmcp.BeginWorkResult{
-		TaskID: result.TaskID, WorkID: result.WorkID, Roles: roles,
+		TaskID: result.TaskID, WorkID: result.WorkID, Roles: roles, Role: state.Role,
 		Resumed: result.Resumed, Idempotency: result.Idempotency, Revision: state.Revision,
-		State: string(state.State), Warnings: RedactionWarnings(in.Summary),
+		State: string(state.State), Warnings: warnings,
 	}, nil
 }
 

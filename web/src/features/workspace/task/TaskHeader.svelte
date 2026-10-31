@@ -20,6 +20,8 @@
   const external = $derived(isExternalTask(task.source, task.workId ?? ''));
   const workStatus = $derived(workStatusPresentation(task.status, task.work));
   const statusLabel = $derived(workStatus.label || statusMeta[task.status].label);
+  const roleLabel = $derived(task.work === undefined ? 'Legacy · role not recorded'
+    : [task.work.roleName, task.work.role].find((value) => value?.trim()) ?? 'Role unavailable');
 </script>
 
 <header class="border-b border-[var(--brand-border)] bg-base-100 px-4 sm:px-6">
@@ -32,7 +34,7 @@
     {#if task.work?.state === 'blocked'}<span class="badge badge-warning badge-sm">Blocked</span>{/if}
     {#if task.team}<span class="badge badge-soft badge-sm">Team</span>{/if}
     <p class="hidden min-w-0 flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">
-      {#if external}External assistant · {task.work?.actor ?? task.source}
+      {#if external}External assistant · {task.work?.actor ?? task.source} · {roleLabel}
       {:else}Started {timeAgo(task.createdAt)} · {task.model}{task.effort === '' ? '' : ` · ${effortLabel(task.effort)} effort`}{/if}
       {#if workStatus.hint !== ''} · {workStatus.hint}{/if}
     </p>
@@ -44,7 +46,7 @@
   </div>
   {#if external}
     <p class="pb-2 text-xs text-[var(--brand-text-secondary)] md:hidden">
-      External assistant · {task.work?.actor ?? task.source}
+      External assistant · {task.work?.actor ?? task.source} · {roleLabel}
       {#if workStatus.hint !== ''} · {workStatus.hint}{/if}
     </p>
   {/if}

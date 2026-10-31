@@ -120,8 +120,9 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"no other agent is called, " +
 	"and permissions do not change. Delegated work belongs to the SAME user issue/task. " +
 	"Start a web app with start_site, never with a shell command. " +
-	"marimo_execute is a standalone MoLab operation: the person may supply url and token in this conversation; " +
-	"it needs coding:exec permission but never needs begin_work or a new task. Do not echo or log tokens."
+	"marimo_execute requires an active Developer work_id; reuse the same task for notebook calls. " +
+	"The user may supply URL and token directly in chat. No pairing or new task per call. " +
+	"coding:exec permission is required. Do not echo or log tokens."
 
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
@@ -185,6 +186,7 @@ var knownErrors = []error{
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
 	domain.ErrServerBusy, domain.ErrUnknownProject, domain.ErrBadQuestion, errBadMessage, taskdomain.ErrUnknownWork,
 	taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused, taskdomain.ErrBadRole,
+	errMoLabDeveloperRequired,
 	taskdomain.ErrTooMany, taskdomain.ErrRateLimited, taskdomain.ErrTooLarge, taskdomain.ErrBadRequest,
 	taskdomain.ErrNoProject, taskdomain.ErrWrongState, taskdomain.ErrAwaitingPerson, taskdomain.ErrNoResearch,
 	taskdomain.ErrOpenQuestions, taskdomain.ErrTryAgain, taskdomain.ErrUnverifiedUser,

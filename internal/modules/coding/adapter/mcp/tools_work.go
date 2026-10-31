@@ -43,7 +43,9 @@ func (t *tools) beginWork(ctx context.Context, in beginWorkInput) (BeginWorkResu
 }
 
 func (t *tools) setRole(ctx context.Context, in roleWorkInput) (RoleWorkResult, report, error) {
-	who, projectID, err := t.workContext(ctx, in.WorkTarget)
+	who, _ := ctx.Value(identityKey{}).(identity)
+	// A role may have been disabled; changing to an enabled role must stay possible.
+	_, projectID, err := t.approvalWorkServices(ctx, in.Project)
 	if err != nil {
 		return RoleWorkResult{}, report{}, err
 	}
