@@ -116,9 +116,10 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"provide the required initial enabled non-lead role key; switch role labels as useful (Researcher, " +
 	"Planner, Developer, QA, Security), pass work_id to each " +
 	"work tool, save the plan and requirements, then call submit_plan for the person's approval. Do not report " +
-	"completed until the person has reviewed the plan. There is one assistant: roles are labels, " +
-	"no other agent is called, " +
-	"and permissions do not change. Delegated work belongs to the SAME user issue/task. " +
+	"completed until the person has reviewed the plan. There is one assistant: role capabilities are enforced server-side, " +
+	"no separate agent is called, " +
+	"Developer edits and uses MoLab; QA runs named checks; DevOps runs shell commands. " +
+	"Every role uses the SAME user issue/task. " +
 	"Start a web app with start_site, never with a shell command. " +
 	"marimo_execute requires an active Developer work_id; reuse the same task for notebook calls. " +
 	"The user may supply URL and token directly in chat. No pairing or new task per call. " +
@@ -131,6 +132,16 @@ func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 	g := &guard{
 		gate: opts.Gate, recorder: opts.Recorder, tasks: opts.Tasks,
 		workCalls: opts.WorkCalls, metadataURL: opts.ResourceMetadataURL,
+	}
+	g.authorize = func(ctx context.Context, user, client, project, workID, tool string) error {
+		if opts.Works == nil {
+			return taskdomain.ErrUnknownWork
+		}
+		svc, err := workspaces.For(ctx, user, client, project)
+		if err != nil {
+			return err
+		}
+		return opts.Works.Authorize(ctx, user, client, svc.ProjectID, workID, tool)
 	}
 	t := &tools{workspaces: workspaces, guard: g, works: opts.Works}
 
@@ -185,7 +196,7 @@ var knownErrors = []error{
 	domain.ErrTooLarge, domain.ErrExists, domain.ErrNotUnique, domain.ErrNoMatch, domain.ErrBadRange,
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
 	domain.ErrServerBusy, domain.ErrUnknownProject, domain.ErrBadQuestion, errBadMessage, taskdomain.ErrUnknownWork,
-	taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused, taskdomain.ErrBadRole,
+	taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused, taskdomain.ErrBadRole, taskdomain.ErrRoleForbidden,
 	errMoLabDeveloperRequired,
 	taskdomain.ErrTooMany, taskdomain.ErrRateLimited, taskdomain.ErrTooLarge, taskdomain.ErrBadRequest,
 	taskdomain.ErrNoProject, taskdomain.ErrWrongState, taskdomain.ErrAwaitingPerson, taskdomain.ErrNoResearch,

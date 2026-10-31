@@ -43,6 +43,13 @@ Each connected-app conversation shows as a task beside the work done in the app.
   active role. Start with `begin_work` once per user issue, reuse the same
   work ID for all roles and tool calls, and use `set_role` when responsibilities change.
   Only account/project discovery is available before starting work.
+- Every tool is also checked against the current enabled Agent Team role. OAuth scope
+  and tool switches cannot expand that role: Researcher cannot edit or execute,
+  Developer edits and uses MoLab but cannot run arbitrary shell commands/tests,
+  QA uses named project checks, and DevOps runs general commands.
+- Role restrictions are checked on the server. Switch through `set_role` within the
+  same work ID. Named checks are user-configured programs, not a guaranteed
+  read-only filesystem; they can create test output or modify files.
 - The task list hides internal child chat and approved plan handoff tasks,
   while their IDs and histories remain accessible from the parent task.
 - Plan shows its steps. Documents separates research from requirements.

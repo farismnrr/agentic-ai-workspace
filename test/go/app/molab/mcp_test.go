@@ -40,7 +40,7 @@ func TestChatGPTMoLabRequiresDeveloperWork(t *testing.T) {
 	workID := result.Result.Structured.WorkID
 	withWork := `{"work_id":"` + workID + `","url":"https://example.invalid/","token":"SYNTHETIC-CODE-123","code":"1+1"}`
 	wrongRole := apptest.CallTool(t, env.App, access, "marimo_execute", withWork)
-	apptest.MustContain(t, wrongRole.Body, "MoLab requires the Developer role", `"isError":true`)
+	apptest.MustContain(t, wrongRole.Body, "role cannot use marimo_execute", `"isError":true`)
 	apptest.MustNotContain(t, wrongRole.Body, "SYNTHETIC-CODE-123")
 
 	switchRole := apptest.CallTool(t, env.App, access, "set_role",

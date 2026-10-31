@@ -20,6 +20,10 @@ func (a appWorks) Validate(ctx context.Context, user, client, project, workID st
 	return workBridgeError("validate work session", err)
 }
 
+func (a appWorks) Authorize(ctx context.Context, user, client, project, workID, tool string) error {
+	return workBridgeError("authorize role tool", a.works.Authorize(ctx, user, client, project, workID, tool))
+}
+
 func (a appWorks) RequireRole(ctx context.Context, user, client, project, workID, role string) error {
 	return workBridgeError("require work role", a.works.RequireRole(ctx, user, client, project, workID, role))
 }

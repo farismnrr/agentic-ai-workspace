@@ -61,9 +61,20 @@ func toolsFor(role teamdomain.Role) []string {
 	names := []string{}
 
 	for _, tool := range codingdomain.Tools() {
-		if role.Can(string(tool.Group)) {
+		if (role.Can(string(tool.Group)) || (role.Key == "developer" && tool.Name == codingdomain.ToolMarimoExecute.Name)) &&
+			roleMayUseTool(role, tool.Name) {
 			names = append(names, tool.Name)
 		}
+	}
+	// These capabilities also gate external MCP calls; internal teammates use the same list.
+	names = append(names, "log_message", "get_work_state", "report_progress", "complete_work")
+	switch role.Key {
+	case "researcher":
+		names = append(names, "save_research", "finish_research")
+	case "planner", "business-analyst":
+		names = append(names, "save_requirements", "update_plan", "submit_plan", "ask_question")
+	case "reviewer":
+		names = append(names, "approve_plan")
 	}
 
 	// Looking at the running app needs no more than reading, so a reviewer can do it too.
@@ -77,7 +88,13 @@ func toolsFor(role teamdomain.Role) []string {
 	// A read-only Docker host ping is mediated by the app. Execution-enabled roles
 	// can request status, but do not gain the daemon socket or arbitrary host commands.
 	if role.Can(teamdomain.AccessExec) {
-		names = append(names, toolDockerHostStatus, toolMoLabExecute)
+		names = append(names, toolDockerHostStatus)
+		if roleMayUseTool(role, codingdomain.ToolRunCommand.Name) {
+			names = append(names, toolRequestEgress)
+		}
+	}
+	if role.Key == "developer" {
+		names = append(names, toolMoLabExecute)
 	}
 
 	if !role.Lead && role.Can(teamdomain.AccessWeb) {
@@ -97,6 +114,24 @@ func toolsFor(role teamdomain.Role) []string {
 	}
 
 	return names
+}
+
+// roleMayUseTool narrows broad exec access for the built-in SDLC roles.
+// Generic shell commands can run arbitrary test or edit scripts, so Developer and QA
+// do not receive them. QA uses user-defined named checks; DevOps owns general commands.
+func roleMayUseTool(role teamdomain.Role, tool string) bool {
+	switch tool {
+	case codingdomain.ToolRunCommand.Name:
+		return role.Key != "developer" && role.Key != "qa" && role.Key != "security"
+	case codingdomain.ToolRunTask.Name:
+		return role.Key != "developer"
+	case codingdomain.ToolMarimoExecute.Name:
+		return role.Key == "developer"
+	case codingdomain.ToolApprovePlan.Name:
+		return role.Key == "reviewer"
+	default:
+		return true
+	}
 }
 
 func skillsFor(role teamdomain.Role) []taskapp.Skill {

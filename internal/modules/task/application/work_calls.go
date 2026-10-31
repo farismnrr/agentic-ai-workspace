@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -32,6 +33,38 @@ func (w *Works) Validate(ctx context.Context, userID, client, projectID, workID 
 	// Role assignments are not permanent: a disabled or removed role must stop working.
 	_, err = w.availableRole(ctx, userID, work.RoleKey)
 	return err
+}
+
+// Authorize checks the active role against the same tool allowlist used by internal teammates.
+// The role is loaded from server-owned work state and the currently enabled Agent Team roster.
+func (w *Works) Authorize(ctx context.Context, userID, client, projectID, workID, tool string) error {
+	work, _, _, err := w.mutable(ctx, userID, client, projectID, workID)
+	if err != nil {
+		if tool != "approve_plan" || !errors.Is(err, domain.ErrWorkClosed) {
+			return err
+		}
+		// Approved plans close their work. Allow only a replay through the
+		// approval store's existing idempotent decision check, never new tools.
+		work, err = w.store.FindWork(ctx, userID, client, projectID, workID)
+		if err != nil {
+			return domain.ErrUnknownWork
+		}
+		if work.State != domain.WorkCompleted {
+			return domain.ErrWorkClosed
+		}
+	}
+	roster, err := w.roster(ctx, userID)
+	if err != nil {
+		return err
+	}
+	role, ok := roster.member(work.RoleKey)
+	if !ok || role.Lead {
+		return domain.ErrBadRole
+	}
+	if !slices.Contains(role.Tools, tool) {
+		return domain.ErrRoleForbidden
+	}
+	return nil
 }
 
 // RequireRole checks an enabled active role before a tool with a specific role requirement.

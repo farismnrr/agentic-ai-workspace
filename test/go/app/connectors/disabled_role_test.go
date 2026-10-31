@@ -41,7 +41,7 @@ func TestDisabledExternalRoleStopsCallsUntilRoleSwitch(t *testing.T) {
 	denied := apptest.CallTool(t, env.App, access, "list_files",
 		`{"work_id":"`+workID+`","path":"."}`)
 	if !strings.Contains(string(denied.Body), `"isError":true`) ||
-		!strings.Contains(string(denied.Body), "role is not available") {
+		!strings.Contains(string(denied.Body), "role is disabled or unavailable") {
 		t.Fatalf("disabled role continued working: %s", denied.Body)
 	}
 	// set_role must work even though validating the old active role would now fail.

@@ -66,6 +66,10 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 
 	workID := beginTrackedWork(t, env.App, token, "")
 	apptest.CallTool(t, env.App, token, "list_files", `{"work_id":"`+workID+`"}`)
+	// The Developer cannot run the shell. Switch role within the same task.
+	switched := apptest.CallTool(t, env.App, token, "set_role",
+		`{"work_id":"`+workID+`","role":"devops"}`)
+	apptest.MustContain(t, switched.Body, `"changed":true`)
 	apptest.CallTool(t, env.App, token, "run_command", `{"work_id":"`+workID+`","command":"echo hello-from-the-app"}`)
 
 	var tasks []struct {

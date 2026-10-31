@@ -9,6 +9,7 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 const maxSummary = 200
@@ -53,6 +54,7 @@ type guard struct {
 	tasks       TaskLog
 	workCalls   WorkCalls
 	metadataURL string
+	authorize   func(context.Context, string, string, string, string, string) error
 }
 
 // guarded wraps a tool body with the checks every call must pass, in order:
@@ -89,6 +91,30 @@ func guarded[In, Out any](
 				"Start with begin_work and an enabled role; pass its work_id to every workspace tool. "+
 					"Use set_role before changing responsibilities.", nil,
 			), none, nil
+		}
+
+		// Role authorization runs before the tool handler and before any running event.
+		// Bootstrap/discovery and role recovery are the only exceptions.
+		if workID != "" && info.Name != domain.ToolSetRole.Name &&
+			info.Name != domain.ToolGetWorkState.Name && info.Name != domain.ToolWhoami.Name &&
+			info.Name != domain.ToolListProjects.Name && info.Name != domain.ToolBeginWork.Name {
+			var err error
+			if g.authorize == nil {
+				err = taskdomain.ErrUnknownWork
+			} else {
+				err = g.authorize(ctx, token.UserID, client, projectOf(in), workID, info.Name)
+			}
+			if err != nil {
+				entry.Outcome, entry.Detail = OutcomeForbidden, "role scope denied"
+				g.record(ctx, entry)
+				if errors.Is(err, taskdomain.ErrRoleForbidden) {
+					return failure("The active role cannot use "+info.Name+". Use set_role with an enabled role that owns this work; keep the same work_id.", nil), none, nil
+				}
+				if errors.Is(err, taskdomain.ErrBadRole) {
+					return failure("The active role is disabled or unavailable. Use set_role to choose an enabled role in this task.", nil), none, nil
+				}
+				return failure(UserFacing(err).Error(), nil), none, nil
+			}
 		}
 
 		state := g.newState(ctx, info, &entry, req, workID)

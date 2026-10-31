@@ -89,7 +89,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 6. Register API routes before the SPA fallback.
 7. Prefer explicit constructor/function injection over package globals.
 8. External tasks (`Source != ""` or `WorkID != ""`) never enqueue the internal
-   agent. External work roles are labels and never change tool permissions.
+   agent. External work roles enforce the same Agent Team tool allowlist as internal teammates; tool access also requires the owner's switch and OAuth scope. Developer edits; QA runs named checks; DevOps owns general commands. Never infer authorization from the model's own role claim.
    Record role transitions with `EventRole`; never model them as `EventHandoff`.
 9. `begin_work` requires an enabled non-lead role. Plan lifecycle is separate
    from task status; `ready_for_approval` maps to `needs-input` and adds no

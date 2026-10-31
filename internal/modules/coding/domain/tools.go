@@ -78,7 +78,7 @@ var (
 			"open issue in the same app/project. Use new_task=true ONLY when the user explicitly starts "+
 			"an independent issue. Supply an enabled non-lead role key.")
 	ToolSetRole = workTool("set_role", "Set work role",
-		"Label the role used for this work; this does not change permissions.")
+		"Switch the active role for this tracked task. Each role has different tool permissions; use the same work_id.")
 	ToolUpdatePlan       = workTool("update_plan", "Update work plan", "Save the steps for this work session.")
 	ToolSaveResearch     = workTool("save_research", "Save research", "Save research notes and their sources.")
 	ToolSaveRequirements = workTool("save_requirements", "Save requirements", "Save the requirements document.")
