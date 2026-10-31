@@ -8,6 +8,7 @@ import (
 // WorkSessions is the narrow MCP-owned port for explicit connected-app work.
 type WorkSessions interface {
 	Validate(ctx context.Context, userID, client, projectID, workID string) error
+	Authorize(ctx context.Context, userID, client, projectID, workID, tool string) error
 	RequireRole(ctx context.Context, userID, client, projectID, workID, role string) error
 	AvailableRoles(ctx context.Context, userID string) ([]WorkRole, error)
 	Begin(ctx context.Context, userID, client, projectID string, in BeginWorkInput) (BeginWorkResult, error)

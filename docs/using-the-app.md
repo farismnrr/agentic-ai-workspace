@@ -385,9 +385,9 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Documents | Creates PowerPoint, Word and PDF files, then previews each page. The result opens under Sites with a Download button. Files stay in `documents/`; the Files tab can also preview PDFs. |
 | Business Analyst | Turns your request, and what the Researcher found, into requirements before the PRD |
 | Architect | Designs and checks affected contracts or module boundaries against SOLID and Clean Architecture. It cannot change files |
-| Developer | Writes the code. A new app is built with Nuxt, SQLite and the latest stable versions, with its own register and login forms when it needs accounts |
+| Developer | Reads and edits code, and uses MoLab. QA runs tests; DevOps owns general commands, builds and deployment |
 | Security | Checks sensitive changes for vulnerabilities, risky code and missing protections. It cannot change files |
-| QA Tester | Runs the checks |
+| QA Tester | Runs named project checks without permission to edit files or use an arbitrary shell |
 | Reviewer | Independently reviews work when deep-review or uncertain impact calls for it |
 | DevOps | Builds, scripts and running the app |
 

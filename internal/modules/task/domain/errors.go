@@ -19,6 +19,7 @@ var (
 	ErrStaleRevision  = errors.New("work session changed; refresh and try again")
 	ErrKeyReused      = errors.New("idempotency key was already used for a different request")
 	ErrBadRole        = errors.New("role is not available")
+	ErrRoleForbidden  = errors.New("active role cannot use this tool")
 	ErrTooMany        = errors.New("too many items")
 	ErrRateLimited    = errors.New("too many requests; try again shortly")
 	ErrTooLarge       = errors.New("input is too large")

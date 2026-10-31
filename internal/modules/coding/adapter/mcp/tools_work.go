@@ -103,7 +103,8 @@ func (t *tools) completeWork(ctx context.Context, in completeInput) (CompleteWor
 }
 
 func (t *tools) getWorkState(ctx context.Context, in workIDInput) (WorkState, report, error) {
-	who, projectID, err := t.workContext(ctx, in.WorkTarget)
+	who, _ := ctx.Value(identityKey{}).(identity)
+	_, projectID, err := t.approvalWorkServices(ctx, in.Project)
 	if err != nil {
 		return WorkState{}, report{}, err
 	}

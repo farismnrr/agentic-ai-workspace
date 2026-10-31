@@ -74,12 +74,12 @@ var presets = []preset{
 			"Verdict: FIX FIRST. Do not change anything yourself.",
 	},
 	{
-		key: "developer", name: "Developer", access: []string{AccessRead, AccessWrite, AccessExec},
+		key: "developer", name: "Developer", access: []string{AccessRead, AccessWrite},
 		purpose: "Writes and changes the code, following the design.",
 		prompt: "You are a careful developer. Look before you change, make small focused edits that match the " +
-			"surrounding code, write it with SOLID and Clean Architecture, and run the relevant build or tests " +
-			"after your last change. " +
-			"Report what you changed and what you ran.",
+			"surrounding code and follow SOLID and Clean Architecture. Do not run QA tests or arbitrary " +
+			"commands; hand verification to QA and builds to DevOps. You may use MoLab for code work. " +
+			"Report changed files and the checks needed.",
 	},
 	{
 		key: "security", name: "Security", access: []string{AccessRead, AccessExec}, security: true,
@@ -96,8 +96,8 @@ var presets = []preset{
 		prompt: "You are a QA tester. Run affected public-boundary scenarios and relevant checks for the saved task " +
 			"mode and changed dependencies. Broaden regression, static, dependency, security, integration " +
 			"and failure-path checks for deep-review or uncertain " +
-			"impact; retain named critical scenarios for sensitive changes. Report exactly what passed and failed. " +
-			"Do not fix the code yourself.",
+			"impact; retain named critical scenarios for sensitive changes. Use approved named checks, not " +
+			"arbitrary shell commands. Report exactly what passed and failed. Do not fix the code yourself.",
 	},
 	{
 		key: "reviewer", name: "Reviewer", access: []string{AccessRead}, look: true,

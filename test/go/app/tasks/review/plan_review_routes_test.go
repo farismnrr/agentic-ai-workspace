@@ -13,7 +13,7 @@ func submittedExternalPlan(t *testing.T) (apptest.Environment, string, string, s
 	cookie, clientID := apptest.SignedInClient(t, env.App)
 	token := apptest.Connect(t, env.App, cookie, clientID, "coding:read")
 	begin := apptest.CallTool(t, env.App, token, "begin_work",
-		`{"summary":"Prepare a small change","role":"developer","idempotency_key":"route-work-key"}`)
+		`{"summary":"Prepare a small change","role":"planner","idempotency_key":"route-work-key"}`)
 	content := toolContent(t, begin)
 	workID, _ := content["work_id"].(string)
 	taskID, _ := content["task_id"].(string)
@@ -26,6 +26,10 @@ func submittedExternalPlan(t *testing.T) (apptest.Environment, string, string, s
 	submitted := apptest.CallTool(t, env.App, token, "submit_plan", `{"work_id":"`+workID+
 		`","base_revision":1,"summary":"Make one small change","small_task":true}`)
 	apptest.MustContain(t, submitted.Body, "ready_for_approval")
+	// Reviewer owns optional MCP approval; changing roles does not create a task.
+	reviewer := apptest.CallTool(t, env.App, token, "set_role",
+		`{"work_id":"`+workID+`","role":"reviewer"}`)
+	apptest.MustContain(t, reviewer.Body, `"changed":true`)
 	return env, cookie, clientID, taskID, workID
 }
 
@@ -120,6 +124,7 @@ func assertMCPApprovalSharesHandoff(t *testing.T, env apptest.Environment, cooki
 	toolHeaders := apptest.JSONCookie(cookie)
 	apptest.Do(t, env.App, "PUT", "/api/spaces/coding/tools/approve_plan", `{"enabled":true}`, toolHeaders)
 	token := apptest.Connect(t, env.App, cookie, clientID, "coding:read coding:approve")
+	// The Reviewer role was selected before the human approved the plan.
 	tool := apptest.CallTool(t, env.App, token, "approve_plan", `{"work_id":"`+workID+
 		`","revision":1,"idempotency_key":"mcp-retry-key"}`)
 	toolResult := toolContent(t, tool)
