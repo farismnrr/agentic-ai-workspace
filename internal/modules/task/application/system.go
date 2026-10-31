@@ -162,8 +162,8 @@ func childTalk(role AgentRole) string {
 // the role goes back to it in the report instead of being met by the teammate on its own.
 const laneRule = `   Stay in your lane: do only what your role is for. What belongs to another role is not yours, even
    when you could do it: starting, restarting or stopping the app (DevOps), running a server, installing a browser or
-   tools the job did not ask for, looking things up on the web (Researcher), pictures (Media), the app's security
-   check (Security). Do not work around it and do not widen the job. Stop that part and say in your report what you
+   tools the job did not ask for, looking things up on the web (Researcher), security review (Security),
+   testing and independent review (QA), or builds and releases (DevOps). Do not work around it and do not widen the job. Stop that part and say in your report what you
    need and from whom: "Needs the app started", "Needs research: <question>", "Needs <role>: <what>". You report
    only to the orchestrator, and it decides who does what next. A job ends with your report, never with a new job
    you gave yourself.`

@@ -31,25 +31,25 @@ func TestDeepReviewRequiresIndependentReviewer(t *testing.T) {
 	a := apptest.NewAgentRig(t,
 		apptest.ToolCall("p1", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: update the label", "state": "active"},
-			{"title": "Reviewer: independently review the change", "state": "pending"},
+			{"title": "QA: independently review the change", "state": "pending"},
 		}}),
 		apptest.ToolCall("d0", "delegate", map[string]string{"role": "developer", "brief": "Update the label"}),
 		apptest.ToolCall("d1", "delegate", map[string]string{"role": "developer", "brief": "Update the label"}),
 		apptest.ToolCall("w1", "write_file", map[string]string{
 			"path": "web/src/label.css", "content": ".label { font-weight: 600; }",
 		}),
-		apptest.ToolCall("r1", "report", map[string]string{"summary": "Updated the label"}),
+		apptest.ToolCall("r1", "report", map[string]string{"summary": "Updated the label. Needs the app started for screenshots."}),
 		apptest.FinishCall("Updated the label"),
 		apptest.ToolCall("p2", "update_plan", map[string]any{"steps": []map[string]string{
 			{"title": "Developer: update the label", "state": "done"},
-			{"title": "Reviewer: independently review the change", "state": "pending"},
+			{"title": "QA: independently review the change", "state": "pending"},
 		}}),
-		apptest.ToolCall("v0", "delegate", map[string]string{"role": "reviewer", "brief": "Independently review the label"}),
-		apptest.ToolCall("v1", "delegate", map[string]string{"role": "reviewer", "brief": "Independently review the label"}),
+		apptest.ToolCall("v0", "delegate", map[string]string{"role": "qa", "brief": "Independently review the label"}),
+		apptest.ToolCall("v1", "delegate", map[string]string{"role": "qa", "brief": "Independently review the label"}),
 		apptest.ToolCall("vr", "report", map[string]string{"summary": "Verdict: PASS\nThe label change is consistent."}),
 		apptest.FinishCall("Updated and independently reviewed the label"),
 	)
-	configureReviewTeam(t, a, "developer", "reviewer")
+	configureReviewTeam(t, a, "developer", "qa")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
 		`{"projectId":"`+a.Project+`","prompt":"Update the label","team":true,"mode":"deep-review"}`,
 		apptest.JSONCookie(a.Cookie))
@@ -59,7 +59,7 @@ func TestDeepReviewRequiresIndependentReviewer(t *testing.T) {
 	id, _ := created.JSON(t)["id"].(string)
 	a.WaitApproving(t, id, "review")
 	assertNoScriptExhaustion(t, a, id)
-	if !hasHandoff(a.Thread(t, id), "reported", "Reviewer") {
+	if !hasHandoff(a.Thread(t, id), "reported", "QA & Review") {
 		t.Fatalf("deep-review must include an independent Reviewer report: %+v", a.Thread(t, id))
 	}
 }
@@ -97,7 +97,8 @@ func runMissingEvidenceCase(t *testing.T, latestFail, missingAssessment bool) {
 	a.WaitApproving(t, id, "failed")
 	assertNoScriptExhaustion(t, a, id)
 	assertBlockedTask(t, a, id, "token.go")
-	if latestFail && !hasHandoff(a.Thread(t, id), "reported", "Security") {
+	// A renamed Developer must never count as Security's independent report.
+	if latestFail && !hasHandoff(a.Thread(t, id), "reported", "Guard") {
 		t.Fatal("the latest FIX FIRST report must remain authoritative")
 	}
 }
@@ -478,7 +479,7 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		}),
 		apptest.FinishCall("Architecture review passed"),
 		apptest.ToolCall("v0", "delegate", map[string]string{
-			"role": "reviewer", "brief": "Independently review the checked package",
+			"role": "qa", "brief": "Independently review the checked package",
 		}),
 		apptest.ToolCall("v-report", "report", map[string]string{
 			"summary": "Verdict: PASS\nReviewed sample_test.go and the recorded passing go test ./... evidence.",
@@ -498,7 +499,7 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.FinishCall("The package passed its required security check"),
 		apptest.FinishCall("The package passed its required security check"),
 	)
-	configureReviewTeam(t, a, "developer", "security", "architect", "reviewer")
+	configureReviewTeam(t, a, "developer", "security", "architect", "qa")
 	// Keep go.mod as baseline: changing dependencies would also require an Architect review.
 	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",

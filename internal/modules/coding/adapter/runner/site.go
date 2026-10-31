@@ -13,7 +13,9 @@ import (
 func (e *Engine) SiteSpec(
 	ctx context.Context, dir string, docker *sandbox.Docker, argv, extraEnv []string, hosts ...string,
 ) sandbox.Spec {
-	spec := sandbox.Spec{Workspace: dir, Argv: argv}
+	// Starting a server is also code execution. Never grant a long-lived
+	// DevOps app process a writable source mount.
+	spec := sandbox.Spec{Workspace: dir, Argv: argv, WorkspaceReadOnly: true}
 	// A site is not a task's command: whatever scope the context carries, it gets the workspace socket and no grants.
 	_ = e.prepare(withoutTask(ctx), dir, &spec, docker, hosts...)
 	spec.Env = append(environment(spec), extraEnv...)

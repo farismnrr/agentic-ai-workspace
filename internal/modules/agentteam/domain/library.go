@@ -21,12 +21,18 @@ type Reference struct {
 
 // libraryGroups are the library groups a built-in role may read.
 func libraryGroups(key string) []string {
-	data, err := skillFiles.ReadFile("skills/" + key + "/LIBRARY")
-	if err != nil {
-		return nil
+	var groups []string
+	for _, source := range roleSkillKeys(key) {
+		data, err := skillFiles.ReadFile("skills/" + source + "/LIBRARY")
+		if err == nil {
+			for _, group := range strings.Fields(string(data)) {
+				if !contains(groups, group) {
+					groups = append(groups, group)
+				}
+			}
+		}
 	}
-
-	return strings.Fields(string(data))
+	return groups
 }
 
 // LibraryFor lists what a built-in role can look up, from the INDEX.txt of each of its groups.

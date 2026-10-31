@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
@@ -102,8 +103,16 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
 	}
 
-	result := r.deps.Tools.Execute(ctx, ToolScope{
-		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID,
+	executeCtx := ctx
+	roleKey := ""
+	if r.role != nil {
+		roleKey = r.role.Key
+		if roleKey == "qa" || roleKey == "security" || roleKey == "devops" {
+			executeCtx = codingdomain.WithReadOnlyWorkspace(ctx)
+		}
+	}
+	result := r.deps.Tools.Execute(executeCtx, ToolScope{
+		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID, RoleKey: roleKey,
 	}, call)
 	r.report(ctx, task, call, described, result)
 

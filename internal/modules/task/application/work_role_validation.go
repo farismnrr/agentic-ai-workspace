@@ -45,7 +45,7 @@ func availableRoleInRoster(name string, roster Roster) (WorkRole, error) {
 }
 
 func matchRole(name string, roster Roster, roles []WorkRole) (WorkRole, bool) {
-	needle := strings.TrimSpace(name)
+	needle := canonicalMemberKey(strings.TrimSpace(name))
 	if needle == "" || strings.EqualFold(needle, "orchestrator") ||
 		(strings.EqualFold(needle, roster.Lead.Key) && roster.Lead.Key != "") ||
 		(strings.EqualFold(needle, roster.Lead.Name) && roster.Lead.Name != "") {

@@ -90,7 +90,7 @@ func (r *Runner) turnOnPlan(ctx context.Context, task domain.Task, program strin
 		}
 		if attempt == maxCLIReviewContinuations {
 			return failed("The required review is still missing after automatic continuation.",
-				"Check the Reviewer's availability and recorded report before trying again.")
+				"Check QA availability and the recorded review before trying again.")
 		}
 		if req.Session == "" {
 			return failed("Independent review is required, but the CLI did not provide a resumable session.",

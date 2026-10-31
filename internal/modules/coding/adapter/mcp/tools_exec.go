@@ -14,6 +14,7 @@ import (
 type taskInfo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Kind        string `json:"kind"`
 }
 
 type tasksOutput struct {
@@ -47,6 +48,8 @@ type whoamiOutput struct {
 func (t *tools) addExecTools(server *sdk.Server) {
 	sdk.AddTool(server, toolOf(domain.ToolRunTask), guarded(t.guard, domain.ToolRunTask,
 		func(in runInput) string { return "run " + in.Name }, t.runTask))
+	sdk.AddTool(server, toolOf(domain.ToolRunBuild), guarded(t.guard, domain.ToolRunBuild,
+		func(in runInput) string { return "build " + in.Name }, t.runBuild))
 	sdk.AddTool(server, toolOf(domain.ToolRunCommand), guarded(t.guard, domain.ToolRunCommand,
 		func(in commandInput) string { return "command: " + in.Command }, t.runCommand))
 }
@@ -61,7 +64,9 @@ func (t *tools) runCommand(ctx context.Context, in commandInput) (runOutput, rep
 		return runOutput{}, report{}, err
 	}
 
-	result, err := svc.Tasks.RunCommand(ctx, in.Command, in.TimeoutSeconds)
+	// Connected role commands never get a writable project mount. This
+	// includes DevOps and any user-configured role allowed to use shell.
+	result, err := svc.Tasks.RunCommand(domain.WithReadOnlyWorkspace(ctx), in.Command, in.TimeoutSeconds)
 	if err != nil {
 		return runOutput{}, report{}, fmt.Errorf("run command: %w", err)
 	}
@@ -100,10 +105,34 @@ func (t *tools) listTasks(ctx context.Context, _ Target) (tasksOutput, report, e
 
 	out := tasksOutput{Tasks: make([]taskInfo, 0, len(tasks))}
 	for _, task := range tasks {
-		out.Tasks = append(out.Tasks, taskInfo{Name: task.Name, Description: task.Description})
+		kind := task.Kind
+		if kind == "" {
+			kind = "check"
+		}
+		out.Tasks = append(out.Tasks, taskInfo{Name: task.Name, Description: task.Description, Kind: kind})
 	}
 
 	return out, report{}, nil
+}
+
+func (t *tools) runBuild(ctx context.Context, in runInput) (runOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return runOutput{}, report{}, err
+	}
+	if err = t.recheckWork(ctx, svc.ProjectID); err != nil {
+		return runOutput{}, report{}, err
+	}
+	result, err := svc.Tasks.RunBuild(ctx, in.Name)
+	if err != nil {
+		return runOutput{}, report{}, fmt.Errorf("run build: %w", err)
+	}
+	out := runOutput{
+		Name: in.Name, Output: result.Output, ExitCode: result.ExitCode, DurationMS: result.Duration.Milliseconds(),
+		TimedOut: result.TimedOut, Truncated: result.Truncated,
+	}
+	return out, report{detail: fmt.Sprintf("exit code %d", result.ExitCode),
+		failed: result.ExitCode != 0, run: runNote(out.Name, result)}, nil
 }
 
 func (t *tools) runTask(ctx context.Context, in runInput) (runOutput, report, error) {

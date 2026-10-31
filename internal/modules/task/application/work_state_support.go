@@ -77,7 +77,7 @@ func stateSnapshot(work domain.ExternalWork, task domain.Task, events []domain.E
 ) StateResult {
 	state := StateResult{
 		TaskID: work.TaskID, WorkID: work.ID, Revision: work.Rev, State: work.State, PlanState: work.PlanState,
-		Questions: QuestionGroups{Open: []WorkQuestion{}, Answered: []WorkQuestion{}}, Role: work.RoleKey,
+		Questions: QuestionGroups{Open: []WorkQuestion{}, Answered: []WorkQuestion{}}, Role: canonicalMemberKey(work.RoleKey),
 		Plan: task.Plan, PlanRevision: work.PlanRev, ResearchSize: len(task.Research), Research: preview(task.Research),
 		PRDSize: len(task.PRD), PRD: preview(task.PRD), Progress: []string{},
 		Stale: domain.DeriveWorkPhase(work, now, thresholds) == domain.WorkPhaseIdle,

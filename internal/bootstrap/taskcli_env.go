@@ -38,7 +38,11 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted 
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("start program: %w", err)
 	}
 	granted.Open(&spec)
-	spec.WorkspaceReadOnly = req.Limited && !cliagentcommand.MayChange(req.Tools)
+	// A teammate with check/build permissions never owns writable source,
+	// even if the vendor maps the check tool to Bash.
+	spec.WorkspaceReadOnly = req.Limited &&
+		(req.RoleKey == "qa" || req.RoleKey == "security" || req.RoleKey == "devops" ||
+			!cliagentcommand.MayChange(req.Tools))
 	stop, err := p.prepareBridge(ctx, req, &spec)
 	if err != nil {
 		release()

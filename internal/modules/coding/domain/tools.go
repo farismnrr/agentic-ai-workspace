@@ -102,7 +102,11 @@ var (
 
 	ToolRunTask = ToolInfo{
 		Name: "run_task", Title: "Run a task", Scope: ScopeExec, Group: GroupExec,
-		Description: "Run one of the named tasks from list_tasks and return its exit code and output.",
+		Description: "Run an approved named QA check (kind check or omitted), not a build.",
+	}
+	ToolRunBuild = ToolInfo{
+		Name: "run_build", Title: "Run a build", Scope: ScopeExec, Group: GroupExec,
+		Description: "Run a named owner-configured build (kind build). Source is mounted read-only; use scratch output.",
 	}
 )
 
@@ -203,7 +207,7 @@ func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolListProjects,
 		ToolLogMessage,
-		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunCommand, ToolMarimoExecute, ToolScreenshotSession,
+		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolRunBuild, ToolRunCommand, ToolMarimoExecute, ToolScreenshotSession,
 		ToolApprovePlan,
 	}
 }

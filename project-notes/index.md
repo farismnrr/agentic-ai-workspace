@@ -2,6 +2,11 @@
 
 Reference material from tasks in this project. Check dates and status; prior approval does not approve new work.
 
+- [Deep research-only audit of internal/external Agent Team rol…](tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/requirements.md) — project-notes/tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/requirements.md; working; 2026-10-31T18:05:10Z
+- [Deep research-only audit of internal/external Agent Team rol…](tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/research.md) — project-notes/tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/research.md; working; 2026-10-31T18:05:10Z
+- [Deep research-only audit of internal/external Agent Team rol…](tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/research/14.md) — project-notes/tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/research/14.md; working; 2026-10-31T18:05:10Z
+- [Deep research-only audit of internal/external Agent Team rol…](tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/prd/17.md) — project-notes/tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/prd/17.md; working; 2026-10-31T18:05:10Z
+- [Deep research-only audit of internal/external Agent Team rol…](tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/prd/46.md) — project-notes/tasks/62b3bf7e9fe7d2ea2f554e43fc70ac3f/prd/46.md; working; 2026-10-31T18:05:10Z
 - [Deep research external MCP role scope parity with internal O…](tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/requirements.md) — project-notes/tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/requirements.md; done; 2026-10-31T17:17:20Z
 - [Deep research external MCP role scope parity with internal O…](tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research.md) — project-notes/tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research.md; done; 2026-10-31T17:17:20Z
 - [Deep research external MCP role scope parity with internal O…](tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research/11.md) — project-notes/tasks/7b06c46aa492c1e4f18dda92a7d8b7d4/research/11.md; done; 2026-10-31T17:17:20Z

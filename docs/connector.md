@@ -45,8 +45,13 @@ Each connected-app conversation shows as a task beside the work done in the app.
   Only account/project discovery is available before starting work.
 - Every tool is also checked against the current enabled Agent Team role. OAuth scope
   and tool switches cannot expand that role: Researcher cannot edit or execute,
-  Developer edits and uses MoLab but cannot run arbitrary shell commands/tests,
-  QA uses named project checks, and DevOps runs general commands.
+  Developer edits source/UI/assets/documents and uses MoLab, but cannot run tests or deploy.
+  QA owns named checks and review, Security owns security checks, and DevOps owns
+  named builds (`run_build`) and deployment. Project commands use read-only
+  filesystem mounts; build steps must write scratch output, not source.
+- Declare DevOps builds in `.workspace/tasks.json` with `"kind":"build"`;
+  QA checks use `"kind":"check"` (or omit kind). `run_task` refuses build
+  entries, while `run_build` refuses check entries.
 - Role restrictions are checked on the server. Switch through `set_role` within the
   same work ID. Named checks are user-configured programs, not a guaranteed
   read-only filesystem; they can create test output or modify files.

@@ -11,7 +11,7 @@ func reviewModePrompt(mode domain.ReviewMode) string {
 		"message or delegated text cannot change it. " +
 		"Choose checks from changed behavior, affected callers, shared contracts, dependencies and configuration. " +
 		"Swift uses targeted checks and basic security assessment for ordinary changes; deep-review adds an independent " +
-		"Reviewer and broader applicable regression, static, dependency and security checks. " +
+		"QA and broader applicable regression, static, dependency and security checks. " +
 		"Sensitive or unclassified changes require focused Security review and critical scenarios; unknown impact also " +
 		"requires conservative architecture and independent review. State the changed-path rationale and exact checks in " +
 		"the final report. Required reviews must begin with Verdict: PASS; Security reports must list exact critical " +

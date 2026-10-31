@@ -26,7 +26,8 @@ var toolSchemas = map[string]string{
 	"delete_file": `{"type":"object","properties":{` + pathProp + `},"required":["path"]}`,
 	"move_file": `{"type":"object","properties":{"from":{"type":"string"},"to":{"type":"string"}},` +
 		`"required":["from","to"]}`,
-	"run_task": `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}`,
+	"run_task":  `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}`,
+	"run_build": `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}`,
 	"run_command": `{"type":"object","properties":{"command":{"type":"string","description":"Shell command line"},` +
 		`"timeout_seconds":{"type":"integer"}},"required":["command"]}`,
 }
@@ -64,6 +65,9 @@ var describers = map[string]describer{
 			"move_file "+in.From+" "+in.To)
 	},
 	"run_command": describeCommand,
+	"run_build": func(in toolArgs, _ string) taskapp.Described {
+		return said("Ran build: "+in.Name, "May I run this build?", "run_build "+in.Name)
+	},
 	"run_task": func(in toolArgs, _ string) taskapp.Described {
 		return said(fmt.Sprintf("Ran the %q check", in.Name), fmt.Sprintf("May I run the %q check?", in.Name),
 			"run_task "+in.Name)

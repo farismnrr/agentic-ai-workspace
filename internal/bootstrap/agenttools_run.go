@@ -99,6 +99,7 @@ func toolHandlers() map[string]toolHandler {
 		"delete_file": deleteFile,
 		"move_file":   moveFile,
 		"run_task":    runTask,
+		"run_build":   runBuild,
 		"run_command": runCommand,
 	}
 }
@@ -146,7 +147,14 @@ func runTask(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.Too
 	return ran(in.Name, fmt.Sprintf("Task %q", in.Name), result.Command, result, err)
 }
 
+func runBuild(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
+	result, err := s.Tasks.RunBuild(ctx, in.Name)
+	return ran(in.Name, fmt.Sprintf("Build %q", in.Name), result.Command, result, err)
+}
+
 func runCommand(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
+	// Internal teammate DevOps commands must not mutate application source.
+	// The role is applied at the boundary of the internal task runner.
 	result, err := s.Tasks.RunCommand(ctx, in.Command, in.TimeoutSecs)
 
 	return ran(commandName(in.Command), "Command", in.Command, result, err)

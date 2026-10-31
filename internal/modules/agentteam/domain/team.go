@@ -39,7 +39,32 @@ func (t Team) Members() []Role {
 // its defaults, and the ones it has get the current access and playbook. Built-in roles are the same for
 // everyone and cannot be removed, only turned off or edited.
 func (t Team) WithBuiltIns() Team {
-	roles := slices.Clone(t.Roles)
+	// Remove retired built-in keys: leaving them in the saved roster would
+	// silently turn their old read/write/exec privileges into custom roles.
+	roles := make([]Role, 0, len(t.Roles))
+	for _, role := range t.Roles {
+		if CanonicalRoleKey(role.Key) != role.Key {
+			// Preserve prior preferences only when there is no current replacement.
+			if slices.ContainsFunc(t.Roles, func(r Role) bool {
+				return r.Key == CanonicalRoleKey(role.Key)
+			}) || slices.ContainsFunc(roles, func(r Role) bool {
+				return r.Key == CanonicalRoleKey(role.Key)
+			}) {
+				continue
+			}
+			role.Key = CanonicalRoleKey(role.Key)
+			// Retired roles must not retain their old name/prompt/capabilities.
+			// Preserve model preferences and enabled state for this replacement.
+			for _, built := range Presets().Roles {
+				if built.Key == role.Key {
+					role.Name, role.Purpose, role.Prompt = built.Name, built.Purpose, built.Prompt
+					role.Access = slices.Clone(built.Access)
+					break
+				}
+			}
+		}
+		roles = append(roles, role)
+	}
 
 	for _, built := range Presets().Roles {
 		at := slices.IndexFunc(roles, func(role Role) bool { return role.Key == built.Key })
@@ -51,6 +76,11 @@ func (t Team) WithBuiltIns() Team {
 
 		// A role saved before an update keeps its prompt and model, but gets the access and playbook that ship now.
 		roles[at].Access = slices.Clone(built.Access)
+		// The merged jobs have new required responsibilities; persisted old
+		// descriptions must not keep telling agents to delegate to retired roles.
+		if built.Key == "developer" || built.Key == "qa" || built.Key == "planner" || built.Key == "devops" {
+			roles[at].Name, roles[at].Purpose, roles[at].Prompt = built.Name, built.Purpose, built.Prompt
+		}
 		roles[at].Skills, roles[at].Library, roles[at].WritesPRD = built.Skills, built.Library, built.WritesPRD
 		roles[at].WritesResearch, roles[at].ChecksSecurity = built.WritesResearch, built.ChecksSecurity
 		roles[at].ChecksArchitecture = built.ChecksArchitecture

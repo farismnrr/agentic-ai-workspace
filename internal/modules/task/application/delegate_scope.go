@@ -9,18 +9,18 @@ import (
 
 var (
 	writeToolNames   = []string{"write_file", "edit_file", "delete_file", "move_file", "download_asset"}
-	soloOnlyRoleKeys = []string{"planner", "business-analyst", "designer", "devops", "media", "documents"}
+	soloOnlyRoleKeys = []string{"planner", "devops"}
 )
 
 // canParallel reports whether a role may run concurrently with other teammates in the same delegation batch.
-// Only Developer, Researcher, QA Tester, Reviewer, Security, Architect (and custom roles without solo-only
+// Only Developer, Researcher, QA, Security, Architect (and custom roles without solo-only
 // duties like writing the PRD, asking the person, designing the global look, or starting the site) may run in parallel.
 func canParallel(role AgentRole) bool {
 	if slices.Contains(soloOnlyRoleKeys, role.Key) {
 		return false
 	}
 
-	if role.WritesPRD || role.LooksAtScreens || slices.Contains(role.Tools, toolAskUser) ||
+	if role.WritesPRD || slices.Contains(role.Tools, toolAskUser) ||
 		slices.Contains(role.Tools, toolStartSite) || slices.Contains(role.Tools, "search_images") {
 		return false
 	}

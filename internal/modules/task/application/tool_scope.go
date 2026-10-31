@@ -5,4 +5,5 @@ type ToolScope struct {
 	UserID    string
 	ProjectID string
 	TaskID    string
+	RoleKey   string // server-assigned teammate role; empty for the solo run
 }

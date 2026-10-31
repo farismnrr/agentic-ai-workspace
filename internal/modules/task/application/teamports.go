@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -38,9 +39,9 @@ type AgentRole struct {
 	ChecksSecurity bool
 	// ChecksArchitecture marks the role that reviews architecture when the impact policy requires it.
 	ChecksArchitecture bool
-	// ChecksLook marks the independent Reviewer used by deep or uncertain impact.
+	// ChecksLook marks QA's independent review when deep or uncertain impact demands it.
 	ChecksLook bool
-	// LooksAtScreens marks the Designer: it may not report screens it made without having looked at the running app.
+	// LooksAtScreens marks Developer visual changes that need a screenshot before reporting.
 	LooksAtScreens bool
 }
 
@@ -67,6 +68,9 @@ type Roster struct {
 }
 
 func (r Roster) member(key string) (AgentRole, bool) {
+	// Old saved work/delegations continue using the merged role's live
+	// permissions without rewriting historical labels and provenance.
+	key = canonicalMemberKey(key)
 	for _, member := range r.Members {
 		if member.Key == key {
 			return member, true
@@ -74,6 +78,19 @@ func (r Roster) member(key string) (AgentRole, bool) {
 	}
 
 	return AgentRole{}, false
+}
+
+func canonicalMemberKey(key string) string {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "designer", "media", "documents":
+		return "developer"
+	case "reviewer":
+		return "qa"
+	case "business-analyst":
+		return "planner"
+	default:
+		return key
+	}
 }
 
 // Team gives the loop a person's agent team.

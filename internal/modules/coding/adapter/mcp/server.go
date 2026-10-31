@@ -118,7 +118,8 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"work tool, save the plan and requirements, then call submit_plan for the person's approval. Do not report " +
 	"completed until the person has reviewed the plan. There is one assistant: role capabilities are enforced server-side, " +
 	"no separate agent is called, " +
-	"Developer edits and uses MoLab; QA runs named checks; DevOps runs shell commands. " +
+	"Developer handles code, UI, assets and documents; QA reviews and runs named checks; " +
+	"DevOps runs named builds and starts/deploys the app, never an unrestricted shell. " +
 	"Every role uses the SAME user issue/task. " +
 	"Start a web app with start_site, never with a shell command. " +
 	"marimo_execute requires an active Developer work_id; reuse the same task for notebook calls. " +

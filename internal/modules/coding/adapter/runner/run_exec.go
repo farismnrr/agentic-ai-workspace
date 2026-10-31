@@ -17,7 +17,8 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 		return finish(ctx, err, sandbox.Result{}, out, 0)
 	}
 
-	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command}
+	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command,
+		WorkspaceReadOnly: domain.ReadOnlyWorkspace(ctx)}
 	// A one-shot MoLab container receives ONLY its explicit credential, never
 	// project-wide variables or Git credentials from unrelated task commands.
 	molab, scoped := ctx.Value(oneShotEnvKey{}).(molabRun)

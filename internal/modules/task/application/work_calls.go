@@ -76,7 +76,7 @@ func (w *Works) RequireRole(ctx context.Context, userID, client, projectID, work
 	if err != nil {
 		return domain.ErrUnknownWork
 	}
-	if work.RoleKey != required {
+	if canonicalMemberKey(work.RoleKey) != canonicalMemberKey(required) {
 		return domain.ErrBadRole
 	}
 	return nil

@@ -27,31 +27,27 @@ type Skill struct {
 // SkillsFor lists the playbooks of a built-in role in name order, or none for a role without any. They ship
 // with the app, so they are always the current ones, unlike a prompt the person saved earlier.
 func SkillsFor(key string) []Skill {
-	entries, err := fs.ReadDir(skillFiles, "skills/"+key)
-	if err != nil {
-		return nil
-	}
-
-	skills := []Skill{}
-
-	for _, entry := range entries {
-		data, err := skillFiles.ReadFile("skills/" + key + "/" + entry.Name() + "/SKILL.md")
+	var skills []Skill
+	for _, source := range roleSkillKeys(key) {
+		entries, err := fs.ReadDir(skillFiles, "skills/"+source)
 		if err != nil {
 			continue
 		}
-
-		skill := parseSkill(string(data))
-		if skill.Name == "" {
-			skill.Name = entry.Name()
+		for _, entry := range entries {
+			data, err := skillFiles.ReadFile("skills/" + source + "/" + entry.Name() + "/SKILL.md")
+			if err != nil {
+				continue
+			}
+			skill := parseSkill(string(data))
+			if skill.Name == "" {
+				skill.Name = entry.Name()
+			}
+			if craft, err := skillFiles.ReadFile("skills/" + source + "/" + entry.Name() + "/craft.txt"); err == nil {
+				skill.Craft = strings.Fields(string(craft))
+			}
+			skills = append(skills, skill)
 		}
-
-		if craft, err := skillFiles.ReadFile("skills/" + key + "/" + entry.Name() + "/craft.txt"); err == nil {
-			skill.Craft = strings.Fields(string(craft))
-		}
-
-		skills = append(skills, skill)
 	}
-
 	return skills
 }
 

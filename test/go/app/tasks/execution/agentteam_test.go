@@ -17,9 +17,11 @@ func TestAgentTeamStartsAsTheSDLCPresetsAndCanBeSavedAndReset(t *testing.T) {
 	cookie := apptest.JSONCookie(a.Cookie)
 
 	initial := apptest.Do(t, a.Environment.App, "GET", "/api/agent-team", "", cookie)
-	apptest.MustContain(t, initial.Body, `"key":"orchestrator"`, `"key":"planner"`, `"key":"designer"`,
-		`"key":"business-analyst"`)
+	apptest.MustContain(t, initial.Body, `"key":"orchestrator"`, `"key":"planner"`,
+		`"key":"developer"`)
 	apptest.MustContain(t, initial.Body, `"key":"qa"`, `"lead":true`)
+	apptest.MustNotContain(t, initial.Body, `"key":"reviewer"`, `"key":"designer"`,
+		`"key":"media"`, `"key":"documents"`, `"key":"business-analyst"`)
 
 	saved := apptest.Do(t, a.Environment.App, "PUT", "/api/agent-team", `{"useByDefault":true,"roles":[
 		{"key":"orchestrator","name":"Boss","lead":true,"enabled":true},
