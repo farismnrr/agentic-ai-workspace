@@ -86,7 +86,7 @@
 {:else if loadFailed}
   <div class="alert alert-error alert-soft" role="alert"><span>{message}</span><button class="btn btn-sm" type="button" onclick={() => { void loadKinds(); }}>Try again</button></div>
 {:else}
-  <SettingsSection title="Database" description="Choose the shared database account projects can use.">
+  <SettingsSection title="Database" description="Set databases available to projects.">
     <div class="space-y-4 py-3">
       <div role="tablist" class="tabs tabs-border w-full flex-nowrap" aria-label="Database kind">
         {#each databaseKinds as item (item)}
@@ -102,7 +102,7 @@
           <FormField id="database-name" label={databaseNameLabels[kind]} hint={kind === 'mongodb' ? 'MongoDB checks this database when signing in; it is usually admin.' : undefined}>{#snippet children({ describedby, invalid })}<input id="database-name" class="input input-sm w-full" aria-describedby={describedby} aria-invalid={invalid} bind:value={database} required />{/snippet}</FormField>
           <FormField id="database-user" label="Admin user">{#snippet children({ describedby, invalid })}<input id="database-user" class="input input-sm w-full" aria-describedby={describedby} aria-invalid={invalid} bind:value={user} required />{/snippet}</FormField>
           <FormField id="database-password" label="Password" optional={passwordSet}>{#snippet children({ describedby, invalid })}<input id="database-password" class="input input-sm w-full" type="password" autocomplete="new-password" placeholder={passwordSet ? 'Saved; leave blank to keep it' : ''} aria-describedby={describedby} aria-invalid={invalid} bind:value={password} required={!passwordSet} />{/snippet}</FormField>
-          <FormField id="database-tls" label="TLS" hint="Choose how the server connection is protected.">{#snippet children({ describedby, invalid })}<select id="database-tls" class="select select-sm w-full" bind:value={tlsChoice} aria-describedby={describedby} aria-invalid={invalid}><option value="none">No TLS</option><option value="ca">CA only</option><option value="full">Full (CA + client certificate)</option></select>{/snippet}</FormField>
+          <FormField id="database-tls" label="TLS" hint="Choose the connection's TLS protection.">{#snippet children({ describedby, invalid })}<select id="database-tls" class="select select-sm w-full" bind:value={tlsChoice} aria-describedby={describedby} aria-invalid={invalid}><option value="none">No TLS</option><option value="ca">CA only</option><option value="full">Full (CA + client certificate)</option></select>{/snippet}</FormField>
         </div>
         <DatabaseCertificates bind:caFileName bind:clientCertFileName bind:clientKeyFileName bind:caError bind:clientCertError bind:clientKeyError {tlsChoice} {caSet} {clientCertSet} {clientKeySet} {saving} onfile={setCertificate} onremove={requestRemoval} />
         <div class="flex flex-wrap items-center gap-3">

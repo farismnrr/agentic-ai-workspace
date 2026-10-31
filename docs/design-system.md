@@ -136,6 +136,14 @@ The signed-in app lives under `/app` and uses a compact scale: 14px text, small 
   "Proven to work" appears only for verified, passing checks.
 - **No fakes:** screens never show sample data or pretend buttons. Destructive actions ask for confirmation.
 
+### Settings language
+
+- Use a short, meaningful label. If the control and its current state are clear, omit supporting text.
+- Aim for 2–5 words per label and 8–12 words for ordinary help text. Clarity and safety take priority over length.
+- Explain non-obvious scope, costs, permissions, and irreversible actions in plain language, without repeating labels or buttons.
+- Describe what the setting does now, not its initial default. Never promise every change can be undone if exceptions exist.
+- Keep important warnings and recovery steps visible, readable, and accessible without hovering.
+
 ## Accessibility
 
 - Target WCAG AA contrast for normal text.

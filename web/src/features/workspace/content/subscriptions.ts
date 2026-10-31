@@ -1,7 +1,7 @@
 export const subscriptionsCopy = {
   planChoice: 'Your plan',
   keyChoice: 'API key',
-  planIntro: 'Sign in with the plan you already pay for. You sign in on the provider’s own page; this app never sees your password.',
+  planIntro: 'Sign in on the provider’s site. We never see your password.',
   signIn: (name: string): string => `Sign in with ${name}`,
   signOut: 'Sign out',
   loadFailed: 'We could not check this sign-in. Please try again in a moment.',

@@ -32,14 +32,14 @@
   {#if tools.length > 0}
     <div class="border-b border-[var(--brand-border)] bg-base-200/60 px-4 py-2">
       <h3 class="text-xs font-semibold">{toolGroups[group].title}</h3>
-      <p class="text-xs text-[var(--brand-text-tertiary)]">{toolGroups[group].note}</p>
     </div>
     <ul class="divide-y divide-[var(--brand-border)] px-4">
       {#each tools as tool (tool.name)}
+        {@const description = toolCopy[tool.name] ?? tool.description}
         <li class="flex flex-wrap items-center gap-3 py-2.5">
           <div class="min-w-44 flex-1 leading-tight">
             <p class="font-medium">{tool.title}</p>
-            <p class="text-xs text-[var(--brand-text-tertiary)]">{toolCopy[tool.name] ?? tool.description}</p>
+            {#if description}<p class="text-xs text-[var(--brand-text-secondary)]">{description}</p>{/if}
           </div>
           <input
             class="toggle toggle-sm toggle-primary"

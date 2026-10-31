@@ -20,13 +20,13 @@
   }
 </script>
 
-<SettingsSection title="Always on" description="Built-in safety rules. These can't be turned off.">
+<SettingsSection title="Always on" description="Built-in safety rules.">
   {#each personaCopy.builtInRules as rule (rule)}
     <p class="flex items-center gap-2 py-2.5"><Icon name="lock" class="size-4 text-[var(--brand-text-tertiary)]" />{rule}</p>
   {/each}
 </SettingsSection>
 
-<SettingsSection title="Your rules" description="Applied to every task, every time your AI team runs.">
+<SettingsSection title="Your rules" description="Applied to every task.">
   {#each rules as rule, index (rule.id === '' ? `new-${String(index)}` : rule.id)}
     <div class="flex items-center gap-2 py-2.5">
       <span class="flex-1">{rule.text}</span>

@@ -26,7 +26,7 @@
 <div class="flex flex-wrap items-center gap-3 border-b border-[var(--brand-border)] px-4 py-3">
   <div class="min-w-44 flex-1 leading-tight">
     <p class="font-medium">{approvalsCopy.title}</p>
-    <p class="text-xs text-[var(--brand-text-tertiary)]">{approvalsCopy.body}</p>
+    <p class="text-xs text-[var(--brand-text-secondary)]">{approvalsCopy.body}</p>
     {#if failed}<p class="text-xs text-error" role="alert">{approvalsCopy.failed}</p>{/if}
   </div>
   <input class="toggle toggle-sm toggle-warning" type="checkbox" aria-label={approvalsCopy.title} checked={on} onchange={(event) => flip(event.currentTarget.checked)} />

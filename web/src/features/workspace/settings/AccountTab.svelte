@@ -46,21 +46,21 @@
   <ChangePasswordForm />
 </SettingsSection>
 
-<SettingsSection title="Your data" description="Everything your AI team made for you belongs to you.">
-  <SettingRow label="Export my data" description="A zip with your settings, projects and their files, and every task with its steps. Saved AI keys are left out.">
+<SettingsSection title="Your data">
+  <SettingRow label="Export my data" description="ZIP of settings, project files and task history. API keys are excluded.">
     <a class="btn btn-sm" href="/api/account/export" download>Download</a>
   </SettingRow>
-  <SettingRow label="Delete all tasks" description="Remove every task and its history. Your projects and files stay.">
+  <SettingRow label="Delete all tasks" description="Deletes task history, not projects or files.">
     <button class="btn btn-sm" type="button" onclick={() => (confirmTasks = true)}>Delete tasks</button>
   </SettingRow>
   {#if failed}<p class="py-2 text-xs text-error" role="alert">Could not delete your tasks. Please try again.</p>{/if}
-  <SettingRow label="Delete my account" description="Remove your account and everything in it for good.">
+  <SettingRow label="Delete my account" description="Permanently deletes your account and its data.">
     <button class="btn btn-sm btn-error btn-outline" type="button" onclick={() => (confirmAccount = true)}>Delete account</button>
   </SettingRow>
 </SettingsSection>
 
 <SettingsSection title="Session">
-  <SettingRow label="Sign out" description="You'll need to sign in again on this device."><button class="btn btn-sm" type="button" onclick={leave}>Sign out</button></SettingRow>
+  <SettingRow label="Sign out"><button class="btn btn-sm" type="button" onclick={leave}>Sign out</button></SettingRow>
 </SettingsSection>
 
 <ConfirmModal

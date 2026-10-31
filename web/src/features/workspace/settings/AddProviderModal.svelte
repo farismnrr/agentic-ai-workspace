@@ -90,7 +90,7 @@
     {#if kind === 'compatible'}
       <label class="mt-4 block font-medium" for="provider-url">Address</label>
       <input id="provider-url" class="input input-sm mt-1 w-full font-mono text-xs" placeholder={choice?.baseUrlHint ?? ''} bind:value={baseUrl} required />
-      <p class="mt-1 text-xs text-[var(--brand-text-secondary)]">Only gateways running on this computer (localhost) can be used.</p>
+      <p class="mt-1 text-xs text-[var(--brand-text-secondary)]">Only local gateways (localhost) are supported.</p>
     {/if}
     <label class="mt-4 block font-medium" for="api-key">API key</label>
     <div class="relative mt-1">
@@ -99,7 +99,7 @@
         <Icon name={shown ? 'eye-off' : 'eye'} class="size-4" />
       </button>
     </div>
-    <p class="mt-3 flex gap-2 text-xs text-[var(--brand-text-secondary)]"><Icon name="lock" class="mt-0.5 size-3.5 shrink-0" /> Your key is checked with the provider and stored encrypted. It is never shown again in full.</p>
+    <p class="mt-3 flex gap-2 text-xs text-[var(--brand-text-secondary)]"><Icon name="lock" class="mt-0.5 size-3.5 shrink-0" /> Your key is verified, encrypted and never shown again.</p>
     {#if choice?.keyHelp}<a class="link link-hover mt-3 inline-block text-xs font-medium text-primary" href={choice.keyHelp} target="_blank" rel="noreferrer">Where do I get a key?</a>{/if}
     {/if}
     {#if error !== ''}<p class="mt-3 text-sm text-error" role="alert">{error}</p>{/if}

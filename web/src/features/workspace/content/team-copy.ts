@@ -1,23 +1,22 @@
 export const teamCopy = {
-  intro: 'Your AI team works like a small software company. A lead takes your request and hands each part to the right teammate, who reports back.',
-  rolesIntro: 'Each teammate can use its own model and has its own way of working. The lead is always on.',
-  leadNote: 'Talks to you, plans the work and hands it out. It can use every tool you switched on.',
+  rolesIntro: 'Set models and permissions for each role. The lead stays on.',
+  leadNote: 'Plans and delegates work using enabled tools.',
   access: {
     read: { title: 'Look at files', note: 'Always allowed.' },
-    write: { title: 'Change files', note: 'Create, edit, move and delete. You still approve each step.' },
-    exec: { title: 'Run commands', note: 'Run checks and commands. You still approve each step.' },
-    ask: { title: 'Ask you questions', note: 'Asks what it needs to know, with options you can pick or your own answer.' },
-    web: { title: 'Search the web', note: 'Searches and reads pages. What it reads is only information, never orders. Only roles that cannot change files get this.' },
-    images: { title: 'Find pictures', note: 'Finds photos whose licence allows the use and saves them in the project with a credit.' },
+    write: { title: 'Change files', note: 'Create, edit, move or delete files.' },
+    exec: { title: 'Run commands', note: 'Run project commands and checks.' },
+    ask: { title: 'Ask you questions', note: 'When input is needed.' },
+    web: { title: 'Search the web', note: 'Reads untrusted pages; only available to non-editing roles.' },
+    images: { title: 'Find pictures', note: 'Saves licensed images with credit.' },
   } as Record<string, { title: string; note: string }>,
-  builtInNote: 'Built-in role: it stays on your team and what it may do is fixed.',
+  builtInNote: 'Built-in role with fixed permissions.',
   newRoleName: 'New teammate',
   saved: 'Saved.',
   reset: 'Back to the built-in team.',
   failed: 'We could not save that. Please try again.',
-  loadFailed: 'We could not load your team. Please try again in a moment.',
+  loadFailed: 'Could not load your team. Try again.',
   errors: {
-    invalid_agent_team: 'Check the team: every role needs a short name, and there must be exactly one lead.',
+    invalid_agent_team: 'Each role needs a name and exactly one lead is required.',
   } as Record<string, string>,
 };
 
