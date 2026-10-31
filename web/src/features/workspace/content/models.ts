@@ -29,22 +29,22 @@ export const gatewayProviderNames: Record<string, string> = {
 
 /** The three model tiers: set a model once, and every role on the tier follows it. */
 export const tierCopy = {
-  intro: 'Pick a model for each tier once. Each teammate uses a tier (Settings, Agent team), so changing a model here changes it for everyone on that tier.',
+  intro: 'Models are shared by all roles using the same tier.',
   unsetThinking: 'Use the default model',
   unsetFast: 'Use the default model',
   tiers: {
-    thinking: { label: 'Thinking', note: 'For hard problems: design, security and review. Slower and costs more; usually a strong model at high effort.' },
-    default: { label: 'Default', note: 'Used for new tasks and for teammates on the default tier unless you pick another.' },
-    fast: { label: 'Fast', note: 'For quick, simple jobs. Usually a small model at low effort.' },
+    thinking: { label: 'Thinking', note: 'For complex work; often slower and more costly.' },
+    default: { label: 'Default', note: 'Used for new tasks and roles without a custom tier.' },
+    fast: { label: 'Fast', note: 'For quicker, simpler tasks.' },
   },
 };
 
 export const modelsCopy = {
-  refreshTip: 'Check the key again and update the list of models and how much each can hold.',
-  providersIntro: 'Your own keys. Tasks are billed by the provider, not by us.',
-  none: { title: 'Add your first AI model', body: 'Add a provider with your own key so your AI team has a model to work with. Use Add above.' },
-  noModels: { title: 'No models to choose from yet', body: 'Add a provider and verify its key, then pick a model here.' },
-  contextIntro: 'How much a model can keep in mind at once. When a task gets close to it, the AI summarizes its notes and keeps going.',
+  refreshTip: 'Check the key and refresh models and context limits.',
+  providersIntro: 'Provider billing applies to API key usage.',
+  none: { title: 'Add your first AI model', body: 'Add a provider and API key to get started.' },
+  noModels: { title: 'No models to choose from yet', body: 'Add a provider, verify its key, then choose a model.' },
+  contextIntro: 'Maximum tokens a model can use before notes are summarized.',
   contextLabel: (model: string) => `Context window for ${model}`,
   failed: 'We could not load your providers. Please try again in a moment.',
   saved: 'Saved, but the provider did not accept this key. Check it and press Verify.',
@@ -71,10 +71,7 @@ export const personaCopy = {
 };
 
 export const notificationsCopy = {
-  description: 'Alerts only appear while this tab is in the background, and only on this device.',
-  ask: 'Your browser will ask for permission.',
-  blocked: 'Notifications are blocked for this site. Allow them in your browser settings, then reload.',
+  description: 'Only on this device, when this tab is in the background.',
+  blocked: 'Enable notifications in your browser settings, then reload.',
   unsupported: 'This browser does not support notifications.',
-  asks: 'A task needs your answer or is ready for your review.',
-  problems: 'A task failed or had to stop.',
 };

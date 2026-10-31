@@ -1,59 +1,53 @@
 export const connectedAppsCopy = {
-  intro: 'Apps like ChatGPT that you let into your spaces. Remove access any time.',
-  empty: { title: 'No apps connected yet', body: 'Copy a space address under Spaces & tools and add it in your AI app, such as ChatGPT.' },
-  failed: 'We could not load your connected apps. Please try again in a moment.',
+  intro: 'Control which AI apps can access your spaces.',
+  empty: { title: 'No apps connected yet', body: 'Use a space address to connect an AI app.' },
+  failed: 'Could not load connected apps. Try again.',
 };
 
 export const spacesCopy = {
-  intro: 'A space is a set of tools. The switches here apply everywhere: to tasks in this app and to AI apps you connect, such as ChatGPT. A tool that is off cannot be used by anyone.',
-  empty: { title: 'No spaces available', body: 'This server has no spaces switched on yet, so there is nothing to connect an AI app to.' },
-  failed: 'We could not load your spaces. Please try again in a moment.',
+  intro: 'Control tools used by tasks and connected AI apps.',
+  empty: { title: 'No spaces available', body: 'No spaces are enabled on this server.' },
+  failed: 'Could not load spaces. Try again.',
 };
 
 export const approvalsCopy = {
-  title: 'Skip approvals',
-  body: 'Let the AI go ahead without asking you each time. Anything you turned off stays off.',
-  failed: 'We could not save that switch. Please try again.',
+  title: 'Skip tool approvals',
+  body: 'AI can run enabled tools without asking. Disabled tools stay blocked.',
+  failed: 'Could not save this setting. Try again.',
 };
 
-/** What each tool does, in plain words. The server's own wording is written for the AI, so it is not shown. */
+/** Short descriptions only for tools whose effects need explanation. */
 export const toolCopy: Record<string, string> = {
-  list_files: 'See which files and folders are in the project.',
-  find_files: 'Look for files by their name.',
-  read_file: 'Open and read a file.',
-  search_code: 'Search for a word or phrase across all the files.',
-  list_tasks: 'See the checks you set up for this project, like running tests.',
-  whoami: 'Tell the AI which account it is working for.',
-  edit_file: 'Change part of a file.',
-  write_file: 'Create a new file, or replace everything in one.',
-  delete_file: 'Delete a file.',
-  move_file: 'Move a file to another place, or give it a new name.',
-  run_task: 'Run one of your checks, like the tests, and see if it passed.',
-  run_command: 'Run commands in a safe, closed-off box so the AI can build and test things. This is also how it shows you the web app it makes.',
-  approve_plan: 'Let a connected AI approve a plan and send it to the AI that does the work.',
+  list_files: '',
+  find_files: '',
+  read_file: '',
+  search_code: '',
+  list_tasks: 'Shows available project checks.',
+  whoami: 'Shows the connected account.',
+  edit_file: '',
+  write_file: 'Can replace existing file contents.',
+  delete_file: 'Some deletions cannot be undone.',
+  move_file: '',
+  run_task: 'Runs a saved project check.',
+  run_command: 'Runs commands in an isolated workspace.',
+  approve_plan: 'Lets connected AI approve plans without your review.',
 };
 
 export const toolGroups = {
-  read: { title: 'Look around', note: 'Look at your project without changing anything. On by default.' },
-  write: {
-    title: 'Change files',
-    note: 'Create, edit, move and delete files. Off until you turn it on. Every change can be undone under Activity.',
-  },
-  exec: {
-    title: 'Run things',
-    note: 'Run checks and commands, and show you the web app it builds. Off until you turn it on.',
-  },
+  read: { title: 'Read files' },
+  write: { title: 'Change files' },
+  exec: { title: 'Run commands' },
 } as const;
 
 export const activityCopy = {
-  intro: 'Every step a connected AI app takes in your spaces, newest first. Changes to files can be undone.',
-  empty: { title: 'No activity yet', body: 'When an AI app uses your spaces, every step shows up here.' },
-  failed: 'We could not load the activity. Please try again in a moment.',
+  intro: 'Recent connected-app actions. Some file changes can be undone.',
+  empty: { title: 'No activity yet', body: 'Connected-app actions will appear here.' },
+  failed: 'Could not load activity. Try again.',
   outcomes: { ok: 'Done', failed: 'Failed', off: 'Was turned off', forbidden: 'Needed permission' },
   undoErrors: {
     undo_refused: 'The file changed after this edit, so it was left as it is.',
     already_undone: 'This change was already undone.',
     not_undoable: 'This change cannot be undone.',
   },
-  undoFallback: 'We could not undo that. Please try again in a moment.',
+  undoFallback: 'Could not undo this change. Try again.',
 } as const;

@@ -4,7 +4,7 @@
   import SettingsSection from './parts/SettingsSection.svelte';
 </script>
 
-<SettingsSection title={integrationsCopy.title} description={integrationsCopy.intro}>
+<SettingsSection title={integrationsCopy.title}>
   <ul class="list">
     <GitHubIntegration />
   </ul>

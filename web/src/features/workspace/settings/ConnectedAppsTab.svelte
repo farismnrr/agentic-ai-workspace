@@ -73,7 +73,6 @@
   <SettingsSection title="GitHub" description={githubCopy.connected(github.login)}>
     <div class="py-3 text-xs text-[var(--brand-text-secondary)]">
       <p>{githubCopy.details}</p>
-      <p class="mt-1">{githubCopy.repos.body}</p>
       <a class="btn btn-outline btn-sm mt-3" href="/app/settings/integrations">Manage GitHub</a>
     </div>
   </SettingsSection>

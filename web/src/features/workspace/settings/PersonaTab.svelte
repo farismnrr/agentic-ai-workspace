@@ -38,7 +38,7 @@
 </script>
 
 {#if prefs !== undefined}
-  <SettingsSection title="Persona" description="How your AI team introduces itself and talks to you.">
+  <SettingsSection title="Persona" description="How AI responds to you.">
     <SettingRow label="Name" for="persona-name"><input id="persona-name" class="input input-sm w-64" placeholder="Awam" bind:value={prefs.personaName} /></SettingRow>
     <SettingRow label="How it should talk" for="style">
       <select id="style" class="select select-sm w-64" bind:value={prefs.talkStyle}>
