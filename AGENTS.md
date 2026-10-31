@@ -47,7 +47,7 @@ When a person provides a running MoLab URL and access code together in their tas
 
 ## MoLab through connected apps
 
-The coding MCP server exposes `marimo_execute` with the existing `coding:exec` scope and `run_command` permission. It takes the temporary MoLab URL and token from the connected assistant's current chat and does **not** require `begin_work` or create a new AI Code task. The request carries the token transiently, but never log its contents or copy it into container command arguments, Project Env, activity or work history. Continue requiring exact MoLab HTTPS hostname validation and the sandbox egress proxy.
+The coding MCP server exposes `marimo_execute` with the existing `coding:exec` scope and `run_command` permission. It takes the temporary MoLab URL and token from the connected assistant's current chat and **requires** a tracked work session with the enabled `developer` role. Use `begin_work(role=developer)` once per issue (or `set_role` on the current work); reuse its `work_id` for notebook calls, never create a new task per call. The request carries the token transiently, but never log its contents or copy it into container command arguments, Project Env, activity or work history. Continue requiring exact MoLab HTTPS hostname validation and the sandbox egress proxy.
 
 ## Clean Architecture dependency rule
 

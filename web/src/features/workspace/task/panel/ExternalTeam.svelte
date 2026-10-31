@@ -8,6 +8,8 @@
   interface Props { events: TaskEvent[]; actor: string; work?: WorkSummary | undefined }
   const { events, actor, work }: Props = $props();
   const roles = $derived(work === undefined ? [] : workRoleSegments(events, work));
+  const roleLabel = $derived(work === undefined ? 'Legacy task — role not recorded'
+    : `Active role: ${[work.roleName, work.role].find((value) => value?.trim()) ?? 'Unavailable'}`);
   const states: Record<WorkRoleState, { label: string; icon: 'check-circle' | 'activity' | 'clock'; tone: string }> = {
     done: { label: 'Done', icon: 'check-circle', tone: 'badge-success' },
     active: { label: 'In progress', icon: 'activity', tone: 'badge-info' },
@@ -19,10 +21,10 @@
 <section class="flex flex-col gap-3" aria-label="External assistant work">
   <header class="border-b border-[var(--brand-border)] pb-3">
     <h2 class="font-semibold">{actor} — External Assistant</h2>
-    <p class="mt-1 text-xs text-[var(--brand-text-secondary)]">Role assignments, objectives and outcomes.</p>
+    <p class="mt-1 text-xs text-[var(--brand-text-secondary)]">{roleLabel}</p>
   </header>
   {#if roles.length === 0}
-    <EmptyState compact icon="activity" title="No structured role updates" body="This older external task has no role, step or result details to show." />
+    <EmptyState compact icon="activity" title={work === undefined ? 'Legacy task' : 'No role history'} body={work === undefined ? 'Role changes were not recorded for this task.' : 'The current role is shown above; no role events were found.'} />
   {:else}
     <ol class="flex flex-col gap-2">
       {#each roles as role (role.id)}

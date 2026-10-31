@@ -146,7 +146,7 @@ If the notebook stops or access expires, the tool explains what happened. Send a
 
 **Connected ChatGPT or Gemini:** After deploying the GHCR App + Sandbox images, refresh the AI Code connector.
 Its `marimo_execute` tool accepts a temporary MoLab URL, token and Python code directly from chat,
-without creating an AI Code task. It requires `coding:exec` and the existing Run command switch.
+with an active `work_id` in the enabled Developer role. Start with `begin_work(role=developer)` once per issue, or `set_role(role=developer)` on the existing work. Repeated notebook calls reuse the same task. It also requires `coding:exec` and the existing Run command switch.
 The token travels in the MCP request but is not stored in AI Code activity logs or Docker command arguments.
 
 ## Troubleshooting

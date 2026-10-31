@@ -14,8 +14,10 @@ Tests: parser security checks, pinned marimo-pair mock HTTP smoke, Go build, fro
 ## ChatGPT/Gemini connector
 
 The AI Code MCP server also exports `marimo_execute`. Users provide the active MoLab URL and token in
-ChatGPT/Gemini; the assistant sends `url`, `token` and `code` to the authenticated tool. No new AI Code task or
-`begin_work` is required. It reuses the validated one-shot runner with inspection before running user code.
+ChatGPT/Gemini; the assistant sends `url`, `token`, `code` and the active `work_id` to the authenticated tool.
+Start or resume one tracked work session with the enabled Developer role using `begin_work(role=developer)`,
+or switch the current session using `set_role(role=developer)`. Repeated calls reuse the same task,
+while each execution still uses the validated one-shot runner.
 
 The connector requires the `coding:exec` OAuth scope and the normal `run_command` switch.
 Activity records only a fixed tool title and success/failure, never the token or Python arguments.

@@ -44,7 +44,7 @@ func writeTool(name, title, description string) ToolInfo {
 // ToolMarimoExecute invokes the pinned marimo-pair skill in a one-shot sandbox.
 var ToolMarimoExecute = ToolInfo{
 	Name: "marimo_execute", Title: "Execute MoLab notebook code", Scope: ScopeExec, Group: GroupExec,
-	Description: "Use a temporary MoLab HTTPS URL and token the person sent in this conversation to run Python in a live notebook. Supply url, token and code. No pairing form, extra task or permanent credentials.",
+	Description: "Run Python in MoLab using the temporary URL and token from this chat. Requires active work_id with the Developer role and coding:exec permission. Reuse one task; no pairing form or stored credentials.",
 }
 
 // The tools the coding space offers.

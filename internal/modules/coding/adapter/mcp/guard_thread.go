@@ -16,9 +16,6 @@ func (g *guard) newState(
 	ctx context.Context, info domain.ToolInfo, entry *Entry, req *sdk.CallToolRequest, workID string,
 ) *callState {
 	state := &callState{workID: workID}
-	if info.Name == domain.ToolMarimoExecute.Name && workID == "" {
-		return state
-	}
 	if info.Group == domain.GroupExec {
 		switch {
 		case workID != "" && g.workCalls != nil:
@@ -103,7 +100,7 @@ func metaKeys(req *sdk.CallToolRequest) string {
 // quiet are the tools whose calls say nothing about the work, so they are not written into the thread.
 var quiet = []string{
 	domain.ToolWhoami.Name, domain.ToolListProjects.Name, domain.ToolLogMessage.Name,
-	domain.ToolBeginWork.Name, domain.ToolSetRole.Name, domain.ToolMarimoExecute.Name, domain.ToolUpdatePlan.Name,
+	domain.ToolBeginWork.Name, domain.ToolSetRole.Name, domain.ToolUpdatePlan.Name,
 	domain.ToolSaveResearch.Name, domain.ToolSaveRequirements.Name, domain.ToolReportProgress.Name,
 	domain.ToolCompleteWork.Name, domain.ToolGetWorkState.Name, domain.ToolSubmitPlan.Name,
 	domain.ToolFinishResearch.Name, domain.ToolAskQuestion.Name,

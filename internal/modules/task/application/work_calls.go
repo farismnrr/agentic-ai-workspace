@@ -29,6 +29,23 @@ func (w *Works) Validate(ctx context.Context, userID, client, projectID, workID 
 	if work.RoleKey == "" {
 		return domain.ErrBadRole
 	}
+	// Role assignments are not permanent: a disabled or removed role must stop working.
+	_, err = w.availableRole(ctx, userID, work.RoleKey)
+	return err
+}
+
+// RequireRole checks an enabled active role before a tool with a specific role requirement.
+func (w *Works) RequireRole(ctx context.Context, userID, client, projectID, workID, required string) error {
+	if err := w.Validate(ctx, userID, client, projectID, workID); err != nil {
+		return err
+	}
+	work, err := w.store.FindWork(ctx, userID, client, projectID, workID)
+	if err != nil {
+		return domain.ErrUnknownWork
+	}
+	if work.RoleKey != required {
+		return domain.ErrBadRole
+	}
 	return nil
 }
 

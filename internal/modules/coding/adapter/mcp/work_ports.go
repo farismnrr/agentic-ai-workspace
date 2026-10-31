@@ -8,6 +8,7 @@ import (
 // WorkSessions is the narrow MCP-owned port for explicit connected-app work.
 type WorkSessions interface {
 	Validate(ctx context.Context, userID, client, projectID, workID string) error
+	RequireRole(ctx context.Context, userID, client, projectID, workID, role string) error
 	AvailableRoles(ctx context.Context, userID string) ([]WorkRole, error)
 	Begin(ctx context.Context, userID, client, projectID string, in BeginWorkInput) (BeginWorkResult, error)
 	SetRole(ctx context.Context, userID, client, projectID, workID, role, brief string) (RoleWorkResult, error)
@@ -132,6 +133,7 @@ type WorkMutation struct {
 }
 
 type BeginWorkResult struct {
+	Role        string     `json:"role"`
 	TaskID      string     `json:"task_id"`
 	WorkID      string     `json:"work_id"`
 	Idempotency string     `json:"idempotency"`
