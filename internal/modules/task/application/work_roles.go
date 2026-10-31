@@ -20,12 +20,12 @@ func (w *Works) roster(ctx context.Context, userID string) (Roster, error) {
 	return roster, nil
 }
 
-// SetRole changes work attribution only. It does not participate in access checks.
+// SetRole changes the server-owned active role; Authorize uses it on each call.
 func (w *Works) SetRole(ctx context.Context, userID, client, projectID, workID, roleName string) (WorkRole, error) {
 	return w.SetRoleWithBrief(ctx, userID, client, projectID, workID, roleName, "")
 }
 
-// SetRoleWithBrief records a bounded explanation with the attribution change; it does not alter permissions.
+// SetRoleWithBrief records the new active role and its permission boundary.
 func (w *Works) SetRoleWithBrief(
 	ctx context.Context, userID, client, projectID, workID, roleName, brief string,
 ) (WorkRole, error) {
@@ -60,7 +60,7 @@ func (w *Works) SetRoleWithBrief(
 }
 
 func roleAlreadySet(work domain.ExternalWork, role WorkRole, brief string) bool {
-	return work.RoleKey == role.Key && work.State == domain.WorkOpen && brief == ""
+	return canonicalMemberKey(work.RoleKey) == role.Key && work.State == domain.WorkOpen && brief == ""
 }
 
 func (w *Works) availableRole(ctx context.Context, userID, name string) (WorkRole, error) {

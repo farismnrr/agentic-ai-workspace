@@ -71,7 +71,7 @@
       {/if}
     </div>
     {#if !role.lead && role.preset}
-      <p class="text-sm text-[var(--brand-text-secondary)]">{role.key === 'developer' ? 'Can read and edit code, and use MoLab. Tests belong to QA; shell commands to DevOps.' : role.key === 'qa' ? 'Can read files and run named project checks. Cannot edit or use a shell.' : role.key === 'security' ? 'Can read and run named security checks. Cannot edit or use a shell.' : accessSummary(role.access)} <span class="text-xs text-[var(--brand-text-tertiary)]">{teamCopy.builtInNote}</span></p>
+      <p class="text-sm text-[var(--brand-text-secondary)]">{role.key === 'developer' ? 'Builds code, UI, media and documents; cannot run tests or deploy.' : role.key === 'qa' ? 'Tests and reviews changes; cannot edit, deploy or use a shell.' : role.key === 'devops' ? 'Builds and deploys; source files are read-only.' : role.key === 'security' ? 'Can read and run named security checks. Cannot edit or use a shell.' : accessSummary(role.access)} <span class="text-xs text-[var(--brand-text-tertiary)]">{teamCopy.builtInNote}</span></p>
     {/if}
     {#if !role.lead && !role.preset}
       <fieldset class="flex flex-col gap-1.5">

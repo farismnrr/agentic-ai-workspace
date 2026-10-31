@@ -32,6 +32,7 @@ var taskName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,39}$`)
 // vector run directly, never through a shell.
 type Task struct {
 	Name           string   `json:"name,omitempty"`
+	Kind           string   `json:"kind,omitempty"` // "build" for DevOps; empty/"check" for QA
 	Description    string   `json:"description"`
 	Command        []string `json:"command"`
 	TimeoutSeconds int      `json:"timeout_seconds,omitempty"`
@@ -103,6 +104,9 @@ func ValidateTasks(tasks []Task) error {
 }
 
 func validateTask(task Task) error {
+	if task.Kind != "" && task.Kind != "check" && task.Kind != "build" {
+		return fmt.Errorf("%w: %q kind must be check or build", ErrBadTasks, task.Name)
+	}
 	if !taskName.MatchString(task.Name) {
 		return fmt.Errorf("%w: %q needs a lowercase name such as test or lint", ErrBadTasks, task.Name)
 	}

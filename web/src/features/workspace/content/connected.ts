@@ -31,6 +31,7 @@ export const toolCopy: Record<string, string> = {
   delete_file: 'Delete a file permanently.',
   move_file: 'Move or rename a file.',
   run_task: 'Run a saved project check.',
+  run_build: 'Run a saved build task.',
   run_command: 'Run a command in the sandbox.',
   marimo_execute: 'Run Python code in a MoLab notebook.',
   screenshot_session: 'Manage the screenshot test login.',

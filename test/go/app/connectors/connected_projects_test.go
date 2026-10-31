@@ -56,6 +56,14 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 	env := apptest.NewEnv(t)
 	cookie, chatgpt := apptest.SignedInClient(t, env.App)
 	apptest.EnableTool(t, env.App, cookie, "run_command")
+	// Builds are explicit owner-configured tasks, distinct from QA checks.
+	buildPath := filepath.Join(apptest.UserWorkspace(t, env, cookie, "ChatGPT"), ".workspace", "tasks.json")
+	if err := os.MkdirAll(filepath.Dir(buildPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(buildPath, []byte(`{"tasks":{"build":{"kind":"build","description":"Build artifact","command":["echo","hello-from-the-app"]}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	token := apptest.Connect(t, env.App, cookie, chatgpt, "coding:read coding:write coding:exec")
 
@@ -66,11 +74,11 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 
 	workID := beginTrackedWork(t, env.App, token, "")
 	apptest.CallTool(t, env.App, token, "list_files", `{"work_id":"`+workID+`"}`)
-	// The Developer cannot run the shell. Switch role within the same task.
+	// Developer cannot execute shell or checks. DevOps only runs named builds.
 	switched := apptest.CallTool(t, env.App, token, "set_role",
 		`{"work_id":"`+workID+`","role":"devops"}`)
 	apptest.MustContain(t, switched.Body, `"changed":true`)
-	apptest.CallTool(t, env.App, token, "run_command", `{"work_id":"`+workID+`","command":"echo hello-from-the-app"}`)
+	apptest.CallTool(t, env.App, token, "run_build", `{"work_id":"`+workID+`","name":"build"}`)
 
 	var tasks []struct {
 		ID     string `json:"id"`
@@ -100,5 +108,5 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 
 	events := string(apptest.Do(t, env.App, "GET", "/api/tasks/"+id+"/events", "", apptest.JSONCookie(cookie)).Body)
 	apptest.MustContain(t, []byte(events), "list .", `"role":"developer"`)
-	apptest.MustContain(t, []byte(events), "command: echo hello-from-the-app")
+	apptest.MustContain(t, []byte(events), "build build")
 }

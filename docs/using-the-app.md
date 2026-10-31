@@ -311,7 +311,7 @@ An agent team works like a small software company. A lead takes your request and
 - A teammate you did not need is simply never called.
 - Teammates do not chat with each other. The lead passes on what each one needs, so nobody works from a different picture.
 - Once the shared app shell is in place, the lead can assign independent feature slices to multiple Developers in parallel, each with its own folder scope.
-- Read and verification checks (Researcher, QA Tester, Reviewer, Security, Architect) can also run in parallel when their work is independent.
+- Read and verification checks (Researcher, QA, Security, Architect) can also run in parallel when their work is independent.
 
 The lead sizes your request first and tells you:
 
@@ -320,7 +320,7 @@ The lead sizes your request first and tells you:
 | Question | The lead answers. No plan, no team. |
 | Small | A quick change to something that exists, such as a typo or a title. The lead hands it straight to the Developer, with no Planner and no plan list. |
 | Medium | Anything new, such as a page or a script, or three or more files. The Planner asks you a few questions and writes a short PRD, then the Developer builds and QA checks. |
-| Large | The Planner plans the same way. Research, requirements and design are added only if needed. A Designer shapes anything you will see. Reviews follow task mode and impact. |
+| Large | Planner handles requirements and planning; Developer handles design and code. Research and QA reviews follow task mode and impact. |
 
 Research comes first on medium or large tasks, then again after the PRD for the stack and visual design. The Researcher checks real-world facts about a business, market, style or technology, then writes short notes with sources.
 When a teammate gets stuck, it says so instead of struggling alone. The Orchestrator asks the Researcher how it is done properly, then sends the job again with the answer.
@@ -369,27 +369,22 @@ For a medium or large task:
 3. The lead asks once whether to start building. The team waits for your yes. Say what to change and the Planner revises it.
 4. If you will see a screen or page, the Designer sets the look and builds it, and writes it down in `DESIGN.md` for the Developer.
 5. Every teammate is shown the PRD with its job.
-6. When the change needs an independent screen review, the Reviewer checks it and sends any fixes back to the Designer.
-7. The Designer checks its work in the running app through screenshots, on a desktop and a phone screen. You see each screenshot in the thread.
+6. When independent review is required, QA checks it and sends findings back to Developer.
+7. Developer checks changed screens through screenshots, on desktop and mobile, when the app is available.
 8. Work that includes a web page is never reported until its app is running. You get a link to open it.
 
 When unsure, the lead picks the smaller size. There is no cap on how many jobs a team may hand out, as long as they keep getting somewhere.
 
 | Role | What it does |
 | --- | --- |
-| Orchestrator (lead) | Plans, hands out work, answers you |
-| Planner | Asks you what it needs in a short form, then writes the PRD. It follows a built-in playbook (its skill) that ships with the app |
-| Designer | Sets the visual direction, writes `DESIGN.md` and builds the interface. It has built-in skills (design brief, frontend design, UI polish) and a library of craft rules, style families and page templates, and picks what fits the job |
-| Researcher | Reads the project and looks things up on the web. It writes notes with sources before the PRD, the design or the build. It cannot change files |
-| Media | Finds pictures you may use and edits them: resize, crop, convert, remove a background. Every picture it saves has its licence and credit written in `assets/CREDITS.md`, never on the page. It lists pictures that need no credit first |
-| Documents | Creates PowerPoint, Word and PDF files, then previews each page. The result opens under Sites with a Download button. Files stay in `documents/`; the Files tab can also preview PDFs. |
-| Business Analyst | Turns your request, and what the Researcher found, into requirements before the PRD |
-| Architect | Designs and checks affected contracts or module boundaries against SOLID and Clean Architecture. It cannot change files |
-| Developer | Reads and edits code, and uses MoLab. QA runs tests; DevOps owns general commands, builds and deployment |
-| Security | Checks sensitive changes for vulnerabilities, risky code and missing protections. It cannot change files |
-| QA Tester | Runs named project checks without permission to edit files or use an arbitrary shell |
-| Reviewer | Independently reviews work when deep-review or uncertain impact calls for it |
-| DevOps | Builds, scripts and running the app |
+| Orchestrator (lead) | Coordinates and delegates, without changing files in team mode |
+| Researcher | Reads the project and researches the web with sources; cannot edit or execute |
+| Planner | Combines business analysis, requirements, PRD and planning; cannot code or test |
+| Architect | Designs/reviews module contracts; read-only |
+| Developer | Codes, designs UI, sources images, creates documents, takes screenshots and uses MoLab; cannot test or deploy |
+| QA & Review | Runs named checks and independent review; source code is read-only |
+| Security | Reviews vulnerabilities and runs named security checks; source code is read-only |
+| DevOps | Runs approved named builds, starts apps, packages and deploys; cannot edit source or use arbitrary shell |
 
 Under Settings, Agent team you can change each role:
 
@@ -397,7 +392,8 @@ Under Settings, Agent team you can change each role:
 - Write its personality and way of working.
 - For a role you add, choose what it may do: look at files, change files, run commands. Built-in roles keep the access that fits them.
 - Turn a role off, or add your own. Built-in roles cannot be removed, and what you add is yours alone.
-- Reset to built-in restores the default team, including roles added in later versions.
+- Reset to built-in restores the eight default roles. Old Designer, Media and Documents work maps to Developer; old Reviewer maps to QA, and Business Analyst to Planner. Historical role labels remain in task logs.
+- Configure a DevOps build under `.workspace/tasks.json` with `"kind":"build"`; QA checks use `"kind":"check"` or omit kind. Both execute with read-only project mounts; build output must go to temporary locations rather than modifying source.
 
 Good to know:
 

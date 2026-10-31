@@ -41,8 +41,10 @@ func (t *Tasks) Run(ctx context.Context, name string) (RunResult, error) {
 	}
 
 	for _, task := range tasks {
-		if task.Name == name {
-			result, err := t.runner.Run(ctx, task)
+		if task.Name == name && task.Kind != "build" {
+			// User-defined checks are not trusted to obey a read-only instruction.
+			// The Docker workspace itself must be mounted read-only.
+			result, err := t.runner.Run(domain.WithReadOnlyWorkspace(ctx), task)
 			if err != nil {
 				return RunResult{}, fmt.Errorf("run %s: %w", name, err)
 			}
@@ -51,6 +53,25 @@ func (t *Tasks) Run(ctx context.Context, name string) (RunResult, error) {
 		}
 	}
 
+	return RunResult{}, domain.ErrUnknownTask
+}
+
+// RunBuild executes only a named owner-configured build, never a QA check.
+// Build scripts see the project read-only; configure output to a scratch path.
+func (t *Tasks) RunBuild(ctx context.Context, name string) (RunResult, error) {
+	tasks, err := t.List()
+	if err != nil {
+		return RunResult{}, err
+	}
+	for _, task := range tasks {
+		if task.Name == name && task.Kind == "build" {
+			result, err := t.runner.Run(domain.WithReadOnlyWorkspace(ctx), task)
+			if err != nil {
+				return RunResult{}, fmt.Errorf("run build %s: %w", name, err)
+			}
+			return result, nil
+		}
+	}
 	return RunResult{}, domain.ErrUnknownTask
 }
 

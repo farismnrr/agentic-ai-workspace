@@ -60,6 +60,7 @@ type CLIRequest struct {
 	Tools []string
 	// Limited says Tools is a limit, even an empty one.
 	Limited bool
+	RoleKey string // server-assigned teammate role for sandbox mount policy
 }
 
 // CLITool is a tool the server runs for the program.

@@ -10,7 +10,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// maxLookRounds bounds how often a finish is held back for the Reviewer, and how often a Designer is sent back to
+// maxLookRounds bounds how often a finish is held back for QA review, and how often Developer is sent back to
 // look at its work.
 const maxLookRounds = 3
 
@@ -29,7 +29,7 @@ func hasScreen(files []string) bool {
 	return false
 }
 
-// reviewerOf names the team's independent Reviewer.
+// reviewerOf resolves the QA teammate responsible for independent review.
 func reviewerOf(roster *Roster) AgentRole {
 	if roster == nil {
 		return AgentRole{}
@@ -52,7 +52,7 @@ func (r *Runner) reviewerNotAsked(
 		return false
 	}
 	return r.requireReview(ctx, task, state, call, reviewerOf(state.roster), &state.reviewerAsked,
-		maxLookRounds, hasImpactChange, "Reviewer", impact.reason,
+		maxLookRounds, hasImpactChange, "QA", impact.reason,
 		"Independently review the changed behavior and relevant regression evidence. Do not assume a passing report.")
 }
 

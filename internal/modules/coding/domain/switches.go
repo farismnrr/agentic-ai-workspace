@@ -4,6 +4,7 @@ package domain
 var followsRunCommand = map[string]bool{
 	ToolStartSite.Name: true, ToolStopSite.Name: true, ToolScreenshot.Name: true, ToolDeployExtension.Name: true,
 	ToolRequestEgress.Name: true, ToolCILogs.Name: true, ToolMarimoExecute.Name: true,
+	ToolRunBuild.Name: true,
 }
 
 var followsLogMessage = map[string]bool{
