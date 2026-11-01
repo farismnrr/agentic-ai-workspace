@@ -8,7 +8,7 @@ After this slice, 77 Go test files contain 167 top-level test functions:
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
-| `test/go/app/molab/mcp_test.go::TestChatGPTMoLabToolIsDiscoverableAndWorksWithoutCreatingATask` | auth/authz | Exercises OAuth MCP discovery, permission switch, no-work standalone tool and credential-free activity logging. | none |
+| `test/go/app/molab/mcp_test.go::TestChatGPTMoLabRequiresDeveloperWork` | auth/authz | Exercises OAuth MCP discovery, permission switch, Developer work requirement and credential-free activity logging. | none |
 | `test/go/app/molab/mcp_test.go::TestChatGPTMoLabRequiresExecScope` | auth/authz | Verifies step-up consent is required for coding:exec. | none |
 | `test/go/modules/molab/execute_test.go::TestMCPExecutionInspectsBeforeRunningAndKeepsSecretOutOfArgv` | sandbox/privilege | Confirms inspection-first, exact hostname and no token in sandbox argv. | none |
 | `test/go/modules/molab/execute_test.go::TestMCPExecutionRefusesInvalidOriginAndRedactsServerEcho` | crypto/credentials | Stops dangerous hosts and redacts echoed tokens before output. | none |
@@ -178,6 +178,40 @@ After this slice, 77 Go test files contain 167 top-level test functions:
 | `test/go/platform/database/migrate_test.go::TestEditedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects changed applied migrations. | none; direct journal mutation is required |
 | `test/go/platform/database/migrate_test.go::TestRemovedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects removed applied migrations. | none; direct journal mutation is required |
 | `test/go/platform/sandbox/subpath_integration_test.go::TestOwnerVolumeSubpathsAreIsolated` | sandbox/privilege | Uses a Docker volume to prove owner subpaths cannot read or write one another. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/modules/clistream/context_test.go::TestCodexCumulativeUsageIsNotDisplayedAsContext` | sandbox/privilege | Confirms cumulative token counts are not displayed as instant context window usage. | none |
+| `test/go/modules/clistream/context_test.go::TestCodexLastCallUsageCanBeDisplayed` | sandbox/privilege | Verifies last-call usage displays context meter accurately. | none |
+| `test/go/modules/clistream/context_test.go::TestCodexTokenCountEmitsLiveContext` | sandbox/privilege | Verifies Codex token counts emit live context metrics. | none |
+| `test/go/modules/clistream/context_test.go::TestClaudeEmitsLiveContextFromAssistantUsage` | sandbox/privilege | Verifies Claude streams emit live context usage metrics. | none |
+| `test/go/modules/clistream/context_test.go::TestCodexStartedToolPreventsUnsafeAutomaticReplay` | sandbox/privilege | Prevents unsafe replay when a tool invocation has started. | none |
+| `test/go/modules/clistream/context_test.go::TestClaudeToolUsePreventsUnsafeAutomaticReplay` | sandbox/privilege | Prevents duplicate tool replay after Claude tool use. | none |
+| `test/go/modules/clistream/context_test.go::TestClaudeUsesLastModelsWindowInsteadOfLargestModel` | sandbox/privilege | Verifies last model's context window is used for context limits. | none |
+| `test/go/modules/clistream/context_test.go::TestClaudeMultipleUnknownWindowsRemainUnknown` | sandbox/privilege | Handles unknown context windows without synthetic assumptions. | none |
+| `test/go/modules/clistream/context_test.go::TestClaudeStartedToolStreamingPreventsReplay` | sandbox/privilege | Prevents tool replay during streaming execution. | none |
+| `test/go/modules/tasksqlite/manual_stop_guard_test.go::TestStoppedTaskCannotBeReopenedByLateWorker` | DB integrity/transactions | Proves stopped tasks cannot be transitioned back to working or failed by late worker. | none |
+| `test/go/app/connectors/role_scope_test.go::TestExternalRolesEnforceToolsAndWorkflowOnServer` | auth/authz | Enforces role-based tool restrictions and transitions across eight roles. | none |
+| `test/go/app/connectors/disabled_role_test.go::TestDisabledExternalRoleStopsCallsUntilRoleSwitch` | auth/authz | Disabling an external role stops calls until switched to an enabled role. | none |
+| `test/go/app/connectors/delegation_task_spam_test.go::TestConnectedRoleDelegationsKeepOneVisibleTask` | app-level integration | Ensures connected app role switches remain on a single visible task. | none |
+| `test/go/app/connectors/delegation_task_spam_test.go::TestExternalLinkedChatStaysUnderOneVisibleTask` | app-level integration | Keeps external chat turns under the same task thread. | none |
+| `test/go/app/connectors/delegation_task_spam_test.go::TestTrackedIssuesRemainIsolatedAcrossClientsAndProjects` | app-level integration | Verifies work session isolation across client apps and projects. | none |
+| `test/go/app/connectors/delegation_task_spam_test.go::TestCompletingTrackedIssueAllowsNextTopLevelTask` | app-level integration | Verifies completing a tracked work session allows starting a new task. | none |
+| `test/go/app/connectors/delegation_task_spam_test.go::TestRoleDelegationWithNewBeginKeyStaysOnActiveIssue` | app-level integration | Verifies begin_work idempotency keys reuse active work session. | none |
+| `test/go/app/connectors/delegation_task_spam_test.go::TestResumedKeyRemainsIdempotentAfterCompletion` | app-level integration | Verifies completed work session idempotency key behavior. | none |
+| `test/go/app/connectors/delegation_task_spam_test.go::TestArchivedWorkCannotCaptureNewIssue` | app-level integration | Archived work cannot be reused for a new issue. | none |
+| `test/go/app/connectors/vcs_policy_test.go::TestGitHubCliPreservesSourceIsolationByRole` | sandbox/privilege | Verifies GitHub CLI preserves read-only source isolation by role. | none |
+| `test/go/app/connectors/vcs_policy_test.go::TestInternalVendorCannotTurnNamedChecksIntoRawBash` | sandbox/privilege | Confirms internal vendor cannot execute arbitrary bash through checks. | none |
+| `test/go/app/connectors/vcs_policy_test.go::TestDeveloperGitSupportsDailyWorkflowWithoutShell` | auth/authz | Verifies Developer Git direct argv operations without general shell. | none |
+| `test/go/app/connectors/vcs_policy_test.go::TestVCSReadCommandsSkipRoutineApproval` | auth/authz | Read-only VCS commands do not block on routine manual approval. | none |
+| `test/go/app/connectors/vcs_policy_test.go::TestGitHubCLIPermissionsByOperation` | auth/authz | Enforces GitHub CLI permission matrices by role and operation category. | none |
+| `test/go/app/connectors/qa_verify_test.go::TestQAWithoutTaskFileCanVerifySourceReadOnly` | sandbox/privilege | QA verify runs standard test/lint commands without tasks.json in read-only sandbox. | none |
+| `test/go/app/connectors/qa_verify_test.go::TestQAVerifyRejectsArbitraryShellAndDestructiveOptions` | sandbox/privilege | QA verify rejects shell commands and modifying flags. | none |
+| `test/go/app/connectors/manual_stop_test.go::TestManualStopExternalTaskIsDoneNotNeedsAttention` | app-level integration | Manually stopped external task marks status as Done, not Needs Attention. | none |
+| `test/go/app/tasks/review/plan_review_routes_test.go::TestApprovedPlanHandoffDoesNotSpamTopLevelTasks` | app-level integration | Confirms plan approval creates handoff without creating duplicate top-level tasks. | none |
+| `test/go/app/tasks/execution/role_merge_test.go::TestLegacyBuiltInRolesMergeWithoutRestoringExecPrivileges` | auth/authz | Retired role aliases merge into 8 built-in roles without restoring unrestricted shell. | none |
+| `test/go/app/tasks/execution/context_compact_e2e_test.go::TestInitiallyFullContextCompactsBeforeFirstNormalModelCall` | app-level integration | Compaction occurs before first model call when initial context is full. | none |
+| `test/go/app/tasks/execution/context_compact_e2e_test.go::TestInitiallyFullContextCompactionFailureStopsBeforeNormalCall` | app-level integration | Full context compaction failure halts execution safely before calling model. | none |
+| `test/go/app/tasks/execution/manual_stop_test.go::TestManualStopRunningAndQueuedInternalTasksStayDone` | app-level integration | Stopping internal tasks keeps them Done atomically even if workers unwind. | none |
+| `test/go/app/tasks/execution/manual_stop_test.go::TestRealModelFailureStillNeedsAttention` | app-level integration | Verifies genuine model failure sets status to Needs Attention. | none |
+| `test/go/app/sites/start_boundary_test.go::TestSiteStartRejectsArbitraryShellAndChecks` | sandbox/privilege | Validates that start_site accepts only approved servers and rejects shell injection. | none |
 
 ## Support files
 

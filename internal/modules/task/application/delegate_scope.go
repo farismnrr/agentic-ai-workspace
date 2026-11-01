@@ -5,6 +5,8 @@ import (
 	"path"
 	"slices"
 	"strings"
+
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
 var (
@@ -140,6 +142,20 @@ func (r *Runner) scopeHold(call Call) string {
 		return ""
 	}
 
+	// Git source mutations can change arbitrary paths (cherry-picks, merges,
+	// commits, branch switches). Refuse them in parallel folder-scoped jobs;
+	// do them in an exclusive delegation after the slices are complete.
+	if call.Name == "git" || call.Name == "gh" {
+		var in struct {
+			Args []string `json:"args"`
+		}
+		if err := json.Unmarshal(call.Input, &in); err != nil ||
+			!codingdomain.VCSReadOnly(call.Name, in.Args) {
+			return "Git/GitHub mutations need an exclusive teammate turn, not a parallel file scope."
+		}
+		return ""
+	}
+
 	targets, checked := writeTargets(call)
 	if !checked {
 		return ""
@@ -155,26 +171,4 @@ func (r *Runner) scopeHold(call Call) string {
 	return ""
 }
 
-func writeTargets(call Call) ([]string, bool) {
-	switch call.Name {
-	case "write_file", "edit_file", "delete_file":
-		var args struct {
-			Path string `json:"path"`
-		}
-		if err := json.Unmarshal(call.Input, &args); err != nil {
-			return nil, false
-		}
-		return []string{args.Path}, true
-	case "move_file":
-		var args struct {
-			From string `json:"from"`
-			To   string `json:"to"`
-		}
-		if err := json.Unmarshal(call.Input, &args); err != nil {
-			return nil, false
-		}
-		return []string{args.From, args.To}, true
-	default:
-		return nil, false
-	}
-}
+

@@ -2,7 +2,6 @@ package sites_test
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net"
 	"os"
@@ -55,10 +54,8 @@ func TestServeSiteForABrowser(t *testing.T) {
 		c.AllowedOrigins, c.CORSOrigins = []string{base}, []string{base}
 	}, frontend)
 
-	command := "echo " + base64.StdEncoding.EncodeToString([]byte(probePage)) +
-		" | base64 -d > index.html && exec python3 -m http.server $PORT --bind 127.0.0.1"
 	a := apptest.RigOn(t, env,
-		apptest.ToolCall("s1", "start_site", map[string]any{"command": command, "port": 8125}),
+		apptest.ToolCall("s1", "start_site", map[string]any{"command": "python3 -m http.server 8125 --bind 127.0.0.1", "port": 8125}),
 		apptest.FinishCall("Your page is running"),
 	)
 
@@ -66,6 +63,7 @@ func TestServeSiteForABrowser(t *testing.T) {
 
 	t.Cleanup(func() { _ = env.App.Shutdown() })
 
+	a.PutFile(t, "index.html", probePage)
 	id := a.Start(t, "Show me a page")
 	a.WaitApproving(t, id, "done")
 

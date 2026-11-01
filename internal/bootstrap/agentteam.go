@@ -61,7 +61,11 @@ func toolsFor(role teamdomain.Role) []string {
 	names := []string{}
 
 	for _, tool := range codingdomain.Tools() {
-		if (role.Can(string(tool.Group)) || (role.Key == "developer" && tool.Name == codingdomain.ToolMarimoExecute.Name)) &&
+		if (role.Can(string(tool.Group)) ||
+			(role.Key == "developer" && (tool.Name == codingdomain.ToolMarimoExecute.Name ||
+				tool.Name == codingdomain.ToolRunArtifact.Name ||
+				tool.Name == codingdomain.ToolGit.Name ||
+				tool.Name == codingdomain.ToolGh.Name))) &&
 			roleMayUseTool(role, tool.Name) {
 			names = append(names, tool.Name)
 		}
@@ -122,11 +126,17 @@ func toolsFor(role teamdomain.Role) []string {
 func roleMayUseTool(role teamdomain.Role, tool string) bool {
 	switch tool {
 	case codingdomain.ToolRunCommand.Name:
-		return role.Key != "developer" && role.Key != "qa" && role.Key != "security" && role.Key != "devops"
+		return role.Key != "developer" && role.Key != "qa"
 	case codingdomain.ToolRunBuild.Name:
 		return role.Key == "devops"
+	case codingdomain.ToolRunArtifact.Name, codingdomain.ToolGit.Name:
+		return role.Key == "developer"
+	case codingdomain.ToolGh.Name:
+		return role.Key == "developer" || role.Key == "qa" || role.Key == "devops"
 	case codingdomain.ToolRunTask.Name:
 		return role.Key == "qa" || role.Key == "security"
+	case codingdomain.ToolVerify.Name:
+		return role.Key == "qa"
 	case codingdomain.ToolMarimoExecute.Name:
 		return role.Key == "developer"
 	case codingdomain.ToolApprovePlan.Name:

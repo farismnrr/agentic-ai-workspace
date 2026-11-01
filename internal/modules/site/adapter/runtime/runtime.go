@@ -92,8 +92,8 @@ func (r *Runtime) Start(ctx context.Context, spec application.StartSpec) (string
 		return "", fmt.Errorf("%w: %s", errPathTooLong, dir)
 	}
 
-	if err = os.MkdirAll(dir, dirMode); err != nil {
-		return "", fmt.Errorf("create site folder: %w", err)
+	if err = os.MkdirAll(filepath.Join(dir, "data"), dirMode); err != nil {
+		return "", fmt.Errorf("create site runtime data folder: %w", err)
 	}
 
 	_ = os.Remove(r.Socket(spec.ProjectID))

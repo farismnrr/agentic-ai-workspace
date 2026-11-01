@@ -99,7 +99,7 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 
 	// A small task has no plan to move it out of "planning", so the first step that changes or runs
 	// something does.
-	if len(task.Plan) == 0 && r.deps.Tools.Risk(call.Name) != domain.RiskNone {
+	if len(task.Plan) == 0 && r.toolRisk(call) != domain.RiskNone {
 		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, r.deps.Now())
 	}
 
@@ -131,7 +131,7 @@ func (r *Runner) checkTool(
 		return true, outcome{}, false
 	}
 
-	risk := r.deps.Tools.Risk(call.Name)
+	risk := r.toolRisk(call)
 	if !needsApproval(risk) || r.skipsApprovals(ctx, task.UserID) {
 		return false, outcome{}, false
 	}

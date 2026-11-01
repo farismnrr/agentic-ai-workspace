@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -27,7 +28,11 @@ var toolSchemas = map[string]string{
 	"move_file": `{"type":"object","properties":{"from":{"type":"string"},"to":{"type":"string"}},` +
 		`"required":["from","to"]}`,
 	"run_task":  `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}`,
+	"verify":    `{"type":"object","properties":{"args":{"type":"array","items":{"type":"string"},"description":"QA test, lint or check argv (e.g. [\"go\",\"test\",\"./test/go/app/connectors\"])"}},"required":["args"]}`,
 	"run_build": `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}`,
+	"run_artifact": `{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}`,
+	"git": `{"type":"object","properties":{"args":{"type":"array","items":{"type":"string"},"description":"Git subcommand and arguments (no git prefix)"}},"required":["args"]}`,
+	"gh": `{"type":"object","properties":{"args":{"type":"array","items":{"type":"string"},"description":"GitHub CLI command and arguments (no gh prefix)"}},"required":["args"]}`,
 	"run_command": `{"type":"object","properties":{"command":{"type":"string","description":"Shell command line"},` +
 		`"timeout_seconds":{"type":"integer"}},"required":["command"]}`,
 }
@@ -65,8 +70,22 @@ var describers = map[string]describer{
 			"move_file "+in.From+" "+in.To)
 	},
 	"run_command": describeCommand,
+	"git": func(in toolArgs, _ string) taskapp.Described {
+		command := "git " + strings.Join(in.Args, " ")
+		return said("Ran "+command, "May I run "+command+"?", command)
+	},
+	"gh": func(in toolArgs, _ string) taskapp.Described {
+		command := "gh " + strings.Join(in.Args, " ")
+		return said("Used "+command, "May I run "+command+"?", command)
+	},
+	"run_artifact": func(in toolArgs, _ string) taskapp.Described {
+		return said("Generated artifact: "+in.Name, "May I run this document/media generator?", "run_artifact "+in.Name)
+	},
 	"run_build": func(in toolArgs, _ string) taskapp.Described {
 		return said("Ran build: "+in.Name, "May I run this build?", "run_build "+in.Name)
+	},
+	"verify": func(in toolArgs, _ string) taskapp.Described {
+		return said("Verified with "+strings.Join(in.Args, " "), "May QA run this verification?", "verify")
 	},
 	"run_task": func(in toolArgs, _ string) taskapp.Described {
 		return said(fmt.Sprintf("Ran the %q check", in.Name), fmt.Sprintf("May I run the %q check?", in.Name),

@@ -26,6 +26,14 @@ func (p *plans) prepareRun(ctx context.Context, req taskapp.CLIRequest, granted 
 		return nil, sandbox.Spec{}, nil, fmt.Errorf("prepare program home: %w", err)
 	}
 
+	// Internal role-limited vendors use the server-side bridge for Git/gh,
+	// builds and checks. Their own process receives neither project grants
+	// nor GitHub authentication, even when the owner connected GitHub.
+	if req.Limited {
+		granted = codingrunner.Granted{}
+		hasGit = false
+	}
+
 	// The program works for one task: the server's own record of it, never anything the program sends. With egress
 	// grants on, its container gets that task's socket; a task that is not open gets no run at all.
 	if req.TaskID != "" {
@@ -80,18 +88,24 @@ func (p *plans) environment(
 	git *codingrunner.Git,
 ) ([]string, error) {
 	var values map[string]string
-	if p.env != nil {
+	if p.env != nil && !req.Limited {
 		var err error
 		if values, err = p.env.Values(ctx, req.ProjectID); err != nil {
 			return nil, errProjectEnvironmentUnavailable
 		}
+	}
+	if req.Limited {
+		// Model-managed vendor processes have broad built-in code execution.
+		// They do not get project secrets, GitHub tokens or egress grants;
+		// approved VCS and checks instead flow through the server bridge.
+		granted = codingrunner.Granted{}
 	}
 	values, granting := granted.Apply(&spec, values)
 	entries := append(cliagentcommand.WindowEnv(req.Program, window), "HOME="+sandbox.Home,
 		"CODEX_HOME="+sandbox.Home+"/.codex", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
 		"DISABLE_AUTOUPDATER=1", fmt.Sprintf("MCP_TOOL_TIMEOUT=%d", bridgeWaitMillis))
 	entries = append(append(entries, granting...), guardEnv(req)...)
-	if git != nil && spec.Egress != "" {
+	if git != nil && spec.Egress != "" && !req.Limited {
 		entries = append(entries, codingrunner.GitEnvironment(*git)...)
 	}
 	spec.Env = codingrunner.Environment(spec, entries...)

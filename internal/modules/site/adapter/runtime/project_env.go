@@ -27,8 +27,13 @@ func (r *Runtime) siteSpec(
 	port := strconv.Itoa(start.Port)
 	granted := codingrunner.GrantedFor(ctx, r.reach, start.ProjectID)
 
-	spec := r.engine.SiteSpec(ctx, project, docker, []string{"bash", "-c", start.Command},
-		[]string{"SITE_PORT=" + port, "PORT=" + port, "HOST=127.0.0.1", "BASE_PATH=" + start.BasePath}, granted.Targets...)
+	argv, err := application.SiteArgv(start.Command)
+	if err != nil {
+		return sandbox.Spec{}, err
+	}
+	spec := r.engine.SiteSpec(ctx, project, docker, argv,
+		[]string{"SITE_PORT=" + port, "PORT=" + port, "HOST=127.0.0.1", "BASE_PATH=" + start.BasePath,
+			"APP_DATA_DIR=" + sandbox.SiteDir + "/data", "XDG_DATA_HOME=" + sandbox.SiteDir + "/data"}, granted.Targets...)
 
 	if err := r.projectEnvironment(ctx, start.ProjectID, &spec, granted); err != nil {
 		return sandbox.Spec{}, err

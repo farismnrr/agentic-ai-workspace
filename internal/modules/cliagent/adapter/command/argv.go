@@ -53,7 +53,8 @@ func ClaudeTools(allowed []string) []string {
 		codingdomain.ToolEditFile.Name:   {"Edit", "MultiEdit"},
 		codingdomain.ToolWriteFile.Name:  {"Write"},
 		codingdomain.ToolRunCommand.Name: {"Bash"},
-		codingdomain.ToolRunTask.Name:    {"Bash"},
+		// Named checks/builds and Git/gh go through server-mediated MCP
+		// tools; never map them to unrestricted vendor Bash.
 	}
 	var names []string
 	for _, tool := range allowed {

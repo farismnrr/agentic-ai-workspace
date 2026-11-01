@@ -25,6 +25,10 @@ test/.security-*/
 internal/platform/webassets/dist/*
 !internal/platform/webassets/dist/placeholder.txt
 
+# Build artifacts exported from read-only source sandboxes
+.build-output-*/
+.artifact-output-*/
+
 # Logs and temporary files
 *.log
 *.tmp

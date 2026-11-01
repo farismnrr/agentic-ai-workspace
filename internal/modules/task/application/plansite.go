@@ -20,9 +20,10 @@ import (
 var siteToolNames = []string{
 	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
 	"screenshot", toolRequestEgress, "ci_logs",
+	"run_task", "verify", "run_build", "run_artifact", "git", "gh",
 }
 
-// siteSession serves the site tools to a teammate's program. Each call goes through the same code as a call of the
+// siteSession serves site, Git and GitHub tools to a teammate's program. Each call goes through the same code as a call of the
 // app's own loop (the Security check, the person's approval, the link in the thread).
 type siteSession struct {
 	inline  *Runner
@@ -35,7 +36,7 @@ type siteSession struct {
 	mu      sync.Mutex
 }
 
-// siteBridge is the site tools for this teammate's program; nil when the role has none of them.
+// siteBridge exposes server-mediated site and VCS tools to a teammate's program, honoring the server-owned role.
 func (r *Runner) siteBridge(task domain.Task, role AgentRole, jobID string) *siteSession {
 	tools := []CLITool{}
 

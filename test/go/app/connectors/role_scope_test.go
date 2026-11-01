@@ -12,7 +12,7 @@ import (
 func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	env := apptest.NewEnv(t)
 	cookie, client := apptest.SignedInClient(t, env.App)
-	for _, name := range []string{"write_file", "edit_file", "run_command", "run_task"} {
+	for _, name := range []string{"write_file", "edit_file", "run_command", "run_task", "verify", "run_build", "run_artifact", "git", "gh"} {
 		apptest.EnableTool(t, env.App, cookie, name)
 	}
 	access := apptest.Connect(t, env.App, cookie, client, "coding:read coding:write coding:exec")
@@ -24,7 +24,8 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	}
 	if err := os.WriteFile(taskConfig, []byte(`{"tasks":{
 		"check":{"kind":"check","description":"QA check","command":["echo","check"]},
-		"build":{"kind":"build","description":"DevOps build","command":["echo","build"]}
+		"build":{"kind":"build","description":"DevOps build","command":["echo","build"]},
+		"artifact":{"kind":"artifact","description":"Developer document/media","command":["echo","artifact"]}
 	}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -59,6 +60,7 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	denied("write_file", writeArgs)
 	denied("run_command", `{"work_id":"`+workID+`","command":"echo no"}`)
 	denied("run_task", `{"work_id":"`+workID+`","name":"test"}`)
+	denied("verify", `{"work_id":"`+workID+`","args":["go","test","./..."]}`)
 	denied("save_requirements", `{"work_id":"`+workID+`","markdown":"not my responsibility"}`)
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
 		t.Fatalf("researcher wrote file outside its role: %v", err)
@@ -71,6 +73,7 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	}
 	denied("write_file", writeArgs)
 	denied("run_command", `{"work_id":"`+workID+`","command":"echo no"}`)
+	denied("gh", `{"work_id":"`+workID+`","args":["issue","view","1"]}`)
 
 	setRole("developer")
 	write := call("write_file", writeArgs)
@@ -79,10 +82,33 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	}
 	denied("run_task", `{"work_id":"`+workID+`","name":"test"}`)
 	denied("run_command", `{"work_id":"`+workID+`","command":"go test ./..."}`)
+	denied("verify", `{"work_id":"`+workID+`","args":["go","test","./..."]}`)
+	gitResult := call("git", `{"work_id":"`+workID+`","args":[]}`)
+	if strings.Contains(gitResult, "active role cannot use git") ||
+		!strings.Contains(gitResult, "Git or GitHub CLI arguments") {
+		t.Fatalf("Developer should own Git without shell, input must be validated: %s", gitResult)
+	}
+
+	artifact := call("run_artifact", `{"work_id":"`+workID+`","name":"artifact"}`)
+	if strings.Contains(artifact, "active role cannot use run_artifact") || strings.Contains(artifact, "unknown task") {
+		t.Fatalf("Developer should reach the named artifact runner: %s", artifact)
+	}
+
+	ghDenied := call("gh", `{"work_id":"`+workID+`","args":["workflow","run","deploy.yml"]}`)
+	if !strings.Contains(ghDenied, "Git or GitHub CLI arguments") {
+		t.Fatalf("Developer must not start CI workflows: %s", ghDenied)
+	}
 
 	setRole("qa")
+	denied("git", `{"work_id":"`+workID+`","args":["status"]}`)
+	denied("run_artifact", `{"work_id":"`+workID+`","name":"artifact"}`)
 	denied("write_file", writeArgs)
 	denied("run_command", `{"work_id":"`+workID+`","command":"printf malicious > altered.txt"}`)
+	verifyWithoutNamedTask := call("verify", `{"work_id":"`+workID+`","args":["bash","-c","go test ./..."]}`)
+	if strings.Contains(verifyWithoutNamedTask, "active role cannot use verify") ||
+		!strings.Contains(verifyWithoutNamedTask, "verification command must be") {
+		t.Fatalf("QA should reach direct verification validation without named checks: %s", verifyWithoutNamedTask)
+	}
 	check := call("run_task", `{"work_id":"`+workID+`","name":"check"}`)
 	if strings.Contains(check, "active role cannot use run_task") {
 		t.Fatalf("QA should reach the named check runner: %s", check)
@@ -100,13 +126,25 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	}
 	denied("write_file", writeArgs)
 
+	qaGhDenied := call("gh", `{"work_id":"`+workID+`","args":["issue","close","1"]}`)
+	if !strings.Contains(qaGhDenied, "Git or GitHub CLI arguments") {
+		t.Fatalf("QA must not mutate issues: %s", qaGhDenied)
+	}
+
 	setRole("devops")
+	denied("git", `{"work_id":"`+workID+`","args":["status"]}`)
+	denied("run_artifact", `{"work_id":"`+workID+`","name":"artifact"}`)
 	denied("write_file", writeArgs)
 	denied("run_task", `{"work_id":"`+workID+`","name":"echo"}`)
+	denied("verify", `{"work_id":"`+workID+`","args":["go","test","./..."]}`)
 	denied("run_command", `{"work_id":"`+workID+`","command":"go test ./..."}`)
 	build := call("run_build", `{"work_id":"`+workID+`","name":"build"}`)
 	if strings.Contains(build, "active role cannot use run_build") || strings.Contains(build, "unknown task") {
 		t.Fatalf("DevOps should reach its named build runner: %s", build)
+	}
+	devopsGhDenied := call("gh", `{"work_id":"`+workID+`","args":["pr","create"]}`)
+	if !strings.Contains(devopsGhDenied, "Git or GitHub CLI arguments") {
+		t.Fatalf("DevOps must not create source PRs: %s", devopsGhDenied)
 	}
 	wrongBuild := call("run_build", `{"work_id":"`+workID+`","name":"check"}`)
 	if !strings.Contains(wrongBuild, "unknown task") {

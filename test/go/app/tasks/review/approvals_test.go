@@ -130,8 +130,9 @@ func TestConnectedAppStartsASiteInItsProject(t *testing.T) {
 
 	env := apptest.NewEnvWith(t, func(c *config.Config) { c.SandboxImage = image })
 	cookie, clientID := apptest.SignedInClient(t, env.App)
-	token := apptest.Connect(t, env.App, cookie, clientID, "coding:read coding:exec")
+	token := apptest.Connect(t, env.App, cookie, clientID, "coding:read coding:write coding:exec")
 	apptest.EnableTool(t, env.App, cookie, "run_command")
+	apptest.EnableTool(t, env.App, cookie, "write_file")
 
 	begin := apptest.CallTool(t, env.App, token, "begin_work",
 		`{"role":"developer","summary":"Verify connected site lifecycle"}`)
@@ -146,6 +147,12 @@ func TestConnectedAppStartsASiteInItsProject(t *testing.T) {
 		t.Fatalf("begin_work: %v %s", err, begin.Body)
 	}
 	workID := session.Result.Structured.WorkID
+	writeArgs, _ := json.Marshal(map[string]any{"work_id": workID, "path": "index.html", "content": "<h1>hello site</h1>"})
+	if wrote := apptest.CallTool(t, env.App, token, "write_file", string(writeArgs)); strings.Contains(string(wrote.Body), `"isError":true`) {
+		t.Fatalf("developer could not prepare site fixture: %s", wrote.Body)
+	}
+	roleArgs, _ := json.Marshal(map[string]any{"work_id": workID, "role": "devops"})
+	apptest.MustContain(t, apptest.CallTool(t, env.App, token, "set_role", string(roleArgs)).Body, `"changed":true`)
 	args, _ := json.Marshal(map[string]any{"work_id": workID, "command": apptest.SiteCommand, "port": 8124})
 	started := apptest.CallTool(t, env.App, token, "start_site", string(args))
 	apptest.MustContain(t, started.Body, apptest.PublicURL+`/run/chatgpt/`, `\"running\":true`)

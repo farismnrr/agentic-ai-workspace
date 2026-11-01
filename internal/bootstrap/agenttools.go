@@ -139,7 +139,11 @@ func (a *agentTools) Risk(name string) taskdomain.Risk {
 		codingdomain.ToolDownloadAsset.Name:
 		return taskdomain.RiskLow
 	case codingdomain.ToolDeleteFile.Name, codingdomain.ToolMoveFile.Name,
-		codingdomain.ToolRunTask.Name, codingdomain.ToolRunCommand.Name, toolStartSite, toolScreenshotSession:
+		codingdomain.ToolRunTask.Name, codingdomain.ToolVerify.Name,
+		codingdomain.ToolRunBuild.Name,
+		codingdomain.ToolRunArtifact.Name, codingdomain.ToolGit.Name, codingdomain.ToolGh.Name,
+		codingdomain.ToolRunCommand.Name,
+		toolStartSite, toolScreenshotSession, codingdomain.ToolDeployExtension.Name:
 		return taskdomain.RiskMedium
 	}
 

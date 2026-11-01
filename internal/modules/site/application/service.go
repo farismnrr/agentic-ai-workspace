@@ -101,6 +101,9 @@ func checkStart(command string, port int) (string, error) {
 	if command == "" || len(command) > maxCommandLength {
 		return "", domain.ErrBadCommand
 	}
+	if _, err := SiteArgv(command); err != nil {
+		return "", err
+	}
 
 	if err := domain.ValidPort(port); err != nil {
 		return "", fmt.Errorf("start site: %w", err)

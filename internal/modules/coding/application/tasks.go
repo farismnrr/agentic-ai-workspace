@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
@@ -41,7 +42,7 @@ func (t *Tasks) Run(ctx context.Context, name string) (RunResult, error) {
 	}
 
 	for _, task := range tasks {
-		if task.Name == name && task.Kind != "build" {
+		if task.Name == name && (task.Kind == "" || task.Kind == "check") {
 			// User-defined checks are not trusted to obey a read-only instruction.
 			// The Docker workspace itself must be mounted read-only.
 			result, err := t.runner.Run(domain.WithReadOnlyWorkspace(ctx), task)
@@ -56,8 +57,24 @@ func (t *Tasks) Run(ctx context.Context, name string) (RunResult, error) {
 	return RunResult{}, domain.ErrUnknownTask
 }
 
+// Verify runs an ordinary QA test/lint/check without a named-task file.
+// The role gate permits QA only; the OS mounts source read-only and the runner
+// strips project secrets, GitHub credentials and granted egress.
+func (t *Tasks) Verify(ctx context.Context, args []string) (RunResult, error) {
+	task, err := domain.VerifyTask(args)
+	if err != nil {
+		return RunResult{}, err
+	}
+	result, err := t.runner.Run(domain.WithReadOnlyWorkspace(ctx), task)
+	if err != nil {
+		return RunResult{}, fmt.Errorf("verify: %w", err)
+	}
+	return result, nil
+}
+
 // RunBuild executes only a named owner-configured build, never a QA check.
-// Build scripts see the project read-only; configure output to a scratch path.
+// Build scripts see the project read-only; generated output is isolated
+// under BUILD_OUT=/output and retained in a separate project artifact folder.
 func (t *Tasks) RunBuild(ctx context.Context, name string) (RunResult, error) {
 	tasks, err := t.List()
 	if err != nil {
@@ -73,6 +90,59 @@ func (t *Tasks) RunBuild(ctx context.Context, name string) (RunResult, error) {
 		}
 	}
 	return RunResult{}, domain.ErrUnknownTask
+}
+
+// RunArtifact executes only an owner-configured document/media generation task.
+// Source and secrets are read-only; output is persisted in a separate folder.
+func (t *Tasks) RunArtifact(ctx context.Context, name string) (RunResult, error) {
+	tasks, err := t.List()
+	if err != nil {
+		return RunResult{}, err
+	}
+	for _, task := range tasks {
+		if task.Name == name && task.Kind == "artifact" {
+			result, err := t.runner.Run(domain.WithReadOnlyWorkspace(ctx), task)
+			if err != nil {
+				return RunResult{}, fmt.Errorf("run artifact %s: %w", name, err)
+			}
+			return result, nil
+		}
+	}
+	return RunResult{}, domain.ErrUnknownTask
+}
+
+// RunGit supports regular Git subcommands through direct argv in the
+// Developer sandbox, with no general shell or test/deploy permission.
+func (t *Tasks) RunGit(ctx context.Context, args []string) (RunResult, error) {
+	task, err := domain.GitTask(args)
+	if err != nil {
+		return RunResult{}, err
+	}
+	result, err := t.runner.Run(domain.WithGitOnly(ctx), task)
+	if err != nil {
+		return RunResult{}, fmt.Errorf("run git: %w", err)
+	}
+	return result, nil
+}
+
+// RunGitHub supports GitHub Issues, PR, CI and release workflows. The
+// operation policy is checked using the server-owned role (not model input).
+func (t *Tasks) RunGitHub(ctx context.Context, role string, args []string) (RunResult, error) {
+	task, err := domain.GitHubTask(strings.TrimSpace(role), args)
+	if err != nil {
+		return RunResult{}, err
+	}
+	// QA and DevOps may inspect/review CI or manage authorized remote
+	// operations, but must not modify source locally through gh download,
+	// gh pr checkout or another Git subprocess.
+	if role == "qa" || role == "devops" {
+		ctx = domain.WithReadOnlyWorkspace(ctx)
+	}
+	result, err := t.runner.Run(domain.WithGitOnly(ctx), task)
+	if err != nil {
+		return RunResult{}, fmt.Errorf("run GitHub CLI: %w", err)
+	}
+	return result, nil
 }
 
 // Save replaces the approved tasks after checking them.

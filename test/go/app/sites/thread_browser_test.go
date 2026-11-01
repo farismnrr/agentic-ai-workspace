@@ -2,7 +2,6 @@ package sites_test
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net"
 	"os"
@@ -91,8 +90,7 @@ func TestServeThreadForABrowser(t *testing.T) {
 		c.AllowedOrigins, c.CORSOrigins = []string{base}, []string{base}
 	}, frontend)
 
-	command := "echo " + base64.StdEncoding.EncodeToString([]byte(threadPage)) +
-		" | base64 -d > index.html && exec python3 -m http.server $PORT --bind 127.0.0.1"
+	command := "python3 -m http.server 8126 --bind 127.0.0.1"
 	a := apptest.RigOn(t, env,
 		lookQuestion(),
 		saying(threadMessage, apptest.ToolCall("s1", "start_site", map[string]any{"command": command, "port": 8126})),
@@ -111,6 +109,7 @@ func TestServeThreadForABrowser(t *testing.T) {
 	t.Cleanup(func() { _ = env.App.Shutdown() })
 
 	a.PutFile(t, "README.md", "one\ntwo\nthree\n")
+	a.PutFile(t, "index.html", threadPage)
 
 	id := a.Start(t, "Tunjukkan halamannya")
 	a.WaitFor(t, id, "needs-input")

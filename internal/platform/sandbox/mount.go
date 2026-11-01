@@ -44,6 +44,7 @@ func (c Config) mounts(spec Spec) ([]mount.Mount, error) {
 		{spec.View, ViewDir, false},
 		{spec.Home, Home, false},
 		{spec.Bridge, BridgeDir, false},
+		{spec.Artifacts, BuildOutput, false},
 	}
 
 	var out []mount.Mount

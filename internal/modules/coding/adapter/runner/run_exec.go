@@ -2,6 +2,9 @@ package runner
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
@@ -19,11 +22,31 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command,
 		WorkspaceReadOnly: domain.ReadOnlyWorkspace(ctx)}
+	if task.Kind == "build" || task.Kind == "artifact" {
+		// The source stays read-only; each build or document/media run gets
+		// a fresh isolated output folder for review and download.
+		prefix := ".build-output-"
+		if task.Kind == "artifact" {
+			prefix = ".artifact-output-"
+		}
+		path, err := os.MkdirTemp(r.dir, prefix)
+		if err != nil {
+			return application.RunResult{ExitCode: -1, Output: "could not create build output: " + err.Error()}
+		}
+		spec.Artifacts = path
+	}
 	// A one-shot MoLab container receives ONLY its explicit credential, never
 	// project-wide variables or Git credentials from unrelated task commands.
 	molab, scoped := ctx.Value(oneShotEnvKey{}).(molabRun)
+	// Checks and builds must not inherit credentials, project secrets or
+	// privileged network routes even if their commands try to obtain them.
+	// Read-only QA checks never receive GitHub credentials. A server-
+	// authorized gh operation is different: GitOnly gives it GitHub
+	// authentication while retaining a read-only project mount.
+	gitOnly := domain.GitOnly(ctx)
+	locked := domain.ReadOnlyWorkspace(ctx) && !gitOnly
 	var projectValues map[string]string
-	if !scoped {
+	if !scoped && !locked && !gitOnly {
 		var err error
 		projectValues, err = r.projectValues(ctx)
 		if err != nil {
@@ -31,17 +54,31 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 		}
 	}
 	git, hasGit := Git{}, false
-	if !scoped {
+	if !scoped && !locked {
 		git, hasGit = r.credentials(ctx)
 	}
 
 	hosts, granted := r.egressHosts(ctx, hasGit)
+	if gitOnly {
+		// Git and gh need GitHub, not project databases or gateway grants.
+		granted = Granted{}
+		hosts = nil
+		if hasGit {
+			hosts = githubHosts
+		}
+	}
 	if scoped {
 		hosts, granted = []string{molab.host}, Granted{}
-	} // No project database/gateway privileges in MoLab containers.
+	} else if locked {
+		hosts, granted = nil, Granted{}
+	}
+	// No project database/gateway privileges in isolated check/build containers.
 	_ = r.engine.prepare(ctx, r.dir, &spec, docker, hosts...) // without a socket the command just has no network
 	projectValues, granting := granted.Apply(&spec, projectValues)
 	baseEnv := append(environment(spec), granting...)
+	if spec.Artifacts != "" {
+		baseEnv = append(baseEnv, "BUILD_OUT="+sandbox.BuildOutput, "ARTIFACT_OUT="+sandbox.BuildOutput)
+	}
 
 	if hasGit && spec.Egress != "" {
 		baseEnv = append(baseEnv, gitEnvironment(git)...)
@@ -57,6 +94,9 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	started := time.Now()
 	res, err := docker.Run(ctx, spec, out)
 	result := finish(ctx, err, res, out, time.Since(started))
+	if spec.Artifacts != "" {
+		result.Output += fmt.Sprintf("\nGenerated outputs: %s/ (BUILD_OUT/ARTIFACT_OUT=/output)", filepath.Base(spec.Artifacts))
+	}
 
 	switch {
 	case over.Load():

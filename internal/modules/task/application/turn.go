@@ -169,27 +169,6 @@ func truncate(text string, limit int) string {
 	return string(runes[:limit]) + "…"
 }
 
-// orderBlocks puts tool results ahead of text inside each user message, which
-// every provider requires when a person writes while calls are still unanswered.
-func orderBlocks(messages []domain.Message) []domain.Message {
-	ordered := make([]domain.Message, 0, len(messages))
-
-	for _, message := range messages {
-		results, rest := []domain.Block{}, []domain.Block{}
-
-		for _, block := range message.Blocks {
-			if block.Kind == domain.BlockToolResult {
-				results = append(results, block)
-			} else {
-				rest = append(rest, block)
-			}
-		}
-
-		ordered = append(ordered, domain.Message{Role: message.Role, Blocks: append(results, rest...)})
-	}
-
-	return ordered
-}
 
 // streamTo forwards model text to whoever follows the task; nil when nobody can.
 func (r *Runner) streamTo(taskID string) func(string) {
