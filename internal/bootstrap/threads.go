@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
@@ -70,11 +71,33 @@ func eventOf(note codingmcp.Note) taskdomain.Event {
 		event.Kind = taskdomain.EventMessage
 	case codingmcp.NoteAction:
 		if note.Run != nil {
-			event.Run = &taskdomain.RunInfo{Name: note.Run.Name, ExitCode: note.Run.ExitCode, TimedOut: note.Run.TimedOut}
+			// These facts come from the server's completed runner result,
+			// never from the assistant's claims or the tool response body.
+			command := recordedWorkCommand(note.Run)
+			event.Run = &taskdomain.RunInfo{
+				Name: note.Run.Name, Command: command,
+				EffectPaths:  append([]string(nil), note.Run.EffectPaths...),
+				EffectsKnown: note.Run.EffectsKnown, ExitCode: note.Run.ExitCode,
+				TimedOut:     note.Run.TimedOut,
+				TestExecuted: goTestsExecuted(command, note.Run.Output, note.Run.Truncated),
+			}
 		}
 	}
 
 	return event
+}
+
+// Shell commands normally stay labelled "bash -c ..." and cannot count as
+// verification. Promote only a literal, direct Go test: the owner of the
+// command runner supplied this exact executed script, and the shared task
+// validator still checks for real non-no-op test output.
+func recordedWorkCommand(run *codingmcp.RunNote) string {
+	raw := strings.TrimSpace(run.ShellCommand)
+	if raw != "" && !strings.ContainsAny(raw, ";|&><`$(){}\\\r\n#'\"") &&
+		taskapp.GoTestExecutionEvidenceAllowed(raw) {
+		return raw
+	}
+	return run.Command
 }
 
 func cut(text string) string {
