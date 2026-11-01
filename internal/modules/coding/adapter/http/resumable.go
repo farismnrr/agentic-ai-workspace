@@ -146,6 +146,13 @@ func (h *Handler) zipHead(c fiber.Ctx) error {
 	c.Set("Upload-Offset", strconv.FormatInt(session.Offset, 10))
 	c.Set("Upload-Length", strconv.FormatInt(session.Size, 10))
 	c.Set("Upload-State", session.State)
+	if session.State != "ready" {
+		expiry := session.Updated.Add(24 * time.Hour)
+		if lifetime := session.Created.Add(72 * time.Hour); expiry.After(lifetime) {
+			expiry = lifetime
+		}
+		c.Set("Upload-Expires", expiry.UTC().Format("Mon, 02 Jan 2006 15:04:05 GMT"))
+	}
 	if session.Path != "" {
 		c.Set("Upload-Path", session.Path)
 	}
@@ -187,11 +194,9 @@ func (h *Handler) zipPatch(c fiber.Ctx) error {
 	zipHeaders(c)
 	c.Set("Upload-Offset", strconv.FormatInt(session.Offset, 10))
 	c.Set("Upload-State", session.State)
-	code := 200
-	if session.State == "validating" {
-		code = 202
-	}
-	return c.Status(code).JSON(fiber.Map{"offset": session.Offset, "state": session.State, "path": session.Path})
+	// tus core requires 204 and the authoritative offset in the response
+	// header. Validation completion is discovered by polling HEAD.
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (h *Handler) zipDelete(c fiber.Ctx) error {
