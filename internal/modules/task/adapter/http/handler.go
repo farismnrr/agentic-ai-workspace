@@ -43,6 +43,8 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler) httpserver.Mount {
 		app.Get("/api/tasks/:id/stream", auth, h.taskStream)
 		app.Get("/api/stream", auth, h.workspaceStream)
 		app.Post("/api/tasks/:id/messages", auth, sameOrigin, h.message)
+		// This owner-only route is intentionally not exported as an MCP tool.
+		app.Post("/api/tasks/:id/deep-review", auth, sameOrigin, h.enableExternalDeepReview)
 		app.Post("/api/tasks/:id/chat", auth, sameOrigin, h.externalChat)
 		app.Post("/api/tasks/:id/plan/approve", auth, sameOrigin, h.approvePlan)
 		app.Post("/api/tasks/:id/plan/request-changes", auth, sameOrigin, h.requestPlanChanges)

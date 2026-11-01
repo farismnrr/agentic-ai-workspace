@@ -27,7 +27,7 @@ func (w *Works) create(
 	task := domain.Task{
 		ID: taskID, UserID: in.UserID, ProjectID: in.ProjectID, Source: in.Client,
 		Title: titleOf(summary), Summary: summary, Status: domain.StatusWorking,
-		WorkID: workID, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
+		WorkID: workID, ReviewMode: domain.ReviewModeSwift, CreatedAt: now, UpdatedAt: now, Plan: []domain.PlanStep{},
 	}
 	work := domain.ExternalWork{
 		ID: workID, TaskID: taskID, UserID: in.UserID, ProjectID: in.ProjectID, Client: in.Client,

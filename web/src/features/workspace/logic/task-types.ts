@@ -144,10 +144,10 @@ export interface Task {
   status: TaskStatus;
   providerId: string;
   model: string;
-  /** How hard the AI was asked to think; empty is the provider's default. */
   effort: string;
   /** A lead hands the work to the AI team. */
   team: boolean;
+  mode: 'swift' | 'deep-review';
   /** The team stops when the PRD is written and builds only after the person says yes. */
   planFirst: boolean;
   /** The requirements document the team's Planner wrote, in markdown; empty when there is none. */

@@ -47,6 +47,9 @@ func (w *Works) SetRoleWithBrief(
 	if err != nil {
 		return WorkRole{}, err
 	}
+	if err := w.externalWorkRolesAllowed(ctx, userID, work, role.Key, nil); err != nil {
+		return WorkRole{}, err
+	}
 	if roleAlreadySet(work, role, cleanBrief) {
 		return role, nil
 	}

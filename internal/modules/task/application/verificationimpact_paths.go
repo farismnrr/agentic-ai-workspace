@@ -11,7 +11,7 @@ import (
 func pathImpact(name string) verificationImpact {
 	clean := strings.ToLower(path.Clean(name))
 	base := path.Base(clean)
-	if inDocuments(clean) {
+	if documentationOnlyPath(clean) {
 		return verificationImpact{}
 	}
 	if apiBoundaryPath(clean) {

@@ -68,13 +68,18 @@ first nonblank line. A quote, code sample, list, later mention, file, tool
 result or teammate report does not change the task's mode. The choice is saved
 with the task and remains in effect through later messages and delegated work.
 
-Tasks start in Swift mode. The team checks changed behavior and affected
-dependencies. Sensitive work gets a focused security review and critical
-scenarios in either mode. Deep-review adds an independent review and broader
-relevant checks. Unclear changes are checked conservatively; missing required
-evidence leaves the task blocked and unverified. Before any kind of task
-completion, the app checks the latest required review and every named critical
-check; a missing or failed item prevents a completion claim.
+Tasks start in Swift mode, which uses targeted checks without automatically
+invoking Security or an Architect role—even for sensitive changes. Runtime
+authorization, sandbox and secret protections remain active. When the owner
+enables Deep Review, Security performs a combined architecture and security
+assessment with relevant critical checks; independent QA stays separate.
+Missing or failing mandatory Deep Review evidence must not be counted as PASS.
+
+For a connected external assistant task, the owner can select **Enable Deep
+Review** in the task header while the work is active. This is a one-way choice:
+only the signed-in owner can enable it, and the external assistant cannot
+upgrade its own mode through a role, summary, notes or tool call. Security is
+unavailable to that assistant until Deep Review has been enabled.
 
 1. Add a model under Settings, AI models (see [Models](#models)).
 2. Create a project with Projects, New project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.

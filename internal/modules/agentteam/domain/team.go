@@ -88,11 +88,13 @@ func (t Team) WithBuiltIns() Team {
 			if roles[at].Name == "" {
 				roles[at].Name = built.Name
 			}
-			if roles[at].Purpose == "" {
+			oldPrompt, oldPurpose := previousBuiltInDefaults(built.Key)
+			if roles[at].Purpose == "" || (oldPurpose != "" && roles[at].Purpose == oldPurpose) {
 				roles[at].Purpose = built.Purpose
 			}
-			// Never replace a person's custom role instructions during migration.
-			if roles[at].Prompt == "" {
+			// Only exact, known shipped defaults may be rewritten. Custom
+			// instructions are kept byte-for-byte and migration is idempotent.
+			if roles[at].Prompt == "" || (oldPrompt != "" && roles[at].Prompt == oldPrompt) {
 				roles[at].Prompt = built.Prompt
 			}
 		}

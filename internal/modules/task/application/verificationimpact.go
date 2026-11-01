@@ -55,7 +55,7 @@ func assessImpact(task domain.Task, events []domain.Event) verificationImpact {
 
 func hasReviewedChanges(files []string) bool {
 	for _, file := range files {
-		if !inDocuments(file) {
+		if !documentationOnlyPath(file) {
 			return true
 		}
 	}
