@@ -196,5 +196,10 @@ LABEL org.opencontainers.image.title="agentic-ai-workspace-sandbox" \
       org.opencontainers.image.description="Isolated toolbox for the agent's commands" \
       io.masihawam.toolchains="[{\"name\":\"Python\",\"version\":\"3.13\"},{\"name\":\"Node.js\",\"version\":\"24\"},{\"name\":\"Bun\",\"version\":\"1.4\"},{\"name\":\"Go\",\"version\":\"1.27\"},{\"name\":\"Rust\",\"version\":\"stable\"},{\"name\":\"Java\",\"version\":\"21\"},{\"name\":\"Maven\",\"version\":\"3.9\"},{\"name\":\"Bash\",\"version\":\"5\"},{\"name\":\"Chromium (headless, for screenshots)\",\"version\":\"155\"},{\"name\":\"libvips\",\"version\":\"8.14\"},{\"name\":\"ImageMagick\",\"version\":\"6.9\"},{\"name\":\"Background removal (removebg, offline)\",\"version\":\"rembg 2\"},{\"name\":\"Documents (docpython with python-pptx, python-docx, reportlab, pypdf, openpyxl; docconvert via LibreOffice; docsite makes a website of them; poppler)\",\"version\":\"pptx 1, docx 1, reportlab 5\"},{\"name\":\"Vector (svgo, potrace, Lucide icons in /opt/vector)\",\"version\":\"svgo 4\"}]"
 
+# The shared sandbox has a read-only root filesystem. Dynamic Subpath
+# bind mounts require their target directory to exist in the image first.
+# Build/artifact jobs mount their dedicated writable volume at /output.
+RUN mkdir -p /output && chmod 0755 /output
+
 USER 65532:65532
 WORKDIR /workspace

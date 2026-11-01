@@ -10,6 +10,7 @@ trap 'rm -rf "$work"' EXIT
 out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
   --tmpfs /tmp:rw,exec,nosuid,nodev,size=512m --user "$(id -u):$(id -g)" -v "$work:/workspace" \
   -e HOME=/tmp -e GOCACHE=/tmp/go -e CARGO_HOME=/tmp/cargo --entrypoint "" "$image" sh -ec '
+    test -d /output && test -d /workspace && echo mount-targets-ok
     python3 -V; node -v; go version; rustc -V; java -version 2>&1 | head -n1; mvn -v | head -n1; bash --version | head -n1
     cd /tmp
     printf "package main\nfunc main(){println(\"go-ok\")}\n" > m.go && go run m.go
@@ -47,7 +48,7 @@ out="$(docker run --rm --network none --read-only --cap-drop ALL --security-opt 
 
 echo "$out"
 
-for want in "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "rust-tools-ok" "java-ok" "login-shell-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "ticket-prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok" "docs-ok" "guard-ok" "ship-ok"; do
+for want in "mount-targets-ok" "Python 3.13" "v24." "go1." "rustc 1." "openjdk" "Apache Maven" "go-ok" "rust-ok" "rust-tools-ok" "java-ok" "login-shell-ok" "python-ok" "node-ok" "shot-ok" "pictures-ok" "icons-ok" "vector-ok" "prefix-ok" "ticket-prefix-ok" "bun-ok" "starter-ok" "templates-ok" "removebg-ok" "policy-ok" "docs-ok" "guard-ok" "ship-ok"; do
   echo "$out" | grep -q "$want" || { echo "missing: $want" >&2; exit 1; }
 done
 
