@@ -162,4 +162,4 @@ docker restart "$app" >/dev/null
 ready
 grant_verify_restart "$jar" "$state_file"
 assertion_summary
-echo 'PASS approved grant restored and remained revocable after restart'
+echo 'PASS interrupted task grant fails closed and cannot be replayed after restart'
