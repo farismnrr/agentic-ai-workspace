@@ -137,7 +137,12 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	denied("write_file", writeArgs)
 	denied("run_task", `{"work_id":"`+workID+`","name":"echo"}`)
 	denied("verify", `{"work_id":"`+workID+`","args":["go","test","./..."]}`)
-	denied("run_command", `{"work_id":"`+workID+`","command":"go test ./..."}`)
+	// DevOps recovery commands reach the read-only sandbox; this black-box
+	// test only checks role authorization (Docker may be unavailable in CI).
+	devopsCommand := call("run_command", `{"work_id":"`+workID+`","command":"printf devops-check"}`)
+	if strings.Contains(devopsCommand, "active role cannot use run_command") {
+		t.Fatalf("DevOps recovery execution must reach the sandbox: %s", devopsCommand)
+	}
 	build := call("run_build", `{"work_id":"`+workID+`","name":"build"}`)
 	if strings.Contains(build, "active role cannot use run_build") || strings.Contains(build, "unknown task") {
 		t.Fatalf("DevOps should reach its named build runner: %s", build)
