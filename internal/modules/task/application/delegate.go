@@ -55,6 +55,12 @@ func (r *Runner) startDelegation(
 
 		return Delegation{}, false
 	}
+	// Enforce the owner-selected mode at the delegation boundary, not only
+	// with an instruction to the lead. The role stays available in Settings.
+	if role.ChecksSecurity && task.ReviewMode != domain.ReviewModeDeepReview {
+		r.result(ctx, task, call.ID, "Security and architecture review are only available when the owner enables @deep-review for this task.", true)
+		return Delegation{}, false
+	}
 
 	events, _ := r.deps.Events.EventsAfter(ctx, task.ID, 0)
 	if r.clarifyMissing(ctx, task, state, call, events) || r.planMissing(ctx, task, state, call, events) {
@@ -116,7 +122,10 @@ func (r *Runner) runDelegation(
 	role, ok := state.roster.member(d.RoleKey)
 	if !ok {
 		r.endDelegation(ctx, task, state, call, d, DelegationFailed, d.RoleName+" is no longer on the team.")
-
+		return outcome{}, false
+	}
+	if role.ChecksSecurity && task.ReviewMode != domain.ReviewModeDeepReview {
+		r.endDelegation(ctx, task, state, call, d, DelegationFailed, "Security requires owner-enabled @deep-review.")
 		return outcome{}, false
 	}
 

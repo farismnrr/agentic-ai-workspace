@@ -142,9 +142,7 @@ Give it the start command, port 3000: `bun /usr/local/share/serve/site-serve.ts 
 In the preview the page has no cookies, so a login cannot stay signed in there. That is the preview's sandbox, not
 a fault in the app: test accounts with `curl` against the API instead (sign up, sign in, then call a protected
 route with the returned cookie) and say so in your report. Never weaken a security setting to make the preview work.
-Security review follows changed behavior and impact. Sensitive changes require focused Security review before
-completion; ordinary Swift work does not summon Security automatically. Starting the private app during development
-does not itself require Security review.
+Only owner-enabled @deep-review triggers Security + Architecture verification, including for sensitive changes. Swift never delegates Security. Baseline auth, secret, network and sandbox protections always apply. Starting the private app during development does not itself require Security review.
 
 ## 7. Report
 Say in plain words what the app does, the stack, which commands you ran and how they ended, and what you could not check.

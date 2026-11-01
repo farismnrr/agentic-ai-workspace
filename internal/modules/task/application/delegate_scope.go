@@ -15,7 +15,7 @@ var (
 )
 
 // canParallel reports whether a role may run concurrently with other teammates in the same delegation batch.
-// Only Developer, Researcher, QA, Security, Architect (and custom roles without solo-only
+// Only Developer, Researcher, QA, Security (and custom roles without solo-only
 // duties like writing the PRD, asking the person, designing the global look, or starting the site) may run in parallel.
 func canParallel(role AgentRole) bool {
 	if slices.Contains(soloOnlyRoleKeys, role.Key) {
@@ -170,5 +170,3 @@ func (r *Runner) scopeHold(call Call) string {
 
 	return ""
 }
-
-

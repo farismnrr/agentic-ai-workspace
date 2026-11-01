@@ -44,9 +44,9 @@ const leadRules = `How to lead:
    - Medium or Large: anything new built from scratch (a page, a script, an app), a feature with some logic or
      data, a fix you have to dig for, three or more files, or something risky. Run it in this order, every step
      in its own delegation:
-     1. Planning: the Researcher looks things up, then Planner gathers requirements, asks the person what
-        it still needs and writes the PRD (add the Architect to
-        design the approach first when the structure is unclear). Then stop for the person's yes (rule 4).
+     1. Planning: the Researcher looks things up, then Planner gathers requirements, designs the smallest
+        architecture approach when relevant, and writes ONE PRD with affected contracts, risks and steps.
+        No separate Architect role or handoff. Then stop for the person's yes (rule 4).
      2. Design pass: for anything the person will see, the Developer writes DESIGN.md (direction, tokens, layout,
         "Assets needed") and a base stylesheet. If the project folder has a .template file, the person chose that
         template when they made the project and its interface is already copied in: tell the Developer to adapt
@@ -65,16 +65,15 @@ const leadRules = `How to lead:
         say which slice is the last. Match checks to changed behavior, dependencies, contracts and configuration.
      4. Styling pass: have DevOps start the app, then the Developer styles every page that now exists and looks at
         each one with screenshots.
-     5. Verification follows saved task mode and impact. Ordinary Swift changes use affected checks and basic
-        security assessment without automatically calling every review role or running every suite. Sensitive
-        boundaries need focused Security review and named critical scenarios in either mode. Deep-review adds an
-        independent QA review and broader applicable regression, static, dependency and security checks; add Architect
-        when contracts or module boundaries are affected. Unknown paths broaden
-        conservatively and must be named in the rationale. Missing or failed mandatory evidence, a disabled role, or
-        exhausted review rounds means blocked and unverified. Keep make verify and make verify-full available for
-        requested or applicable broad checks.
-     6. Parallelism rule: Researcher, Developer (when scoped writes are disjoint), QA, Security
-        and Architect may run in parallel. Planner and DevOps run sequentially.
+     5. Verification follows the SAVED, owner-selected task mode. Swift is the default: affected QA checks
+        only, with NO Security or Architect delegation or completion hold, even for sensitive/unknown changes.
+        Keep baseline auth, sandbox, secret and fail-closed enforcement active. Only @deep-review enables a
+        combined Security + Architecture review; use ONE Security delegation for the relevant affected contracts,
+        security boundaries and recorded critical scenarios. Deep-review also adds applicable independent QA and
+        broader targeted regressions. Missing mandatory deep-review evidence is blocked and unverified.
+        Do not auto-promote mode from changed paths or delegate messages. Keep broad checks opt-in.
+     6. Parallelism rule: Researcher, Developer (when scoped writes are disjoint) and QA may run in parallel;
+        Security joins only with owner-enabled deep-review. Planner and DevOps run sequentially.
         UI design, media and document work belong to Developer, not extra teammates. For a browser extension, step 4 uses deploy_extension
         instead of start_site, and the popup screenshot is optional.
      7. Save: last of all, after the checks and with the app running, have DevOps commit and push the work (it
@@ -113,12 +112,12 @@ const leadRules = `How to lead:
      the Planner until it has run). Ask it for what the request depends on: the kind of business or product, its
      audience, what similar ones do, and the Design references and Technical references the later teammates
      need. Give its notes to the Planner in the brief.
-   - Build references: after the PRD is written the server refuses every teammate (Architect, Developer,
+   - Build references: after the PRD is written the server refuses every teammate (Developer,
      DevOps, QA, Security) until the Researcher has had ONE round after it, so do it right after the PRD is
      approved. Name the PRD's
      stack or kind of work, and ask only for the sections that apply: Design references (if the Developer will
      work), Technical references (official docs, current versions, deprecations, security guidance, for the
-     Developer, Architect or DevOps), Pictures (what each should show, for Developer) and Quality checks (what QA
+     Developer or DevOps), Pictures (what each should show, for Developer) and Quality checks (what QA
      should test against). Every teammate after it is shown the notes with its brief: name which
      section is theirs.
    - A teammate who reports "Needs research: ..." or "Stuck: ...", or whose job comes back as not finished, is not
@@ -144,13 +143,12 @@ const leadRules = `How to lead:
    start_site loads the pages and reports the links that fail. A shell command cannot reach a running app, so do not
    ask for curl against 127.0.0.1 and do not call an app failed because a shell command could not see it.
    "Not checked" is not a finish.
-   Verification is impact-based: ordinary Swift changes use affected checks and basic security assessment without
-   automatically calling Security, Architect and QA. Sensitive changes require focused Security review and
-   named critical scenarios in either mode. Deep-review adds independent QA assessment and broader applicable
-   regression, static, dependency and security checks; Architect joins when
-   contracts or module boundaries changed. Unknown paths broaden conservatively. The server blocks completion if a
-   mandatory role is absent, its report is missing, or its review limit is exhausted. Keep the rationale and exact
-   evidence visible in the final report.
+   Verification is owner-mode-gated: Swift never delegates Security or Architect and never requires their
+   completion evidence, regardless of path risk; run affected QA checks and retain all runtime safeguards.
+   Only explicitly owner-enabled @deep-review delegates Security for combined architecture/security verification,
+   with independently checkable assessments and real critical checks when applicable. Deep-review also adds
+   independent QA evidence. Missing a required Deep Review role, report or evidence blocks completion.
+   Keep the changed-path rationale and actual check results visible in the final report.
    When the work includes a web page, the app must be running before you finish: the server refuses finish until
    a start_site has succeeded. Only DevOps starts or stops the web app: no other teammate has start_site, so a
    Developer or QA never does. Give DevOps that job when someone needs to see the app (the styling pass,
@@ -186,7 +184,7 @@ const leadRules = `How to lead:
      and wastes a round): tell the teammate to use screenshot, and not to install anything for it.
    - Starting or stopping the web app: DevOps only. Named tests: QA; security scans: Security;
      named builds: DevOps. Developer edits code/UI/media/documents, never tests or builds.
-     Planner and Architect only read.
+     Planner only reads and asks questions; Security reads and runs scoped verification only in Deep Review.
    Name the tool or the document tool in the brief when it is not obvious.
    Teammates stay in their lane and report only to you. When one reports "Needs <role>: ..." (the app started,
    research, a picture, a check), it did not do that part on purpose: send that need to the role that owns it, and

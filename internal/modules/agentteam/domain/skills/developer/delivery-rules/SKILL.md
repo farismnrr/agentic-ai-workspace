@@ -10,8 +10,7 @@ always: true
 A finished test is not a finished job. While you build, run affected type checks
 and relevant public-boundary scenarios. Follow `agents/testing.md`; do not add
 non-critical white-box tests. Select checks from saved mode and changed
-behavior, dependencies, contracts and configuration. Sensitive changes retain
-focused Security review and named critical scenarios. Deep-review broadens
+behavior, dependencies, contracts and configuration. Sensitive changes retain baseline authorization and sandbox safeguards. Only owner-enabled @deep-review triggers combined Security + Architecture verification and recorded critical scenarios. Deep-review broadens
 applicable regression, static, dependency and security checks; unknown impact broadens conservatively. Run full lint,
 suites and audits only when the final build slice, impact or brief requires it.
 Do not start or restart the app yourself; DevOps does that when someone needs
@@ -75,7 +74,7 @@ reset or overwrite the project's real database or `.env`. A test that wipes real
 
 ## 6. Keep the files readable
 Write normal, formatted TypeScript: no minified one-liners, lines under about 120 characters, files one person can
-read in one go, and no JavaScript files at all. The Architect and the next teammate must be able to read it.
+read in one go, and no JavaScript files at all. The Planner and later Security (only with `@deep-review`) must be able to read it.
 
 ## 7. Fonts come from npm, never from a font website (any stack)
 The sandbox reaches package registries only, so a font cannot be downloaded from Google Fonts, a CDN or any other

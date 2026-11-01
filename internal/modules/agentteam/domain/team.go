@@ -43,6 +43,12 @@ func (t Team) WithBuiltIns() Team {
 	// silently turn their old read/write/exec privileges into custom roles.
 	roles := make([]Role, 0, len(t.Roles))
 	for _, role := range t.Roles {
+		// Retired Architect covered both early planning and later review.
+		// Never remap its saved privileges or PASS evidence to Security.
+		// Current Planner/Security preferences always take precedence.
+		if role.Key == "architect" {
+			continue
+		}
 		if CanonicalRoleKey(role.Key) != role.Key {
 			// Preserve prior preferences only when there is no current replacement.
 			if slices.ContainsFunc(t.Roles, func(r Role) bool {
@@ -78,7 +84,7 @@ func (t Team) WithBuiltIns() Team {
 		roles[at].Access = slices.Clone(built.Access)
 		// The merged jobs have new required responsibilities; persisted old
 		// descriptions must not keep telling agents to delegate to retired roles.
-		if built.Key == "developer" || built.Key == "qa" || built.Key == "planner" || built.Key == "devops" {
+		if built.Key == "developer" || built.Key == "qa" || built.Key == "planner" || built.Key == "security" || built.Key == "devops" {
 			if roles[at].Name == "" {
 				roles[at].Name = built.Name
 			}

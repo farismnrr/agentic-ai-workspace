@@ -27,8 +27,6 @@ type holds struct {
 	planAsked int
 	// securityAsked counts finishes held back for a required focused Security review.
 	securityAsked int
-	// architectAsked counts finishes held back for an impact-required architecture review.
-	architectAsked int
 	// reviewerAsked counts finishes held back for an impact-required independent review.
 	reviewerAsked int
 	// lookAsked counts reports sent back because a teammate had not looked at the screens it made.

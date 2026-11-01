@@ -26,6 +26,30 @@ func TestSwiftOrdinaryCodeChangeNeedsNoAutomaticReviewRoles(t *testing.T) {
 	}
 }
 
+// Swift intentionally skips the Security role even for classified sensitive
+// paths. The runtime's existing authorization and sandbox policies are not
+// disabled; this test concerns only the review delegation/finish gate.
+func TestSwiftAuthChangeDoesNotSummonSecurity(t *testing.T) {
+	t.Parallel()
+	a := apptest.NewAgentRig(t,
+		apptest.ToolCall("write", "write_file", map[string]string{
+			"path": "internal/modules/auth/token.go", "content": "package auth\n",
+		}),
+		apptest.FinishCall("Updated token handling"),
+	)
+	id := a.Start(t, "Update token handling")
+	a.WaitApproving(t, id, "review")
+	assertNoScriptExhaustion(t, a, id)
+	for _, event := range a.Thread(t, id) {
+		if event.Kind == "handoff" && (event.Agent == "Security" || event.Agent == "Architect") {
+			t.Fatalf("Swift must not delegate Security or retired Architect: %+v", event)
+		}
+		if event.Kind == "error" && strings.Contains(event.Text, "Security") {
+			t.Fatalf("Swift must never require Security to finish: %+v", event)
+		}
+	}
+}
+
 func TestDeepReviewRequiresIndependentReviewer(t *testing.T) {
 	t.Parallel()
 	a := apptest.NewAgentRig(t,
@@ -44,12 +68,17 @@ func TestDeepReviewRequiresIndependentReviewer(t *testing.T) {
 			{"title": "Developer: update the label", "state": "done"},
 			{"title": "QA: independently review the change", "state": "pending"},
 		}}),
+		apptest.ToolCall("s0", "delegate", map[string]string{"role": "security", "brief": "Review affected UI change in Deep Review"}),
+		apptest.ToolCall("s-report", "report", map[string]string{
+			"summary": "Verdict: PASS\nSecurity Assessment: Reviewed web/src/label.css; no sensitive boundary was changed.",
+		}),
+		apptest.FinishCall("Security reviewed the label"),
 		apptest.ToolCall("v0", "delegate", map[string]string{"role": "qa", "brief": "Independently review the label"}),
 		apptest.ToolCall("v1", "delegate", map[string]string{"role": "qa", "brief": "Independently review the label"}),
 		apptest.ToolCall("vr", "report", map[string]string{"summary": "Verdict: PASS\nThe label change is consistent."}),
 		apptest.FinishCall("Updated and independently reviewed the label"),
 	)
-	configureReviewTeam(t, a, "developer", "qa")
+	configureReviewTeam(t, a, "developer", "security", "qa")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
 		`{"projectId":"`+a.Project+`","prompt":"Update the label","team":true,"mode":"deep-review"}`,
 		apptest.JSONCookie(a.Cookie))
@@ -91,7 +120,7 @@ func runMissingEvidenceCase(t *testing.T, latestFail, missingAssessment bool) {
 	a := apptest.NewAgentRig(t, steps...)
 	configureReviewTeam(t, a, "developer", "security")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
-		`{"projectId":"`+a.Project+`","prompt":"Update token handling","team":true,"planFirst":false}`,
+		`{"projectId":"`+a.Project+`","prompt":"Update token handling","team":true,"planFirst":false,"mode":"deep-review"}`,
 		apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
 	a.WaitApproving(t, id, "failed")
@@ -426,7 +455,7 @@ func receiptShowsFailedCheck(checks []any) bool {
 func TestSensitiveChangeWithoutSecurityRoleEndsBlockedAndUnverified(t *testing.T) {
 	t.Parallel()
 	assertBlockedForImpact(t, "internal/modules/auth/token.go", "Update token handling",
-		"Security review is mandatory", "token.go")
+		"Security + Architecture review is mandatory", "token.go")
 }
 
 func TestSharedDependencyChangeRequiresAffectedCallerReview(t *testing.T) {
@@ -468,16 +497,6 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 				[]string{"sample_test.go"}, []string{"go test ./..."}),
 		}),
 		apptest.FinishCall("The package passed its required security check"),
-		// A team can ask to reconcile its plan or save changes before review.
-		// Executable source changes also require an Architect report, even in Swift
-		// when impact cannot be classified from the changed path alone.
-		apptest.ToolCall("a0", "delegate", map[string]string{
-			"role": "architect", "brief": "Review the changed Go package and callers",
-		}),
-		apptest.ToolCall("a-report", "report", map[string]string{
-			"summary": "Verdict: PASS\nReviewed sample_test.go and its affected callers; no contract changes.",
-		}),
-		apptest.FinishCall("Architecture review passed"),
 		apptest.ToolCall("v0", "delegate", map[string]string{
 			"role": "qa", "brief": "Independently review the checked package",
 		}),
@@ -499,11 +518,11 @@ func TestRecordedPassingSecurityCheckAfterChangesSatisfiesEvidence(t *testing.T)
 		apptest.FinishCall("The package passed its required security check"),
 		apptest.FinishCall("The package passed its required security check"),
 	)
-	configureReviewTeam(t, a, "developer", "security", "architect", "qa")
-	// Keep go.mod as baseline: changing dependencies would also require an Architect review.
+	configureReviewTeam(t, a, "developer", "security", "qa")
+	// Keep go.mod as baseline: a dependency edit would need the combined Security architecture review.
 	a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
-		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true,"mode":"swift"}`, apptest.JSONCookie(a.Cookie))
+		`{"projectId":"`+a.Project+`","prompt":"Verify the checked package","team":true,"mode":"deep-review"}`, apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
 	a.WaitApproving(t, id, "review")
 	events := string(apptest.Do(t, a.Environment.App, "GET", "/api/tasks/"+id+"/events", "",
@@ -553,7 +572,7 @@ func TestRenamedDeveloperCannotSatisfyStableSecurityReview(t *testing.T) {
 		"func TestToken(t *testing.T) { if Token() != \"valid\" { t.Fatal(\"invalid token\") } }\n")
 	configureReviewTeam(t, a, "developer", "security")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
-		`{"projectId":"`+a.Project+`","prompt":"Update token handling","team":true,"planFirst":false}`,
+		`{"projectId":"`+a.Project+`","prompt":"Update token handling","team":true,"planFirst":false,"mode":"deep-review"}`,
 		apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
 	a.WaitApproving(t, id, "failed")
@@ -705,7 +724,7 @@ func securityEvidenceScenario(t *testing.T, test securityEvidenceCase) {
 	}
 	configureReviewTeam(t, a, "developer", "security")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
-		`{"projectId":"`+a.Project+`","prompt":"Update token handling","team":true,"planFirst":false}`,
+		`{"projectId":"`+a.Project+`","prompt":"Update token handling","team":true,"planFirst":false,"mode":"deep-review"}`,
 		apptest.JSONCookie(a.Cookie))
 	id, _ := created.JSON(t)["id"].(string)
 	want := "failed"
@@ -805,7 +824,9 @@ func securityReport(report string, paths, commands []string) string {
 	if len(commands) > 0 {
 		assessment += " Recorded scenarios " + strings.Join(commands, ", ") + " assess that boundary."
 	}
-	return report + "\n" + assessment
+	return report + "\n" + assessment +
+		"\nSecurity Assessment: The affected boundary and authorization risks were reviewed." +
+		"\nArchitecture Assessment: Changed modules, contracts and affected callers were reviewed."
 }
 
 func packageTest(fails, largeOutput bool) string {
@@ -836,7 +857,13 @@ func assertBlockedForImpact(t *testing.T, path, request, requiredText, requiredP
 		apptest.ToolCall("write", "write_file", map[string]string{"path": path, "content": "updated"}),
 		apptest.FinishCall("Updated the data"),
 	)
-	id := a.Start(t, request)
+	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
+		`{"projectId":"`+a.Project+`","prompt":"`+request+`","mode":"deep-review","team":false}`,
+		apptest.JSONCookie(a.Cookie))
+	if created.Status != 201 {
+		t.Fatalf("cannot create deep-review impact task: %d %s", created.Status, created.Body)
+	}
+	id, _ := created.JSON(t)["id"].(string)
 	a.WaitApproving(t, id, "failed")
 	assertNoScriptExhaustion(t, a, id)
 

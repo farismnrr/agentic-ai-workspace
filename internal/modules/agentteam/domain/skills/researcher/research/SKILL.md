@@ -50,7 +50,7 @@ The orchestrator says which kind of round this is. Write only the sections it as
 - Accessibility and local habits that matter here (for example a WhatsApp button, how prices are written).
 - The pictures the page needs, subject by subject (the Media teammate finds them; you download none).
 
-### Technical references (for the Developer, Architect, DevOps)
+### Technical references (for the Planner, Developer, Security when Deep Review, DevOps)
 - For a new web app the default stack is Nuxt 4 and Nuxt UI with `nuxt-security`, Better Auth and SQLite, in TypeScript
   on Bun: read the current pages on nuxt.com, ui.nuxt.com, nuxt-security.vercel.app and better-auth.com, and the Bun docs
   (bun.com/docs) for `bun:sqlite`, `bun install` and `bun test`.

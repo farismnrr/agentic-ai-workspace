@@ -311,7 +311,7 @@ An agent team works like a small software company. A lead takes your request and
 - A teammate you did not need is simply never called.
 - Teammates do not chat with each other. The lead passes on what each one needs, so nobody works from a different picture.
 - Once the shared app shell is in place, the lead can assign independent feature slices to multiple Developers in parallel, each with its own folder scope.
-- Read and verification checks (Researcher, QA, Security, Architect) can also run in parallel when their work is independent.
+- Read and verification checks (Researcher and QA; Security only with owner-enabled `@deep-review`) can run in parallel when independent.
 
 The lead sizes your request first and tells you:
 
@@ -379,11 +379,10 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | --- | --- |
 | Orchestrator (lead) | Coordinates and delegates, without changing files in team mode |
 | Researcher | Reads the project and researches the web with sources; cannot edit or execute |
-| Planner | Combines business analysis, requirements, PRD and planning; cannot code or test |
-| Architect | Designs/reviews module contracts; read-only |
+| Planner | Requirements, PRD and architecture approach before implementation; cannot code or test |
 | Developer | Codes, UI, media, docs, MoLab; regular Git operations and GitHub Issues/PRs via `git`/`gh`, reads CI; cannot run QA tests or deploy |
 | QA & Review | Runs tests, lint, typechecks and reviews through `verify` in a read-only sandbox; named checks are optional |
-| Security | Reviews vulnerabilities and runs named security checks; source code is read-only |
+| Security | Only with owner-enabled `@deep-review`: reviews security + architecture together; source code is read-only |
 | DevOps | Runs named builds, Apps, releases and authorized GitHub Actions via `gh`; cannot edit source, commit/push code or use general shell |
 
 Under Settings, Agent team you can change each role:

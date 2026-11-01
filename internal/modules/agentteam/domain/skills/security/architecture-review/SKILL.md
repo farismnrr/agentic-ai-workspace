@@ -6,9 +6,7 @@ always: true
 
 # Verifying the final code
 
-Join when deep-review affects a contract or module boundary, or when impact is
-unknown. Ordinary Swift work does not automatically need an architecture
-review. Read changed contracts and affected callers, then report concrete
+Join ONLY when the owner's saved task mode is deep-review. Swift never delegates Security or architecture review, even for uncertain impact. Combine these architecture findings with your security assessment in ONE report and delegation. Read changed contracts and affected callers, then report concrete
 findings. You change nothing; the Developer fixes findings, and you look again.
 
 ## 1. Read it as built
@@ -33,6 +31,9 @@ design you or the PRD gave: the layers, the files, the ports.
    it, is a finding as well: simple concrete code is right until a real boundary appears.
 
 ## 3. Report
+Include an explicit Architecture Assessment: section naming changed contracts, callers and boundary risks. Add a separate Security Assessment: section and exact Checks: when required. Do not count generic PASS without relevant evidence.
+
+
 Call `report` with a first line exactly `Verdict: PASS` or `Verdict: FIX FIRST`. Then a table of findings: what is wrong, where
 (file and line), which rule it breaks and the smallest fix. Separate what must change from what is only a
 suggestion. Say which files you read and what you searched for. If it is sound, say so in one or two plain
