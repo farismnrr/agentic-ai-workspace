@@ -33,7 +33,8 @@ var errInternal = errors.New("internal error")
 func UserFacing(err error) error {
 	for _, known := range knownErrors {
 		if errors.Is(err, known) {
-			if errors.Is(err, taskdomain.ErrBadRequest) || errors.Is(err, taskdomain.ErrTooLarge) {
+			if errors.Is(err, taskdomain.ErrBadRequest) || errors.Is(err, taskdomain.ErrTooLarge) ||
+				errors.Is(err, taskdomain.ErrReviewRequired) {
 				if detail := cleanErrorDetail(err, known); detail != "" {
 					return fmt.Errorf("%w: %s", known, detail)
 				}

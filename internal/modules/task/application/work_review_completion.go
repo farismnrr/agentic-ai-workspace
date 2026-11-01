@@ -10,12 +10,18 @@ import (
 // instead be attributed by the server to the active Security role, be newer
 // than every relevant mutation, and have the evidence required by its impact.
 func externalDeepReviewReady(task domain.Task, events []domain.Event) bool {
+	return externalDeepReviewMissing(task, events) == ""
+}
+
+// The reason is intentionally short and contains no paths or assistant-supplied
+// content. This helps a reviewer resolve a fail-closed gate without guessing.
+func externalDeepReviewMissing(task domain.Task, events []domain.Event) string {
 	if task.ReviewMode != domain.ReviewModeDeepReview {
-		return true
+		return ""
 	}
 	impact := assessImpact(task, events)
 	if !impact.security {
-		return true
+		return ""
 	}
 	lastChange := int64(0)
 	for _, event := range events {
@@ -42,18 +48,40 @@ func externalDeepReviewReady(task domain.Task, events []domain.Event) bool {
 		}
 	}
 	if report.Version == 0 ||
-		!strings.EqualFold(strings.TrimSpace(strings.SplitN(report.Text, "\n", 2)[0]), "Verdict: PASS") ||
-		reportSection(report.Text, "Security Assessment") == "" ||
+		!strings.EqualFold(strings.TrimSpace(strings.SplitN(report.Text, "\n", 2)[0]), "Verdict: PASS") {
+		return "fresh Security PASS verdict missing"
+	}
+	if reportSection(report.Text, "Security Assessment") == "" ||
 		(impact.architecture && reportSection(report.Text, "Architecture Assessment") == "") {
-		return false
+		return "Security or Architecture Assessment missing"
 	}
 	assessment := reportSection(report.Text, "Assessment")
-	if assessment == "" || !externalReviewPathsCovered(assessment, events) ||
-		!assessmentCoversCommands(assessment, events) ||
-		!externalLatestChecksPass(events, lastChange) {
-		return false
+	if assessment == "" || !externalReviewPathsCovered(assessment, events) {
+		return "Assessment must cover changed implementation paths"
 	}
-	return !criticalSecurityImpact(events) || externalCriticalRunsPass(events, report, lastChange)
+	if !externalReviewCommandsCovered(report.Text, events) {
+		return "command audit incomplete; cover impacted commands or provide explicit Command Audit"
+	}
+	if !externalLatestChecksPass(events, lastChange) {
+		return "latest recorded check failed or has unverified effects"
+	}
+	if criticalSecurityImpact(events) && !externalCriticalRunsPass(events, report, lastChange) {
+		return "matching successful Security-run critical check missing"
+	}
+	return ""
+}
+
+// Security can enumerate individual commands in Assessment. For long-lived
+// work sessions this may exceed the 2,000-character progress report limit.
+// An explicit attestation of ALL recorded command activity is an alternative,
+// but never substitutes for changed-path coverage, a fresh Security verdict,
+// or a real server-recorded critical check after the last mutation.
+func externalReviewCommandsCovered(report string, events []domain.Event) bool {
+	if assessmentCoversCommands(reportSection(report, "Assessment"), events) {
+		return true
+	}
+	audit := reportSection(report, "Command Audit")
+	return strings.Contains(audit, "reviewed all recorded task commands, including unverified workspace effects")
 }
 
 // Documentation edits must not invalidate a review of an unrelated code edit.
