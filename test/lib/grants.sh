@@ -91,18 +91,20 @@ grant_verify_restart() {
   grant_http GET "$jar" "$grant_path/"
   grant_require_status 200 'grant list available after restart'
   if jq -e --arg id "$grant_id" \
-    '.[] | select(.id == $id and .status == "approved")' "$HTTP_BODY_FILE" >/dev/null; then
-    printf 'PASS approved grant restored after app restart\n'
+    '.[] | select(.id == $id and .status == "revoked")' "$HTTP_BODY_FILE" >/dev/null; then
+    printf 'PASS interrupted task grant revoked on app restart\n'
     ((ASSERTIONS_PASSED += 1))
   else
-    printf 'FAIL approved grant restored after app restart\n'
+    printf 'FAIL interrupted task grant was not revoked after restart\n'
     ((ASSERTIONS_FAILED += 1))
   fi
   grant_http GET "$jar" "$grant_path/csrf"
   grant_require_status 200 'post-restart CSRF token issued'
   csrf=$(jq -r '.token // empty' "$HTTP_BODY_FILE")
+  # Recover marks interrupted ordinary tasks failed. Reconcile must
+  # fail closed: old grants are already revoked and cannot be revived.
   grant_http POST "$jar" "$grant_path/$grant_id/revoke" '{}' "$csrf"
-  grant_require_status 200 'restored grant can be revoked'
+  grant_require_status 409 'interrupted task grant cannot be revoked twice'
   grant_http POST "$jar" "$grant_path/$grant_id/approve" '{}' "$csrf"
-  grant_require_status 409 'restored revoked grant cannot be replayed'
+  grant_require_status 409 'interrupted task grant cannot be replayed'
 }
