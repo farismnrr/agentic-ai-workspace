@@ -10,11 +10,22 @@ source "$repo_root/test/lib/assert.sh"
 source "$repo_root/test/lib/http.sh"
 source "$repo_root/test/lib/grants.sh"
 
+# Never use a production daemon for this integration test: sandbox.Open
+# manages the global agentic-sandbox container and can replace it.
+if [[ ${CI:-} != true && ${VOLUME_ISOLATION_DEDICATED_HOST:-} != yes ]]; then
+  echo 'Run volume isolation on a disposable CI runner (or opt in on a dedicated Docker host).' >&2
+  exit 1
+fi
+if docker container inspect agentic-sandbox >/dev/null 2>&1; then
+  echo 'REFUSED: an existing agentic-sandbox belongs to another deployment.' >&2
+  exit 1
+fi
+
 logs_dir=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/volume-isolation.XXXXXX")
 work_dir=$(mktemp -d)
 exec > >(tee "$logs_dir/runner.log") 2>&1
 
-sha=$(git -C "$repo_root" rev-parse --short HEAD)
+sha=$(git -C "$repo_root" rev-parse HEAD)
 app_image="ghcr.io/farismnrr/agentic-ai-workspace:sha-$sha"
 sandbox_image=${VOLUME_ISOLATION_IMAGE:-${SANDBOX_TEST_IMAGE:-ghcr.io/farismnrr/agentic-ai-workspace-sandbox:latest}}
 volume="agentic-volume-isolation-$(date +%s)-$$"
@@ -26,12 +37,17 @@ APP_TMP_DIR=$work_dir
 jar="$work_dir/grant-check.cookies"
 state_file="$work_dir/grant-state.json"
 touch "$jar"
+remove_test_shared=0
 
 cleanup() {
   local status=$?
   trap - EXIT
   docker logs --tail 100 "$app" > "$logs_dir/app.log" 2>&1 || true
   docker rm -f "$app" >/dev/null 2>&1 || true
+  # Never remove an existing deployment singleton if the preflight refused.
+  if [[ $remove_test_shared == 1 ]]; then
+    docker rm -f agentic-sandbox >/dev/null 2>&1 || true
+  fi
   docker volume rm "$volume" >/dev/null 2>&1 || true
   rm -rf -- "$work_dir"
   printf 'Docker verification logs: %s\n' "$logs_dir"
@@ -41,6 +57,8 @@ trap cleanup EXIT
 
 echo "Docker volume and egress grant checks, commit $(git -C "$repo_root" rev-parse HEAD)"
 docker info --format 'Docker daemon: {{.ServerVersion}}'
+# The preflight above confirmed this daemon has no shared sandbox.
+remove_test_shared=1
 docker version --format 'Client {{.Client.Version}} Server {{.Server.Version}}'
 test -S /var/run/docker.sock
 docker pull "$app_image"
