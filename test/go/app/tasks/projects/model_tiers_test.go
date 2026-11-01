@@ -41,7 +41,7 @@ func TestModelTiersAndARolesTierAreSaved(t *testing.T) {
 			role["tier"] = "fast"
 		}
 
-		if role["key"] == "architect" {
+		if role["key"] == "security" {
 			role["tier"] = "thinking"
 		}
 	}

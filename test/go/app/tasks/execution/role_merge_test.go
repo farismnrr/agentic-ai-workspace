@@ -17,7 +17,8 @@ func TestLegacyBuiltInRolesMergeWithoutRestoringExecPrivileges(t *testing.T) {
 			{"key":"media","name":"Old Media","enabled":true,"access":["write","exec","images"]},
 			{"key":"documents","name":"Old Documents","enabled":true,"access":["write","exec"]},
 			{"key":"reviewer","name":"Old Reviewer","enabled":true,"access":["read"]},
-			{"key":"business-analyst","name":"Old BA","enabled":true,"access":["read","ask"]}
+			{"key":"business-analyst","name":"Old BA","enabled":true,"access":["read","ask"]},
+			{"key":"architect","name":"Old Architect","enabled":true,"access":["read","write","exec"]}
 		]}`, cookie)
 	if saved.Status != 200 {
 		t.Fatalf("could not migrate saved team: %d %s", saved.Status, saved.Body)
@@ -36,8 +37,8 @@ func TestLegacyBuiltInRolesMergeWithoutRestoringExecPrivileges(t *testing.T) {
 		if err := json.Unmarshal(body, &team); err != nil {
 			t.Fatalf("cannot decode roles: %v", err)
 		}
-		if len(team.Roles) != 8 {
-			t.Fatalf("want eight merged roles, got %d: %s", len(team.Roles), body)
+		if len(team.Roles) != 7 {
+			t.Fatalf("want seven merged roles, got %d: %s", len(team.Roles), body)
 		}
 		seen := map[string]bool{}
 		for _, role := range team.Roles {
@@ -46,7 +47,7 @@ func TestLegacyBuiltInRolesMergeWithoutRestoringExecPrivileges(t *testing.T) {
 			}
 			seen[role.Key] = true
 			switch role.Key {
-			case "designer", "media", "documents", "reviewer", "business-analyst":
+			case "designer", "media", "documents", "reviewer", "business-analyst", "architect":
 				t.Fatalf("retired role resurrected: %s", role.Key)
 			case "developer":
 				if role.Name != "Developer" || contains(role.Access, "exec") {
@@ -59,6 +60,10 @@ func TestLegacyBuiltInRolesMergeWithoutRestoringExecPrivileges(t *testing.T) {
 			case "planner":
 				if role.Name != "Planner" || contains(role.Access, "write") {
 					t.Fatalf("Planner inherited unsafe old BA access: %+v", role)
+				}
+			case "security":
+				if role.Name != "Security" || contains(role.Access, "write") {
+					t.Fatalf("Security inherited unsafe old Architect writes: %+v", role)
 				}
 			case "devops":
 				if contains(role.Access, "write") {

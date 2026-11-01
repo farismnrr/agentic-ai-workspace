@@ -39,8 +39,27 @@ func assessImpact(task domain.Task, events []domain.Event) verificationImpact {
 	impact.architecture, impact.reviewer = requiredReviews(
 		task.ReviewMode, impact.unknown, architectureAffected, reasons,
 	)
+	// Security owns architecture verification too, but may only be delegated
+	// after the owner explicitly enables Deep Review. Path risk does NOT
+	// promote Swift into a mandatory Security review.
+	if task.ReviewMode == domain.ReviewModeDeepReview {
+		// Deep Review opts into the reviewer whenever implementation files
+		// changed, including UI-only work; depth stays impact-proportionate.
+		impact.security = impact.security || impact.architecture || hasReviewedChanges(files)
+	} else {
+		impact.security = false
+	}
 	impact.reason = strings.Join(slices.Compact(reasons), "; ")
 	return impact
+}
+
+func hasReviewedChanges(files []string) bool {
+	for _, file := range files {
+		if !inDocuments(file) {
+			return true
+		}
+	}
+	return false
 }
 
 func requiredReviews(mode domain.ReviewMode, unknown, architecture bool, reasons []string) (bool, bool) {

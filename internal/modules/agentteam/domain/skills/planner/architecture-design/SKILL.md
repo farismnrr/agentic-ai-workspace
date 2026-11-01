@@ -1,10 +1,14 @@
 ---
-name: stack-defaults
+name: architecture-design
 description: The default stack and layout for a new app, and when to depart from it.
 always: true
 ---
 
-# Default stack for a new app
+# Architecture design in the PRD
+
+Own the early design and include proportionate modules, interfaces, data flow, risks and rejected alternatives in the ONE Planner PRD. No separate Architect handoff. Keep existing stack and avoid extra layers unless necessary.
+
+## Default stack for a new app
 
 This is the default for a new web app with screens, not the only stack. An existing project keeps its own stack and
 language (Next.js, SvelteKit, Rust, Go, Python, plain HTML...), a stack the person asked for is used, and something

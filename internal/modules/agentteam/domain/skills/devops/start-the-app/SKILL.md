@@ -20,8 +20,7 @@ orchestrator gives the job to you.
 - A dev server (hot reload, `dev` scripts) is not a way to run the app. Build it, then serve the build.
 - If `start_site` says the port is taken, or the app did not answer on it, choose another port (3000, 3001, 3002...,
   1024 to 65535) and start again. A busy port is never a reason to give up.
-- Starting is allowed while the app is being built. Completion checks follow task mode and impact; sensitive
-  changes still require focused Security review. Do not rebuild or audit anything the brief did not ask for.
+- Starting is allowed while the app is being built. Only owner-enabled @deep-review invokes combined Security + Architecture verification; Swift never does. Keep runtime safeguards on. Do not rebuild or audit anything the brief did not ask for.
 
 ## 1. Find out how it is served
 Read the brief and the Developer's report first, then `package.json`, the README and the files. Build it when it needs

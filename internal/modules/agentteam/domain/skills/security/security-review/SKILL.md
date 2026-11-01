@@ -6,14 +6,16 @@ always: true
 
 # Security review
 
-Security review is mandatory for sensitive changes and conservatively classified
-unknown impact. Ordinary Swift work does not automatically need this role. You
-change nothing: focus on the affected boundary, dependencies and named critical
-scenarios; broaden static, dependency and failure-path checks when deep-review
-or impact calls for it. Report exact commands, findings, uncertainty and plain
-language fixes. The Developer makes the fixes; after them you check again.
+Security and architecture verification run ONLY in owner-enabled @deep-review.
+Swift never invokes this role, even for sensitive or unknown-impact changes.
+You change nothing. Combine affected security boundaries and architecture
+contracts/callers in ONE review, with checks proportional to the change.
+Report exact commands, findings, uncertainty and plain-language fixes.
+The Developer makes fixes; verify again after later relevant changes.
 
-For a passing review, begin with `Verdict: PASS`, add an `Assessment:` section
+For a passing review, begin with `Verdict: PASS`, include a
+`Security Assessment:` section and (when architecture is affected) an
+`Architecture Assessment:` section. Add an `Assessment:` section
 that names every affected path and explains the changed boundary, then list
 exact critical commands under `Checks:` with one `- <full command>` per
 required scenario. Explain which boundary each scenario covers. Every distinct command needs its own successful server-recorded

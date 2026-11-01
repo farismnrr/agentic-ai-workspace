@@ -6,7 +6,7 @@ always: true
 
 # Code rules: SOLID and Clean Architecture
 
-The Architect checks affected boundaries when the task's saved mode and impact
+Security checks affected boundaries only when the owner enabled `@deep-review` and impact
 policy call for that review. Follow the project's own structure when it already
 has one; in a new project, build it like this from the first file.
 
@@ -49,4 +49,4 @@ Follow the repository's test policy. Here, black-box scenarios are the default;
 do not add non-critical white-box unit tests. Retain only explicitly justified,
 registered critical Go tests that cannot be exercised at a public boundary.
 Say in your report which layers you made and which ports they use, so the
-Architect can check them quickly.
+Security can review them in `@deep-review`; otherwise keep the change focused.

@@ -8,31 +8,17 @@ import (
 
 const toolStartSite = "start_site"
 
-const (
-	maxSecurityRounds  = 3
-	maxArchitectRounds = 3
-)
+const maxSecurityRounds = 3
 
 func (r *Runner) securityNotAsked(
 	ctx context.Context, task domain.Task, state *runState, call Call, impact verificationImpact,
 ) bool {
-	if !impact.security {
+	if task.ReviewMode != domain.ReviewModeDeepReview || !impact.security {
 		return false
 	}
 	return r.requireReview(ctx, task, state, call, securityOf(state.roster), &state.securityAsked,
-		maxSecurityRounds, hasImpactChange, "Security", impact.reason,
-		"Name every affected path in Assessment and run each named critical scenario as its own exact recorded command.")
-}
-
-func (r *Runner) architectNotAsked(
-	ctx context.Context, task domain.Task, state *runState, call Call, impact verificationImpact,
-) bool {
-	if !impact.architecture {
-		return false
-	}
-	return r.requireReview(ctx, task, state, call, architectOf(state.roster), &state.architectAsked,
-		maxArchitectRounds, hasImpactChange, "Architect", impact.reason,
-		"Check the changed contracts and affected callers against the design, SOLID and Clean Architecture.")
+		maxSecurityRounds, hasImpactChange, "Security + Architecture", impact.reason,
+		"Use ONE Security delegation. Include Security Assessment and, when architecture is affected, Architecture Assessment; name affected paths in Assessment and run applicable critical scenarios as recorded checks.")
 }
 
 func (r *Runner) requireReview(
@@ -93,7 +79,38 @@ func (r *Runner) changedSinceReview(
 		}
 	}
 	return lastChange > lastReview || latest.Seq == 0 || !reviewPassed(latest) ||
-		reviewer.ChecksSecurity && !r.hasCriticalEvidence(ctx, task, events, latest)
+		reviewer.ChecksSecurity && !r.hasCombinedSecurityEvidence(ctx, task, events, latest)
+}
+
+func (r *Runner) hasCombinedSecurityEvidence(
+	ctx context.Context, task domain.Task, events []domain.Event, report domain.Event,
+) bool {
+	if task.ReviewMode != domain.ReviewModeDeepReview ||
+		reportSection(report.Technical, "Security Assessment") == "" {
+		return false
+	}
+	if assessImpact(task, events).architecture &&
+		reportSection(report.Technical, "Architecture Assessment") == "" {
+		return false
+	}
+	// Critical evidence is needed for actual sensitive/uncertain code, not
+	// for an architectural-only edit with no security boundary or executable risk.
+	if !criticalSecurityImpact(events) {
+		return true
+	}
+	return r.hasCriticalEvidence(ctx, task, events, report)
+}
+
+func criticalSecurityImpact(events []domain.Event) bool {
+	if commandImpact(events).security {
+		return true
+	}
+	for _, file := range changedPaths(events) {
+		if pathImpact(file).security {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Runner) isReviewReport(ctx context.Context, task domain.Task, event domain.Event, reviewer AgentRole) bool {
@@ -111,18 +128,6 @@ func securityOf(roster *Roster) AgentRole {
 	}
 	for _, member := range roster.Members {
 		if member.ChecksSecurity {
-			return member
-		}
-	}
-	return AgentRole{}
-}
-
-func architectOf(roster *Roster) AgentRole {
-	if roster == nil {
-		return AgentRole{}
-	}
-	for _, member := range roster.Members {
-		if member.ChecksArchitecture {
 			return member
 		}
 	}

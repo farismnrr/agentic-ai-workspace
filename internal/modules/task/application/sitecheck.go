@@ -88,6 +88,6 @@ func (r *Runner) finishHeld(
 ) bool {
 	return r.planStale(ctx, task, state, call) || r.siteNotRunning(ctx, task, state, call) ||
 		r.localAddressHeld(ctx, task, state, call) || r.extensionHeld(ctx, task, state, call) ||
-		r.securityNotAsked(ctx, task, state, call, impact) || r.architectNotAsked(ctx, task, state, call, impact) ||
+		r.securityNotAsked(ctx, task, state, call, impact) ||
 		r.reviewerNotAsked(ctx, task, state, call, impact) || r.commitMissing(ctx, task, state, call)
 }
