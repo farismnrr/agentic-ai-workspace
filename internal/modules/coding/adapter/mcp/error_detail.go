@@ -54,6 +54,7 @@ var knownErrors = []error{
 	taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused, taskdomain.ErrBadRole, taskdomain.ErrRoleForbidden,
 	errMoLabDeveloperRequired,
 	taskdomain.ErrTooMany, taskdomain.ErrRateLimited, taskdomain.ErrTooLarge, taskdomain.ErrBadRequest,
-	taskdomain.ErrNoProject, taskdomain.ErrWrongState, taskdomain.ErrAwaitingPerson, taskdomain.ErrNoResearch,
+	taskdomain.ErrNoProject, taskdomain.ErrWrongState, taskdomain.ErrAwaitingPerson, taskdomain.ErrReviewRequired,
+	taskdomain.ErrNoResearch,
 	taskdomain.ErrOpenQuestions, taskdomain.ErrTryAgain, taskdomain.ErrUnverifiedUser,
 }

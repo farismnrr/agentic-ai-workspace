@@ -11,7 +11,6 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
-
 type runInput struct {
 	Target
 	Name string `json:"name" jsonschema:"task name from list_tasks"`
@@ -25,7 +24,6 @@ type runOutput struct {
 	TimedOut   bool   `json:"timed_out"`
 	Truncated  bool   `json:"truncated" jsonschema:"true when earlier output was dropped"`
 }
-
 
 type commandInput struct {
 	Target
@@ -54,7 +52,6 @@ func (t *tools) addExecTools(server *sdk.Server) {
 		func(in commandInput) string { return "command: " + in.Command }, t.runCommand))
 }
 
-
 func (t *tools) runCommand(ctx context.Context, in commandInput) (runOutput, report, error) {
 	svc, err := t.services(ctx)
 	if err != nil {
@@ -72,10 +69,10 @@ func (t *tools) runCommand(ctx context.Context, in commandInput) (runOutput, rep
 		return runOutput{}, report{}, fmt.Errorf("run command: %w", err)
 	}
 
-	return commandReport(result)
+	return commandReport(result, in.Command)
 }
 
-func commandReport(result application.RunResult) (runOutput, report, error) {
+func commandReport(result application.RunResult, shellCommand string) (runOutput, report, error) {
 	out := runOutput{
 		Name: "command", Output: result.Output, ExitCode: result.ExitCode, DurationMS: result.Duration.Milliseconds(),
 		TimedOut: result.TimedOut, Truncated: result.Truncated,
@@ -86,13 +83,19 @@ func commandReport(result application.RunResult) (runOutput, report, error) {
 		detail = "timed out"
 	}
 
-	return out, report{detail: detail, failed: result.ExitCode != 0, run: runNote(out.Name, result)}, nil
+	run := runNote(out.Name, result)
+	run.ShellCommand = shellCommand
+	return out, report{detail: detail, failed: result.ExitCode != 0, run: run}, nil
 }
 
 func runNote(name string, result application.RunResult) *RunNote {
-	return &RunNote{Name: name, ExitCode: result.ExitCode, TimedOut: result.TimedOut}
+	return &RunNote{
+		Name: name, Command: result.Command, Output: result.Output,
+		EffectPaths: append([]string(nil), result.EffectPaths...),
+		ExitCode:    result.ExitCode, TimedOut: result.TimedOut,
+		Truncated: result.Truncated, EffectsKnown: result.EffectsKnown,
+	}
 }
-
 
 func (t *tools) runArtifact(ctx context.Context, in runInput) (runOutput, report, error) {
 	svc, err := t.services(ctx)

@@ -53,9 +53,17 @@ const (
 
 // RunNote is a command the app ran, so the thread can show how it ended.
 type RunNote struct {
-	Name     string
-	ExitCode int
-	TimedOut bool
+	Name    string
+	Command string
+	// ShellCommand is the server-executed bash -c argument; only a vetted
+	// literal test may be promoted into verifiable check evidence.
+	ShellCommand string
+	Output       string
+	EffectPaths  []string
+	ExitCode     int
+	TimedOut     bool
+	Truncated    bool
+	EffectsKnown bool
 }
 
 // Note is one step of the app's conversation, for the person to read later in the app.

@@ -30,6 +30,10 @@ func TestExternalDeepReviewRequiresFreshSecurityReviewBeforeCompletion(t *testin
 		if !strings.Contains(result, `"isError":true`) {
 			t.Fatalf("%s unexpectedly allowed: %s", why, result)
 		}
+		if !strings.Contains(result, "deep-review requires a fresh Security Assessment") ||
+			strings.Contains(result, "internal error") {
+			t.Fatalf("%s returned an unhelpful error: %s", why, result)
+		}
 	}
 
 	owner := apptest.Do(t, env.App, "POST", "/api/tasks/"+taskID+"/deep-review",
