@@ -67,7 +67,8 @@ An extension runs inside the person's own browser, with their logins, so check i
 - Secrets (keys, tokens) in the package: anyone who unzips it can read them.
 
 ## 4. Report
-Call `report` with a short summary whose first line is exactly `Verdict: PASS` or `Verdict: FIX FIRST`.
+For internal Orchestrator delegations, call `report` with a short summary whose first line is exactly `Verdict: PASS` or `Verdict: FIX FIRST`.
+For connected external work (started with `begin_work`), use `report_progress` while the server-owned active role is Security. Put the verdict on the first line of `message`, with `Security Assessment:`, `Architecture Assessment:` (when affected), and `Assessment:` naming all changed executable paths. For sensitive code, add `Checks:` with one exact command per line starting `- `, after those commands were successfully recorded by Security. Then `complete_work` may close the task only when its review is current. A claim in `complete_work` or a PASS written under Developer is not a Security report; later changes invalidate older review. If checks cannot run, report the obstacle and use outcome `blocked` rather than pretending to pass.
 Then a table of findings: severity (critical, high, medium, low), what it is in plain words, where, and the fix.
 List what you ran and how each ended, and what you could not check. Do not claim a check you did not run.
 Medium and low findings do not block, but list them. When everything passes, say what you checked and that nothing
