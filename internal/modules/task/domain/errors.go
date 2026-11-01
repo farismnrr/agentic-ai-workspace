@@ -24,6 +24,7 @@ var (
 	ErrRateLimited    = errors.New("too many requests; try again shortly")
 	ErrTooLarge       = errors.New("input is too large")
 	ErrAwaitingPerson = errors.New("this plan awaits the person's review; wait or use outcome blocked")
+	ErrReviewRequired = errors.New("deep-review requires a fresh Security Assessment and relevant recorded checks before completion; use Security role, or outcome blocked")
 	ErrNoResearch     = errors.New("save sourced research or mark this as a small task before submitting the plan")
 	ErrOpenQuestions  = errors.New("wait for the person's answers before submitting the plan")
 	ErrTryAgain       = errors.New("the workspace is busy; try again")

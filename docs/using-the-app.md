@@ -79,7 +79,12 @@ For a connected external assistant task, the owner can select **Enable Deep
 Review** in the task header while the work is active. This is a one-way choice:
 only the signed-in owner can enable it, and the external assistant cannot
 upgrade its own mode through a role, summary, notes or tool call. Security is
-unavailable to that assistant until Deep Review has been enabled.
+unavailable to that assistant until Deep Review has been enabled. For an
+external task with implementation changes, completion is held until Security
+records a fresh combined assessment after the latest change; sensitive code
+also needs successful, server-recorded critical checks. If verification
+cannot finish, the assistant should mark the work blocked rather than claim
+a pass. Documentation-only edits do not require this review.
 
 1. Add a model under Settings, AI models (see [Models](#models)).
 2. Create a project with Projects, New project. It gets its own folder under `DATA_DIR/projects`, and the AI can only touch files in it.

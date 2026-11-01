@@ -82,10 +82,10 @@ var (
 	ToolUpdatePlan       = workTool("update_plan", "Update work plan", "Save the steps for this work session.")
 	ToolSaveResearch     = workTool("save_research", "Save research", "Save research notes and their sources.")
 	ToolSaveRequirements = workTool("save_requirements", "Save requirements", "Save the requirements document.")
-	ToolReportProgress   = workTool("report_progress", "Report progress", "Record self-reported progress and claims.")
+	ToolReportProgress   = workTool("report_progress", "Report progress", "Record self-reported progress and claims. In owner-enabled Deep Review, Security must use this tool to submit a fresh Verdict: PASS report with Security Assessment, Architecture Assessment (if affected), Assessment naming changed paths, and exact server-recorded critical commands under Checks: before work can complete.")
 	ToolCompleteWork     = workTool("complete_work", "Complete work",
 		"Finish or block this work and summarize verified evidence. Call after saving your assistant summary with "+
-			"log_message; do not call log_message after complete_work.")
+			"log_message; do not call log_message after complete_work. In owner-enabled Deep Review, completion after code changes is blocked without a fresh server-attributed Security review and any required recorded checks. Use outcome blocked when verification cannot pass.")
 	ToolGetWorkState = workTool("get_work_state", "Get work state", "Read the compact state of a work session.")
 	ToolApprovePlan  = ToolInfo{
 		Name: "approve_plan", Title: "Approve plans", Scope: ScopeApprove, Group: GroupExec,
@@ -139,7 +139,6 @@ var ToolRunCommand = ToolInfo{
 	Description: "Run a shell command in the isolated sandbox (bash; Python, Node, Go, Rust and Java are installed; " +
 		"only package registries can be reached) and return its exit code and output.",
 }
-
 
 // Tools lists every tool in display order.
 func Tools() []ToolInfo {

@@ -62,6 +62,11 @@ func (w *Works) finishWork(ctx context.Context, work domain.ExternalWork, task d
 	if err != nil {
 		return Completion{}, fmt.Errorf("read work evidence: %w", err)
 	}
+	// A connected assistant must not close an owner-enabled Deep Review
+	// after code changes without a fresh, server-attributed Security report.
+	if outcome == "completed" && !externalDeepReviewReady(task, events) {
+		return Completion{}, domain.ErrReviewRequired
+	}
 	proof := buildProof(events, claims)
 	state, status, kind, text := completionState(outcome, summary)
 	ended := w.now()

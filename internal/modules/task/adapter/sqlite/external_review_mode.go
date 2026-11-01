@@ -50,6 +50,20 @@ func (s *Store) EnableExternalDeepReview(
 		}
 		return tx.Commit()
 	}
+	// Invalidate any completion or role mutation that read a Swift snapshot
+	// before this owner action. Both rows change within one transaction.
+	workResult, err := tx.ExecContext(ctx, `UPDATE external_works
+		SET rev = rev + 1, updated_at = ?
+		WHERE id = (SELECT work_id FROM tasks WHERE id = ? AND user_id = ?)
+		AND user_id = ? AND state IN ('open', 'blocked')`,
+		at.Unix(), taskID, userID, userID)
+	if err != nil {
+		return mapBusy(fmt.Errorf("advance external review revision: %w", err))
+	}
+	advanced, err := workResult.RowsAffected()
+	if err != nil || advanced != 1 {
+		return domain.ErrWrongState
+	}
 	_, err = insertEvent(ctx, tx, s.ids, taskID, domain.Event{
 		Kind: domain.EventMessage, Text: "Deep Review enabled by task owner.",
 		Time: at,
