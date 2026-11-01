@@ -23,12 +23,15 @@ func (w *Works) StartCall(
 
 // Validate rejects tool calls once their work session has ended.
 func (w *Works) Validate(ctx context.Context, userID, client, projectID, workID string) error {
-	work, _, _, err := w.mutable(ctx, userID, client, projectID, workID)
+	work, task, _, err := w.mutable(ctx, userID, client, projectID, workID)
 	if err != nil {
 		return err
 	}
 	if work.RoleKey == "" {
 		return domain.ErrBadRole
+	}
+	if err := externalRoleModeAllowed(task.ReviewMode, work.RoleKey); err != nil {
+		return err
 	}
 	// Role assignments are not permanent: a disabled or removed role must stop working.
 	_, err = w.availableRole(ctx, userID, work.RoleKey)
@@ -38,7 +41,7 @@ func (w *Works) Validate(ctx context.Context, userID, client, projectID, workID 
 // Authorize checks the active role against the same tool allowlist used by internal teammates.
 // The role is loaded from server-owned work state and the currently enabled Agent Team roster.
 func (w *Works) Authorize(ctx context.Context, userID, client, projectID, workID, tool string) error {
-	work, _, _, err := w.mutable(ctx, userID, client, projectID, workID)
+	work, task, _, err := w.mutable(ctx, userID, client, projectID, workID)
 	if err != nil {
 		if tool != "approve_plan" || !errors.Is(err, domain.ErrWorkClosed) {
 			return err
@@ -60,6 +63,9 @@ func (w *Works) Authorize(ctx context.Context, userID, client, projectID, workID
 	role, ok := roster.member(work.RoleKey)
 	if !ok || role.Lead {
 		return domain.ErrBadRole
+	}
+	if err := externalRoleModeAllowed(task.ReviewMode, role.Key); err != nil {
+		return err
 	}
 	if !slices.Contains(role.Tools, tool) {
 		return domain.ErrRoleForbidden

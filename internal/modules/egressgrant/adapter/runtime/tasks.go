@@ -82,3 +82,15 @@ func (s egressTasks) endAll(ctx context.Context, tasks []taskdomain.Task) {
 		s.ended(ctx, task.ID)
 	}
 }
+
+// EnableExternalDeepReview forwards the owner-only review-mode mutation
+// without bypassing the egress task lifecycle wrapper.
+func (s egressTasks) EnableExternalDeepReview(
+	ctx context.Context, userID, taskID string, at time.Time,
+) error {
+	promoter, ok := s.TaskStore.(taskapp.ExternalDeepReviewStore)
+	if !ok {
+		return taskdomain.ErrWrongState
+	}
+	return promoter.EnableExternalDeepReview(ctx, userID, taskID, at)
+}

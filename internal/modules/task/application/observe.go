@@ -62,6 +62,20 @@ type observedTasks struct {
 	owners *owners
 }
 
+func (o observedTasks) EnableExternalDeepReview(
+	ctx context.Context, userID, taskID string, at time.Time,
+) error {
+	promoter, ok := o.TaskStore.(ExternalDeepReviewStore)
+	if !ok {
+		return domain.ErrWrongState
+	}
+	if err := promoter.EnableExternalDeepReview(ctx, userID, taskID, at); err != nil {
+		return err
+	}
+	o.notify.Changed(userID, taskID)
+	return nil
+}
+
 func (o observedTasks) Create(ctx context.Context, task domain.Task) error {
 	err := o.TaskStore.Create(ctx, task)
 	if err == nil {

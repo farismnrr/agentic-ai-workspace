@@ -14,9 +14,11 @@
     onstop: () => void;
     onconfirm: () => void;
     onretry: () => void;
+    onenabledeepreview?: () => void;
+    reviewBusy?: boolean;
   }
 
-  const { task, archived = false, onstop, onconfirm, onretry }: Props = $props();
+  const { task, archived = false, onstop, onconfirm, onretry, onenabledeepreview, reviewBusy = false }: Props = $props();
   const external = $derived(isExternalTask(task.source, task.workId ?? ''));
   const workStatus = $derived(workStatusPresentation(task.status, task.work));
   const statusLabel = $derived(workStatus.label || statusMeta[task.status].label);
@@ -33,6 +35,7 @@
     {/if}
     {#if task.work?.state === 'blocked'}<span class="badge badge-warning badge-sm">Blocked</span>{/if}
     {#if task.team}<span class="badge badge-soft badge-sm">Team</span>{/if}
+    {#if task.mode === 'deep-review'}<span class="badge badge-soft badge-sm">Deep Review</span>{/if}
     <p class="hidden min-w-0 flex-1 truncate text-xs text-[var(--brand-text-secondary)] md:block">
       {#if external}External assistant · {task.work?.actor ?? task.source} · {roleLabel}
       {:else}Started {timeAgo(task.createdAt)} · {task.model}{task.effort === '' ? '' : ` · ${effortLabel(task.effort)} effort`}{/if}
@@ -40,6 +43,9 @@
     </p>
     <span class="flex-1 md:hidden"></span>
     <ContextMeter used={task.contextUsed} window={task.contextWindow} state={task.contextState} />
+    {#if external && !archived && task.mode === 'swift' && (task.work?.state === 'open' || task.work?.state === 'blocked')}
+      <button class="btn btn-outline btn-sm" type="button" disabled={reviewBusy} onclick={onenabledeepreview}>Enable Deep Review</button>
+    {/if}
     {#if !archived && workStatus.canStop}<button class="btn btn-outline btn-sm" type="button" aria-label="Stop work" onclick={onstop}>Stop</button>{/if}
     {#if !archived && workStatus.canConfirm}<button class="btn btn-primary btn-sm" type="button" onclick={onconfirm}>Mark complete</button>{/if}
     {#if !archived && !external && task.status === 'failed'}<button class="btn btn-primary btn-sm" type="button" onclick={onretry}>Continue</button>{/if}

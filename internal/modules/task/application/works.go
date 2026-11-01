@@ -89,6 +89,9 @@ func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
 		return BeginResult{}, err
 	}
 	if resumed {
+		if err := w.externalWorkRolesAllowed(ctx, in.UserID, prior, role.Key, planned); err != nil {
+			return BeginResult{}, err
+		}
 		return w.beginResult(prior, true, roster), nil
 	}
 	if !in.NewTask {
@@ -97,12 +100,25 @@ func (w *Works) Begin(ctx context.Context, in BeginInput) (BeginResult, error) {
 			return BeginResult{}, fmt.Errorf("find active work: %w", findErr)
 		}
 		if found {
+			if err := w.externalWorkRolesAllowed(ctx, in.UserID, active, role.Key, planned); err != nil {
+				return BeginResult{}, err
+			}
 			if in.IdempotencyKey != "" {
 				if err := w.store.RegisterBeginAlias(ctx, in.UserID, in.Client, in.ProjectID, in.IdempotencyKey, hash, active.ID); err != nil {
 					return BeginResult{}, fmt.Errorf("record resumed begin key: %w", err)
 				}
 			}
 			return w.beginResult(active, true, roster), nil
+		}
+	}
+	// A newly created external task is always Swift. Connected assistants
+	// cannot opt themselves into Security by selecting or planning that role.
+	if err := externalRoleModeAllowed(domain.ReviewModeSwift, role.Key); err != nil {
+		return BeginResult{}, err
+	}
+	for _, candidate := range planned {
+		if err := externalRoleModeAllowed(domain.ReviewModeSwift, candidate); err != nil {
+			return BeginResult{}, err
 		}
 	}
 	if err := w.limits.allow(in.UserID, true, w.now()); err != nil {

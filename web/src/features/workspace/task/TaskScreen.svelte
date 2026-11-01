@@ -11,6 +11,7 @@
   import { submitTaskFollowUp } from '../logic/task-composer';
   import type { Task, TaskEvent } from '../logic/task-types';
   import { createThread } from '../logic/thread';
+  import { enableExternalDeepReview } from '../logic/tasks-api';
   import { projects } from '../logic/workspace-store';
   import AppShell from '../shell/AppShell.svelte';
   import WorkPanel from './panel/WorkPanel.svelte';
@@ -48,6 +49,8 @@
   let attachments = $state<Attachment[]>([]);
   let uploadError = $state('');
   let uploadBusy = $state(false);
+  let reviewBusy = $state(false);
+  let reviewError = $state('');
   let uploadProgress = $state('');
   let linkedChatId = $state('');
   const archived = $derived($task?.archivedAt != null);
@@ -80,6 +83,20 @@
     }
   }
 
+  async function enableDeepReview(): Promise<void> {
+    if (reviewBusy) return;
+    reviewBusy = true;
+    reviewError = '';
+    try {
+      await enableExternalDeepReview(id);
+      await thread.refresh();
+    } catch (failure) {
+      reviewError = describeTaskError(failure);
+    } finally {
+      reviewBusy = false;
+    }
+  }
+
   const focusFollowUp = (): void => document.getElementById('follow-up')?.focus();
 
 </script>
@@ -98,7 +115,8 @@
     </div>
   {:else}
     <div class="flex h-[calc(100dvh-3rem)] flex-col">
-      <TaskHeader task={$task} {archived} onstop={controller.stop} onconfirm={controller.confirm} onretry={controller.retry} />
+      <TaskHeader task={$task} {archived} onstop={controller.stop} onconfirm={controller.confirm} onretry={controller.retry} onenabledeepreview={enableDeepReview} {reviewBusy} />
+      {#if reviewError !== ''}<p class="px-4 py-2 text-sm text-error" role="alert">{reviewError}</p>{/if}
       {#if $task.originTaskId !== undefined}
         <div class="flex flex-wrap items-center gap-x-2 border-b border-[var(--brand-border)] bg-base-100 px-4 py-2 text-sm" role="status">
           <span class="badge badge-primary badge-soft badge-sm">Internal orchestrator</span>

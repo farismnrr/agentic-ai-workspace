@@ -52,6 +52,9 @@ export async function changeTasks(action: TaskBatchAction, ids: string[]): Promi
 
 export const loadTask = (id: string): Promise<Task> => request<Task>('GET', base(id));
 
+export const enableExternalDeepReview = (id: string): Promise<Task> =>
+  request<Task>('POST', `${base(id)}/deep-review`);
+
 export const pinTask = (id: string): Promise<Task> => request<Task>('PUT', `${base(id)}/pin`);
 
 export const unpinTask = (id: string): Promise<Task> => request<Task>('DELETE', `${base(id)}/pin`);
