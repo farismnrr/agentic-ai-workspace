@@ -83,4 +83,13 @@ jobs:
       - name: Verify Docker isolation on disposable runner
         env:
           SANDBOX_TEST_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
-        run: make volume-isolation
+        run: |
+          set -o pipefail
+          if make volume-isolation 2>&1 | tee "$RUNNER_TEMP/docker-volume-isolation.log"; then
+            echo 'PASS Docker volume-isolation'
+          else
+            # Annotate a bounded failure excerpt: the GitHub API can read it
+            # even when the Actions blob log endpoint is blocked by egress.
+            python3 -c 'import os,pathlib; t=pathlib.Path(os.environ["RUNNER_TEMP"]+"/docker-volume-isolation.log").read_text(errors="replace")[-3500:]; print("::error title=Docker isolation failure::"+t.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            exit 1
+          fi
