@@ -37,6 +37,9 @@ Each connected-app conversation shows as a task beside the work done in the app.
   research round. `ask_question` saves a question for you to answer in the app.
 - `update_plan` saves a draft. `submit_plan` sends its revision for your
   approval. `get_work_state` returns saved work, questions and decisions.
+  For both plan actions, use `plan_revision` from `get_work_state` as
+  `base_revision`, not the separate work-session `revision`. If another
+  change updates the plan, refresh state before trying again.
 - `complete_work` records the external session's outcome. It cannot finish or
   run the internal task created by an approved handoff.
 - Workspace tool calls, including `log_message`, require a tracked work ID and its

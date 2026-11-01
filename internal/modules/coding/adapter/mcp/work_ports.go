@@ -88,6 +88,7 @@ type WorkState struct {
 	Warnings     []string        `json:"warnings"`
 	Evidence     EvidenceCounts  `json:"evidence"`
 	Revision     int64           `json:"revision"`
+	PlanRevision int64           `json:"plan_revision"`
 	ResearchSize int             `json:"research_size"`
 	PRDSize      int             `json:"prd_size"`
 	Stale        bool            `json:"stale"`

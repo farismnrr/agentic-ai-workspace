@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 	"unicode/utf8"
@@ -36,30 +37,37 @@ func (w *Works) SetRoleWithBrief(
 	if err != nil {
 		return WorkRole{}, err
 	}
-	work, err := w.store.FindWork(ctx, userID, client, projectID, workID)
-	if err != nil {
-		return WorkRole{}, domain.ErrUnknownWork
-	}
-	if work.State != domain.WorkOpen && work.State != domain.WorkBlocked {
-		return WorkRole{}, domain.ErrWorkClosed
-	}
 	role, err := w.availableRole(ctx, userID, roleName)
 	if err != nil {
 		return WorkRole{}, err
 	}
-	if err := w.externalWorkRolesAllowed(ctx, userID, work, role.Key, nil); err != nil {
-		return WorkRole{}, err
-	}
-	if roleAlreadySet(work, role, cleanBrief) {
+	// Tool calls from the same external session may advance the work revision concurrently.
+	// Re-read and re-check authorization before retrying a compare-and-swap conflict.
+	for attempt := 0; attempt < 3; attempt++ {
+		work, findErr := w.store.FindWork(ctx, userID, client, projectID, workID)
+		if findErr != nil {
+			return WorkRole{}, domain.ErrUnknownWork
+		}
+		if work.State != domain.WorkOpen && work.State != domain.WorkBlocked {
+			return WorkRole{}, domain.ErrWorkClosed
+		}
+		if err := w.externalWorkRolesAllowed(ctx, userID, work, role.Key, nil); err != nil {
+			return WorkRole{}, err
+		}
+		if roleAlreadySet(work, role, cleanBrief) {
+			return role, nil
+		}
+		_, _, err = w.store.Commit(ctx, roleChange(work, userID, role, cleanBrief, w.now()))
+		if errors.Is(err, domain.ErrStaleRevision) {
+			continue
+		}
+		if err != nil {
+			return WorkRole{}, fmt.Errorf("set work role: %w", err)
+		}
+		w.notify(ctx, domain.Task{ID: work.TaskID, UserID: userID})
 		return role, nil
 	}
-	change := roleChange(work, userID, role, cleanBrief, w.now())
-	_, _, err = w.store.Commit(ctx, change)
-	if err != nil {
-		return WorkRole{}, fmt.Errorf("set work role: %w", err)
-	}
-	w.notify(ctx, domain.Task{ID: work.TaskID, UserID: userID})
-	return role, nil
+	return WorkRole{}, domain.ErrStaleRevision
 }
 
 func roleAlreadySet(work domain.ExternalWork, role WorkRole, brief string) bool {
