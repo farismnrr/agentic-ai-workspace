@@ -163,3 +163,12 @@ ready
 grant_verify_restart "$jar" "$state_file"
 assertion_summary
 echo 'PASS interrupted task grant fails closed and cannot be replayed after restart'
+
+# Exercise the actual published, read-only app container with its persistent
+# named project volume. The Python client issues standards-compliant tus
+# requests in 8 MiB chunks, restarts the app mid-transfer, and verifies the
+# published ZIP by SHA-256 through a separate read-only volume mount.
+python3 "$repo_root/test/smoke/docker_zip_upload.py" \
+  "$APP_BASE" "$jar" "$(jq -r '.project' "$state_file")" "$app" "$volume" \
+  | tee "$logs_dir/zip-upload.log"
+echo 'PASS real Docker ZIP 50MiB + near-512MiB chunking, restart and integrity'
