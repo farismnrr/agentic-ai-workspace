@@ -26,7 +26,7 @@ func (r *Runner) workOnPlan(
 		return failed("The "+d.RoleName+" is set to use your "+name+" plan, which is not signed in.", "")
 	}
 
-	allowed, err := worker.allowedTools(ctx, teammate.UserID)
+	allowed, err := worker.allowedTools(ctx, teammate.UserID, role)
 	if err != nil {
 		return failed("I could not check what the "+d.RoleName+" may use.", "")
 	}
@@ -82,16 +82,18 @@ func reportOf(role AgentRole, result CLIResult, closing string) outcome {
 }
 
 // allowedTools are the project tools this role may use, after the person's own switches.
-func (r *Runner) allowedTools(ctx context.Context, userID string) ([]string, error) {
+func (r *Runner) allowedTools(ctx context.Context, userID string, role AgentRole) ([]string, error) {
 	enabled, err := r.deps.Gate.Enabled(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("read tool switches: %w", err)
 	}
 
-	names := make([]string, 0, len(enabled))
-
-	for name, on := range enabled {
-		if on {
+	// Never pass globally enabled tools the teammate's server-owned role
+	// does not have. In particular, Developer must not inherit QA Bash/test
+	// or DevOps workflow execution just because the person enabled them.
+	names := make([]string, 0, len(role.Tools))
+	for _, name := range role.Tools {
+		if enabled[name] && !slices.Contains(names, name) {
 			names = append(names, name)
 		}
 	}

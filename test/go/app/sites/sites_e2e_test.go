@@ -9,7 +9,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/test/go/apptest"
 )
 
-const siteCommand = `echo '<h1>hello site</h1>' > index.html && exec python3 -m http.server $PORT --bind 127.0.0.1`
+const siteCommand = "python3 -m http.server 8123 --bind 127.0.0.1"
 
 // TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped runs the whole path with a real container:
 // the model asks to start an app, the person allows it, the app is opened through /run, and
@@ -23,6 +23,7 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 	}
 
 	a := apptest.NewAgentRigWith(t, func(c *config.Config) { c.SandboxImage = image },
+		apptest.ToolCall("html", "write_file", map[string]any{"path": "index.html", "content": "<h1>hello site</h1>"}),
 		apptest.ToolCall("s1", "start_site", map[string]any{"command": siteCommand, "port": 8123}),
 		apptest.FinishCall("Your page is running"),
 	)

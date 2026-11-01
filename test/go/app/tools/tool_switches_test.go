@@ -206,6 +206,7 @@ func TestTasksRunOnlyWhenSwitchedOnAndNeverExposeTheirFile(t *testing.T) {
 
 	apptest.RequireDocker(t)
 	enableTool(t, app, cookie, "run_task")
+	callTool(t, app, token, "set_role", `{"role":"qa"}`)
 	apptest.MustContain(t, callTool(t, app, token, "run_task", `{"name":"echo"}`).Body, "hello task", `"exit_code":0`)
 	apptest.MustContain(t, callTool(t, app, token, "run_task", `{"name":"nope"}`).Body, "unknown task")
 	apptest.MustContain(t, callTool(t, app, token, "read_file", `{"path":".workspace/tasks.json"}`).Body, "not available")

@@ -19,7 +19,7 @@ const Redirect = "https://chatgpt.com/connector_platform_oauth_redirect"
 const TestPassword = "correct horse"
 
 // SiteCommand is a local HTTP server command used by site integration tests.
-const SiteCommand = `echo '<h1>hello site</h1>' > index.html && exec python3 -m http.server $PORT --bind 127.0.0.1`
+const SiteCommand = "python3 -m http.server 8124 --bind 127.0.0.1"
 
 // PKCEVerifier is the verifier paired with PKCEChallenge.
 const PKCEVerifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"

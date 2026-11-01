@@ -34,6 +34,8 @@ func TestOwnerVolumeSubpathsAreIsolated(t *testing.T) {
 
 	runOwnerScope(t, ctx, engine, "a", "b")
 	runOwnerScope(t, ctx, engine, "b", "a")
+	runReadonlyBuildOutput(t, ctx, engine, "a")
+	runReadonlyBuildOutput(t, ctx, engine, "b")
 	assertOutsideDataRejected(t, ctx, engine)
 }
 
@@ -49,6 +51,7 @@ func runOwnerScope(t *testing.T, ctx context.Context, engine *sandbox.Docker, sc
 				" && test -e /cache/cache-" + scope +
 				" && test ! -e /cache/cache-" + other +
 				" && touch /workspace/wrote-" + scope +
+				" && mkdir -p /workspace/builds" +
 				" && echo SUBPATH_OK",
 		},
 	}
@@ -56,6 +59,25 @@ func runOwnerScope(t *testing.T, ctx context.Context, engine *sandbox.Docker, sc
 	result, err := engine.Run(ctx, spec, &output)
 	if err != nil || result.ExitCode != 0 || !strings.Contains(output.String(), "SUBPATH_OK") {
 		t.Fatalf("scope %s: code=%d err=%v output=%q", scope, result.ExitCode, err, output.String())
+	}
+}
+
+
+func runReadonlyBuildOutput(t *testing.T, ctx context.Context, engine *sandbox.Docker, scope string) {
+	t.Helper()
+	spec := sandbox.Spec{
+		Workspace: "/data/workspaces/" + scope,
+		WorkspaceReadOnly: true,
+		Artifacts: "/data/workspaces/" + scope + "/builds",
+		Argv: []string{"sh", "-c",
+			"if touch /workspace/forbidden 2>/dev/null; then exit 33; fi; " +
+				"touch /output/artifact-" + scope + " && test -e /workspace/builds/artifact-" + scope +
+				" && echo READONLY_OUTPUT_OK"},
+	}
+	var output bytes.Buffer
+	result, err := engine.Run(ctx, spec, &output)
+	if err != nil || result.ExitCode != 0 || !strings.Contains(output.String(), "READONLY_OUTPUT_OK") {
+		t.Fatalf("read-only artifact mount %s: code=%d err=%v output=%q", scope, result.ExitCode, err, output.String())
 	}
 }
 

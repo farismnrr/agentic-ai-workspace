@@ -28,6 +28,7 @@ func (d *Docker) sharedCmd(runID string, spec Spec, mounts []mount.Mount, logFil
 
 	for _, m := range mounts {
 		src := d.sharedMountSource(m)
+		inner.WriteString("mkdir -p " + shellQuote(m.Target) + "\n")
 		inner.WriteString("mount --bind " + shellQuote(src) + " " + shellQuote(m.Target) + "\n")
 		if m.ReadOnly {
 			inner.WriteString("mount -o remount,ro,bind " + shellQuote(m.Target) + "\n")

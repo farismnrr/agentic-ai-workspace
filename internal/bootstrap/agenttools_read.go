@@ -2,10 +2,12 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
+	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 )
 
@@ -81,6 +83,9 @@ func searchCode(_ context.Context, s codingmcp.Services, in toolArgs) taskapp.To
 
 func listTasks(_ context.Context, s codingmcp.Services, _ toolArgs) taskapp.ToolResult {
 	tasks, err := s.Tasks.List()
+	if errors.Is(err, codingdomain.ErrNoTasks) {
+		return taskapp.ToolResult{Output: "No named checks configured. QA can use verify with test/lint argv directly; tasks.json is optional."}
+	}
 	if err != nil {
 		return failure(err)
 	}

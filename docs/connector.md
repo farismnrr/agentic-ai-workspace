@@ -45,13 +45,31 @@ Each connected-app conversation shows as a task beside the work done in the app.
   Only account/project discovery is available before starting work.
 - Every tool is also checked against the current enabled Agent Team role. OAuth scope
   and tool switches cannot expand that role: Researcher cannot edit or execute,
-  Developer edits source/UI/assets/documents and uses MoLab, but cannot run tests or deploy.
+  Developer edits source/UI/assets/documents and uses MoLab, commits and pushes changes through
+  `git` with separate arguments (e.g. `["cherry-pick", "abc123"]`, `["push", "origin", "HEAD:dev"]`).
+  Developer also uses `gh` for GitHub Issues, Pull Requests, and reading Actions/CI.
+  QA uses `gh` for reading checks and PR review; DevOps owns reruns,
+  workflow dispatch and releases. These tools use direct arguments, never
+  unrestricted shell. Destructive Git commands and high-impact GitHub
+  administration remain unavailable without a separate approval capability.
   QA owns named checks and review, Security owns security checks, and DevOps owns
   named builds (`run_build`) and deployment. Project commands use read-only
   filesystem mounts; build steps must write scratch output, not source.
+- **QA does not need `.workspace/tasks.json`**. Use `verify` with an argv array such as
+  `["go", "test", "./test/go/app/connectors"]`, `["npm", "run", "lint"]`,
+  or `["python3", "-m", "pytest"]`. The source mount is read-only and
+  the run receives no project secrets, Git credentials, or egress grants.
+  The existing Run a task switch also controls `verify`; named checks are optional.
 - Declare DevOps builds in `.workspace/tasks.json` with `"kind":"build"`;
   QA checks use `"kind":"check"` (or omit kind). `run_task` refuses build
-  entries, while `run_build` refuses check entries.
+  entries, while `run_build` refuses check entries. Turn on the separate **Run a build**
+  tool in Settings; it no longer follows the general shell-command switch. A build
+  writes artifacts only to `BUILD_OUT=/output` (the source is read-only), and its
+  output is saved under the project's `.build-output-*/` folder. Developer
+  document/media generators use separate owner-configured `"kind":"artifact"`
+  tasks and the `run_artifact` tool; output is in `ARTIFACT_OUT=/output` and
+  persisted as `.artifact-output-*/`. QA cannot run builds or artifact tasks.
+  These are generated outputs, not permission to run tests or arbitrary shell.
 - Role restrictions are checked on the server. Switch through `set_role` within the
   same work ID. Named checks are user-configured programs, not a guaranteed
   read-only filesystem; they can create test output or modify files.

@@ -46,7 +46,10 @@ var presets = []preset{
 		prompt: "You build and edit code, UI, licensed visual assets and documents. Follow the project's design, " +
 			"keep changes focused and credit sourced images. Inspect changed screens with screenshots once DevOps " +
 			"starts the app; review generated document pages. Do not run QA tests, generic shell commands, builds " +
-			"or deployment; ask QA to check and DevOps to build/start the app. MoLab is permitted for notebook work.",
+			"or deployment; ask QA to check and DevOps to build/start the app. Commit and push source " +
+			"to dev using the Git tool after changes are ready. You may use Git branching, cherry-pick, " +
+			"rebase, merge, stash, commit and normal push. Use gh for GitHub Issues, PRs and reading CI; " +
+			"QA owns tests/review and DevOps owns workflow dispatch and releases. No general shell. MoLab is permitted.",
 	},
 	{
 		key: "security", name: "Security", access: []string{AccessRead, AccessExec}, security: true,
@@ -62,8 +65,9 @@ var presets = []preset{
 		purpose: "Runs targeted checks and independently reviews changed behavior without editing source.",
 		prompt: "You own QA checks AND independent code review. Run relevant named black-box checks, inspect " +
 			"changed code for correctness, security and regressions, then state Verdict: PASS or Verdict: FIX FIRST " +
-			"with evidence. Do not fix code, run arbitrary shell, deploy, or write source. Broaden testing only " +
-			"in deep-review or high-risk changes.",
+			"with evidence. Do not fix code, run arbitrary shell, deploy, or write source. When one external " +
+			"assistant switches from Developer to QA, call it same-assistant self-review, NOT an independent " +
+			"review. Broaden testing only in deep-review or high-risk changes.",
 	},
 	{
 		key: "devops", name: "DevOps", access: []string{AccessRead, AccessExec}, runs: true,

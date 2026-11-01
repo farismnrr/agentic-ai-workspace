@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	codingapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
-	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
 type toolArgs struct {
@@ -23,6 +21,7 @@ type toolArgs struct {
 	From             string `json:"from"`
 	To               string `json:"to"`
 	Name             string `json:"name"`
+	Args             []string `json:"args"`
 	Command          string `json:"command"`
 	Device           string `json:"device"`
 	URL              string `json:"url"`
@@ -76,7 +75,7 @@ func (a *agentTools) Execute(ctx context.Context, scope taskapp.ToolScope, call 
 		return problem("The tool arguments were not valid JSON.")
 	}
 
-	return handler(taskContext(ctx, scope), services, in)
+	return handler(codingdomain.WithVCSRole(taskContext(ctx, scope), scope.RoleKey), services, in)
 }
 
 func problem(message string) taskapp.ToolResult {
@@ -99,7 +98,11 @@ func toolHandlers() map[string]toolHandler {
 		"delete_file": deleteFile,
 		"move_file":   moveFile,
 		"run_task":    runTask,
+		"verify":      runVerify,
 		"run_build":   runBuild,
+		"run_artifact": runArtifact,
+		"git": runGit,
+		"gh": runGh,
 		"run_command": runCommand,
 	}
 }
@@ -141,10 +144,30 @@ func moveFile(_ context.Context, s codingmcp.Services, in toolArgs) taskapp.Tool
 	return changed(applied, err, in.From, in.To)
 }
 
+func runVerify(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
+	result, err := s.Tasks.Verify(ctx, in.Args)
+	return ran("verify", "QA verification", result.Command, result, err)
+}
+
 func runTask(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
 	result, err := s.Tasks.Run(ctx, in.Name)
 
 	return ran(in.Name, fmt.Sprintf("Task %q", in.Name), result.Command, result, err)
+}
+
+func runGit(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
+	result, err := s.Tasks.RunGit(ctx, in.Args)
+	return ran("git", "Git", result.Command, result, err)
+}
+
+func runGh(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
+	result, err := s.Tasks.RunGitHub(ctx, codingdomain.VCSRole(ctx), in.Args)
+	return ran("gh", "GitHub CLI", result.Command, result, err)
+}
+
+func runArtifact(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
+	result, err := s.Tasks.RunArtifact(ctx, in.Name)
+	return ran(in.Name, fmt.Sprintf("Artifact %q", in.Name), result.Command, result, err)
 }
 
 func runBuild(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.ToolResult {
@@ -160,42 +183,4 @@ func runCommand(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.
 	return ran(commandName(in.Command), "Command", in.Command, result, err)
 }
 
-const maxCommandName = 60
 
-// commandName is how a command is listed among the checks that ran: its first line, kept short.
-func commandName(command string) string {
-	line, _, _ := strings.Cut(strings.TrimSpace(command), "\n")
-	runes := []rune(line)
-
-	if len(runes) > maxCommandName {
-		return string(runes[:maxCommandName]) + "…"
-	}
-
-	return line
-}
-
-// ran words a finished run for the model and records it as a check that really ran.
-func ran(name, label, command string, result codingapp.RunResult, err error) taskapp.ToolResult {
-	if err != nil {
-		return failure(err)
-	}
-
-	verdict := fmt.Sprintf("exit code %d", result.ExitCode)
-
-	switch {
-	case result.TimedOut:
-		verdict = "timed out"
-	case result.ExitCode == 0:
-		verdict = "passed (exit code 0)"
-	}
-
-	return taskapp.ToolResult{
-		Output: fmt.Sprintf("%s finished: %s.\n%s", label, verdict, result.Output),
-		Note:   verdict,
-		Run: &taskdomain.RunInfo{
-			Name: name, Command: command, EffectPaths: result.EffectPaths, EffectsKnown: result.EffectsKnown,
-			ExitCode: result.ExitCode, TimedOut: result.TimedOut,
-			TestExecuted: goTestsExecuted(command, result.Output, result.Truncated),
-		},
-	}
-}

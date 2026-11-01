@@ -31,6 +31,9 @@ const ViewDir = "/run/view"
 // BridgeDir is where the folder holding the socket of tools the server runs for a program appears.
 const BridgeDir = "/run/bridge"
 
+// BuildOutput is the only writable artifact target for read-only builds.
+const BuildOutput = "/output"
+
 // Home is where a person's own folder for a vendor CLI (its login and sessions) appears.
 const Home = "/home/cli"
 
@@ -57,6 +60,9 @@ type Spec struct {
 	Home string
 	// Bridge is an optional folder holding the socket of tools the server runs, shown at /run/bridge.
 	Bridge string
+	// Artifacts is a dedicated writable output folder for builds with
+	// read-only project source. It is mounted at /output.
+	Artifacts string
 	// Tunnels are optional "host:port" targets, such as a project's database and model gateway, that the proxy
 	// socket may reach. The start script opens each port on loopback and each host name resolves to it. It
 	// needs Egress to be set.

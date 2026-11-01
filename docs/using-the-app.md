@@ -381,10 +381,10 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Researcher | Reads the project and researches the web with sources; cannot edit or execute |
 | Planner | Combines business analysis, requirements, PRD and planning; cannot code or test |
 | Architect | Designs/reviews module contracts; read-only |
-| Developer | Codes, designs UI, sources images, creates documents, takes screenshots and uses MoLab; cannot test or deploy |
-| QA & Review | Runs named checks and independent review; source code is read-only |
+| Developer | Codes, UI, media, docs, MoLab; regular Git operations and GitHub Issues/PRs via `git`/`gh`, reads CI; cannot run QA tests or deploy |
+| QA & Review | Runs tests, lint, typechecks and reviews through `verify` in a read-only sandbox; named checks are optional |
 | Security | Reviews vulnerabilities and runs named security checks; source code is read-only |
-| DevOps | Runs approved named builds, starts apps, packages and deploys; cannot edit source or use arbitrary shell |
+| DevOps | Runs named builds, Apps, releases and authorized GitHub Actions via `gh`; cannot edit source, commit/push code or use general shell |
 
 Under Settings, Agent team you can change each role:
 
@@ -393,7 +393,13 @@ Under Settings, Agent team you can change each role:
 - For a role you add, choose what it may do: look at files, change files, run commands. Built-in roles keep the access that fits them.
 - Turn a role off, or add your own. Built-in roles cannot be removed, and what you add is yours alone.
 - Reset to built-in restores the eight default roles. Old Designer, Media and Documents work maps to Developer; old Reviewer maps to QA, and Business Analyst to Planner. Historical role labels remain in task logs.
-- Configure a DevOps build under `.workspace/tasks.json` with `"kind":"build"`; QA checks use `"kind":"check"` or omit kind. Both execute with read-only project mounts; build output must go to temporary locations rather than modifying source.
+- Configure a DevOps build under `.workspace/tasks.json` with `"kind":"build"`; QA checks use `"kind":"check"` or omit kind. Both execute with read-only project mounts; DevOps builds write to `BUILD_OUT=/output`,
+  persisted in a fresh `.build-output-*/` folder in the project. Developer
+  media/document generation runs through separately enabled owner-configured
+  `"kind":"artifact"` tasks, with output in `.artifact-output-*/`. Enable **Run a build**
+  separately from **Run a command** in Spaces & tools. Running sites uses one
+  direct server-start command (for example `npm start` or `python3 -m http.server 8000`),
+  never chained Bash. Apps can store runtime data under `APP_DATA_DIR`.
 
 Good to know:
 

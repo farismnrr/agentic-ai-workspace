@@ -37,8 +37,13 @@ func GitEnvironment(g Git) []string {
 	return []string{
 		"GH_TOKEN=" + g.Token, "GIT_TERMINAL_PROMPT=0", "GH_PROMPT_DISABLED=1",
 		"GH_NO_UPDATE_NOTIFIER=1", "GH_NO_EXTENSION_UPDATE_NOTIFIER=1",
-		"GIT_CONFIG_COUNT=1",
+		"GIT_EDITOR=/bin/true", "GIT_SEQUENCE_EDITOR=/bin/true",
+		"GIT_PAGER=cat", "GIT_EXTERNAL_DIFF=/bin/false",
+		"GIT_SSH_COMMAND=/bin/false", "GIT_LFS_SKIP_SMUDGE=1",
+		"GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_CONFIG_COUNT=2",
 		"GIT_CONFIG_KEY_0=credential.https://github.com.helper", "GIT_CONFIG_VALUE_0=" + helper,
+		"GIT_CONFIG_KEY_1=core.hooksPath", "GIT_CONFIG_VALUE_1=/dev/null",
 		"GIT_AUTHOR_NAME=" + g.Name, "GIT_AUTHOR_EMAIL=" + g.Email,
 		"GIT_COMMITTER_NAME=" + g.Name, "GIT_COMMITTER_EMAIL=" + g.Email,
 	}

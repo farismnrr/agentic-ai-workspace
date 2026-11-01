@@ -56,6 +56,7 @@ func TestAConnectedAppsWorkShowsInItsThreadWhileItRuns(t *testing.T) {
 	env := apptest.NewEnv(t)
 	cookie, chatgpt := apptest.SignedInClient(t, env.App)
 	apptest.EnableTool(t, env.App, cookie, "run_command")
+	apptest.EnableTool(t, env.App, cookie, "run_build")
 	// Builds are explicit owner-configured tasks, distinct from QA checks.
 	buildPath := filepath.Join(apptest.UserWorkspace(t, env, cookie, "ChatGPT"), ".workspace", "tasks.json")
 	if err := os.MkdirAll(filepath.Dir(buildPath), 0o700); err != nil {

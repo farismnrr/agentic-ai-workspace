@@ -58,6 +58,7 @@ func startedSite(t *testing.T, port int) (apptest.AgentRig, string) {
 		apptest.FinishCall("Your page is running"),
 	)
 
+	a.PutFile(t, "index.html", "<h1>hello site</h1>")
 	id := a.Start(t, "Show me a page")
 	a.WaitApproving(t, id, "done")
 

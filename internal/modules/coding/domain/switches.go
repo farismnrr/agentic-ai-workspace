@@ -4,7 +4,6 @@ package domain
 var followsRunCommand = map[string]bool{
 	ToolStartSite.Name: true, ToolStopSite.Name: true, ToolScreenshot.Name: true, ToolDeployExtension.Name: true,
 	ToolRequestEgress.Name: true, ToolCILogs.Name: true, ToolMarimoExecute.Name: true,
-	ToolRunBuild.Name: true,
 }
 
 var followsLogMessage = map[string]bool{
@@ -23,6 +22,12 @@ func SwitchOf(tool string) string {
 
 	if followsLogMessage[tool] {
 		return ToolLogMessage.Name
+	}
+
+	if tool == ToolVerify.Name {
+		// Keep one existing QA execution switch. Named tasks are optional,
+		// and owners need not discover an additional toggle for verification.
+		return ToolRunTask.Name
 	}
 
 	if followsRunCommand[tool] {

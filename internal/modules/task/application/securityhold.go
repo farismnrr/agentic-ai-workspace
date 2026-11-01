@@ -102,7 +102,7 @@ func (r *Runner) isReviewReport(ctx context.Context, task domain.Task, event dom
 		return false
 	}
 	d, found, err := r.deps.Delegations.FindDelegation(ctx, task.ID, event.Job)
-	return err == nil && found && d.RoleKey == reviewer.Key
+	return err == nil && found && canonicalMemberKey(d.RoleKey) == canonicalMemberKey(reviewer.Key)
 }
 
 func securityOf(roster *Roster) AgentRole {

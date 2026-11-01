@@ -11,15 +11,6 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
-type taskInfo struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Kind        string `json:"kind"`
-}
-
-type tasksOutput struct {
-	Tasks []taskInfo `json:"tasks"`
-}
 
 type runInput struct {
 	Target
@@ -35,6 +26,7 @@ type runOutput struct {
 	Truncated  bool   `json:"truncated" jsonschema:"true when earlier output was dropped"`
 }
 
+
 type commandInput struct {
 	Target
 	Command        string `json:"command" jsonschema:"shell command line, run with bash in the sandbox"`
@@ -48,11 +40,20 @@ type whoamiOutput struct {
 func (t *tools) addExecTools(server *sdk.Server) {
 	sdk.AddTool(server, toolOf(domain.ToolRunTask), guarded(t.guard, domain.ToolRunTask,
 		func(in runInput) string { return "run " + in.Name }, t.runTask))
+	sdk.AddTool(server, toolOf(domain.ToolVerify), guarded(t.guard, domain.ToolVerify,
+		func(in gitInput) string { return vcsSummary("verify", in.Args) }, t.verify))
 	sdk.AddTool(server, toolOf(domain.ToolRunBuild), guarded(t.guard, domain.ToolRunBuild,
 		func(in runInput) string { return "build " + in.Name }, t.runBuild))
+	sdk.AddTool(server, toolOf(domain.ToolRunArtifact), guarded(t.guard, domain.ToolRunArtifact,
+		func(in runInput) string { return "artifact " + in.Name }, t.runArtifact))
+	sdk.AddTool(server, toolOf(domain.ToolGit), guarded(t.guard, domain.ToolGit,
+		func(in gitInput) string { return vcsSummary("git", in.Args) }, t.runGit))
+	sdk.AddTool(server, toolOf(domain.ToolGh), guarded(t.guard, domain.ToolGh,
+		func(in gitInput) string { return vcsSummary("gh", in.Args) }, t.runGh))
 	sdk.AddTool(server, toolOf(domain.ToolRunCommand), guarded(t.guard, domain.ToolRunCommand,
 		func(in commandInput) string { return "command: " + in.Command }, t.runCommand))
 }
+
 
 func (t *tools) runCommand(ctx context.Context, in commandInput) (runOutput, report, error) {
 	svc, err := t.services(ctx)
@@ -92,27 +93,25 @@ func runNote(name string, result application.RunResult) *RunNote {
 	return &RunNote{Name: name, ExitCode: result.ExitCode, TimedOut: result.TimedOut}
 }
 
-func (t *tools) listTasks(ctx context.Context, _ Target) (tasksOutput, report, error) {
+
+func (t *tools) runArtifact(ctx context.Context, in runInput) (runOutput, report, error) {
 	svc, err := t.services(ctx)
 	if err != nil {
-		return tasksOutput{}, report{}, err
+		return runOutput{}, report{}, err
 	}
-
-	tasks, err := svc.Tasks.List()
+	if err = t.recheckWork(ctx, svc.ProjectID); err != nil {
+		return runOutput{}, report{}, err
+	}
+	result, err := svc.Tasks.RunArtifact(ctx, in.Name)
 	if err != nil {
-		return tasksOutput{}, report{}, fmt.Errorf("list tasks: %w", err)
+		return runOutput{}, report{}, fmt.Errorf("run artifact: %w", err)
 	}
-
-	out := tasksOutput{Tasks: make([]taskInfo, 0, len(tasks))}
-	for _, task := range tasks {
-		kind := task.Kind
-		if kind == "" {
-			kind = "check"
-		}
-		out.Tasks = append(out.Tasks, taskInfo{Name: task.Name, Description: task.Description, Kind: kind})
+	out := runOutput{
+		Name: in.Name, Output: result.Output, ExitCode: result.ExitCode, DurationMS: result.Duration.Milliseconds(),
+		TimedOut: result.TimedOut, Truncated: result.Truncated,
 	}
-
-	return out, report{}, nil
+	return out, report{detail: fmt.Sprintf("exit code %d", result.ExitCode),
+		failed: result.ExitCode != 0, run: runNote(out.Name, result)}, nil
 }
 
 func (t *tools) runBuild(ctx context.Context, in runInput) (runOutput, report, error) {
@@ -130,6 +129,27 @@ func (t *tools) runBuild(ctx context.Context, in runInput) (runOutput, report, e
 	out := runOutput{
 		Name: in.Name, Output: result.Output, ExitCode: result.ExitCode, DurationMS: result.Duration.Milliseconds(),
 		TimedOut: result.TimedOut, Truncated: result.Truncated,
+	}
+	return out, report{detail: fmt.Sprintf("exit code %d", result.ExitCode),
+		failed: result.ExitCode != 0, run: runNote(out.Name, result)}, nil
+}
+
+func (t *tools) verify(ctx context.Context, in gitInput) (runOutput, report, error) {
+	svc, err := t.services(ctx)
+	if err != nil {
+		return runOutput{}, report{}, err
+	}
+	if err = t.recheckWork(ctx, svc.ProjectID); err != nil {
+		return runOutput{}, report{}, err
+	}
+	result, err := svc.Tasks.Verify(ctx, in.Args)
+	if err != nil {
+		return runOutput{}, report{}, fmt.Errorf("QA verification: %w", err)
+	}
+	out := runOutput{
+		Name: "verify", Output: result.Output, ExitCode: result.ExitCode,
+		DurationMS: result.Duration.Milliseconds(), TimedOut: result.TimedOut,
+		Truncated: result.Truncated,
 	}
 	return out, report{detail: fmt.Sprintf("exit code %d", result.ExitCode),
 		failed: result.ExitCode != 0, run: runNote(out.Name, result)}, nil

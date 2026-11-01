@@ -30,7 +30,7 @@ const (
 var (
 	ErrNotFound     = errors.New("site not found")
 	ErrBadPort      = errors.New("use a port between 1024 and 65535")
-	ErrBadCommand   = errors.New("give the command that starts the app")
+	ErrBadCommand   = errors.New("use a single supported start command (npm start/preview, node server.js, python3 -m http.server, go run); no shell operators or tests")
 	ErrNeverStarted = errors.New("this app has not been started before; ask the AI to start it once")
 	ErrBadChoice    = errors.New("visibility must be private or public")
 	ErrTooMany      = errors.New("you already have the most apps running; stop one on the Sites page first")

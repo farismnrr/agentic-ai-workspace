@@ -79,7 +79,16 @@ func (t Team) WithBuiltIns() Team {
 		// The merged jobs have new required responsibilities; persisted old
 		// descriptions must not keep telling agents to delegate to retired roles.
 		if built.Key == "developer" || built.Key == "qa" || built.Key == "planner" || built.Key == "devops" {
-			roles[at].Name, roles[at].Purpose, roles[at].Prompt = built.Name, built.Purpose, built.Prompt
+			if roles[at].Name == "" {
+				roles[at].Name = built.Name
+			}
+			if roles[at].Purpose == "" {
+				roles[at].Purpose = built.Purpose
+			}
+			// Never replace a person's custom role instructions during migration.
+			if roles[at].Prompt == "" {
+				roles[at].Prompt = built.Prompt
+			}
 		}
 		roles[at].Skills, roles[at].Library, roles[at].WritesPRD = built.Skills, built.Library, built.WritesPRD
 		roles[at].WritesResearch, roles[at].ChecksSecurity = built.WritesResearch, built.ChecksSecurity
