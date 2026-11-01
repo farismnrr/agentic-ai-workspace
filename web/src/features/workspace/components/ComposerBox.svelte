@@ -54,6 +54,9 @@
     onComplete: (id, result) => {
       attachments = updateAttachment(attachments, id, () => result);
     },
+    onProgress: (id, bytes, phase) => {
+      attachments = updateAttachment(attachments, id, (item) => ({ ...item, uploaded: bytes, phase }));
+    },
     onProjectChange: () => {
       attachments = attachments.map(({ id: itemId, file }) => ({ id: itemId, file, status: 'loading' }));
     },
@@ -87,7 +90,8 @@
   }
 
   function remove(idToRemove: string): void {
-    uploader.cancel(idToRemove);
+    const removing = attachments.find((item) => item.id === idToRemove);
+    if (removing) uploader.discard(idToRemove, removing.file);
     const index = attachments.findIndex((item) => item.id === idToRemove);
     attachments = attachments.filter((item) => item.id !== idToRemove);
     requestAnimationFrame(() => {
@@ -97,6 +101,15 @@
       }
       else document.getElementById(id)?.focus();
     });
+  }
+
+  function pause(idToPause: string): void {
+    uploader.cancel(idToPause);
+    attachments = updateAttachment(attachments, idToPause, (item) => ({ ...item, status: 'paused' }));
+  }
+
+  function resume(idToResume: string): void {
+    attachments = updateAttachment(attachments, idToResume, (item) => ({ ...item, status: 'loading' }));
   }
 
   function retry(idToRetry: string): void {
@@ -153,7 +166,7 @@
     <RoleMentionInput {id} bind:text {placeholder} disabled={disabled || busy}
       {onkeydown} onpaste={inputHandlers.paste} />
     {#if attachments.length > 0}
-      <AttachmentChips {attachments} {busy} waiting={needsProject} onremove={remove} onretry={retry} />
+      <AttachmentChips {attachments} {busy} waiting={needsProject} onremove={remove} onretry={retry} onpause={pause} onresume={resume} />
     {/if}
     <div class="flex flex-wrap items-center gap-1 px-2 pb-2">
       <ComposerControls {id} {projects} bind:project {attachable} {disabled} {busy} {tools} onattach={attach} />
@@ -184,6 +197,6 @@
     {uploadProgress}
     {error}
     pickerErrors={pickerErrors}
-    warning={totalSize > 100 * 1024 * 1024}
+    warning={totalSize > 512 * 1024 * 1024}
   />
 </form>

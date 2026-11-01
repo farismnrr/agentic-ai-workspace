@@ -10,9 +10,11 @@
     waiting?: boolean;
     onremove: (id: string) => void;
     onretry: (id: string) => void;
+    onpause?: (id: string) => void;
+    onresume?: (id: string) => void;
   }
 
-  let { attachments, busy = false, waiting = false, onremove, onretry }: Props = $props();
+  let { attachments, busy = false, waiting = false, onremove, onretry, onpause, onresume }: Props = $props();
   // Plain map on purpose: previewUrl() runs while rendering, where writing reactive state is an error.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- never read reactively
   const previews = new Map<File, string>();
@@ -83,6 +85,11 @@
         <span class="block max-w-44 truncate text-xs font-medium">{attachment.file.name}</span>
         <span class="block text-xs text-[var(--brand-text-secondary)] [overflow-wrap:anywhere]">
           {formatFileSize(attachment.file.size)}
+          {#if attachment.status === 'loading' && attachment.phase === 'validating'} · Validating ZIP…
+          {:else if attachment.status === 'loading' && attachment.uploaded !== undefined}
+            · {Math.round(100 * attachment.uploaded / attachment.file.size)}% uploaded
+          {:else if attachment.status === 'paused'} · Paused
+          {/if}
           {#if attachment.status === 'ready'} · Uploaded{/if}
           {#if attachment.status === 'failed'}<span class="text-error"> · {attachment.error}</span>{/if}
           {#if kind === 'video'} · The AI can't watch videos.{/if}
@@ -93,8 +100,16 @@
           <span class="text-xs" role="status">Choose a project to upload</span>
         {:else}
           <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
-          <span class="text-xs" role="status">Uploading…</span>
+          <span class="text-xs" role="status">{attachment.phase === 'validating' ? 'Validating…' : 'Uploading…'}</span>
         {/if}
+      {/if}
+      {#if attachment.status === 'loading' && !waiting && onpause}
+        <button type="button" class="btn btn-ghost btn-xs" disabled={busy}
+          aria-label="Pause {attachment.file.name}" onclick={() => onpause?.(attachment.id)}>Pause</button>
+      {/if}
+      {#if attachment.status === 'paused'}
+        <button type="button" class="btn btn-ghost btn-xs" disabled={busy}
+          aria-label="Resume {attachment.file.name}" onclick={() => onresume?.(attachment.id)}>Resume</button>
       {/if}
       {#if attachment.status === 'failed'}
         <Icon name="alert-triangle" class="size-4 shrink-0 text-error" />

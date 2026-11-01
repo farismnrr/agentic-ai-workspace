@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	maxArchiveFiles    = 256
-	maxArchiveUnpacked = 100 << 20
+	maxArchiveFiles    = 5000
+	maxArchiveUnpacked = 2 << 30
+	maxArchiveFile     = 512 << 20
 	maxArchiveRatio    = 200
 	maxArchivePath     = 256
 	maxArchiveDepth    = 12
@@ -23,11 +24,27 @@ var errUnsafeArchive = fmt.Errorf("%w: unsafe ZIP archive", domain.ErrUnsupporte
 
 // validateArchive checks the contents without extracting any file onto the host.
 func (e *Editor) validateArchive(relative string, size int64) error {
-	data, err := e.readArchivedBytes(relative, size)
-	if err != nil {
-		return err
+	if size < 22 || size > domain.MaxZIPBytes {
+		return errUnsafeArchive
 	}
-	reader, err := zip.NewReader(bytes.NewReader(data), size)
+	file, actual, err := e.files.Open(relative)
+	if err != nil {
+		return fmt.Errorf("read ZIP: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	if actual != size {
+		return errUnsafeArchive
+	}
+	var signature [4]byte
+	if _, err := io.ReadFull(file, signature[:]); err != nil ||
+		!bytes.Equal(signature[:], []byte{'P', 'K', 3, 4}) {
+		return errUnsafeArchive
+	}
+	readerAt, ok := file.(io.ReaderAt)
+	if !ok {
+		return errUnsafeArchive // never buffer entire archives in RAM
+	}
+	reader, err := zip.NewReader(readerAt, size)
 	if err != nil || len(reader.File) == 0 || len(reader.File) > maxArchiveFiles {
 		return errUnsafeArchive
 	}
@@ -39,25 +56,6 @@ func (e *Editor) validateArchive(relative string, size int64) error {
 		}
 	}
 	return nil
-}
-
-func (e *Editor) readArchivedBytes(relative string, size int64) ([]byte, error) {
-	if size < 22 || size > domain.MaxUploadBytes {
-		return nil, errUnsafeArchive
-	}
-	file, _, err := e.files.Open(relative)
-	if err != nil {
-		return nil, fmt.Errorf("read ZIP: %w", err)
-	}
-	defer func() { _ = file.Close() }()
-	data, err := io.ReadAll(io.LimitReader(file, domain.MaxUploadBytes+1))
-	if err != nil {
-		return nil, fmt.Errorf("read ZIP: %w", err)
-	}
-	if int64(len(data)) != size {
-		return nil, errUnsafeArchive
-	}
-	return data, nil
 }
 
 func validArchiveName(name string, seen map[string]bool) bool {
@@ -109,11 +107,11 @@ func supportedArchiveEntry(entry *zip.File) bool {
 
 func withinArchiveLimits(entry *zip.File, total uint64) bool {
 	unpacked := entry.UncompressedSize64
-	if unpacked > maxArchiveUnpacked || total+unpacked > maxArchiveUnpacked {
+	if unpacked > maxArchiveFile || unpacked > maxArchiveUnpacked || total > maxArchiveUnpacked-unpacked {
 		return false
 	}
 	if unpacked > 0 && (entry.CompressedSize64 == 0 ||
-		unpacked/entry.CompressedSize64 > maxArchiveRatio) {
+		unpacked > entry.CompressedSize64*maxArchiveRatio) {
 		return false
 	}
 	return true
@@ -132,7 +130,7 @@ func scanArchiveEntry(entry *zip.File, unpacked uint64) error {
 	if err != nil {
 		return errUnsafeArchive
 	}
-	// unpacked is validated above to be <=100 MiB, far below MaxInt64.
+	// unpacked is validated above to be <=512 MiB, far below MaxInt64.
 	expected := int64(unpacked) //nolint:gosec // checked in validateArchiveEntry
 	n, readErr := io.Copy(io.Discard, io.LimitReader(reader, expected+1))
 	closeErr := reader.Close()

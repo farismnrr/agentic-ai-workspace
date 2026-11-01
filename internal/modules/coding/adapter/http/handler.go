@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -21,6 +22,8 @@ const (
 type Handler struct {
 	workspaces Workspaces
 	changes    Changes
+	zipLocks   sync.Map // one lock per project, across short-lived Editor instances
+	zipWorkers sync.Map // deduplicate background validation within this process
 }
 
 // NewHandler builds the file HTTP adapter.
@@ -43,6 +46,12 @@ func (h *Handler) Mount(auth, sameOrigin fiber.Handler, session httpserver.Authe
 		app.Get("/api/projects/:id/file/raw", auth, h.raw)
 		app.Post("/api/projects/:id/assets", auth, sameOrigin, h.upload)
 		app.Post("/api/projects/:id/uploads", auth, sameOrigin, uploadConcurrency(maxConcurrentUploads), h.uploadFile)
+		app.Get("/api/projects/:id/uploads/limits", auth, h.zipLimits)
+		app.Options("/api/projects/:id/uploads/resumable", auth, h.zipOptions)
+		app.Post("/api/projects/:id/uploads/resumable", auth, sameOrigin, h.zipCreate)
+		app.Head("/api/projects/:id/uploads/resumable/:uploadId", auth, h.zipHead)
+		app.Patch("/api/projects/:id/uploads/resumable/:uploadId", auth, sameOrigin, uploadConcurrency(maxConcurrentUploads), h.zipPatch)
+		app.Delete("/api/projects/:id/uploads/resumable/:uploadId", auth, sameOrigin, h.zipDelete)
 		app.Put("/api/projects/:id/file", auth, sameOrigin, h.save)
 		app.Delete("/api/projects/:id/file", auth, sameOrigin, h.remove)
 	}

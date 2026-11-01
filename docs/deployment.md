@@ -13,9 +13,22 @@ Install, update, back up and configure the app. To learn what it does, read [usi
 All three need Docker, because the AI's commands run in short-lived containers. Without Docker the app still works, but checks can't run. The app opens on `http://localhost:8081`.
 
 If a reverse proxy sits in front of the app, allow request bodies up to about
-101 MB for `POST /api/projects/:id/uploads`. Large multipart parts spool to the
-system temporary directory (`TMPDIR`); keep about 100 MB free there during an
-upload. Uploads do not have a per-project storage quota.
+101 MB for existing multipart video uploads at `POST /api/projects/:id/uploads`.
+**ZIP attachments use resumable 8 MiB PATCH chunks** at
+`/api/projects/:id/uploads/resumable/:uploadId`, so the proxy must permit
+PATCH and HEAD and must not buffer uploads longer than its timeout. A ZIP can
+be up to 512 MiB without making one 512 MiB HTTP request. The global ordinary
+API body cap stays at 11 MiB. Large multipart parts still spool to `TMPDIR`.
+
+ZIPs are held in the project's persistent `.workspace/resumable-uploads`
+staging directory, not `TMPDIR`. The server enforces 4 GiB/project upload
+storage quota, reserves declared sizes, and requires 128 MiB of extra free
+filesystem headroom. A resumable session expires after 24 hours idle or
+72 hours total; expired staging is removed when new sessions are created in
+the same project. Keep sufficient capacity in the project data volume.
+Archive validation happens after all chunks, without loading the complete ZIP
+into Go memory. It permits at most 5,000 entries and 2 GiB expanded data, and
+rejects malicious paths, links, nested archives, and unsafe compression ratios.
 
 The larger request allowance is selected before sign-in checks, based on the
 presence of a Cookie header. A large request can therefore use temporary disk
