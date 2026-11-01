@@ -64,8 +64,10 @@ func (w *Works) finishWork(ctx context.Context, work domain.ExternalWork, task d
 	}
 	// A connected assistant must not close an owner-enabled Deep Review
 	// after code changes without a fresh, server-attributed Security report.
-	if outcome == "completed" && !externalDeepReviewReady(task, events) {
-		return Completion{}, domain.ErrReviewRequired
+	if outcome == "completed" {
+		if missing := externalDeepReviewMissing(task, events); missing != "" {
+			return Completion{}, fmt.Errorf("%s: %w", missing, domain.ErrReviewRequired)
+		}
 	}
 	proof := buildProof(events, claims)
 	state, status, kind, text := completionState(outcome, summary)
