@@ -75,7 +75,7 @@ func TestResumableZIPHTTPBlackBoxAuthorizesResumesAndPublishes(t *testing.T) {
 	patchHeaders := map[string]string{"Cookie": cookie, "Tus-Resumable": "1.0.0",
 		"Content-Type": "application/offset+octet-stream", "Upload-Offset": "0"}
 	part := apptest.Do(t, env.App, "PATCH", url, string(raw[:half]), patchHeaders)
-	if part.Status != 200 || part.Header.Get("Upload-Offset") != fmt.Sprint(half) {
+	if part.Status != 204 || part.Header.Get("Upload-Offset") != fmt.Sprint(half) {
 		t.Fatalf("first PATCH: %d %s", part.Status, part.Body)
 	}
 	replay := apptest.Do(t, env.App, "PATCH", url, string(raw[:half]), patchHeaders)
@@ -84,8 +84,8 @@ func TestResumableZIPHTTPBlackBoxAuthorizesResumesAndPublishes(t *testing.T) {
 	}
 	patchHeaders["Upload-Offset"] = fmt.Sprint(half)
 	finish := apptest.Do(t, env.App, "PATCH", url, string(raw[half:]), patchHeaders)
-	if finish.Status != 202 {
-		t.Fatalf("last PATCH should acknowledge validation: %d %s", finish.Status, finish.Body)
+	if finish.Status != 204 || finish.Header.Get("Upload-Offset") != strconv.Itoa(len(raw)) {
+		t.Fatalf("tus PATCH must acknowledge final offset with 204: %d %s", finish.Status, finish.Body)
 	}
 	var uploadPath string
 	var again apptest.Reply

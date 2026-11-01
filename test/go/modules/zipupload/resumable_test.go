@@ -77,6 +77,12 @@ func TestResumableZIPReopensFromDurableOffsetAndPublishesOnce(t *testing.T) {
 	if err != nil || complete.Offset != int64(len(raw)) {
 		t.Fatalf("append last: %v %+v", err, complete)
 	}
+	if complete.State != "validating" {
+		t.Fatalf("complete transfer must transition to validating: %+v", complete)
+	}
+	if _, err := app.StartZIP("owner", "overlapping.zip", int64(len(raw))); !errors.Is(err, coding.ErrZIPQuota) {
+		t.Fatalf("validating ZIP must still reserve quota and project upload slot: %v", err)
+	}
 	ready, err := app.FinishZIP(session.ID, "owner")
 	if err != nil || ready.State != "ready" || ready.Path == "" {
 		t.Fatalf("publish: %v %+v", err, ready)

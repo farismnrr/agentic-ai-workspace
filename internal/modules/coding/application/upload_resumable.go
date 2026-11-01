@@ -181,7 +181,7 @@ func (e *Editor) reserveZIP(size int64) error {
 			}
 			continue
 		}
-		if session.State == "uploading" || session.State == "publishing" {
+		if session.State == "uploading" || session.State == "validating" || session.State == "publishing" {
 			active++
 			used += session.Size
 		}

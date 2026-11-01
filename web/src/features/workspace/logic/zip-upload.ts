@@ -114,10 +114,12 @@ export async function uploadZIP(projectId: string, file: File, signal: AbortSign
         'Tus-Resumable': tus, 'Upload-Offset': String(current.offset),
         'Content-Type': 'application/offset+octet-stream',
       }, signal, file.slice(current.offset, end));
-      const result = await response.json() as { offset:number; state:string; path?:string };
-      if (result.offset !== end) throw new Error('Server returned an unexpected upload offset.');
-      current = result;
-      progress(current.offset, 'uploading');
+      const acknowledged = Number(response.headers.get('Upload-Offset'));
+      if (!Number.isSafeInteger(acknowledged) || acknowledged !== end) {
+        throw new Error('Server returned an unexpected upload offset.');
+      }
+      current = { offset: acknowledged, state: response.headers.get('Upload-State') ?? 'uploading' };
+      progress(current.offset, current.state === 'validating' ? 'validating' : 'uploading');
       attempts = 0;
     } catch (error) {
       if (signal.aborted || !recoverable(error) || attempts >= 5) throw error;
