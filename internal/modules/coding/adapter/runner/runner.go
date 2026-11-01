@@ -90,12 +90,37 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 	ctx, cancel := context.WithTimeout(r.bind(ctx), task.Timeout())
 	defer cancel()
 
-	before := snapshotEffects(ctx, r.dir)
+	// QA/Security commands execute with an OS-enforced read-only project
+	// mount. The mount, not a bounded file scan, proves that this command
+	// cannot alter workspace files. Large projects can exceed snapshot
+	// limits even though the mount is still immutable.
+	immutable := readOnlyCheck(ctx, task)
+	var before effectSnapshot
+	if !immutable {
+		before = snapshotEffects(ctx, r.dir)
+	}
 	result := r.execute(ctx, task, cancel)
-	after := snapshotEffects(ctx, r.dir)
 	result.Command = strings.Join(task.Command, " ")
-	result.EffectPaths, result.EffectsKnown = changedEffects(before, after)
+	if immutable {
+		// Only attest to effects after the container has actually executed.
+		// Startup failures/timeouts remain unverified, and builds with
+		// writable output mounts still use ordinary effect scanning.
+		result.EffectsKnown = result.ExitCode >= 0 && !result.TimedOut
+		result.EffectPaths = nil
+	} else {
+		after := snapshotEffects(ctx, r.dir)
+		result.EffectPaths, result.EffectsKnown = changedEffects(before, after)
+	}
 	return result, nil
+
+}
+
+// readOnlyCheck means the project is mounted read-only by the sandbox.
+// These contexts are server-owned, not values supplied by the assistant.
+// Git operations and build/artifact jobs must never claim immutable effects.
+func readOnlyCheck(ctx context.Context, task domain.Task) bool {
+	return domain.ReadOnlyWorkspace(ctx) && !domain.GitOnly(ctx) &&
+		(task.Kind == "" || task.Kind == "check")
 }
 
 const (
