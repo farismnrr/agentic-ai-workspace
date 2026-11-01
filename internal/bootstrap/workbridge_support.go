@@ -18,7 +18,8 @@ func stateResult(in taskapp.StateResult) codingmcp.WorkState {
 		}
 	}
 	return codingmcp.WorkState{
-		TaskID: in.TaskID, WorkID: in.WorkID, Revision: in.Revision, State: string(in.State), Stale: in.Stale,
+		TaskID: in.TaskID, WorkID: in.WorkID, Revision: in.Revision, PlanRevision: in.PlanRevision,
+		State: string(in.State), Stale: in.Stale,
 		Plan: planSteps(in.Plan), Progress: in.Progress, Role: in.Role, Research: in.Research, PRD: in.PRD,
 		PlanState: string(in.PlanState), NextAction: in.NextAction, Review: review,
 		Questions: stateQuestions(in.Questions),

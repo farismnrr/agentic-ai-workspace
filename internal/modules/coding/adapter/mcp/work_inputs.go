@@ -23,7 +23,7 @@ type workPlanInput struct {
 	WorkTarget
 	RequestID    string         `json:"request_id,omitempty" jsonschema:"optional idempotency key (16-64 chars)"`
 	Steps        []PlanWorkStep `json:"steps" jsonschema:"ordered steps of the execution plan; required"`
-	BaseRevision int64          `json:"base_revision" jsonschema:"required plan revision for concurrent edit protection"`
+	BaseRevision int64          `json:"base_revision" jsonschema:"required: use plan_revision from get_work_state (not revision); guards concurrent plan edits"`
 }
 
 type markdownInput struct {

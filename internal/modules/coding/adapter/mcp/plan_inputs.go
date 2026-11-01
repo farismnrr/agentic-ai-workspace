@@ -4,7 +4,7 @@ type submitPlanInput struct {
 	WorkTarget
 	Summary      string `json:"summary" jsonschema:"summary of the plan submitted for person review; required"`
 	RequestID    string `json:"request_id,omitempty" jsonschema:"optional idempotency key (16-64 chars)"`
-	BaseRevision int64  `json:"base_revision" jsonschema:"base plan revision to guard against concurrent edits; required"`
+	BaseRevision int64  `json:"base_revision" jsonschema:"required: use plan_revision from get_work_state (not revision); guards concurrent plan edits"`
 	SmallTask    bool   `json:"small_task,omitempty" jsonschema:"true only for small tasks without formal research"`
 }
 
