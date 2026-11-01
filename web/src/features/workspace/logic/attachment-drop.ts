@@ -5,9 +5,9 @@ const pastedImageExtensions: Record<string, string> = {
   'image/gif': 'gif',
 };
 export const acceptedAttachmentTypes = [
-  '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.pdf', '.txt', '.md', '.csv', '.json', '.log',
+  '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.pdf', '.zip', '.txt', '.md', '.csv', '.json', '.log',
   '.mp4', '.webm', '.mov', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml',
-  'application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'application/json', 'video/mp4',
+  'application/pdf', 'application/zip', 'application/x-zip-compressed', 'text/plain', 'text/markdown', 'text/csv', 'application/json', 'video/mp4',
   'video/webm', 'video/quicktime',
 ].join(',');
 let pastedImageNumber = 0;

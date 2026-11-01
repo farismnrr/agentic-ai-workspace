@@ -26,7 +26,9 @@
   ].filter((message) => message !== ''));
   const status = $derived(composerStatus(text, uploadProgress));
   const reason = $derived(
-    hasPendingUploads(attachments)
+    attachments.some((item) => item.status === 'paused')
+      ? 'Resume or remove paused attachments before sending.'
+      : hasPendingUploads(attachments)
       ? 'Wait for attachments to finish uploading before sending.'
       : hasFailedUploads(attachments)
         ? 'Retry or remove failed attachments before sending.'

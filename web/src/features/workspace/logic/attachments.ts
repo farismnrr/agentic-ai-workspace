@@ -1,13 +1,17 @@
 import { ApiError, request } from '../../../shared/api/http';
+import { uploadZIP, type ZIPProgress } from './zip-upload';
 
 interface AttachmentBase {
   id: string;
   file: File;
+  uploaded?: number;
+  phase?: 'uploading' | 'validating';
 }
 
 export type Attachment =
   | (AttachmentBase & { status: 'loading' })
   | (AttachmentBase & { status: 'ready'; path: string })
+  | (AttachmentBase & { status: 'paused' })
   | (AttachmentBase & { status: 'failed'; error: string });
 
 interface Saved {
@@ -39,7 +43,7 @@ const fileRules: Record<string, FileRule> = {
   md: { kind: 'document', limit: 25 * megabyte, mime: ['text/markdown', 'text/plain'] },
   csv: { kind: 'document', limit: 25 * megabyte, mime: ['text/csv', 'text/plain'] },
   json: { kind: 'document', limit: 25 * megabyte, mime: ['application/json', 'text/json', 'text/plain'] },
-  zip: { kind: 'document', limit: 25 * megabyte, mime: ['application/zip', 'application/x-zip-compressed'] },
+  zip: { kind: 'document', limit: 512 * megabyte, mime: ['application/zip', 'application/x-zip-compressed'] },
   log: { kind: 'document', limit: 25 * megabyte, mime: ['text/plain'] },
   mp4: { kind: 'video', limit: 100 * megabyte, mime: ['video/mp4'] },
   webm: { kind: 'video', limit: 100 * megabyte, mime: ['video/webm'] },
@@ -62,7 +66,7 @@ export function validateFile(file: File): string | undefined {
   }
   if (file.size === 0) return 'This file is empty.';
   if (file.size > rule.limit) {
-    const size = rule.kind === 'video' ? '100 MB' : rule.limit === 5 * megabyte ? '5 MB' : '25 MB';
+    const size = rule.kind === 'video' ? '100 MiB' : rule.limit === 512 * megabyte ? '512 MiB' : rule.limit === 5 * megabyte ? '5 MiB' : '25 MiB';
     return `This file is over the ${size} limit. Choose a smaller file.`;
   }
   return undefined;
@@ -100,15 +104,26 @@ function uploadError(error: unknown): string {
     }
     if (error.code === 'empty') return 'This file is empty.';
   }
-  return 'Upload failed. Check your connection and try again.';
+  return error instanceof Error && error.message !== '' ? error.message : 'Upload failed. Check your connection and try again.';
 }
 
 export async function uploadAttachment(
   projectId: string,
   attachment: Attachment,
   signal?: AbortSignal,
+  onProgress?: ZIPProgress,
 ): Promise<Attachment> {
   if (attachment.status === 'ready') return attachment;
+  if (extensionOf(attachment.file.name) === 'zip') {
+    try {
+      const path = await uploadZIP(projectId, attachment.file, signal ?? new AbortController().signal,
+        onProgress ?? (() => undefined));
+      return { ...attachment, status: 'ready', path };
+    } catch (error) {
+      if (signal?.aborted === true) throw error;
+      return { ...attachment, status: 'failed', error: uploadError(error) };
+    }
+  }
   const form = new FormData();
   form.append('file', attachment.file);
   try {
@@ -131,7 +146,7 @@ export function hasFailedUploads(attachments: Attachment[]): boolean {
 }
 
 export function attachmentsCanSend(attachments: Attachment[]): boolean {
-  return !hasPendingUploads(attachments) && !hasFailedUploads(attachments);
+  return attachments.every((item) => item.status === 'ready');
 }
 
 export function readyPaths(attachments: Attachment[]): string[] {

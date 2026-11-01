@@ -19,6 +19,9 @@ const (
 	MaxWriteBytes      = 1 << 20
 	MaxAssetBytes      = 10 << 20
 	MaxUploadBytes     = 25 << 20
+	MaxZIPBytes        = 512 << 20
+	MaxZIPChunkBytes   = 8 << 20
+	MaxProjectUploads  = 4 << 30
 	MaxVideoBytes      = 100 << 20
 	MaxSVGBytes        = 5 << 20
 	MaxDownloadBytes   = 50 << 20
