@@ -11,7 +11,8 @@ const wwwAuthenticate = "Www-Authenticate"
 // the MCP authorization spec asks for and clients use to start step-up auth.
 func withScopeError(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(&scopeChallenge{ResponseWriter: w}, r)
+		wrapped := &scopeChallenge{ResponseWriter: w}
+		next.ServeHTTP(preserveWriterCapabilities(wrapped, w), r)
 	})
 }
 
@@ -20,8 +21,62 @@ func withScopeError(next http.Handler) http.Handler {
 // scope, and authenticated insufficient-scope responses are left untouched.
 func WithInitialScopeHint(next http.Handler, scopes []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(&initialScopeHint{ResponseWriter: w, scopes: strings.Join(scopes, " ")}, r)
+		wrapped := &initialScopeHint{ResponseWriter: w, scopes: strings.Join(scopes, " ")}
+		next.ServeHTTP(preserveWriterCapabilities(wrapped, w), r)
 	})
+}
+
+// preserveWriterCapabilities keeps optional interfaces visible only when the
+// original writer supports them. Embedding ResponseWriter alone hides them.
+func preserveWriterCapabilities(writer, source http.ResponseWriter) http.ResponseWriter {
+	flusher, canFlush := source.(http.Flusher)
+	hijacker, canHijack := source.(http.Hijacker)
+	pusher, canPush := source.(http.Pusher)
+
+	switch {
+	case canFlush && canHijack && canPush:
+		return struct {
+			http.ResponseWriter
+			http.Flusher
+			http.Hijacker
+			http.Pusher
+		}{writer, flusher, hijacker, pusher}
+	case canFlush && canHijack:
+		return struct {
+			http.ResponseWriter
+			http.Flusher
+			http.Hijacker
+		}{writer, flusher, hijacker}
+	case canFlush && canPush:
+		return struct {
+			http.ResponseWriter
+			http.Flusher
+			http.Pusher
+		}{writer, flusher, pusher}
+	case canHijack && canPush:
+		return struct {
+			http.ResponseWriter
+			http.Hijacker
+			http.Pusher
+		}{writer, hijacker, pusher}
+	case canFlush:
+		return struct {
+			http.ResponseWriter
+			http.Flusher
+		}{writer, flusher}
+	case canHijack:
+		return struct {
+			http.ResponseWriter
+			http.Hijacker
+		}{writer, hijacker}
+	case canPush:
+		return struct {
+			http.ResponseWriter
+			http.Pusher
+		}{writer, pusher}
+	default:
+		return writer
+	}
 }
 
 type initialScopeHint struct {
