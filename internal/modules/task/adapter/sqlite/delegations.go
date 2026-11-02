@@ -68,10 +68,11 @@ func (s *Store) FindDelegation(ctx context.Context, taskID, id string) (applicat
 	return d, true, nil
 }
 
-// SetDelegationStatus moves a delegation between working and waiting.
+// SetDelegationStatus moves an open delegation between working, waiting and cancelled.
 func (s *Store) SetDelegationStatus(ctx context.Context, taskID, id, status string) error {
 	if _, err := s.db.ExecContext(ctx,
-		`UPDATE task_delegations SET status = ? WHERE task_id = ? AND id = ?`, status, taskID, id); err != nil {
+		`UPDATE task_delegations SET status = ? WHERE task_id = ? AND id = ?
+		 AND status NOT IN ('done', 'failed', 'cancelled')`, status, taskID, id); err != nil {
 		return fmt.Errorf("update delegation: %w", err)
 	}
 
@@ -81,7 +82,8 @@ func (s *Store) SetDelegationStatus(ctx context.Context, taskID, id, status stri
 // EndDelegation closes a delegation with its final status and report.
 func (s *Store) EndDelegation(ctx context.Context, taskID, id, status, report string, at time.Time) error {
 	if _, err := s.db.ExecContext(ctx,
-		`UPDATE task_delegations SET status = ?, report = ?, ended_at = ? WHERE task_id = ? AND id = ?`,
+		`UPDATE task_delegations SET status = ?, report = ?, ended_at = ? WHERE task_id = ? AND id = ?
+		 AND status <> 'cancelled'`,
 		status, report, at.Unix(), taskID, id); err != nil {
 		return fmt.Errorf("end delegation: %w", err)
 	}

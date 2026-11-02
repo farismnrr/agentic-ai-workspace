@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -202,6 +203,72 @@ func TestOrchestratorDirectInternalResearcher(t *testing.T) {
 	tasks := apptest.Do(t, env.App, "GET", "/api/tasks", "", apptest.JSONCookie(cookie))
 	if err := json.Unmarshal(tasks.Body, &count); err != nil || len(count) != 1 {
 		t.Fatalf("worker delegation spawned an internal lead task: %s", tasks.Body)
+	}
+}
+
+func TestOrchestratorCancelledWorkerStaysCancelled(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	gateway := apptest.NewGateway(t, apptest.ToolCall("r1", "report", map[string]any{
+		"summary":  "A late report that must not replace cancellation",
+		"document": "# Late result\nThis must not be delivered.",
+	}))
+	hold := make(chan struct{})
+	gateway.Hold = hold
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(hold) }) }
+	defer release()
+	providerResponse := apptest.AddProvider(t, env, cookie, gateway.Server.URL, "k")
+	provider, _ := providerResponse.JSON(t)["id"].(string)
+	prefs := `{"defaultProviderId":"` + provider + `","defaultModel":"fake-model","rules":[]}`
+	if response := apptest.Do(t, env.App, "PUT", "/api/preferences", prefs, apptest.JSONCookie(cookie)); response.Status != 200 && response.Status != 204 {
+		t.Fatalf("model preference failed: %d %s", response.Status, response.Body)
+	}
+	project := apptest.Do(t, env.App, "POST", "/api/projects",
+		`{"name":"Cancel worker"}`, apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	token := orchestratorToken(t, env.App, cookie, client)
+	for _, name := range []string{"create_task", "delegate_agent", "cancel_delegation", "update_task_plan"} {
+		orchestratorOn(t, env.App, cookie, name)
+	}
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		`{"project":"`+project+`","summary":"Cancel a worker","idempotency_key":"cancel-task-12345"}`))["ID"].(string)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		`{"task_id":"`+task+`","steps":[{"id":"research","title":"Research","state":"active"}]}`))
+	job := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent",
+		`{"task_id":"`+task+`","agent_key":"researcher","brief":"Research the issue","idempotency_key":"cancel-job-12345"}`))
+	id, _ := job["job_id"].(string)
+	if id == "" {
+		t.Fatalf("worker job not created: %+v", job)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		gateway.Mu.Lock()
+		started := len(gateway.Requests) > 0
+		gateway.Mu.Unlock()
+		if started {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	gateway.Mu.Lock()
+	started := len(gateway.Requests) > 0
+	gateway.Mu.Unlock()
+	if !started {
+		t.Fatal("worker never reached the held model request")
+	}
+	cancelArgs := `{"task_id":"` + task + `","job_id":"` + id + `"}`
+	for attempt := 0; attempt < 2; attempt++ {
+		cancelled := orchestratorData(t, orchestratorCall(t, env.App, token, "cancel_delegation", cancelArgs))
+		if cancelled["status"] != "cancelled" {
+			t.Fatalf("cancel attempt %d returned: %+v", attempt+1, cancelled)
+		}
+	}
+	release()
+	time.Sleep(50 * time.Millisecond)
+	state := orchestratorData(t, orchestratorCall(t, env.App, token, "get_delegation",
+		`{"task_id":"`+task+`","job_id":"`+id+`"}`))
+	if state["status"] != "cancelled" || state["report"] != nil {
+		t.Fatalf("late worker result overwrote cancellation: %+v", state)
 	}
 }
 
