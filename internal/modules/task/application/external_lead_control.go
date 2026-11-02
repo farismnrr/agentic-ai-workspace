@@ -2,6 +2,8 @@ package application
 
 import (
 	"context"
+	"log/slog"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -40,13 +42,9 @@ func (s *Service) ExternalJobs(ctx context.Context, userID, taskID string) ([]Ex
 // CancelExternalJob only cancels an external-led worker. Internal lead delegation
 // jobs are never reachable through this entrypoint.
 func (s *Service) CancelExternalJob(ctx context.Context, userID, taskID, jobID string) (ExternalAgentJob, error) {
-	if _, err := s.externalOwned(ctx, userID, taskID); err != nil {
-		return ExternalAgentJob{}, err
-	}
-	if s.deps.Delegations == nil {
-		return ExternalAgentJob{}, domain.ErrWrongState
-	}
-	d, found, err := s.deps.Delegations.FindDelegation(ctx, taskID, jobID)
+	trace := externalCancelTrace{started: time.Now(), outcome: "error"}
+	defer trace.log()
+	d, found, err := s.lookupExternalCancellation(ctx, userID, taskID, jobID, &trace)
 	if err != nil {
 		return ExternalAgentJob{}, err
 	}
@@ -54,31 +52,75 @@ func (s *Service) CancelExternalJob(ctx context.Context, userID, taskID, jobID s
 		return ExternalAgentJob{}, domain.ErrNotFound
 	}
 	if d.Status == DelegationDone || d.Status == DelegationFailed || d.Status == DelegationCancelled {
-		return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: d.Status, Report: d.Report}, nil
+		trace.outcome = d.Status
+		return externalJob(jobID, d), nil
 	}
+	return s.cancelRunningExternalJob(ctx, taskID, jobID, &trace)
+}
+
+func (s *Service) lookupExternalCancellation(ctx context.Context, userID, taskID, jobID string, trace *externalCancelTrace) (Delegation, bool, error) {
+	started := time.Now()
+	defer func() { trace.lookup = time.Since(started) }()
+	if _, err := s.externalOwned(ctx, userID, taskID); err != nil {
+		return Delegation{}, false, err
+	}
+	if s.deps.Delegations == nil {
+		return Delegation{}, false, domain.ErrWrongState
+	}
+	return s.deps.Delegations.FindDelegation(ctx, taskID, jobID)
+}
+
+func (s *Service) cancelRunningExternalJob(ctx context.Context, taskID, jobID string, trace *externalCancelTrace) (ExternalAgentJob, error) {
 	key := taskID + "/" + jobID
+	started := time.Now()
 	s.externalMu.Lock()
+	trace.mutexWait = time.Since(started)
 	cancel := s.externalRunning[key]
 	if cancel != nil {
 		s.externalCancelled[key] = true
 		// Stop the live worker before waiting for durable storage. This closes
 		// the window where a slow status write leaves it running uncontrolled.
+		started = time.Now()
 		cancel()
+		trace.contextCancel = time.Since(started)
 	}
 	s.externalMu.Unlock()
-	if err := s.deps.Delegations.SetDelegationStatus(ctx, taskID, jobID, DelegationCancelled); err != nil {
+	started = time.Now()
+	err := s.deps.Delegations.SetDelegationStatus(ctx, taskID, jobID, DelegationCancelled)
+	trace.terminalWrite = time.Since(started)
+	if err != nil {
 		return ExternalAgentJob{}, err
 	}
 	// The worker may have completed just before the cancellation write. Return
 	// the persisted winner so a completed job is not reported as cancelled.
-	d, found, err = s.deps.Delegations.FindDelegation(ctx, taskID, jobID)
+	started = time.Now()
+	defer func() { trace.reread = time.Since(started) }()
+	d, found, err := s.deps.Delegations.FindDelegation(ctx, taskID, jobID)
 	if err != nil {
 		return ExternalAgentJob{}, err
 	}
 	if !found {
 		return ExternalAgentJob{}, domain.ErrNotFound
 	}
-	return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: d.Status, Report: d.Report}, nil
+	trace.outcome = d.Status
+	return externalJob(jobID, d), nil
+}
+
+func externalJob(jobID string, d Delegation) ExternalAgentJob {
+	return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: d.Status, Report: d.Report}
+}
+
+type externalCancelTrace struct {
+	started                                                 time.Time
+	lookup, mutexWait, contextCancel, terminalWrite, reread time.Duration
+	outcome                                                 string
+}
+
+func (trace *externalCancelTrace) log() {
+	slog.Info("external delegation cancellation", "outcome", trace.outcome,
+		"lookup_ms", trace.lookup.Milliseconds(), "mutex_wait_ms", trace.mutexWait.Milliseconds(),
+		"context_cancel_ms", trace.contextCancel.Milliseconds(), "terminal_write_ms", trace.terminalWrite.Milliseconds(),
+		"reread_ms", trace.reread.Milliseconds(), "total_ms", time.Since(trace.started).Milliseconds())
 }
 
 // StopExternalLeadTask marks the external-led task done and cancels its active

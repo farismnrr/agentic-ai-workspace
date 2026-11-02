@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"log/slog"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
@@ -75,7 +77,15 @@ func (s Services) addWrite(server *sdk.Server) {
 		}))
 	sdk.AddTool(server, tool("cancel_delegation"), secured(s, "cancel_delegation", domain.ScopeDelegate,
 		func(ctx context.Context, user, _ string, in delegationSelector) (taskapp.ExternalAgentJob, error) {
-			return s.Tasks.CancelExternalJob(ctx, user, in.TaskID, in.JobID)
+			started := time.Now()
+			job, err := s.Tasks.CancelExternalJob(ctx, user, in.TaskID, in.JobID)
+			outcome := "error"
+			if err == nil {
+				outcome = job.Status
+			}
+			slog.Info("orchestrator cancel handler", "outcome", outcome,
+				"total_ms", time.Since(started).Milliseconds())
+			return job, err
 		}))
 	sdk.AddTool(server, tool("stop_task"), secured(s, "stop_task", domain.ScopeTasks,
 		func(ctx context.Context, user, _ string, in stopInput) (doneOutput, error) {
