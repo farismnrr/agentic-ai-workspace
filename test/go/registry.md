@@ -58,6 +58,7 @@ After this slice, 79 Go test files contain 171 top-level test functions:
 | `test/go/app/sites/sites_test.go::TestSitesAreMountedAndNeverFallIntoTheApp` | app-level integration | Exercises site routing through the assembled HTTP app. | none |
 | `test/go/app/sites/sites_test.go::TestSitesAPINeedsASessionAndStartsEmpty` | app-level integration | Exercises site session enforcement through the assembled HTTP app. | none |
 | `test/go/app/sites/sites_e2e_test.go::TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped` | app-level integration | Exercises the site lifecycle through the assembled app and real container. | none |
+| `test/go/app/sites/sites_e2e_test.go::TestSiteRuntimeSQLiteDirectoriesPersistAndWorkspaceStaysReadOnly` | sandbox/data integrity | Starts a Node site through the API, verifies pre-existing files remain visible and writable, missing runtime folders are created, SQLite DB/WAL/SHM persist after stop/start, and other workspace writes fail. | none |
 | `test/go/app/sites/sites_tcp_test.go::TestPrivateSiteOverRealHTTP` | app-level integration | Exercises browser request protections over a real TCP connection. | none |
 | `test/go/app/stream/stream_test.go::TestATaskStreamPushesTheThreadAndTheModelsTextAsItIsWritten` | app-level integration | Exercises task SSE over the assembled app. | none |
 | `test/go/app/stream/stream_test.go::TestTheWorkspaceStreamAnnouncesChangesAndStaysPrivate` | app-level integration | Exercises workspace SSE and owner isolation over the assembled app. | none |
@@ -183,7 +184,8 @@ After this slice, 79 Go test files contain 171 top-level test functions:
 | `test/go/platform/database/migrate_test.go::TestJournalRecordsChecksums` | DB integrity/migrations | Inspects stored migration checksums directly after migration. | none; journal inspection is required |
 | `test/go/platform/database/migrate_test.go::TestEditedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects changed applied migrations. | none; direct journal mutation is required |
 | `test/go/platform/database/migrate_test.go::TestRemovedMigrationIsRejected` | DB integrity/migrations | Mutates migration history and verifies startup rejects removed applied migrations. | none; direct journal mutation is required |
-| `test/go/platform/sandbox/subpath_integration_test.go::TestOwnerVolumeSubpathsAreIsolated` | sandbox/privilege | Uses a Docker volume to prove owner subpaths cannot read or write one another. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/platform/sandbox/subpath_integration_test.go::TestOwnerVolumeSubpathsAreIsolated` | sandbox/privilege | Uses the shared Docker runner and volume subpaths to prove project isolation and same-project writable Sites runtime directories. | `test/smoke/volume-isolation.test.sh` |
+| `test/go/platform/sandbox/subpath_integration_test.go::TestSiteWritableDirectoriesUseTheOriginalBindWorkspace` | sandbox/data integrity | A disposable bind-backed workspace proves existing files remain visible and writable through the two Sites mounts while other paths stay read-only. | none |
 | `test/go/modules/clistream/context_test.go::TestCodexCumulativeUsageIsNotDisplayedAsContext` | sandbox/privilege | Confirms cumulative token counts are not displayed as instant context window usage. | none |
 | `test/go/modules/clistream/context_test.go::TestCodexLastCallUsageCanBeDisplayed` | sandbox/privilege | Verifies last-call usage displays context meter accurately. | none |
 | `test/go/modules/clistream/context_test.go::TestCodexTokenCountEmitsLiveContext` | sandbox/privilege | Verifies Codex token counts emit live context metrics. | none |
@@ -218,6 +220,11 @@ After this slice, 79 Go test files contain 171 top-level test functions:
 | `test/go/app/tasks/execution/manual_stop_test.go::TestManualStopRunningAndQueuedInternalTasksStayDone` | app-level integration | Stopping internal tasks keeps them Done atomically even if workers unwind. | none |
 | `test/go/app/tasks/execution/manual_stop_test.go::TestRealModelFailureStillNeedsAttention` | app-level integration | Verifies genuine model failure sets status to Needs Attention. | none |
 | `test/go/app/sites/start_boundary_test.go::TestSiteStartRejectsArbitraryShellAndChecks` | sandbox/privilege | Validates that start_site accepts only approved servers and rejects shell injection. | none |
+| `test/go/modules/site/runtime_storage_test.go::TestSitesStorageCreatesMissingBaseAndPreservesData` | data integrity | Exercises first-use storage creation and persistence without Docker; this filesystem initialization has no deterministic public boundary without starting a site container. | none |
+| `test/go/modules/site/runtime_storage_test.go::TestSitesStorageRejectsSymlinkBase` | sandbox/path safety | Confirms storage initialization refuses a symlink base and does not write through it. | none |
+| `test/go/modules/site/runtime_storage_test.go::TestSitesWritablePathsRejectSymlinkedProjectAncestor` | sandbox/path safety | A disposable project path whose ancestor redirects outside storage is rejected before approved runtime directories can be created. | none |
+| `test/go/platform/sandbox/mount_test.go::TestMountsRejectSymlinkedWorkspaceAncestor` | sandbox/path safety | The mount builder rejects a lexically contained workspace redirected through a symlink for bind and volume configurations without Docker. | none |
+| `test/go/platform/sandbox/mount_test.go::TestMountsKeepWorkspaceReadonlyAndWritableSubpathsNarrow` | sandbox/data integrity | Checks bind sources, Docker volume subpaths, read-only workspace behavior, the two writable targets, and preservation of existing project data without Docker. | none |
 
 ## Support files
 

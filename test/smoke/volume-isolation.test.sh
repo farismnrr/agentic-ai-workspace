@@ -68,9 +68,13 @@ docker image inspect "$sandbox_image" --format 'Toolbox image ID {{.Id}}'
 docker volume create "$volume" >/dev/null
 docker run --rm --network none --mount "type=volume,source=$volume,target=/data" \
   --entrypoint sh busybox:1.36 -ec '
-  mkdir -p /data/workspaces/a /data/workspaces/b /data/caches/a /data/caches/b \
+  mkdir -p /data/workspaces/a/data/preview-runs /data/workspaces/a/.atja-runtime \
+    /data/workspaces/b/data/preview-runs /data/workspaces/b/.atja-runtime \
+    /data/caches/a /data/caches/b \
     /data/egress/a /data/egress/b
   touch /data/workspaces/a/marker-a /data/workspaces/b/marker-b
+  printf "before-a" > /data/workspaces/a/data/preview-runs/existing.txt
+  printf "before-b" > /data/workspaces/b/data/preview-runs/existing.txt
   touch /data/caches/a/cache-a /data/caches/b/cache-b
   touch /data/egress/a/task-socket /data/egress/b/task-socket
   chown -R 65532:65532 /data
@@ -84,7 +88,7 @@ if grep -q -- '--- SKIP' "$logs_dir/subpath.log"; then
   echo 'Subpath test unexpectedly skipped' >&2
   exit 1
 fi
-echo 'PASS actual Docker volume Subpath workspace and cache isolation'
+echo 'PASS Docker volume Subpath workspace, cache, and Sites runtime isolation'
 
 docker run --rm --network none --mount \
   "type=volume,source=$volume,target=/run/egress,volume-subpath=egress/a,readonly" \
