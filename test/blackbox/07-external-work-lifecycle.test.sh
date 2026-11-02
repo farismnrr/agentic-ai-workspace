@@ -8,6 +8,20 @@ source "$REPO_ROOT/test/lib/http.sh"
 source "$REPO_ROOT/test/lib/mcp.sh"
 source "$REPO_ROOT/test/lib/work.sh"
 
+orchestrator_tool() {
+  local token=$1 name=$2 arguments=$3
+  HTTP_BODY_FILE="$APP_TMP_DIR/http-body"
+  HTTP_HEADERS_FILE="$APP_TMP_DIR/http-headers"
+  HTTP_STATUS=$(curl -sS -X POST "$APP_BASE/api/orchestrator" \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'MCP-Protocol-Version: 2025-11-25' \
+    -H "Authorization: Bearer $token" \
+    --data "$(jq -cn --arg name "$name" --argjson arguments "$arguments" \
+      '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:$name,arguments:$arguments}}')" \
+    -D "$HTTP_HEADERS_FILE" -o "$HTTP_BODY_FILE" -w '%{http_code}')
+}
+
 app_init
 export WORK_IDLE_AFTER=2s WORK_ABANDON_AFTER=6s WORK_SWEEP_EVERY=1s WORK_SWEEP_MODE=dry-run
 app_start
@@ -153,6 +167,49 @@ work_task "$jar" "$owner_task_id"
 assert_json '.work.state == "open" and .status != "failed"' 'restart does not fail open work'
 work_task "$jar" "$approval_id"
 assert_json '.work.state == "open" and .status != "failed"' 'restart keeps open work open'
+
+# External-led recovery restores only a resumable parent task. It never launches
+# its delegated workers during startup.
+http_project_create "$jar" 'External recovery'
+assert_status "$HTTP_STATUS" 201 'create project for external recovery'
+external_project=$(jq -r '.id' "$HTTP_BODY_FILE")
+for tool in create_task save_task_requirements update_task_plan submit_plan; do
+  http_request PUT "$jar" "/api/spaces/orchestrator/tools/$tool" '{"enabled":true}'
+  assert_status "$HTTP_STATUS" 204 "enable Orchestrator $tool"
+done
+oauth_code_token "$jar" 'openid email orchestrator:read orchestrator:tasks' "$APP_BASE/api/orchestrator"
+assert_status "$HTTP_STATUS" 200 'issue external Orchestrator token'
+external_token=$(jq -r '.access_token' "$HTTP_BODY_FILE")
+
+orchestrator_tool "$external_token" create_task "$(jq -cn --arg project "$external_project" \
+  '{project:$project,summary:"Approved restart recovery",idempotency_key:"recovery-approved-001"}')"
+assert_json '(.result.structuredContent.ID // "") | length > 0' 'create approved recovery task'
+approved_task=$(jq -r '.result.structuredContent.ID' "$HTTP_BODY_FILE")
+orchestrator_tool "$external_token" save_task_requirements "$(jq -cn --arg id "$approved_task" \
+  '{task_id:$id,markdown:"# PRD\nRestart recovery scenario."}')"
+orchestrator_tool "$external_token" update_task_plan "$(jq -cn --arg id "$approved_task" \
+  '{task_id:$id,steps:[{id:"step-1",title:"Verify recovery",state:"active"}]}')"
+orchestrator_tool "$external_token" submit_plan "$(jq -cn --arg id "$approved_task" '{task_id:$id}')"
+assert_json '.result.structuredContent.status == "pending"' 'submit recovery plan for approval'
+approval_event=$(jq -r '.result.structuredContent.event_id' "$HTTP_BODY_FILE")
+http_request POST "$jar" "/api/tasks/$approved_task/events/$approval_event/answer" \
+  '{"choice":"Start building"}'
+assert_status "$HTTP_STATUS" 204 'approve external recovery plan'
+
+orchestrator_tool "$external_token" create_task "$(jq -cn --arg project "$external_project" \
+  '{project:$project,summary:"Pending restart recovery",idempotency_key:"recovery-pending-001"}')"
+pending_task=$(jq -r '.result.structuredContent.ID' "$HTTP_BODY_FILE")
+orchestrator_tool "$external_token" save_task_requirements "$(jq -cn --arg id "$pending_task" \
+  '{task_id:$id,markdown:"# PRD\nPending approval scenario."}')"
+orchestrator_tool "$external_token" update_task_plan "$(jq -cn --arg id "$pending_task" \
+  '{task_id:$id,steps:[{id:"step-1",title:"Wait for approval",state:"pending"}]}')"
+orchestrator_tool "$external_token" submit_plan "$(jq -cn --arg id "$pending_task" '{task_id:$id}')"
+app_restart
+http_request GET "$jar" "/api/tasks/$approved_task"
+assert_json '.status == "working"' 'approved external task resumes for its lead after restart'
+http_request GET "$jar" "/api/tasks/$pending_task"
+assert_json '.status == "needs-input"' 'unanswered external approval stays blocked after restart'
+
 app_stop
 export WORK_SWEEP_MODE=on
 app_start

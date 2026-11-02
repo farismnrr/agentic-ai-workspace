@@ -39,7 +39,7 @@ func (s *Service) recoverTask(ctx context.Context, task domain.Task) error {
 	// External Orchestrator tasks own their worker jobs. Never hand them to the
 	// internal lead or silently mark a still-active external issue completed.
 	if strings.HasPrefix(task.Source, externalLeadSource) {
-		return s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusNeedsInput, s.now())
+		return s.recoverExternalLeadTask(ctx, task)
 	}
 	if task.WorkID != "" {
 		return nil
@@ -57,6 +57,30 @@ func (s *Service) recoverTask(ctx context.Context, task domain.Task) error {
 		return nil
 	}
 	return s.fail(ctx, task.ID, "The app restarted while I was working.", "Press Continue to pick up where I left off.")
+}
+
+func (s *Service) recoverExternalLeadTask(ctx context.Context, task domain.Task) error {
+	events, err := s.deps.Events.EventsAfter(ctx, task.ID, 0)
+	if err != nil {
+		return fmt.Errorf("read interrupted external task: %w", err)
+	}
+	approval, err := s.ExternalApproval(ctx, task.UserID, task.ID)
+	if err != nil {
+		return fmt.Errorf("check external plan approval: %w", err)
+	}
+	if unresolvedQuestion(events) || (approval.Status != "approved" && approval.Status != "not-required-yet") {
+		return s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusNeedsInput, s.now())
+	}
+	return s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, s.now())
+}
+
+func unresolvedQuestion(events []domain.Event) bool {
+	for _, event := range events {
+		if event.Kind == domain.EventQuestion && event.Answered == "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) fail(ctx context.Context, taskID, text, hint string) error {
