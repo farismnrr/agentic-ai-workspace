@@ -1,6 +1,10 @@
 package bootstrap
 
 import (
+	"log/slog"
+	"net/http"
+	"time"
+
 	"github.com/gofiber/fiber/v3"
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
@@ -43,5 +47,19 @@ func newSpaceMounts(
 		MetadataURL: cfg.Connector() + orchestratorSpace.MetadataPath(),
 	})
 	mounts = append(mounts, mounter.Mount(space, handler))
-	return append(mounts, mounter.Mount(orchestratorSpace, orchestratorHandler))
+	return append(mounts, mounter.MountWithMiddleware(
+		orchestratorSpace, orchestratorHandler, measureOrchestratorIngress,
+	))
+}
+
+func measureOrchestratorIngress(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started := time.Now()
+		outcome := "returned"
+		defer func() {
+			slog.Info("orchestrator mcp ingress", "stage", "http_ingress",
+				"outcome", outcome, "total_ms", time.Since(started).Milliseconds())
+		}()
+		next.ServeHTTP(w, r)
+	})
 }

@@ -4,7 +4,9 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
+	"time"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -91,7 +93,16 @@ func (s Services) identity(ctx context.Context, req *sdk.CallToolRequest, name, 
 func secured[In, Out any](s Services, name, scope string, fn func(context.Context, string, string, In) (Out, error)) sdk.ToolHandlerFor[In, Out] {
 	return func(ctx context.Context, req *sdk.CallToolRequest, input In) (*sdk.CallToolResult, Out, error) {
 		var empty Out
+		started := time.Now()
 		user, client, denied := s.identity(ctx, req, name, scope)
+		if name == "cancel_delegation" {
+			outcome := "allowed"
+			if denied != nil {
+				outcome = "denied"
+			}
+			slog.Info("orchestrator cancel identity", "stage", "identity",
+				"outcome", outcome, "total_ms", time.Since(started).Milliseconds())
+		}
 		if denied != nil {
 			return denied, empty, nil
 		}
