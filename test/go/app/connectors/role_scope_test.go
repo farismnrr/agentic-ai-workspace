@@ -132,7 +132,10 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	}
 
 	setRole("devops")
-	denied("git", `{"work_id":"`+workID+`","args":["status"]}`)
+	devopsGit := call("git", `{"work_id":"`+workID+`","args":["status"]}`)
+	if strings.Contains(devopsGit, "active role cannot use git") {
+		t.Fatalf("DevOps should receive bounded native Git: %s", devopsGit)
+	}
 	denied("run_artifact", `{"work_id":"`+workID+`","name":"artifact"}`)
 	denied("write_file", writeArgs)
 	denied("run_task", `{"work_id":"`+workID+`","name":"echo"}`)
