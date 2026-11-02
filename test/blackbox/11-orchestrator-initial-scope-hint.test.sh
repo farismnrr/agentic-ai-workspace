@@ -7,6 +7,18 @@ source "$REPO_ROOT/test/lib/app.sh"
 source "$REPO_ROOT/test/lib/http.sh"
 source "$REPO_ROOT/test/lib/mcp.sh"
 
+assert_scope_once() {
+	local scope=$1 count
+	count=$(grep -oF "$scope" "$HTTP_HEADERS_FILE" | wc -l)
+	if [[ $count == 1 ]]; then
+		printf 'PASS initial challenge recommends %s exactly once\n' "$scope"
+		((ASSERTIONS_PASSED += 1))
+	else
+		printf 'FAIL initial challenge recommends %s exactly once: found %s\n' "$scope" "$count"
+		((ASSERTIONS_FAILED += 1))
+	fi
+}
+
 orchestrator_list_tools() {
 	HTTP_BODY_FILE="$APP_TMP_DIR/http-body"
 	HTTP_HEADERS_FILE="$APP_TMP_DIR/http-headers"
@@ -42,10 +54,10 @@ assert_status "$HTTP_STATUS" 201 'register account'
 orchestrator_list_tools
 assert_status "$HTTP_STATUS" 401 'unauthenticated Orchestrator request is rejected'
 assert_not_contains "$APP_LOG" 'ErrNotSupported' 'stream-capable HTTP request does not panic on optional writer interfaces'
-for scope in orchestrator:read orchestrator:tasks orchestrator:delegate orchestrator:files; do
+for scope in openid email orchestrator:read orchestrator:tasks orchestrator:delegate orchestrator:files orchestrator:approve; do
 	assert_contains "$HTTP_HEADERS_FILE" "$scope" "initial challenge recommends $scope"
+	assert_scope_once "$scope"
 done
-assert_not_contains "$HTTP_HEADERS_FILE" 'orchestrator:approve' 'initial challenge excludes plan approval'
 assert_contains "$HTTP_HEADERS_FILE" 'resource_metadata=' 'initial challenge retains resource metadata'
 
 http_unauthenticated POST /api/coding

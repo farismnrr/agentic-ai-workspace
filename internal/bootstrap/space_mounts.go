@@ -12,6 +12,7 @@ import (
 	orchestratorfiles "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/adapter/files"
 	orchestratormcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/adapter/mcp"
 	orchestratordomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/domain"
+	oauthdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/domain"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
@@ -54,10 +55,13 @@ func newSpaceMounts(
 
 func orchestratorIngress(next http.Handler) http.Handler {
 	recommendedScopes := []string{
+		oauthdomain.ScopeOpenID,
+		oauthdomain.ScopeEmail,
 		orchestratordomain.ScopeRead,
 		orchestratordomain.ScopeTasks,
 		orchestratordomain.ScopeDelegate,
 		orchestratordomain.ScopeFiles,
+		orchestratordomain.ScopeApprove,
 	}
 	return measureOrchestratorIngress(spacehttp.WithInitialScopeHint(next, recommendedScopes))
 }
