@@ -41,6 +41,7 @@ assert_status "$HTTP_STATUS" 201 'register account'
 
 orchestrator_list_tools
 assert_status "$HTTP_STATUS" 401 'unauthenticated Orchestrator request is rejected'
+assert_not_contains "$APP_LOG" 'ErrNotSupported' 'stream-capable HTTP request does not panic on optional writer interfaces'
 for scope in orchestrator:read orchestrator:tasks orchestrator:delegate orchestrator:files; do
 	assert_contains "$HTTP_HEADERS_FILE" "$scope" "initial challenge recommends $scope"
 done
