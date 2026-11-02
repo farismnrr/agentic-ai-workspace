@@ -55,7 +55,7 @@ func GitTask(args []string) (Task, error) {
 	// --no-pager, terminal-only editors disabled in runner environment,
 	// command-local hooks disabled even if the repository config enables them.
 	argv := append([]string{"git", "-c", "core.hooksPath=/dev/null", "--no-pager"}, args...)
-	return Task{Name: "git", Description: "Git " + verb, Command: argv, TimeoutSeconds: 180}, nil
+	return Task{Name: "git", Kind: "git", Description: "Git " + verb, Command: argv, TimeoutSeconds: 180}, nil
 }
 
 func vcsArgs(args []string) error {

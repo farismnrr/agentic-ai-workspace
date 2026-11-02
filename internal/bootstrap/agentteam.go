@@ -122,15 +122,18 @@ func toolsFor(role teamdomain.Role) []string {
 
 // roleMayUseTool narrows broad exec access for the built-in SDLC roles.
 // Generic shell commands can run arbitrary test or edit scripts, so built-in roles
-// do not receive them. QA/Security run read-only named checks; DevOps runs named builds.
+// do not receive them. QA/Security run read-only named checks; DevOps runs named builds and
+// bounded Git.
 func roleMayUseTool(role teamdomain.Role, tool string) bool {
 	switch tool {
 	case codingdomain.ToolRunCommand.Name:
 		return role.Key != "developer" && role.Key != "qa"
 	case codingdomain.ToolRunBuild.Name:
 		return role.Key == "devops"
-	case codingdomain.ToolRunArtifact.Name, codingdomain.ToolGit.Name:
+	case codingdomain.ToolRunArtifact.Name:
 		return role.Key == "developer"
+	case codingdomain.ToolGit.Name:
+		return role.Key == "developer" || role.Key == "devops"
 	case codingdomain.ToolGh.Name:
 		return role.Key == "developer" || role.Key == "qa" || role.Key == "devops"
 	case codingdomain.ToolRunTask.Name:

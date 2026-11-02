@@ -15,11 +15,6 @@ import (
 func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.CancelFunc) application.RunResult {
 	out := &tail{limit: domain.MaxOutputBytes}
 
-	docker, err := r.engine.Docker(ctx)
-	if err != nil {
-		return finish(ctx, err, sandbox.Result{}, out, 0)
-	}
-
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command,
 		WorkspaceReadOnly: domain.ReadOnlyWorkspace(ctx)}
 	if task.Kind == "build" || task.Kind == "artifact" {
@@ -57,6 +52,12 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	if !scoped && !locked {
 		git, hasGit = r.credentials(ctx)
 	}
+	if gitOnly && task.Kind == "git" && !hasGit && requiresGitHubConnection(task.Command) {
+		return application.RunResult{
+			ExitCode: -1,
+			Output:   "CONNECT_GITHUB_REQUIRED: The project owner has not connected GitHub. Connect GitHub in Settings before using this remote Git operation. No network request was made.",
+		}
+	}
 
 	hosts, granted := r.egressHosts(ctx, hasGit)
 	if gitOnly {
@@ -71,6 +72,10 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 		hosts, granted = []string{molab.host}, Granted{}
 	} else if locked {
 		hosts, granted = nil, Granted{}
+	}
+	docker, err := r.engine.Docker(ctx)
+	if err != nil {
+		return finish(ctx, err, sandbox.Result{}, out, 0)
 	}
 	// No project database/gateway privileges in isolated check/build containers.
 	_ = r.engine.prepare(ctx, r.dir, &spec, docker, hosts...) // without a socket the command just has no network
@@ -108,4 +113,17 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	}
 
 	return result
+}
+
+func requiresGitHubConnection(argv []string) bool {
+	for index, arg := range argv {
+		if arg != "--no-pager" || index+1 >= len(argv) {
+			continue
+		}
+		switch argv[index+1] {
+		case "clone", "fetch", "fetch-pack", "ls-remote", "pull", "push":
+			return true
+		}
+	}
+	return false
 }
