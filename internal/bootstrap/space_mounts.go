@@ -48,8 +48,18 @@ func newSpaceMounts(
 	})
 	mounts = append(mounts, mounter.Mount(space, handler))
 	return append(mounts, mounter.MountWithMiddleware(
-		orchestratorSpace, orchestratorHandler, measureOrchestratorIngress,
+		orchestratorSpace, orchestratorHandler, orchestratorIngress,
 	))
+}
+
+func orchestratorIngress(next http.Handler) http.Handler {
+	recommendedScopes := []string{
+		orchestratordomain.ScopeRead,
+		orchestratordomain.ScopeTasks,
+		orchestratordomain.ScopeDelegate,
+		orchestratordomain.ScopeFiles,
+	}
+	return measureOrchestratorIngress(spacehttp.WithInitialScopeHint(next, recommendedScopes))
 }
 
 func measureOrchestratorIngress(next http.Handler) http.Handler {
