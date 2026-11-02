@@ -56,15 +56,16 @@ func (s *Service) CompleteExternalLeadTask(ctx context.Context, userID, taskID, 
 	if err != nil {
 		return err
 	}
-	if !strings.HasPrefix(task.Source, externalLeadSource) || task.Status == domain.StatusDone {
+	if !strings.HasPrefix(task.Source, externalLeadSource) {
 		return domain.ErrWrongState
 	}
 	if strings.TrimSpace(summary) == "" {
 		return domain.ErrBadRequest
 	}
-	if s.externalActive(taskID) {
+	s.externalMu.Lock()
+	defer s.externalMu.Unlock()
+	if s.externalActiveLocked(taskID) {
 		return errors.New("worker jobs are still active")
 	}
-	// External completion is a report for human review, not verified proof.
-	return s.deps.Tasks.Finish(ctx, taskID, summary, nil, s.now())
+	return s.deps.Tasks.CompleteExternalLead(ctx, taskID, task.Source, strings.TrimSpace(summary), s.now())
 }

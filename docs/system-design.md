@@ -169,6 +169,12 @@ Web apps the AI starts use the same sandbox. See [sites.md](./sites.md).
 
 ## External work and plan approval
 
+- External Orchestrator tasks become **Done** only when the lead calls
+  `complete_task` with its final summary after delegated workers finish. The
+  summary is the lead's report, not independently verified proof. Pending
+  owner questions and plan approvals block completion. Native task `Finish`
+  still moves work to **Review** for the person's acceptance. Silence does not
+  complete an external task; the connected assistant has no end-of-chat signal.
 - External sessions require an enabled role at `begin_work`. Role names record
   attribution and never grant tools or start internal agents.
 - Plan progress is stored separately from the seven task statuses. A submitted

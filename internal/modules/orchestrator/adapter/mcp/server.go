@@ -40,7 +40,7 @@ type Services struct {
 
 func NewServer(s Services) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-orchestrator", Version: "1.0.0"},
-		&sdk.ServerOptions{Instructions: "You are the sole external lead. Select an existing project, create one primary task per issue, then delegate directly to enabled internal worker agents. Never delegate to the internal orchestrator or create extra tasks per worker."})
+		&sdk.ServerOptions{Instructions: "You are the sole external lead. Select an existing project and create one primary task per issue. Delegate directly to enabled internal worker agents; do not delegate to the internal orchestrator or create extra tasks per worker. After every worker has finished and your final report is ready, call complete_task once with that report, including when work is partial or not verified. Do not call complete_task after each worker. There is no conversation-ended signal, so the task stays Working until you explicitly call complete_task or the owner stops it."})
 	s.addRead(server)
 	s.addWrite(server)
 	s.addUploads(server)
