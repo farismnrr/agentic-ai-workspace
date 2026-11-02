@@ -60,6 +60,8 @@ type Runner struct {
 	since int64
 	// leads is set on the runner that leads a team: it hands out work but never changes anything itself.
 	leads bool
+	// externalFacts selects truthful command-result wording in external worker reports only.
+	externalFacts bool
 }
 
 // NewRunner builds the agent loop.
@@ -186,5 +188,3 @@ func (r *Runner) limitReached(ctx context.Context) (outcome, bool) {
 
 	return outcome{}, false
 }
-
-

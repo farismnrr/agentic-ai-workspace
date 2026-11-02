@@ -33,7 +33,8 @@ func (r *Runner) facts(ctx context.Context, task domain.Task, d Delegation) stri
 		}
 
 		if event.Run != nil {
-			runs = append(runs, fmt.Sprintf("%s (%s)", truncate(event.Run.Name, maxFactName), runResult(*event.Run)))
+			runs = append(runs, fmt.Sprintf("%s (%s)", truncate(event.Run.Name, maxFactName),
+				runResult(*event.Run, r.externalFacts)))
 		}
 	}
 
@@ -48,12 +49,14 @@ func belongsToJob(event domain.Event, roleName, jobID string) bool {
 	return event.Agent == roleName
 }
 
-func runResult(run domain.RunInfo) string {
+func runResult(run domain.RunInfo, external bool) string {
 	switch {
 	case run.TimedOut:
 		return "timed out"
 	case passedRun(run):
 		return "passed"
+	case external && run.ExitCode == 0:
+		return "command succeeded; outcome unverified"
 	}
 
 	return fmt.Sprintf("failed, exit %d", run.ExitCode)

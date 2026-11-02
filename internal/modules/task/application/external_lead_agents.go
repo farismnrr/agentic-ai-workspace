@@ -162,6 +162,7 @@ func (s *Service) launchExternal(r *Runner, task domain.Task, state *runState, c
 
 func externalWorkerRunner(r *Runner) *Runner {
 	worker := *r
+	worker.externalFacts = true
 	worker.deps.Tools = cancellationAwareTools{ToolSet: r.deps.Tools}
 	return &worker
 }
