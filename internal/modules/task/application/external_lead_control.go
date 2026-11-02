@@ -61,15 +61,24 @@ func (s *Service) CancelExternalJob(ctx context.Context, userID, taskID, jobID s
 	cancel := s.externalRunning[key]
 	if cancel != nil {
 		s.externalCancelled[key] = true
+		// Stop the live worker before waiting for durable storage. This closes
+		// the window where a slow status write leaves it running uncontrolled.
+		cancel()
 	}
 	s.externalMu.Unlock()
 	if err := s.deps.Delegations.SetDelegationStatus(ctx, taskID, jobID, DelegationCancelled); err != nil {
 		return ExternalAgentJob{}, err
 	}
-	if cancel != nil {
-		cancel()
+	// The worker may have completed just before the cancellation write. Return
+	// the persisted winner so a completed job is not reported as cancelled.
+	d, found, err = s.deps.Delegations.FindDelegation(ctx, taskID, jobID)
+	if err != nil {
+		return ExternalAgentJob{}, err
 	}
-	return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: DelegationCancelled}, nil
+	if !found {
+		return ExternalAgentJob{}, domain.ErrNotFound
+	}
+	return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: d.Status, Report: d.Report}, nil
 }
 
 // StopExternalLeadTask marks the external-led task done and cancels its active
