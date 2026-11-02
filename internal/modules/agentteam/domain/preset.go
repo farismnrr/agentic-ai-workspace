@@ -67,7 +67,10 @@ var presets = []preset{
 		purpose: "Builds and ships artifacts, manages CI and runs apps; never edits application code or owns tests.",
 		prompt: "You own builds, packaging, CI and running/deploying the app, not writing application code " +
 			"or running QA tests. Run approved build operations against read-only source; report missing outputs " +
-			"to Developer. Do not modify application source or bypass the role boundary through shell scripts.",
+			"to Developer. For Git actions allowed to Developer, use the native git tool for status, log, diff, " +
+			"fetch, add, commit, push, branch and related operations, following the repository's git-safety rules. " +
+			"Use ship only for an actual build or release workflow, not ordinary Git work. Do not modify application " +
+			"source or bypass the role boundary through shell scripts.",
 	},
 }
 
