@@ -88,6 +88,11 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 		!strings.Contains(gitResult, "Git or GitHub CLI arguments") {
 		t.Fatalf("Developer should own Git without shell, input must be validated: %s", gitResult)
 	}
+	missingGitHub := call("git", `{"work_id":"`+workID+`","args":["fetch","origin"]}`)
+	if !strings.Contains(missingGitHub, "CONNECT_GITHUB_REQUIRED") ||
+		!strings.Contains(missingGitHub, "No network request was made") {
+		t.Fatalf("remote Git without the owner connection should stop with an action: %s", missingGitHub)
+	}
 
 	artifact := call("run_artifact", `{"work_id":"`+workID+`","name":"artifact"}`)
 	if strings.Contains(artifact, "active role cannot use run_artifact") || strings.Contains(artifact, "unknown task") {
@@ -135,6 +140,10 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	devopsGit := call("git", `{"work_id":"`+workID+`","args":["status"]}`)
 	if strings.Contains(devopsGit, "active role cannot use git") {
 		t.Fatalf("DevOps should receive bounded native Git: %s", devopsGit)
+	}
+	devopsMissingGitHub := call("git", `{"work_id":"`+workID+`","args":["fetch","origin"]}`)
+	if !strings.Contains(devopsMissingGitHub, "CONNECT_GITHUB_REQUIRED") {
+		t.Fatalf("DevOps remote Git without the owner connection should stop with an action: %s", devopsMissingGitHub)
 	}
 	denied("run_artifact", `{"work_id":"`+workID+`","name":"artifact"}`)
 	denied("write_file", writeArgs)
