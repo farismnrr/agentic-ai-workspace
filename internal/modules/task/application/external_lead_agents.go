@@ -148,11 +148,12 @@ func (s *Service) launchExternal(r *Runner, task domain.Task, state *runState, c
 	if _, running := s.externalRunning[key]; running {
 		return
 	}
+	workerRunner := externalWorkerRunner(r)
 	ctx, cancel := context.WithTimeout(context.Background(), r.lim.wallTime(true))
 	s.externalRunning[key] = cancel
 	go func() {
 		defer cancel()
-		_, _ = r.runDelegation(ctx, task, state, call, d)
+		_, _ = workerRunner.runDelegation(ctx, task, state, call, d)
 		s.externalMu.Lock()
 		cancelled := s.externalCancelled[key]
 		delete(s.externalRunning, key)
@@ -162,6 +163,23 @@ func (s *Service) launchExternal(r *Runner, task domain.Task, state *runState, c
 			_ = r.deps.Delegations.SetDelegationStatus(context.Background(), task.ID, d.ID, "cancelled")
 		}
 	}()
+}
+
+func externalWorkerRunner(r *Runner) *Runner {
+	worker := *r
+	worker.deps.Tools = cancellationAwareTools{ToolSet: r.deps.Tools}
+	return &worker
+}
+
+type cancellationAwareTools struct {
+	ToolSet
+}
+
+func (t cancellationAwareTools) Execute(ctx context.Context, scope ToolScope, call Call) ToolResult {
+	if err := ctx.Err(); err != nil {
+		return ToolResult{Output: err.Error(), IsError: true}
+	}
+	return t.ToolSet.Execute(ctx, scope, call)
 }
 
 func (s *Service) resumeExternal(r *Runner, task domain.Task, in ExternalAgentInput, jobID string, d Delegation) {
