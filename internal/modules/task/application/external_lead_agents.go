@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -55,17 +55,6 @@ func (s *Service) ExternalJob(ctx context.Context, userID, taskID, jobID string)
 	return ExternalAgentJob{ID: d.ID, Role: d.RoleKey, Status: d.Status, Report: d.Report}, nil
 }
 
-func (s *Service) externalOwned(ctx context.Context, userID, taskID string) (domain.Task, error) {
-	task, err := s.owned(ctx, userID, taskID)
-	if err != nil {
-		return task, err
-	}
-	if !strings.HasPrefix(task.Source, externalLeadSource) || task.ArchivedAt != nil {
-		return domain.Task{}, domain.ErrWrongState
-	}
-	return task, nil
-}
-
 func (s *Service) externalActive(taskID string) bool {
 	s.externalMu.Lock()
 	defer s.externalMu.Unlock()
@@ -98,7 +87,7 @@ func (s *Service) DelegateExternal(ctx context.Context, userID string, in Extern
 		return ExternalAgentJob{}, err
 	}
 	if task.Status == domain.StatusDone || task.Status == domain.StatusFailed {
-		return ExternalAgentJob{}, domain.ErrWrongState
+		return ExternalAgentJob{}, refusal("TASK_NOT_ACTIVE", "This task has ended. Start a new task to assign more work.")
 	}
 	sum := sha256.Sum256([]byte(task.ID + "\x00" + in.RequestKey))
 	jobID := "external-" + hex.EncodeToString(sum[:16])
@@ -121,9 +110,15 @@ func (s *Service) DelegateExternal(ctx context.Context, userID string, in Extern
 	}
 	roster := r.roster(ctx, task)
 	if roster == nil {
-		return ExternalAgentJob{}, domain.ErrWrongState
+		return ExternalAgentJob{}, refusal("ROLE_NOT_ALLOWED", "No enabled team is available for this task. Enable a team member in Settings, then try again.")
 	}
 	if err := s.externalParallelCheck(ctx, r, task, roster, in.AgentKey); err != nil {
+		if errors.Is(err, domain.ErrBadRole) {
+			return ExternalAgentJob{}, refusal("ROLE_NOT_ALLOWED", "That team role is not enabled. Choose an enabled role from list_agents.")
+		}
+		return ExternalAgentJob{}, err
+	}
+	if err := s.externalPlanRefusal(ctx, userID, task, r, roster, in.AgentKey); err != nil {
 		return ExternalAgentJob{}, err
 	}
 	state := &runState{budget: &budget{left: r.lim.steps(true)}, segment: r.lim.delegateSteps(), roster: roster}
@@ -136,7 +131,7 @@ func (s *Service) DelegateExternal(ctx context.Context, userID string, in Extern
 	call := Call{ID: jobID, Name: toolDelegate, Input: raw}
 	d, ok := r.startDelegation(ctx, task, state, call, args)
 	if !ok {
-		return ExternalAgentJob{}, fmt.Errorf("delegation refused by worker policy")
+		return ExternalAgentJob{}, refusal("POLICY_REFUSED", "The worker could not start under this task's current rules. Update the plan or required inputs, then try again.")
 	}
 	s.launchExternal(r, task, state, call, d)
 	return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: d.Status}, nil
