@@ -30,7 +30,11 @@ func (r *Runner) system(ctx context.Context, task domain.Task, state *runState) 
 	}
 
 	if r.role != nil {
-		return childPrompt(*r.role, project, persona, installed, github) + reviewModePrompt(task.ReviewMode) + r.notesPrompt()
+		prompt := childPrompt(*r.role, project, persona, installed, github)
+		if r.externalWorker {
+			prompt += externalWorkerPrompt
+		}
+		return prompt + reviewModePrompt(task.ReviewMode) + r.notesPrompt()
 	}
 
 	prompt := systemPrompt(project, persona, installed, github) + r.notesPrompt()
@@ -39,6 +43,14 @@ func (r *Runner) system(ctx context.Context, task domain.Task, state *runState) 
 	}
 	return prompt + reviewModePrompt(task.ReviewMode)
 }
+
+const externalWorkerPrompt = `
+External Orchestrator worker:
+- Use only the internal tools offered in this task. They already run under the parent task and your assigned role.
+- Do not call the separate Coding Agent connector, begin_work, or create another Coding task or work session.
+- For read-only work, unrelated owner-managed changes in project-notes/, .workspace/, or uploads/ are not a blocker.
+  Do not edit or stage those files. For permitted changes, follow normal write safety and stage only exact files changed.
+`
 
 // teamPrompt tells the orchestrator who is on the team and how to use them.
 func teamPrompt(roster Roster) string {
