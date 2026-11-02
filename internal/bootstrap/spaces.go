@@ -5,6 +5,7 @@ import (
 
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
 	oauthdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/domain"
+	orchestratordomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/domain"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
 	spacedomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
@@ -12,7 +13,7 @@ import (
 
 // newRegistry lists the spaces this server offers.
 func newRegistry(cfg config.Config) *spaceapp.Registry {
-	return spaceapp.NewRegistry(cfg.Connector(), codingSpace())
+	return spaceapp.NewRegistry(cfg.Connector(), codingSpace(), orchestratordomain.Space())
 }
 
 func resourceOf(registry *spaceapp.Registry, space spacedomain.Space) oauthapp.Resource {

@@ -1,5 +1,7 @@
 # Connecting AI apps
 
+For external AI assistants that **lead internal workers directly**, use the independent [Orchestrator Space](orchestrator-space.md). The Coding Space instructions below are unchanged.
+
 Let AI apps like ChatGPT work on your projects through this server.
 
 - Each connector has its own address, such as `https://your-domain.com/api/coding`.

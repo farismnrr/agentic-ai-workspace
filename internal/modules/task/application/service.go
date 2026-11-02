@@ -35,6 +35,12 @@ type Service struct {
 	// recording keeps two calls from a connected app from starting two threads.
 	recording     sync.Mutex
 	workIdleAfter time.Duration
+	// External workers are dispatched directly by the standalone Orchestrator Space.
+	// They never enqueue the internal lead; existing task execution is unchanged.
+	externalRunner *Runner
+	externalMu sync.Mutex
+	externalRunning map[string]context.CancelFunc
+	externalCancelled map[string]bool
 }
 
 // NewService wires the use cases to the same collaborators as the runner.

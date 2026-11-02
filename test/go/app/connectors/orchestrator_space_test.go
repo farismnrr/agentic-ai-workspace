@@ -1,0 +1,208 @@
+package connectors_test
+
+import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"github.com/farismnrr/agentic-ai-workspace/test/go/apptest"
+	"github.com/gofiber/fiber/v3"
+)
+
+func orchestratorToken(t *testing.T, app *fiber.App, cookie, client string) string {
+	t.Helper()
+	resource := apptest.PublicURL + "/api/orchestrator"
+	query := url.Values{
+		"response_type": {"code"}, "client_id": {client}, "redirect_uri": {apptest.Redirect},
+		"scope": {"orchestrator:read orchestrator:tasks orchestrator:delegate orchestrator:files"},
+		"state": {"s1"}, "code_challenge": {apptest.PKCEChallenge},
+		"code_challenge_method": {"S256"}, "resource": {resource},
+	}
+	auth := apptest.Do(t, app, "GET", "/oauth/authorize?"+query.Encode(), "", nil)
+	loc, err := url.Parse(auth.Header.Get("Location"))
+	if err != nil || auth.Status != 302 {
+		t.Fatalf("orchestrator authorize: %d %v", auth.Status, err)
+	}
+	approval := apptest.Do(t, app, "POST", "/api/oauth/requests/"+loc.Query().Get("request")+"/decision",
+		`{"approve":true}`, apptest.JSONCookie(cookie))
+	back, err := url.Parse(approval.JSON(t)["redirect"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := apptest.Do(t, app, "POST", "/oauth/token", url.Values{
+		"grant_type": {"authorization_code"}, "code": {back.Query().Get("code")},
+		"client_id": {client}, "redirect_uri": {apptest.Redirect},
+		"code_verifier": {apptest.PKCEVerifier}, "resource": {resource},
+	}.Encode(), apptest.FormHeaders())
+	token, _ := result.JSON(t)["access_token"].(string)
+	if token == "" {
+		t.Fatalf("orchestrator token empty: %s", result.Body)
+	}
+	return token
+}
+
+func orchestratorCall(t *testing.T, app *fiber.App, token, name, args string) apptest.Reply {
+	t.Helper()
+	return apptest.Do(t, app, "POST", "/api/orchestrator", apptest.RPC("tools/call",
+		`{"name":"`+name+`","arguments":`+args+`}`), apptest.MCPHeaders(token))
+}
+
+func orchestratorOn(t *testing.T, app *fiber.App, cookie, name string) {
+	t.Helper()
+	r := apptest.Do(t, app, "PUT", "/api/spaces/orchestrator/tools/"+name,
+		`{"enabled":true}`, apptest.JSONCookie(cookie))
+	if r.Status != 204 {
+		t.Fatalf("enable %s: %d %s", name, r.Status, r.Body)
+	}
+}
+
+func orchestratorData(t *testing.T, r apptest.Reply) map[string]any {
+	t.Helper()
+	var envelope struct {
+		Result struct {
+			IsError bool           `json:"isError"`
+			Data    map[string]any `json:"structuredContent"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(r.Body, &envelope); err != nil || envelope.Result.IsError {
+		t.Fatalf("orchestrator call failed: %s %v", r.Body, err)
+	}
+	return envelope.Result.Data
+}
+
+func TestOrchestratorSpaceSeparateResourceAndOneTask(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	token := orchestratorToken(t, env.App, cookie, client)
+	metadata := apptest.Do(t, env.App, "GET", "/.well-known/oauth-protected-resource/api/orchestrator", "", nil)
+	apptest.MustContain(t, metadata.Body, `"resource":"`+apptest.PublicURL+`/api/orchestrator"`)
+	cross := apptest.Do(t, env.App, "POST", "/api/coding", apptest.RPC("tools/list", `{}`), apptest.MCPHeaders(token))
+	if cross.Status != 401 {
+		t.Fatalf("Orchestrator token crossed Coding boundary: %d", cross.Status)
+	}
+	tools := apptest.Do(t, env.App, "POST", "/api/orchestrator", apptest.RPC("tools/list", `{}`), apptest.MCPHeaders(token))
+	apptest.MustContain(t, tools.Body, "delegate_agent", "list_projects", "start_upload")
+	apptest.MustNotContain(t, tools.Body, `"name":"create_project"`, `"name":"begin_work"`)
+
+	created := apptest.Do(t, env.App, "POST", "/api/projects", `{"name":"Orchestrator project"}`, apptest.JSONCookie(cookie))
+	project := created.JSON(t)["id"].(string)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "list_projects", `{}`))
+	deny := orchestratorCall(t, env.App, token, "create_task", `{"project":"`+project+`","summary":"one issue","idempotency_key":"unique-one-12345"}`)
+	apptest.MustContain(t, deny.Body, `"isError":true`)
+	orchestratorOn(t, env.App, cookie, "create_task")
+	args := `{"project":"` + project + `","summary":"one issue","idempotency_key":"unique-one-12345"}`
+	first := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task", args))
+	second := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task", args))
+	if first["ID"] == nil || first["ID"] != second["ID"] {
+		t.Fatalf("one issue must reuse primary task: %+v %+v", first, second)
+	}
+	tasks := apptest.Do(t, env.App, "GET", "/api/tasks", "", apptest.JSONCookie(cookie))
+	var visible []map[string]any
+	if err := json.Unmarshal(tasks.Body, &visible); err != nil || len(visible) != 1 {
+		t.Fatalf("duplicate tasks: %s %v", tasks.Body, err)
+	}
+}
+
+func TestOrchestratorFileToolsRespectProjectAndTask(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	token := orchestratorToken(t, env.App, cookie, client)
+	created := apptest.Do(t, env.App, "POST", "/api/projects", `{"name":"Artifacts"}`, apptest.JSONCookie(cookie))
+	project := created.JSON(t)["id"].(string)
+	for _, tool := range []string{"create_task", "save_file", "start_upload", "upload_chunk", "finish_upload"} {
+		orchestratorOn(t, env.App, cookie, tool)
+	}
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		`{"project":"`+project+`","summary":"save one file","idempotency_key":"file-task-12345"}`))["ID"].(string)
+	wrong := orchestratorCall(t, env.App, token, "save_file", `{"project":"`+project+`","task_id":"missing","path":"hello.txt","content":"hello"}`)
+	apptest.MustContain(t, wrong.Body, `"isError":true`)
+	good := orchestratorCall(t, env.App, token, "save_file", `{"project":"`+project+`","task_id":"`+task+`","path":"hello.txt","content":"hello"}`)
+	orchestratorData(t, good)
+	file := filepath.Join(env.DataDir, "projects", project, "hello.txt")
+	if data, err := os.ReadFile(file); err != nil || string(data) != "hello" {
+		t.Fatalf("saved project file: %q %v", data, err)
+	}
+	content := []byte("%PDF-1.7\nsmall fixture")
+	digest := sha256.Sum256(content)
+	init := `{"project":"` + project + `","task_id":"` + task + `","name":"report.pdf","size":` +
+		jsonNumber(len(content)) + `,"sha256":"` + hex.EncodeToString(digest[:]) + `"}`
+	session := orchestratorData(t, orchestratorCall(t, env.App, token, "start_upload", init))
+	id := session["id"].(string)
+	chunk := `{"project":"` + project + `","upload_id":"` + id + `","offset":0,"data_base64":"` +
+		base64.StdEncoding.EncodeToString(content) + `"}`
+	orchestratorData(t, orchestratorCall(t, env.App, token, "upload_chunk", chunk))
+	finished := orchestratorData(t, orchestratorCall(t, env.App, token, "finish_upload",
+		`{"project":"`+project+`","upload_id":"`+id+`"}`))
+	if finished["owner"] != nil || finished["path"] != "uploads/report.pdf" {
+		t.Fatalf("unsafe upload metadata: %+v", finished)
+	}
+	bin, err := os.ReadFile(filepath.Join(env.DataDir, "projects", project, "uploads", "report.pdf"))
+	if err != nil || string(bin) != string(content) {
+		t.Fatalf("uploaded binary differs: %v", err)
+	}
+}
+
+func TestOrchestratorDirectInternalResearcher(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	gateway := apptest.NewGateway(t, apptest.ToolCall("r1", "report", map[string]any{
+		"summary":  "Research completed by the actual internal worker",
+		"document": "# Research findings\\nMock source checked.",
+	}))
+	providerResponse := apptest.AddProvider(t, env, cookie, gateway.Server.URL, "k")
+	provider, _ := providerResponse.JSON(t)["id"].(string)
+	prefs := `{"defaultProviderId":"` + provider + `","defaultModel":"fake-model","rules":[]}`
+	response := apptest.Do(t, env.App, "PUT", "/api/preferences", prefs, apptest.JSONCookie(cookie))
+	if response.Status != 200 && response.Status != 204 {
+		t.Fatalf("model preference failed: %d %s", response.Status, response.Body)
+	}
+	project := apptest.Do(t, env.App, "POST", "/api/projects",
+		`{"name":"Delegate worker"}`, apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	token := orchestratorToken(t, env.App, cookie, client)
+	orchestratorOn(t, env.App, cookie, "create_task")
+	orchestratorOn(t, env.App, cookie, "delegate_agent")
+	orchestratorOn(t, env.App, cookie, "update_task_plan")
+	args := `{"project":"` + project + `","summary":"Research the project","idempotency_key":"direct-research-12345"}`
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task", args))["ID"].(string)
+	plan := `{"task_id":"` + task + `","steps":[{"id":"research","title":"Gather evidence","state":"active"}]}`
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan", plan))
+	brief := `{"task_id":"` + task + `","agent_key":"researcher","brief":"Inspect the project and report the findings",` +
+		`"idempotency_key":"research-job-12345"}`
+	job := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent", brief))
+	id, _ := job["job_id"].(string)
+	if id == "" {
+		t.Fatalf("worker job not created: %+v", job)
+	}
+	var done bool
+	for attempt := 0; attempt < 200; attempt++ {
+		state := orchestratorData(t, orchestratorCall(t, env.App, token, "get_delegation",
+			`{"task_id":"`+task+`","job_id":"`+id+`"}`))
+		if state["status"] == "done" {
+			done = true
+			break
+		}
+		if state["status"] == "failed" {
+			t.Fatalf("real internal worker failed: %+v", state)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !done {
+		t.Fatal("internal worker never reported")
+	}
+	activity := orchestratorCall(t, env.App, token, "get_task_activity", `{"task_id":"`+task+`"}`)
+	apptest.MustContain(t, activity.Body, "Researcher", "handoff")
+	var count []map[string]any
+	tasks := apptest.Do(t, env.App, "GET", "/api/tasks", "", apptest.JSONCookie(cookie))
+	if err := json.Unmarshal(tasks.Body, &count); err != nil || len(count) != 1 {
+		t.Fatalf("worker delegation spawned an internal lead task: %s", tasks.Body)
+	}
+}
+
+func jsonNumber(n int) string { return fmt.Sprint(n) }

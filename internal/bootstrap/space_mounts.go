@@ -5,6 +5,9 @@ import (
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
+	orchestratorfiles "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/adapter/files"
+	orchestratormcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/adapter/mcp"
+	orchestratordomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/domain"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
@@ -30,5 +33,15 @@ func newSpaceMounts(
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 
-	return append(mounts, mounter.Mount(space, handler))
+	orchestratorSpace := orchestratordomain.Space()
+	orchestratorHandler := newOrchestratorHandler(orchestratormcp.Services{
+		Projects: projects, Tasks: tasks, Permissions: permissions,
+		Files: orchestratorFiles{workspaces: ownWorkspaces{projects: projects, tools: tools}, tasks: tasks},
+		Uploads: &orchestratorfiles.Manager{
+			Projects: projects, Folders: tools.folders, Notify: tasks.NotifyExternalFileChanged,
+		},
+		MetadataURL: cfg.Connector() + orchestratorSpace.MetadataPath(),
+	})
+	mounts = append(mounts, mounter.Mount(space, handler))
+	return append(mounts, mounter.Mount(orchestratorSpace, orchestratorHandler))
 }

@@ -55,6 +55,7 @@ func newAgent(
 	runner := taskapp.NewRunner(deps, taskapp.DefaultLimits())
 	scheduler := taskapp.NewScheduler(runner.Run)
 	service := taskapp.NewService(deps, scheduler)
+	service.EnableExternalWorkers(runner)
 	tools.molabTasks = service
 	works, handoffs := wireExternalWorkflows(service, store, hub, deps, cfg)
 	service.UseWorkIdleAfter(cfg.WorkIdleAfter)

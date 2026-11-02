@@ -34,6 +34,11 @@ func awaitingApproval(task domain.Task, lead string, role AgentRole, events []do
 		return ""
 	}
 
+	// External-led tasks are approved by the person in their existing task UI.
+	// Normal internal-lead tasks keep the original lead identity and behavior.
+	if strings.HasPrefix(task.Source, externalLeadSource) {
+		lead = task.Source
+	}
 	var prd int64
 
 	for _, event := range events {
@@ -42,6 +47,9 @@ func awaitingApproval(task domain.Task, lead string, role AgentRole, events []do
 		}
 	}
 
+	if strings.HasPrefix(task.Source, externalLeadSource) && prd > 0 {
+		prd = max(prd, lastSeq(events, domain.EventPlan))
+	}
 	if prd == 0 || approvedAfter(events, lead, prd) {
 		return ""
 	}
