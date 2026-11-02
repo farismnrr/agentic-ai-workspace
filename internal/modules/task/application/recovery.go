@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -35,6 +36,11 @@ func (s *Service) Recover(ctx context.Context) error {
 }
 
 func (s *Service) recoverTask(ctx context.Context, task domain.Task) error {
+	// External Orchestrator tasks own their worker jobs. Never hand them to the
+	// internal lead or silently mark a still-active external issue completed.
+	if strings.HasPrefix(task.Source, externalLeadSource) {
+		return s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusNeedsInput, s.now())
+	}
 	if task.WorkID != "" {
 		return nil
 	}

@@ -3,11 +3,14 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 77 Go test files contain 167 top-level test functions:
-67 registered test files contain 167 functions and 10 support files contain no test functions.
+After this slice, 78 Go test files contain 170 top-level test functions:
+68 registered test files contain 170 functions and 10 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
+| `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorSpaceSeparateResourceAndOneTask` | auth/authz | Real HTTP MCP verifies distinct token resource, tool switches and durable one-task idempotency. | none |
+| `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorFileToolsRespectProjectAndTask` | cross-user/project isolation | Real MCP requests verify task-scoped writes and SHA-256-validated binary upload into the right project. | none |
+| `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorDirectInternalResearcher` | app-level integration | Real MCP delegation runs the configured internal Researcher via scripted model; checks job report and no extra task. | none |
 | `test/go/app/molab/mcp_test.go::TestChatGPTMoLabRequiresDeveloperWork` | auth/authz | Exercises OAuth MCP discovery, permission switch, Developer work requirement and credential-free activity logging. | none |
 | `test/go/app/molab/mcp_test.go::TestChatGPTMoLabRequiresExecScope` | auth/authz | Verifies step-up consent is required for coding:exec. | none |
 | `test/go/modules/molab/execute_test.go::TestMCPExecutionInspectsBeforeRunningAndKeepsSecretOutOfArgv` | sandbox/privilege | Confirms inspection-first, exact hostname and no token in sandbox argv. | none |

@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -26,6 +27,16 @@ func (s *Service) Answer(ctx context.Context, userID, taskID, eventID string, an
 	}
 	if task.WorkID != "" {
 		return s.answerExternal(ctx, userID, task, eventID, answer)
+	}
+	if strings.HasPrefix(task.Source, externalLeadSource) {
+		// The person answers in the same UI, but the external lead, not the
+		// internal scheduler, decides which worker runs next.
+		event, err := s.deps.Events.FindEvent(ctx, taskID, eventID)
+		if err != nil { return err }
+		if event.Kind != domain.EventQuestion { return domain.ErrWrongState }
+		if err := resolve(&event, answer); err != nil { return err }
+		if err := s.deps.Events.UpdateEvent(ctx, taskID, event); err != nil { return err }
+		return s.deps.Tasks.SetStatus(ctx, taskID, domain.StatusWorking, s.now())
 	}
 	if task.Source != "" {
 		return domain.ErrWrongState
@@ -76,6 +87,9 @@ func (s *Service) Cancel(ctx context.Context, userID, taskID string) error {
 	}
 	if task.ArchivedAt != nil {
 		return domain.ErrWrongState
+	}
+	if strings.HasPrefix(task.Source, externalLeadSource) {
+		return s.StopExternalLeadTask(ctx, userID, taskID)
 	}
 	if task.WorkID != "" {
 		if s.workStopper == nil {
