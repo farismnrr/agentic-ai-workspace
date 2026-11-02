@@ -130,10 +130,15 @@ func (s *Service) StopExternalLeadTask(ctx context.Context, userID, taskID strin
 	if err != nil {
 		return err
 	}
+	s.externalMu.Lock()
+	defer s.externalMu.Unlock()
+	task, err = s.externalOwned(ctx, userID, taskID)
+	if err != nil {
+		return err
+	}
 	if task.Status == domain.StatusDone {
 		return nil
 	}
-	s.externalMu.Lock()
 	cancels := make([]context.CancelFunc, 0)
 	for key, cancel := range s.externalRunning {
 		if len(key) > len(taskID) && key[:len(taskID)+1] == taskID+"/" {
@@ -141,7 +146,6 @@ func (s *Service) StopExternalLeadTask(ctx context.Context, userID, taskID strin
 			cancels = append(cancels, cancel)
 		}
 	}
-	s.externalMu.Unlock()
 	for _, cancel := range cancels {
 		cancel()
 	}

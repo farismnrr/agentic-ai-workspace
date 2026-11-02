@@ -31,6 +31,7 @@ type TaskStore interface {
 	SavePRD(ctx context.Context, id, prd string, at time.Time) error
 	SaveResearch(ctx context.Context, id, research string, at time.Time) error
 	Finish(ctx context.Context, id, summary string, proof *domain.Proof, at time.Time) error
+	CompleteExternalLead(ctx context.Context, id, source, summary string, at time.Time) error
 	SetContext(ctx context.Context, id string, used, window int64) error
 	SetContextState(ctx context.Context, id, state string) error
 	Running(ctx context.Context) ([]domain.Task, error)

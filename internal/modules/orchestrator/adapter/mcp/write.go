@@ -95,7 +95,7 @@ func (s Services) addWrite(server *sdk.Server) {
 	sdk.AddTool(server, tool("complete_task"), secured(s, "complete_task", domain.ScopeTasks,
 		func(ctx context.Context, user, _ string, in completeInput) (doneOutput, error) {
 			err := s.Tasks.CompleteExternalLeadTask(ctx, user, in.TaskID, in.Summary)
-			return doneOutput{Status: "review"}, err
+			return doneOutput{Status: "done"}, err
 		}))
 	sdk.AddTool(server, tool("update_task_plan"), secured(s, "update_task_plan", domain.ScopeTasks,
 		func(ctx context.Context, user, _ string, in planInput) (doneOutput, error) {

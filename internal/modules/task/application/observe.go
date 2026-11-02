@@ -143,6 +143,16 @@ func (o observedTasks) Finish(ctx context.Context, id, summary string, proof *do
 	return err //nolint:wrapcheck // a transparent decorator
 }
 
+func (o observedTasks) CompleteExternalLead(
+	ctx context.Context, id, source, summary string, at time.Time,
+) error {
+	err := o.TaskStore.CompleteExternalLead(ctx, id, source, summary, at)
+	if err == nil {
+		o.notify.Changed(o.owners.of(ctx, id), id)
+	}
+	return err //nolint:wrapcheck // a transparent decorator
+}
+
 func (o observedTasks) SetContext(ctx context.Context, id string, used, window int64) error {
 	err := o.TaskStore.SetContext(ctx, id, used, window)
 	if err == nil {

@@ -55,9 +55,7 @@ func (s *Service) ExternalJob(ctx context.Context, userID, taskID, jobID string)
 	return ExternalAgentJob{ID: d.ID, Role: d.RoleKey, Status: d.Status, Report: d.Report}, nil
 }
 
-func (s *Service) externalActive(taskID string) bool {
-	s.externalMu.Lock()
-	defer s.externalMu.Unlock()
+func (s *Service) externalActiveLocked(taskID string) bool {
 	for key := range s.externalRunning {
 		if strings.HasPrefix(key, taskID+"/") {
 			return true
@@ -93,6 +91,13 @@ func (s *Service) DelegateExternal(ctx context.Context, userID string, in Extern
 	jobID := "external-" + hex.EncodeToString(sum[:16])
 	s.externalMu.Lock()
 	defer s.externalMu.Unlock()
+	task, err = s.externalOwned(ctx, userID, in.TaskID)
+	if err != nil {
+		return ExternalAgentJob{}, err
+	}
+	if task.Status == domain.StatusDone || task.Status == domain.StatusFailed {
+		return ExternalAgentJob{}, refusal("TASK_NOT_ACTIVE", "This task has ended. Start a new task to assign more work.")
+	}
 	r := s.externalRunner
 	if r == nil || r.deps.Delegations == nil {
 		return ExternalAgentJob{}, domain.ErrWrongState
