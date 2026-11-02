@@ -37,6 +37,8 @@ export const saveVariable = (id: string, item: { name: string; value: string; is
   request('PUT', `${projectPath(id)}/env`, item);
 export const deleteVariable = (id: string, name: string): Promise<undefined> =>
   request('DELETE', `${projectPath(id)}/env/${encodeURIComponent(name)}`);
+export const revealVariable = (id: string, name: string, password: string): Promise<{ name: string; value: string }> =>
+  request('POST', `${projectPath(id)}/env/${encodeURIComponent(name)}/reveal`, { password });
 
 export const getDatabase = (id: string): Promise<DatabaseConnection> => request('GET', `${projectPath(id)}/db`);
 export const getDatabaseKinds = (): Promise<DatabaseKindAvailability[]> => request('GET', '/api/databases/kinds');

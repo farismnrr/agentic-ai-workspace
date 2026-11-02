@@ -52,6 +52,15 @@ func (s *Service) Authenticate(ctx context.Context, token string) (domain.User, 
 	return user, nil
 }
 
+// VerifyPassword checks a fresh password proof for a signed-in account.
+func (s *Service) VerifyPassword(ctx context.Context, userID, password string) (bool, error) {
+	hash, err := s.users.PasswordHash(ctx, userID)
+	if err != nil {
+		return false, fmt.Errorf("find account password: %w", err)
+	}
+	return s.hasher.Verify(password, hash), nil
+}
+
 // Logout ends a session. Unknown tokens are ignored.
 func (s *Service) Logout(ctx context.Context, token string) error {
 	if err := s.sessions.DeleteSession(ctx, s.tokens.Hash(token)); err != nil {

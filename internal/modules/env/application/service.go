@@ -35,6 +35,16 @@ type ProjectOwner interface {
 	Owner(ctx context.Context, projectID string) (userID, slug string, err error)
 }
 
+// PasswordVerifier validates a current account password for a sensitive action.
+type PasswordVerifier interface {
+	VerifyPassword(ctx context.Context, userID, password string) (bool, error)
+}
+
+// RevealAudit records metadata only for a browser secret reveal attempt.
+type RevealAudit interface {
+	RecordReveal(ctx context.Context, userID, projectID, name, outcome string, at time.Time) error
+}
+
 // Service holds project-scoped Env use cases.
 type Service struct {
 	store  Store
@@ -171,6 +181,16 @@ func (s *Service) checkOwner(ctx context.Context, userID, projectID string) erro
 	}
 
 	return nil
+}
+
+// AuthorizeReveal confirms ownership without decrypting the selected value.
+func (s *Service) AuthorizeReveal(ctx context.Context, userID, projectID string) error {
+	return s.checkOwner(ctx, userID, projectID)
+}
+
+// Reveal opens one named secret after the caller has verified the current password.
+func (s *Service) Reveal(ctx context.Context, userID, projectID, name string) (string, error) {
+	return s.Secret(ctx, userID, projectID, name)
 }
 
 func (s *Service) openVariables(stored []StoredVariable, includeSecrets bool) ([]domain.Variable, error) {

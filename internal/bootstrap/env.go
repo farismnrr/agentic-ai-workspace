@@ -17,7 +17,8 @@ import (
 )
 
 func newEnvMount(
-	db *sql.DB, cfg config.Config, projects envapp.ProjectOwner, auth, sameOrigin fiber.Handler,
+	db *sql.DB, cfg config.Config, projects envapp.ProjectOwner, account *accountapp.Service,
+	auth, sameOrigin fiber.Handler,
 ) (*envapp.Service, httpserver.Mount, error) {
 	cipher, err := secretbox.Open(cfg.DataDir)
 	if err != nil {
@@ -25,14 +26,18 @@ func newEnvMount(
 	}
 
 	service := envapp.NewService(envsqlite.NewStore(db), cipher, projects, time.Now)
-	return service, envhttp.NewHandler(service).Mount(auth, sameOrigin), nil
+	limit := httpserver.Limit(5, 15*time.Minute, func(c fiber.Ctx) string {
+		return "env-reveal:" + httpserver.UserID(c)
+	}, true)
+	handler := envhttp.NewHandler(service).WithReveal(account, envsqlite.NewRevealAudit(db))
+	return service, handler.Mount(auth, sameOrigin, limit), nil
 }
 
 func newProjectSettings(
 	db *sql.DB, cfg config.Config, projects *projectapp.Service, account *accountapp.Service,
 	auth, sameOrigin fiber.Handler,
 ) (*envapp.Service, []httpserver.Mount, error) {
-	env, envMount, err := newEnvMount(db, cfg, projects, auth, sameOrigin)
+	env, envMount, err := newEnvMount(db, cfg, projects, account, auth, sameOrigin)
 	if err != nil {
 		return nil, nil, err
 	}
