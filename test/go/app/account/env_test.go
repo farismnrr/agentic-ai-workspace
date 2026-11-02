@@ -79,6 +79,98 @@ func TestProjectEnvIsHiddenFromOtherOwners(t *testing.T) {
 	}
 }
 
+func TestProjectEnvRevealRequiresCurrentPasswordAndReturnsOnlyOneSecret(t *testing.T) {
+	t.Parallel()
+	a := apptest.NewAgentRig(t)
+	putEnv(t, a, a.Project, `{"name":"API_TOKEN","value":"private-token"}`)
+	putEnv(t, a, a.Project, `{"name":"OTHER_TOKEN","value":"other-private-token"}`)
+	path := "/api/projects/" + a.Project + "/env/API_TOKEN/reveal"
+
+	wrong := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"incorrect password"}`,
+		apptest.JSONCookie(a.Cookie))
+	if wrong.Status != 401 || strings.Contains(string(wrong.Body), "private-token") {
+		t.Fatalf("wrong password reveal = %d %s", wrong.Status, wrong.Body)
+	}
+	assertRevealNoStore(t, wrong)
+	correct := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"correct horse"}`,
+		apptest.JSONCookie(a.Cookie))
+	if correct.Status != 200 || string(correct.Body) != `{"name":"API_TOKEN","value":"private-token"}` {
+		t.Fatalf("correct password reveal = %d %s", correct.Status, correct.Body)
+	}
+	assertRevealNoStore(t, correct)
+	if !strings.Contains(string(getEnv(t, a, a.Project).Body), `"isSecret":true`) ||
+		strings.Contains(string(getEnv(t, a, a.Project).Body), "private-token") {
+		t.Fatal("environment list revealed secret plaintext")
+	}
+}
+
+func TestProjectEnvRevealRejectsCrossSiteAndLimitsFailedPasswords(t *testing.T) {
+	t.Parallel()
+	a := apptest.NewAgentRig(t)
+	putEnv(t, a, a.Project, `{"name":"API_TOKEN","value":"private-token"}`)
+	path := "/api/projects/" + a.Project + "/env/API_TOKEN/reveal"
+	crossSite := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"correct horse"}`,
+		map[string]string{"Content-Type": "application/json", "Cookie": a.Cookie, "Origin": "https://attacker.example"})
+	if crossSite.Status != 403 || strings.Contains(string(crossSite.Body), "private-token") {
+		t.Fatalf("cross-site reveal = %d %s", crossSite.Status, crossSite.Body)
+	}
+	assertRevealNoStore(t, crossSite)
+	for attempt := 0; attempt < 5; attempt++ {
+		response := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"incorrect password"}`,
+			apptest.JSONCookie(a.Cookie))
+		if response.Status != 401 {
+			t.Fatalf("failed password attempt %d = %d %s", attempt+1, response.Status, response.Body)
+		}
+	}
+	limited := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"correct horse"}`,
+		apptest.JSONCookie(a.Cookie))
+	if limited.Status != 429 || strings.Contains(string(limited.Body), "private-token") {
+		t.Fatalf("limited reveal = %d %s", limited.Status, limited.Body)
+	}
+	assertRevealNoStore(t, limited)
+
+	anonymous := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"correct horse"}`, apptest.JSONHeaders())
+	if anonymous.Status != 401 {
+		t.Fatalf("anonymous reveal = %d %s", anonymous.Status, anonymous.Body)
+	}
+	assertRevealNoStore(t, anonymous)
+}
+
+func TestProjectEnvRevealNoStoreForWrongOwnerMethodAndOversizedBody(t *testing.T) {
+	t.Parallel()
+	a := apptest.NewAgentRig(t)
+	putEnv(t, a, a.Project, `{"name":"API_TOKEN","value":"private-token"}`)
+	path := "/api/projects/" + a.Project + "/env/API_TOKEN/reveal"
+	other := apptest.CookieOf(t, apptest.Do(t, a.Environment.App, "POST", "/api/auth/register",
+		`{"name":"Eve","email":"eve@example.com","password":"correct horse"}`, apptest.JSONHeaders()))
+	wrongOwner := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"correct horse"}`,
+		apptest.JSONCookie(other))
+	if wrongOwner.Status != 404 || strings.Contains(string(wrongOwner.Body), "private-token") {
+		t.Fatalf("wrong-owner reveal = %d %s", wrongOwner.Status, wrongOwner.Body)
+	}
+	assertRevealNoStore(t, wrongOwner)
+
+	wrongMethod := apptest.Do(t, a.Environment.App, "GET", path, "", apptest.JSONCookie(a.Cookie))
+	if wrongMethod.Status < 400 || strings.Contains(string(wrongMethod.Body), "private-token") {
+		t.Fatalf("wrong-method reveal = %d %s", wrongMethod.Status, wrongMethod.Body)
+	}
+	assertRevealNoStore(t, wrongMethod)
+
+	oversized := apptest.Do(t, a.Environment.App, "POST", path, `{"password":"`+strings.Repeat("x", 2048)+`"}`,
+		apptest.JSONCookie(a.Cookie))
+	if oversized.Status != 413 || strings.Contains(string(oversized.Body), "private-token") {
+		t.Fatalf("oversized reveal = %d %s", oversized.Status, oversized.Body)
+	}
+	assertRevealNoStore(t, oversized)
+}
+
+func assertRevealNoStore(t *testing.T, response apptest.Reply) {
+	t.Helper()
+	if response.Header.Get("Cache-Control") != "no-store" || response.Header.Get("Pragma") != "no-cache" {
+		t.Fatalf("reveal response is cacheable: %v", response.Header)
+	}
+}
+
 func putEnv(t *testing.T, a apptest.AgentRig, project, body string) apptest.Reply {
 	t.Helper()
 	return apptest.Do(t, a.Environment.App, "PUT", "/api/projects/"+project+"/env", body, apptest.JSONCookie(a.Cookie))

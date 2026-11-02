@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"io/fs"
+	"strings"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -31,6 +32,7 @@ func New(frontend fs.FS, settings Settings, mounts ...Mount) *fiber.App {
 	}
 
 	app := fiber.New(config)
+	app.Use(noStoreEnvReveal)
 
 	version := settings.Version
 	if version == "" {
@@ -48,4 +50,30 @@ func New(frontend fs.FS, settings Settings, mounts ...Mount) *fiber.App {
 	registerSPA(app, frontend)
 
 	return app
+}
+
+func noStoreEnvReveal(c fiber.Ctx) error {
+	if !isEnvRevealPath(c.Path()) {
+		return c.Next()
+	}
+
+	setEnvRevealNoStore(c)
+	err := c.Next()
+	setEnvRevealNoStore(c)
+	return err
+}
+
+func isEnvRevealPath(path string) bool {
+	if !strings.HasPrefix(path, "/api/projects/") || !strings.HasSuffix(path, "/reveal") {
+		return false
+	}
+
+	segments := strings.Split(path, "/")
+	return len(segments) == 7 && segments[1] == "api" && segments[2] == "projects" &&
+		segments[3] != "" && segments[4] == "env" && segments[5] != "" && segments[6] == "reveal"
+}
+
+func setEnvRevealNoStore(c fiber.Ctx) {
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	c.Set("Pragma", "no-cache")
 }
