@@ -8,6 +8,7 @@ const (
 	ScopeTasks    = "orchestrator:tasks"
 	ScopeDelegate = "orchestrator:delegate"
 	ScopeFiles    = "orchestrator:files"
+	ScopeApprove  = "orchestrator:approve"
 )
 
 func Space() spacedomain.Space {
@@ -24,6 +25,7 @@ func Space() spacedomain.Space {
 			{ID: ScopeTasks, Description: "Create and manage external-led tasks"},
 			{ID: ScopeDelegate, Description: "Delegate directly to your internal agents"},
 			{ID: ScopeFiles, Description: "Save files to an existing project"},
+			{ID: ScopeApprove, Description: "Approve a submitted external Orchestrator PRD on your behalf"},
 		},
 		Tools: []spacedomain.Tool{
 			tool("list_projects", "List your existing projects", ScopeRead, "read", true),
@@ -44,6 +46,7 @@ func Space() spacedomain.Space {
 			tool("save_task_research", "Save external lead research", ScopeTasks, "write", false),
 			tool("save_task_requirements", "Save the external lead PRD", ScopeTasks, "write", false),
 			tool("submit_plan", "Ask the owner to approve the PRD", ScopeTasks, "write", false),
+			tool("approve_plan", "Approve a submitted external Orchestrator PRD (requires separate owner opt-in)", ScopeApprove, "exec", false),
 			tool("save_file", "Save a text file in an existing project", ScopeFiles, "write", false),
 			tool("start_upload", "Start a resumable binary file transfer", ScopeFiles, "write", false),
 			tool("upload_chunk", "Append a bounded binary file chunk", ScopeFiles, "write", false),

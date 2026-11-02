@@ -166,6 +166,22 @@ type observedEvents struct {
 	owners *owners
 }
 
+// ApproveExternalPlanEvent forwards the Orchestrator-only atomic approval
+// through the event observer without changing any Coding Space behavior.
+func (o observedEvents) ApproveExternalPlanEvent(
+	ctx context.Context, userID, client, taskID, eventID, requestHash string, at time.Time,
+) error {
+	approver, ok := o.EventStore.(externalPlanApprover)
+	if !ok {
+		return domain.ErrWrongState
+	}
+	if err := approver.ApproveExternalPlanEvent(ctx, userID, client, taskID, eventID, requestHash, at); err != nil {
+		return err
+	}
+	o.notify.Changed(userID, taskID)
+	return nil
+}
+
 func (o observedEvents) AppendEvent(ctx context.Context, taskID string, event domain.Event) (domain.Event, error) {
 	stored, err := o.EventStore.AppendEvent(ctx, taskID, event)
 	if err == nil {

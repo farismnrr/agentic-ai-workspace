@@ -41,6 +41,11 @@ type completeInput struct {
 type doneOutput struct {
 	Status string `json:"status"`
 }
+type approveInput struct {
+	TaskID         string `json:"task_id"`
+	EventID        string `json:"event_id"`
+	IdempotencyKey string `json:"idempotency_key"`
+}
 type saveFileInput struct {
 	TaskID       string `json:"task_id"`
 	Project      string `json:"project"`
@@ -100,6 +105,10 @@ func (s Services) addWrite(server *sdk.Server) {
 	sdk.AddTool(server, tool("submit_plan"), secured(s, "submit_plan", domain.ScopeTasks,
 		func(ctx context.Context, user, _ string, in stopInput) (taskapp.ExternalPlanApproval, error) {
 			return s.Tasks.SubmitExternalPlan(ctx, user, in.TaskID)
+		}))
+	sdk.AddTool(server, tool("approve_plan"), secured(s, "approve_plan", domain.ScopeApprove,
+		func(ctx context.Context, user, client string, in approveInput) (taskapp.ExternalPlanApproval, error) {
+			return s.Tasks.ApproveExternalPlan(ctx, user, client, in.TaskID, in.EventID, in.IdempotencyKey)
 		}))
 	sdk.AddTool(server, tool("save_file"), secured(s, "save_file", domain.ScopeFiles,
 		func(ctx context.Context, user, _ string, in saveFileInput) (savedFile, error) {

@@ -17,12 +17,16 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-func orchestratorToken(t *testing.T, app *fiber.App, cookie, client string) string {
+func orchestratorToken(t *testing.T, app *fiber.App, cookie, client string, extra ...string) string {
 	t.Helper()
 	resource := apptest.PublicURL + "/api/orchestrator"
+	scopes := "orchestrator:read orchestrator:tasks orchestrator:delegate orchestrator:files"
+	if len(extra) != 0 {
+		scopes += " " + extra[0]
+	}
 	query := url.Values{
 		"response_type": {"code"}, "client_id": {client}, "redirect_uri": {apptest.Redirect},
-		"scope": {"orchestrator:read orchestrator:tasks orchestrator:delegate orchestrator:files"},
+		"scope": {scopes},
 		"state": {"s1"}, "code_challenge": {apptest.PKCEChallenge},
 		"code_challenge_method": {"S256"}, "resource": {resource},
 	}
