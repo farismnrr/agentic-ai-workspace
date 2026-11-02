@@ -62,6 +62,8 @@ type Runner struct {
 	leads bool
 	// externalFacts selects truthful command-result wording in external worker reports only.
 	externalFacts bool
+	// externalWorker marks an internal teammate launched by the external Orchestrator.
+	externalWorker bool
 }
 
 // NewRunner builds the agent loop.

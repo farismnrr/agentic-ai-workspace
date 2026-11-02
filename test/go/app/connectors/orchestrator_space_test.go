@@ -266,6 +266,83 @@ func TestExternalWorkerReportSeparatesCommandSuccessFromProof(t *testing.T) {
 	}
 }
 
+func TestExternalWorkerUsesParentToolsWithoutCodingWorkSession(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	gateway := apptest.NewGateway(t,
+		apptest.ToolCall("files", "list_files", map[string]string{"path": "."}),
+		apptest.ToolCall("report", "report", map[string]string{
+			"summary":  "Read-only project inspection completed.",
+			"document": "The project directory was inspected with the provided internal tool.",
+		}),
+	)
+	provider := apptest.AddProvider(t, env, cookie, gateway.Server.URL, "k").JSON(t)["id"].(string)
+	if response := apptest.Do(t, env.App, "PUT", "/api/preferences",
+		`{"defaultProviderId":"`+provider+`","defaultModel":"fake-model","rules":[]}`,
+		apptest.JSONCookie(cookie)); response.Status != 200 && response.Status != 204 {
+		t.Fatalf("model preference failed: %d %s", response.Status, response.Body)
+	}
+	project := apptest.Do(t, env.App, "POST", "/api/projects",
+		`{"name":"External worker tools"}`, apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	apptest.EnableTool(t, env.App, cookie, "list_files")
+	token := orchestratorToken(t, env.App, cookie, client)
+	for _, name := range []string{"create_task", "delegate_agent", "update_task_plan"} {
+		orchestratorOn(t, env.App, cookie, name)
+	}
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		`{"project":"`+project+`","summary":"Inspect files without a Coding session",`+
+			`"idempotency_key":"native-tools-task-12345"}`))["ID"].(string)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		`{"task_id":"`+task+`","steps":[{"id":"inspect","title":"Inspect files","state":"active"}]}`))
+	job := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent",
+		`{"task_id":"`+task+`","agent_key":"researcher","brief":"List project files and report",`+
+			`"idempotency_key":"native-tools-worker-12345"}`))
+	jobID := job["job_id"].(string)
+	var completed bool
+	for attempt := 0; attempt < 200; attempt++ {
+		state := orchestratorData(t, orchestratorCall(t, env.App, token, "get_delegation",
+			`{"task_id":"`+task+`","job_id":"`+jobID+`"}`))
+		if state["status"] == "done" {
+			completed = true
+			break
+		}
+		if state["status"] == "failed" {
+			t.Fatalf("internal worker failed: %+v", state)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !completed {
+		t.Fatal("internal worker did not report")
+	}
+	if len(gateway.Requests) != 2 {
+		t.Fatalf("expected one native tool turn and one report turn, got %d model requests", len(gateway.Requests))
+	}
+	var system string
+	for _, raw := range gateway.Sent(0) {
+		message, ok := raw.(map[string]any)
+		if ok && message["role"] == "system" {
+			system, _ = message["content"].(string)
+		}
+	}
+	for _, instruction := range []string{
+		"Use only the internal tools offered in this task",
+		"Do not call the separate Coding Agent connector, begin_work",
+		"owner-managed changes in project-notes/, .workspace/, or uploads/ are not a blocker",
+		"stage only exact files changed",
+	} {
+		if !strings.Contains(system, instruction) {
+			t.Errorf("external worker system instructions missing %q", instruction)
+		}
+	}
+	activity := orchestratorCall(t, env.App, token, "get_task_activity", `{"task_id":"`+task+`"}`)
+	apptest.MustContain(t, activity.Body, "list_files", jobID)
+	var tasks []map[string]any
+	response := apptest.Do(t, env.App, "GET", "/api/tasks", "", apptest.JSONCookie(cookie))
+	if err := json.Unmarshal(response.Body, &tasks); err != nil || len(tasks) != 1 || tasks[0]["id"] != task {
+		t.Fatalf("delegated work must remain in the existing primary task: %s %v", response.Body, err)
+	}
+}
+
 func TestOrchestratorCancelledWorkerStaysCancelled(t *testing.T) {
 	env := apptest.NewEnv(t)
 	cookie, client := apptest.SignedInClient(t, env.App)
