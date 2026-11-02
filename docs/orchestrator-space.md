@@ -21,7 +21,7 @@ A Coding Space token cannot access Orchestrator Space, and an Orchestrator token
 4. Internal workers run with their configured models, tools, sandbox, and role restrictions. The external AI remains the lead.
 5. The AI reads `get_delegation` and the task activity before deciding which worker runs next.
 
-A worker delegation adds activity to the same task, not a new internal-led task. Research and PRD documents appear on the task. A person must approve a submitted PRD before approved implementation work proceeds. Security requires the owner-enabled deep-review mode.
+A worker delegation adds activity to the same task, not a new internal-led task. Research and PRD documents appear on the task. By default a person approves a submitted PRD in the task UI. The owner can separately enable **Approve plans** in Settings → Spaces → Orchestrator, then reconnect the client to grant the additional `orchestrator:approve` OAuth scope. Only then can an external lead call `approve_plan` with the pending `event_id`, `task_id` and unique `idempotency_key`; the server checks that the approval belongs to the same owner, connected client and latest PRD/plan revision. A stale or already answered event cannot approve a different plan. Coding Space approval permissions do not grant this capability. Security requires the owner-enabled deep-review mode.
 
 Workers may run in parallel when their roles allow it, but file-changing workers are serialized to prevent conflicting edits.
 

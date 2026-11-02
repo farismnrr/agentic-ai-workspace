@@ -8,6 +8,7 @@ After this slice, 78 Go test files contain 170 top-level test functions:
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
+| `test/go/app/connectors/orchestrator_approval_test.go::TestOrchestratorApprovePlanOptInAndFreshRevision` | auth/authz | Real HTTP MCP verifies default-off approval, required OAuth step-up, current owner-bound revision and replay-safe approval. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorSpaceSeparateResourceAndOneTask` | auth/authz | Real HTTP MCP verifies distinct token resource, tool switches and durable one-task idempotency. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorFileToolsRespectProjectAndTask` | cross-user/project isolation | Real MCP requests verify task-scoped writes and SHA-256-validated binary upload into the right project. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorDirectInternalResearcher` | app-level integration | Real MCP delegation runs the configured internal Researcher via scripted model; checks job report and no extra task. | none |
