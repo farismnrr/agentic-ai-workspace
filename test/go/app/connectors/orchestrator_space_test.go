@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -207,6 +208,61 @@ func TestOrchestratorDirectInternalResearcher(t *testing.T) {
 	tasks := apptest.Do(t, env.App, "GET", "/api/tasks", "", apptest.JSONCookie(cookie))
 	if err := json.Unmarshal(tasks.Body, &count); err != nil || len(count) != 1 {
 		t.Fatalf("worker delegation spawned an internal lead task: %s", tasks.Body)
+	}
+}
+
+func TestExternalWorkerReportSeparatesCommandSuccessFromProof(t *testing.T) {
+	// This public MCP scenario checks the report wording against the raw recorded action result.
+	// The isolated command's exit code is execution evidence; it is not a project check.
+	apptest.RequireDocker(t)
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	gateway := apptest.NewGateway(t,
+		apptest.ToolCall("command", "run_command", map[string]string{"command": "echo harmless"}),
+		apptest.ToolCall("report", "report", map[string]string{"summary": "The harmless command ran."}),
+	)
+	providerResponse := apptest.AddProvider(t, env, cookie, gateway.Server.URL, "k")
+	provider, _ := providerResponse.JSON(t)["id"].(string)
+	if response := apptest.Do(t, env.App, "PUT", "/api/preferences",
+		`{"defaultProviderId":"`+provider+`","defaultModel":"fake-model","rules":[]}`,
+		apptest.JSONCookie(cookie)); response.Status != 200 && response.Status != 204 {
+		t.Fatalf("model preference failed: %d %s", response.Status, response.Body)
+	}
+	project := apptest.Do(t, env.App, "POST", "/api/projects",
+		`{"name":"Command evidence"}`, apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	apptest.EnableTool(t, env.App, cookie, "run_command")
+	token := orchestratorToken(t, env.App, cookie, client)
+	for _, name := range []string{"create_task", "delegate_agent", "update_task_plan"} {
+		orchestratorOn(t, env.App, cookie, name)
+	}
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		`{"project":"`+project+`","summary":"Check command reporting","idempotency_key":"evidence-task-12345"}`))["ID"].(string)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		`{"task_id":"`+task+`","steps":[{"id":"check","title":"Check evidence","state":"active"}]}`))
+	job := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent",
+		`{"task_id":"`+task+`","agent_key":"developer","brief":"Run echo harmless and report the result",`+
+			`"idempotency_key":"evidence-worker-12345"}`))
+	jobID := job["job_id"].(string)
+	var report string
+	for attempt := 0; attempt < 200; attempt++ {
+		state := orchestratorData(t, orchestratorCall(t, env.App, token, "get_delegation",
+			`{"task_id":"`+task+`","job_id":"`+jobID+`"}`))
+		if state["status"] == "done" {
+			report, _ = state["report"].(string)
+			break
+		}
+		if state["status"] == "failed" {
+			t.Fatalf("worker failed: %+v", state)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !strings.Contains(report, "command succeeded; outcome unverified") ||
+		strings.Contains(report, "failed, exit 0") {
+		t.Fatalf("external report misstates command outcome: %s", report)
+	}
+	activity := orchestratorCall(t, env.App, token, "get_task_activity", `{"task_id":"`+task+`"}`)
+	if !strings.Contains(string(activity.Body), `"exitCode":0`) {
+		t.Fatalf("raw command action must retain exitCode 0: %s", activity.Body)
 	}
 }
 
