@@ -28,7 +28,7 @@ const (
 // Run starts spec.Argv in a new container, copies its output to out and waits for
 // it to end. When ctx ends first the container is killed. The container is always removed.
 func (d *Docker) Run(ctx context.Context, spec Spec, out io.Writer) (Result, error) {
-	mounts, err := d.cfg.mounts(spec)
+	mounts, err := d.cfg.Mounts(spec)
 	if err != nil {
 		return Result{}, err
 	}

@@ -15,6 +15,16 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 - You can make a site public so anyone with the link can open it. Only you can do this, from the Sites page. The AI can't.
 - The address is the project's ID, so anyone can guess the address of a public site. Make a site public only if anyone may open it.
 - Sites run until you press Stop or the server restarts. There is no idle timeout.
+- Sites may write runtime files under `/workspace/data/preview-runs` and
+  `/workspace/.atja-runtime`. These are narrow writable mounts from the same
+  project folders; other workspace files stay read-only.
+- Existing files in those folders stay in place and remain visible to the site.
+  Missing folders are created when the site starts.
+- The folders persist across site and server restarts with the project. They are
+  removed only when the project folder is removed.
+- A file at either approved folder path, or a symlink anywhere in its workspace
+  path, prevents the site from starting. Replace it with a real directory, then
+  start the site again.
 - A project runs one app. Ten projects can run ten apps, so there is no limit per person by default.
 - `SITE_MAX_TOTAL` caps the apps one server runs at once (default 20); `SITE_MAX_PER_USER` can cap a person (default none).
 

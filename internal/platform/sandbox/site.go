@@ -13,7 +13,7 @@ import (
 // Start runs spec.Argv in the shared sandbox (or a throwaway container in host-mode tests)
 // that keeps running after Start returns, and returns its id.
 func (d *Docker) Start(ctx context.Context, spec Spec) (string, error) {
-	mounts, err := d.cfg.mounts(spec)
+	mounts, err := d.cfg.Mounts(spec)
 	if err != nil {
 		return "", err
 	}

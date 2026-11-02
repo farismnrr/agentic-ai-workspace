@@ -1,7 +1,7 @@
 // Package sandbox runs a command in a throwaway Docker container. The container
-// sees only the image's programs, a private /tmp, and exactly one writable folder
-// (/workspace). It has no network, no capabilities, a read-only root filesystem,
-// and is held to memory, CPU and process limits by the Docker daemon.
+// sees the image's programs, a private /tmp, and the workspace. Sites keep that
+// workspace read-only except for dedicated nested runtime-data mounts. Containers
+// have no network, no capabilities, a read-only root filesystem, and resource limits.
 package sandbox
 
 import (
@@ -73,6 +73,9 @@ type Spec struct {
 	Env   []string
 	// WorkspaceReadOnly shows the workspace so it can be read and not changed.
 	WorkspaceReadOnly bool
+	// WorkspaceWritable names the two Sites runtime folders which stay backed by
+	// their original project directories while the rest of /workspace is read-only.
+	WorkspaceWritable []string
 }
 
 // Result is how a sandboxed command ended.

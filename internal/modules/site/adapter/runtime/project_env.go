@@ -31,6 +31,10 @@ func (r *Runtime) siteSpec(
 	if err != nil {
 		return sandbox.Spec{}, err
 	}
+	writable, err := WorkspaceMounts(project)
+	if err != nil {
+		return sandbox.Spec{}, err
+	}
 	spec := r.engine.SiteSpec(ctx, project, docker, argv,
 		[]string{"SITE_PORT=" + port, "PORT=" + port, "HOST=127.0.0.1", "BASE_PATH=" + start.BasePath,
 			"APP_DATA_DIR=" + sandbox.SiteDir + "/data", "XDG_DATA_HOME=" + sandbox.SiteDir + "/data"}, granted.Targets...)
@@ -40,6 +44,7 @@ func (r *Runtime) siteSpec(
 	}
 
 	spec.Site = dir
+	spec.WorkspaceWritable = writable
 
 	return spec, nil
 }

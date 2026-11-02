@@ -1,6 +1,7 @@
 package sites_test
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -81,6 +82,86 @@ func TestAnAppTheAIStartsCanBeOpenedPublishedAndStopped(t *testing.T) {
 	}
 	if got := apptest.Do(t, a.Environment.App, "GET", url, "", script).Status; got != 404 {
 		t.Fatalf("a stopped site's resources must be gone, got %d", got)
+	}
+}
+
+func TestSiteRuntimeSQLiteDirectoriesPersistAndWorkspaceStaysReadOnly(t *testing.T) {
+	t.Parallel()
+	image := os.Getenv("SANDBOX_TEST_IMAGE")
+	if image == "" {
+		t.Skip("set SANDBOX_TEST_IMAGE to the toolbox image to run this test")
+	}
+
+	a := apptest.NewAgentRigWith(t, func(c *config.Config) { c.SandboxImage = image },
+		apptest.ToolCall("s1", "start_site", map[string]any{"command": "node server.js", "port": 8127}),
+		apptest.FinishCall("The site is running"),
+	)
+	a.PutFile(t, "data/preview-runs/keep.txt", "before\n")
+	a.PutFile(t, "server.js", sqliteSiteFixture)
+	id := a.Start(t, "Run my app")
+	a.WaitApproving(t, id, "done")
+
+	url := "/run/bakery/"
+	assertSiteRuntimeState(t, a, url, 1)
+	apptest.Do(t, a.Environment.App, "POST", "/api/sites/"+a.Project+"/stop", "",
+		apptest.JSONCookie(a.Cookie))
+	restarted := apptest.Do(t, a.Environment.App, "POST", "/api/sites/"+a.Project+"/start", "",
+		apptest.JSONCookie(a.Cookie))
+	if restarted.Status != 200 {
+		t.Fatalf("site did not restart: %d %s", restarted.Status, restarted.Body)
+	}
+	assertSiteRuntimeState(t, a, url, 2)
+}
+
+const sqliteSiteFixture = `const { spawn, execFileSync } = require('node:child_process')
+const fs = require('node:fs')
+const http = require('node:http')
+const sqlite = "import sqlite3,time,pathlib\np='/workspace/data/preview-runs/site.sqlite'\nc=sqlite3.connect(p)\nc.execute('pragma journal_mode=wal')\nc.execute('create table if not exists runs (id integer primary key)')\nc.execute('insert into runs default values')\nc.commit()\npathlib.Path('/workspace/.atja-runtime/starts.txt').open('a').write('started\\n')\nprint('ready',flush=True)\ntime.sleep(600)"
+const database = spawn('python3', ['-c', sqlite], { stdio: ['ignore', 'pipe', 'inherit'] })
+database.stdout.once('data', () => {
+  fs.appendFileSync('/workspace/data/preview-runs/keep.txt', 'updated\n')
+  try { fs.writeFileSync('/workspace/read-only-probe', 'must fail') } catch {}
+  http.createServer((_request, response) => {
+    const count = Number(execFileSync('python3', ['-c', "import sqlite3;print(sqlite3.connect('/workspace/data/preview-runs/site.sqlite').execute('select count(*) from runs').fetchone()[0])"]).toString().trim())
+    const state = {
+      db: fs.existsSync('/workspace/data/preview-runs/site.sqlite'),
+      wal: fs.existsSync('/workspace/data/preview-runs/site.sqlite-wal'),
+      shm: fs.existsSync('/workspace/data/preview-runs/site.sqlite-shm'),
+      starts: fs.readFileSync('/workspace/.atja-runtime/starts.txt', 'utf8').trim().split('\n').length,
+      existing: fs.readFileSync('/workspace/data/preview-runs/keep.txt', 'utf8') === 'before\nupdated\n',
+      count,
+      denied: fs.existsSync('/workspace/read-only-probe')
+    }
+    response.end(JSON.stringify(state))
+  }).listen(8127, '127.0.0.1')
+})`
+
+func assertSiteRuntimeState(t *testing.T, a apptest.AgentRig, url string, wantCount int) {
+	t.Helper()
+	headers := map[string]string{"Cookie": a.Cookie, "Sec-Fetch-Mode": "navigate", "Sec-Fetch-Dest": "document"}
+	redirect := apptest.Do(t, a.Environment.App, "GET", url, "", headers)
+	if redirect.Status != 302 {
+		t.Fatalf("site did not issue its private address: %d %s", redirect.Status, redirect.Body)
+	}
+	page := apptest.Do(t, a.Environment.App, "GET", redirect.Header.Get("Location"), "", headers)
+	if page.Status != 200 {
+		t.Fatalf("site did not answer: %d %s", page.Status, page.Body)
+	}
+	var state struct {
+		DB       bool `json:"db"`
+		WAL      bool `json:"wal"`
+		SHM      bool `json:"shm"`
+		Starts   int  `json:"starts"`
+		Existing bool `json:"existing"`
+		Count    int  `json:"count"`
+		Denied   bool `json:"denied"`
+	}
+	if err := json.Unmarshal([]byte(page.Body), &state); err != nil {
+		t.Fatalf("site response is not runtime state: %v %q", err, page.Body)
+	}
+	if !state.DB || !state.WAL || !state.SHM || state.Starts != wantCount || !state.Existing ||
+		state.Count != wantCount || state.Denied {
+		t.Fatalf("unexpected site runtime state after %d start(s): %+v", wantCount, state)
 	}
 }
 
