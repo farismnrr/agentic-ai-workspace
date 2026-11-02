@@ -118,7 +118,7 @@ var (
 	}
 	ToolGit = ToolInfo{
 		Name: "git", Title: "Git", Scope: ScopeExec, Group: GroupExec,
-		Description: "Developer: use native Git commands (branching, worktrees, rebase, cherry-pick, stash, commit and push) as argv; destructive actions require approval.",
+		Description: "Developer and DevOps: use native Git commands for allowed operations (status, log, diff, fetch, add, commit, push, branch and more) as argv; repository safety rules still apply.",
 	}
 	ToolGh = ToolInfo{
 		Name: "gh", Title: "GitHub CLI", Scope: ScopeExec, Group: GroupExec,
