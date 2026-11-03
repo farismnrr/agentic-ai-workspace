@@ -1,6 +1,6 @@
 <script lang="ts">
   import EmptyState from '../../../shared/ui/EmptyState.svelte';
-  import { onDestroy, untrack } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
   import type { Readable } from 'svelte/store';
   import Icon from '../../../shared/ui/Icon.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
@@ -33,6 +33,13 @@
   const approval = $derived(pendingApproval($events));
   const question = $derived(pendingQuestion($events));
   const problem = $derived(lastProblem($events));
+  let eventsLoaded = $state(false);
+  const external = $derived(task.workId !== undefined || task.source !== '');
+  const blockedExternal = $derived(task.work?.phase === 'blocked');
+
+  onMount(() => {
+    void thread.refresh().finally(() => { eventsLoaded = $live !== undefined; });
+  });
 </script>
 
 <article class="flex max-w-3xl flex-col gap-5 px-6 py-6">
@@ -61,6 +68,22 @@
         <a class="btn btn-outline btn-sm rounded-lg" {href}>See what changed</a>
       </div>
     </section>
+  {:else if task.status === 'needs-input' && eventsLoaded}
+    <section class="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning/10 p-4">
+      <div>
+        <h3 class="font-medium">{blockedExternal ? 'This work is blocked' : 'No unanswered question was found'}</h3>
+        <p class="mt-1 text-sm text-[var(--brand-text-secondary)]">
+          {blockedExternal
+            ? 'The work stopped without asking you a question. Mark it done to clear it from your Inbox; this does not verify the result.'
+            : 'This task is waiting for input, but its history has no open question or approval. You can close it as unverified.'}
+        </p>
+      </div>
+      <button class="btn btn-outline btn-sm self-start" type="button" onclick={controller.stop}>
+        {external ? 'Mark done · unverified' : 'Close task · unverified'}
+      </button>
+    </section>
+  {:else if !eventsLoaded && task.status === 'needs-input'}
+    <p class="text-sm text-[var(--brand-text-secondary)]" role="status">Loading task history…</p>
   {:else}
     <EmptyState compact bordered icon="check-circle" title="Nothing is waiting on you here" body="This task no longer needs an answer or your OK." />
   {/if}
