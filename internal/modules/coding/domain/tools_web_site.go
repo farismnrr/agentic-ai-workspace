@@ -3,11 +3,12 @@ package domain
 import "errors"
 
 var (
-	ErrBrowserSiteNotRunning = errors.New("no app is running for this project; start it first")
-	ErrBrowserBadPath        = errors.New("use a relative Site page path without a leading slash or ..")
-	ErrBrowserBadInput       = errors.New("use up to 12 supported browser actions with a relative page path")
-	ErrBrowserUnavailable    = errors.New("the Site browser is unavailable; ask DevOps to check the sandbox image")
-	ErrBrowserFailed         = errors.New("the browser could not finish the test; check the Site and retry")
+	ErrBrowserSiteNotRunning  = errors.New("no app is running for this project; start it first")
+	ErrBrowserBadPath         = errors.New("use a relative Site page path without a leading slash or ..")
+	ErrBrowserBadInput        = errors.New("use up to 12 supported browser actions with a relative page path")
+	ErrBrowserUnavailable     = errors.New("the Site browser is unavailable; ask DevOps to check the sandbox image")
+	ErrBrowserFailed          = errors.New("the browser could not finish the test; check the Site and retry")
+	ErrBrowserShotUnavailable = errors.New("that screenshot is unavailable for this work; run browser_test again")
 )
 
 // The site tools start and stop the project's web app. They have no switch of their own: they are allowed
@@ -54,6 +55,12 @@ var ToolBrowserTest = ToolInfo{
 	Name: "browser_test", Title: "Test the web app", Scope: ScopeExec, Group: GroupExec,
 	Description: "QA only: use a real browser to open the running app, fill or click controls, check visible text, " +
 		"and return a screenshot. Actions are limited to this app; arbitrary scripts and outside addresses are blocked.",
+}
+
+// ToolReadBrowserScreenshot retrieves bounded evidence from the active QA work session.
+var ToolReadBrowserScreenshot = ToolInfo{
+	Name: "read_browser_screenshot", Title: "Read browser screenshot", Scope: ScopeExec, Group: GroupExec,
+	Description: "QA only: retrieve a screenshot_ref returned by browser_test for the active work session.",
 }
 
 // ToolScreenshotSession is a separate, off-by-default permission because it can change an app login session.

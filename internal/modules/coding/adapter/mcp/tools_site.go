@@ -1,8 +1,10 @@
 package mcp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"image/png"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -20,6 +22,13 @@ type SiteRunner interface {
 // BrowserRunner performs a QA-only browser run against one project Site and work session.
 type BrowserRunner interface {
 	Browser(ctx context.Context, userID, taskID string, actions []BrowserAction) (BrowserReport, error)
+	SiteVersion(ctx context.Context, userID string) (int64, error)
+}
+
+// ScreenshotStore is the existing task-scoped attachment store.
+type ScreenshotStore interface {
+	Save(ctx context.Context, taskID string, png []byte) (string, error)
+	Load(ctx context.Context, taskID, id string) ([]byte, error)
 }
 
 // SiteStart is how a start went.
@@ -46,6 +55,7 @@ func (t *tools) addSiteTools(server *sdk.Server) {
 	sdk.AddTool(server, toolOf(domain.ToolStopSite), guarded(t.guard, domain.ToolStopSite,
 		func(Target) string { return "stop web app" }, t.stopSite))
 	sdk.AddTool(server, toolOf(domain.ToolBrowserTest), t.browserTestWithImage)
+	sdk.AddTool(server, toolOf(domain.ToolReadBrowserScreenshot), t.readBrowserScreenshotWithImage)
 }
 
 type browserInput struct {
@@ -54,8 +64,9 @@ type browserInput struct {
 }
 
 type browserOutput struct {
-	Steps []BrowserStep `json:"steps"`
-	PNG   []byte        `json:"-"`
+	Steps      []BrowserStep  `json:"steps"`
+	Screenshot *screenshotRef `json:"screenshot,omitempty"`
+	PNG        []byte         `json:"-"`
 }
 
 func (t *tools) browserTestWithImage(
@@ -70,9 +81,13 @@ func (t *tools) browserTestWithImage(
 	}
 
 	image := output.PNG
+	ref := output.Screenshot
 	output.PNG = nil
+	message := fmt.Sprintf("Browser test steps: %v; screenshot_ref: %s (%s, %dx%d, %d bytes). "+
+		"Use read_browser_screenshot with this ref to inspect pixels.",
+		output.Steps, ref.Ref, ref.MIME, ref.Width, ref.Height, ref.Bytes)
 	return &sdk.CallToolResult{Content: []sdk.Content{
-		&sdk.TextContent{Text: fmt.Sprintf("Browser test steps: %v", output.Steps)},
+		&sdk.TextContent{Text: message},
 		&sdk.ImageContent{Data: image, MIMEType: "image/png"},
 	}}, output, nil
 }
@@ -101,7 +116,22 @@ func (t *tools) browserTest(ctx context.Context, in browserInput) (browserOutput
 	if err != nil {
 		return browserOutput{}, report{}, err
 	}
-	output := browserOutput{Steps: result.Steps, PNG: result.PNG}
+	if t.shots == nil || len(result.PNG) == 0 || len(result.PNG) > maxBrowserScreenshot {
+		return browserOutput{}, report{}, domain.ErrBrowserFailed
+	}
+	config, err := png.DecodeConfig(bytes.NewReader(result.PNG))
+	if err != nil || config.Width <= 0 || config.Height <= 0 {
+		return browserOutput{}, report{}, domain.ErrBrowserFailed
+	}
+	storedName, err := t.shots.Save(ctx, state.TaskID, result.PNG)
+	if err != nil {
+		return browserOutput{}, report{}, domain.ErrBrowserFailed
+	}
+	ref := taskdomain.ScreenshotReference(storedName, result.SiteVersion, in.WorkID)
+	output := browserOutput{
+		Steps: result.Steps, PNG: result.PNG,
+		Screenshot: &screenshotRef{Ref: ref, MIME: "image/png", Width: config.Width, Height: config.Height, Bytes: len(result.PNG)},
+	}
 	for _, step := range result.Steps {
 		if step.Status == "FAIL" {
 			return output, report{detail: fmt.Sprintf("browser step %d (%s) failed: %s", step.Index, step.Action, step.Detail), failed: true}, nil

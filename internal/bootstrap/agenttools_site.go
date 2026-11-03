@@ -35,7 +35,7 @@ func siteDefinitions() []taskdomain.ToolDef {
 			Schema: json.RawMessage(`{"type":"object","properties":{}}`),
 		},
 	}
-	return append(definitions, browserTestDefinition())
+	return append(definitions, browserTestDefinition(), browserScreenshotDefinition())
 }
 
 var siteDescribers = map[string]describer{
@@ -168,7 +168,14 @@ func (s projectSites) Browser(
 			Index: step.Index, Action: step.Action, Status: step.Status, Detail: step.Detail,
 		})
 	}
-	return codingmcp.BrowserReport{Steps: steps, PNG: result.PNG}, nil
+	return codingmcp.BrowserReport{Steps: steps, PNG: result.PNG, SiteVersion: result.SiteVersion}, nil
+}
+
+func (s projectSites) SiteVersion(ctx context.Context, userID string) (int64, error) {
+	if s.tools.sites == nil {
+		return 0, sitedomain.ErrNotRunning
+	}
+	return s.tools.sites.RunningVersion(ctx, userID, s.projectID)
 }
 
 func browserError(err error) error {

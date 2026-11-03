@@ -1,7 +1,10 @@
 package application
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"image/png"
 	"net/http"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -125,7 +128,16 @@ func (r *Runner) saveShot(ctx context.Context, task domain.Task, call Call, resu
 		return ""
 	}
 
-	r.resultImage(ctx, task, call.ID, result.Output, id)
+	text := result.Output
+	if call.Name == "browser_test" {
+		dimensions := ""
+		if config, err := png.DecodeConfig(bytes.NewReader(result.Image)); err == nil {
+			dimensions = fmt.Sprintf(", %dx%d", config.Width, config.Height)
+		}
+		ref := domain.ScreenshotReference(id, result.ScreenshotSiteVersion, "")
+		text += fmt.Sprintf("\nScreenshot ref: %s (image/png%s, %d bytes). Use read_browser_screenshot with this ref to inspect it.", ref, dimensions, len(result.Image))
+	}
+	r.resultImage(ctx, task, call.ID, text, id)
 
 	return id
 }

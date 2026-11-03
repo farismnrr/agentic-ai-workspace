@@ -33,8 +33,9 @@ type ToolResult struct {
 	ExtensionLink string
 	Output        string
 	// Image is a PNG the tool produced, such as a screenshot; the model and the person both see it.
-	Image   []byte
-	Files   []string
-	Undo    []byte
-	IsError bool
+	Image                 []byte
+	ScreenshotSiteVersion int64
+	Files                 []string
+	Undo                  []byte
+	IsError               bool
 }

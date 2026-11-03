@@ -30,6 +30,8 @@ func newAgent(
 	agentSessions taskapp.AgentSessionCleanup,
 ) (*taskapp.Service, *taskapp.Works, httpserver.Mount, func(), error) {
 	store := tasksqlite.NewStoreWithClock(db, opaque.Generator{}, time.Now)
+	shots := taskshots.New(filepath.Join(cfg.DataDir, "shots"))
+	tools.shots = shots
 
 	var taskStore taskapp.TaskStore = store
 	if tools.egress != nil {
@@ -47,7 +49,7 @@ func newAgent(
 		Tools:       tools, Gate: gate, IDs: opaque.Generator{}, Now: time.Now, Activity: steps,
 		Computer: computer{engine: tools.engine, github: tools.github},
 		Team:     agentTeam{team: models.team}, Scopes: store, Delegations: store,
-		Shots: taskshots.New(filepath.Join(cfg.DataDir, "shots")), Diffs: tools,
+		Shots: shots, Diffs: tools,
 		CLI: tools.plans, Sessions: store,
 		AgentSessions: agentSessions,
 	}, hub)
