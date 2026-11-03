@@ -111,8 +111,8 @@ func (t *Tasks) RunArtifact(ctx context.Context, name string) (RunResult, error)
 	return RunResult{}, domain.ErrUnknownTask
 }
 
-// RunGit supports regular Git subcommands through direct argv for Developer
-// and DevOps, with no general shell or test/deploy permission.
+// RunGit supports regular Git subcommands through direct argv for Researcher,
+// Developer and DevOps, with no general shell or test/deploy permission.
 func (t *Tasks) RunGit(ctx context.Context, args []string) (RunResult, error) {
 	task, err := domain.GitTask(args)
 	if err != nil {

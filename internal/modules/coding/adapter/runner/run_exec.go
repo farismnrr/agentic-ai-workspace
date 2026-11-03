@@ -15,8 +15,9 @@ import (
 func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.CancelFunc) application.RunResult {
 	out := &tail{limit: domain.MaxOutputBytes}
 
+	gitWorkspaceWrite := domain.GitOnly(ctx) && task.Kind == "git" && domain.WritableGitWorkspace(ctx)
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command,
-		WorkspaceReadOnly: domain.ReadOnlyWorkspace(ctx)}
+		WorkspaceReadOnly: domain.ReadOnlyWorkspace(ctx) && !gitWorkspaceWrite}
 	if task.Kind == "build" || task.Kind == "artifact" {
 		// The source stays read-only; each build or document/media run gets
 		// a fresh isolated output folder for review and download.

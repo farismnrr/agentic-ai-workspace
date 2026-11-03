@@ -110,6 +110,9 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 		if roleKey == "qa" || roleKey == "security" || roleKey == "devops" {
 			executeCtx = codingdomain.WithReadOnlyWorkspace(ctx)
 		}
+		if roleKey == "devops" && call.Name == "git" {
+			executeCtx = codingdomain.WithWritableGitWorkspace(executeCtx)
+		}
 	}
 	result := r.deps.Tools.Execute(executeCtx, ToolScope{
 		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID, RoleKey: roleKey,
