@@ -21,6 +21,7 @@ To install by hand, see [deployment.md](./docs/deployment.md).
 | Doc | Read it to |
 | --- | --- |
 | [using-the-app.md](./docs/using-the-app.md) | Add a model, create projects, run tasks |
+| [inbox-and-tasks.md](./docs/inbox-and-tasks.md) | Review waiting work and find tasks in Settings |
 | [sites.md](./docs/sites.md) | Open the web apps the AI builds |
 | [extensions.md](./docs/extensions.md) | Build and install browser extensions |
 | [connector.md](./docs/connector.md) | Connect ChatGPT and other AI apps |

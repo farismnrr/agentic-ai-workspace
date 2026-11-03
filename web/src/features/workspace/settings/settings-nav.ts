@@ -31,6 +31,7 @@ export const navGroups: NavGroup[] = [
   },
   { label: 'Preferences', items: [{ id: 'notifications', label: 'Notifications', icon: 'bell', href: '/app/settings/notifications' }] },
   { label: 'Workspace', items: [
+    { id: 'tasks', label: 'Tasks', icon: 'check-square', href: '/app/settings/tasks' },
     { id: 'archive', label: 'Archive', icon: 'box', href: '/app/archive' },
     { id: 'extensions', label: 'Extensions', icon: 'puzzle', href: '/app/extensions' },
     { id: 'database', label: 'Database', icon: 'box', href: '/app/settings/database', adminOnly: true },
