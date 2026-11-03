@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,7 +35,15 @@ func (p *plans) serveBridge(ctx context.Context, bridge *taskapp.CLIBridge) (sto
 		tools = append(tools, mcpbridge.Tool{Name: tool.Name, Description: tool.Description, Schema: tool.Schema})
 	}
 
-	closeSocket, err := mcpbridge.Serve(ctx, dir, tools, bridge.Call)
+	call := func(ctx context.Context, name string, input json.RawMessage) mcpbridge.Result {
+		result := bridge.Call(ctx, name, input)
+		media := make([]mcpbridge.Media, 0, len(result.Media))
+		for _, item := range result.Media {
+			media = append(media, mcpbridge.Media{MIMEType: item.MIMEType, Data: item.Data})
+		}
+		return mcpbridge.Result{Text: result.Text, Failed: result.Failed, Media: media}
+	}
+	closeSocket, err := mcpbridge.Serve(ctx, dir, tools, call)
 	if err != nil {
 		_ = os.RemoveAll(dir)
 

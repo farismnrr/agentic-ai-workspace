@@ -3,11 +3,12 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 79 Go test files contain 171 top-level test functions:
-69 registered test files contain 171 functions and 10 support files contain no test functions.
+After this slice, 80 Go test files contain 172 top-level test functions:
+70 registered test files contain 172 functions and 10 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
+| `test/go/platform/mcpbridge/media_test.go::TestScreenshotToolReturnsImageContentThroughMCP` | MCP media serialization | A real Go SDK client must assert that the Unix-socket bridge preserves the actual image content bytes. | none |
 | `test/go/app/connectors/orchestrator_approval_test.go::TestOrchestratorApprovePlanOptInAndFreshRevision` | auth/authz | Real HTTP MCP verifies default-off approval, required OAuth step-up, current owner-bound revision and replay-safe approval. | none |
 | `test/go/app/connectors/orchestrator_delegate_refusals_test.go::TestOrchestratorDelegationRefusalsExplainNextStep` | app-level integration | Real HTTP MCP verifies actionable missing-plan, pending-approval, wrong-state and disallowed-role refusals. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorSpaceSeparateResourceAndOneTask` | auth/authz | Real HTTP MCP verifies distinct token resource, tool switches and durable one-task idempotency. | none |

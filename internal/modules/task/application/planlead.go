@@ -96,7 +96,10 @@ func (l *leadSession) bridge() *CLIBridge {
 		}
 	}
 
-	return &CLIBridge{Tools: tools, Call: l.call}
+	return &CLIBridge{Tools: tools, Call: func(ctx context.Context, name string, input json.RawMessage) CLIToolResult {
+		text, failed := l.call(ctx, name, input)
+		return CLIToolResult{Text: text, Failed: failed}
+	}}
 }
 
 func toolOfDef(def domain.ToolDef) CLITool {

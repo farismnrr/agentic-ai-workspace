@@ -34,8 +34,21 @@ type Tool struct {
 	Schema json.RawMessage
 }
 
-// Call runs a tool the program asked for. Its text goes back to the program; failed says the call did not work.
-type Call func(ctx context.Context, name string, input json.RawMessage) (text string, failed bool)
+// Call runs a tool the program asked for and returns its bounded result.
+type Call func(ctx context.Context, name string, input json.RawMessage) Result
+
+// Result is transport-neutral tool output. Media is accepted only for screenshot tools.
+type Result struct {
+	Text   string
+	Failed bool
+	Media  []Media
+}
+
+// Media is one bounded image returned by a screenshot tool.
+type Media struct {
+	MIMEType string
+	Data     []byte
+}
 
 // Serve answers the program on dir/mcp.sock until stop is called. Each program that connects gets its own session.
 func Serve(ctx context.Context, dir string, tools []Tool, call Call) (stop func(), err error) {
@@ -96,9 +109,17 @@ func serverOf(tools []Tool, call Call) *sdk.Server {
 		server.AddTool(
 			&sdk.Tool{Name: tool.Name, Description: tool.Description, InputSchema: tool.Schema},
 			func(ctx context.Context, req *sdk.CallToolRequest) (*sdk.CallToolResult, error) {
-				text, failed := call(ctx, tool.Name, req.Params.Arguments)
+				result := call(ctx, tool.Name, req.Params.Arguments)
+				content := []sdk.Content{&sdk.TextContent{Text: result.Text}}
+				if tool.Name == "browser_test" || tool.Name == "read_browser_screenshot" {
+					for _, media := range result.Media {
+						if media.MIMEType == "image/png" && len(media.Data) > 0 && len(media.Data) <= 5<<20 {
+							content = append(content, &sdk.ImageContent{MIMEType: media.MIMEType, Data: media.Data})
+						}
+					}
+				}
 
-				return &sdk.CallToolResult{Content: []sdk.Content{&sdk.TextContent{Text: text}}, IsError: failed}, nil
+				return &sdk.CallToolResult{Content: content, IsError: result.Failed}, nil
 			},
 		)
 	}

@@ -10,6 +10,7 @@ import (
 type capturedResult struct {
 	text   string
 	failed bool
+	image  string
 }
 
 // capturedResults keeps what the loop's code answers a call with, in place of the model's conversation: the
@@ -23,7 +24,7 @@ type capturedResults struct {
 func (c *capturedResults) AppendBlock(_ context.Context, _ string, _ domain.Role, block domain.Block) error {
 	if block.Kind == domain.BlockToolResult {
 		c.mu.Lock()
-		c.answers[block.ID] = capturedResult{text: block.Text, failed: block.IsError}
+		c.answers[block.ID] = capturedResult{text: block.Text, failed: block.IsError, image: block.Image}
 		c.mu.Unlock()
 	}
 

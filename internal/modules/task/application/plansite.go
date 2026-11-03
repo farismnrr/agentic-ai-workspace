@@ -1,10 +1,12 @@
 package application
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"image/png"
 	"sync"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -14,7 +16,7 @@ import (
 // app: it is started the same way and shows up under Sites, as for any other model. Looking things up on the web:
 // the program's own WebFetch runs in its container, which reaches package registries only and so refuses every
 // page, while these run on the server (SearXNG for the search, a public-only fetch for the page). The screenshot runs
-// there too, because a program has no browser; the picture cannot cross the bridge, so it gets the report of the page.
+// there too, because a program has no browser; QA screenshot tools return the task-owned PNG through the bridge.
 // CI logs are served here as well: GitHub sends them from a storage host the program's container cannot reach, so the
 // server downloads them with the project owner's GitHub connection and passes on the text.
 var siteToolNames = []string{
@@ -33,6 +35,7 @@ type siteSession struct {
 	jobID   string
 	tools   []CLITool
 	task    domain.Task
+	role    AgentRole
 	mu      sync.Mutex
 }
 
@@ -56,7 +59,7 @@ func (r *Runner) siteBridge(task domain.Task, role AgentRole, jobID string) *sit
 
 	return &siteSession{
 		inline: &inline, results: results, tools: tools, task: task, jobID: jobID,
-		state: &runState{budget: &budget{left: r.lim.delegateSteps()}, segment: r.lim.delegateSteps()},
+		state: &runState{budget: &budget{left: r.lim.delegateSteps()}, segment: r.lim.delegateSteps()}, role: role,
 	}
 }
 
@@ -70,16 +73,16 @@ func (s *siteSession) bridge() *CLIBridge {
 
 // call answers one call of the program like the loop answers one of the model's. The call keeps its name between
 // turns, so a step the person already approved is not asked about again when the job starts over.
-func (s *siteSession) call(ctx context.Context, name string, input json.RawMessage) (string, bool) {
+func (s *siteSession) call(ctx context.Context, name string, input json.RawMessage) CLIToolResult {
 	if !contains(siteToolNames, name) {
-		return "There is no tool called " + name + ".", true
+		return CLIToolResult{Text: "There is no tool called " + name + ".", Failed: true}
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.stopped != nil {
-		return "Stop now: the job is over for this turn.", true
+		return CLIToolResult{Text: "Stop now: the job is over for this turn.", Failed: true}
 	}
 
 	sum := sha256.Sum256(append([]byte(s.jobID+"\x00"+name+"\x00"), input...))
@@ -89,12 +92,22 @@ func (s *siteSession) call(ctx context.Context, name string, input json.RawMessa
 	if done {
 		s.stopped = &out
 
-		return stopText(out), out.stop == stopFailed
+		return CLIToolResult{Text: stopText(out), Failed: out.stop == stopFailed}
 	}
 
 	got := s.results.take(id)
 
-	return got.text, got.failed
+	result := CLIToolResult{Text: got.text, Failed: got.failed}
+	if !got.failed && s.role.Key == "qa" && (name == "browser_test" || name == "read_browser_screenshot") && got.image != "" && s.inline.deps.Shots != nil {
+		data, err := s.inline.deps.Shots.Load(ctx, s.task.ID, got.image)
+		if err == nil && len(data) > 0 && len(data) <= 5<<20 {
+			if config, decodeErr := png.DecodeConfig(bytes.NewReader(data)); decodeErr == nil && config.Width <= 4096 && config.Height <= 4096 {
+				result.Media = []CLIMedia{{MIMEType: "image/png", Data: data}}
+			}
+		}
+	}
+
+	return result
 }
 
 // stoppedOutcome is the outcome that ends the job early, when a call asked for it.
