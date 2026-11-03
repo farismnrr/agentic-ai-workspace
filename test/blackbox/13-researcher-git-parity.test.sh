@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -euo pipefail
 
 REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 source "$REPO_ROOT/test/lib/assert.sh"
@@ -56,19 +56,22 @@ git_tool() {
 
 git_tool status --short
 assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git status'
-assert_json '.result.structuredContent.exitCode == 0' 'Researcher Git status succeeds'
+assert_json '.result.structuredContent.exit_code == 0' 'Researcher Git status succeeds'
 
+# The disposable fixture is not connected to the owner's GitHub account.
+# This policy gate is expected and does not verify a successful fetch write.
 git_tool fetch local-fixture main
 assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git fetch'
-assert_json '.result.structuredContent.exitCode == 0' 'Researcher Git fetch writes FETCH_HEAD'
+assert_json '.result.structuredContent | .exit_code == -1 and (.output | contains("CONNECT_GITHUB_REQUIRED")) and (.output | contains("Read-only file system") | not)' \
+  'Researcher fetch is stopped by the GitHub connection policy, not a filesystem error'
 
 git_tool add README.md
 assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git add'
-assert_json '.result.structuredContent.exitCode == 0' 'Researcher Git add succeeds'
+assert_json '.result.structuredContent.exit_code == 0' 'Researcher Git add succeeds'
 
 git_tool commit -m 'Researcher Git permission probe'
 assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git commit'
-assert_json '.result.structuredContent.exitCode == 0' 'Researcher Git commit succeeds'
+assert_json '.result.structuredContent.exit_code == 0' 'Researcher Git commit succeeds'
 
 git_tool push origin HEAD
 assert_status "$HTTP_STATUS" 200 'Researcher push reaches native Git policy'
@@ -87,18 +90,19 @@ for role in developer devops; do
   assert_status "$HTTP_STATUS" 200 "switch tracked work to $role"
   git_tool status --short
   assert_status "$HTTP_STATUS" 200 "$role can invoke native Git status"
-  assert_json '.result.structuredContent.exitCode == 0' "$role Git status succeeds"
+  assert_json '.result.structuredContent.exit_code == 0' "$role Git status succeeds"
   git_tool fetch local-fixture main
   assert_status "$HTTP_STATUS" 200 "$role can invoke native Git fetch"
-  assert_json '.result.structuredContent.exitCode == 0' "$role Git fetch writes FETCH_HEAD"
+  assert_json '.result.structuredContent | .exit_code == -1 and (.output | contains("CONNECT_GITHUB_REQUIRED")) and (.output | contains("Read-only file system") | not)' \
+    "$role fetch is stopped by the GitHub connection policy, not a filesystem error"
 
   printf '%s native Git write probe\n' "$role" > "$project_dir/$role-git-probe.txt"
   git_tool add "$role-git-probe.txt"
   assert_status "$HTTP_STATUS" 200 "$role native Git add is available"
-  assert_json '.result.structuredContent.exitCode == 0' "$role native Git add succeeds"
+  assert_json '.result.structuredContent.exit_code == 0' "$role native Git add succeeds"
   git_tool commit -m "$role native Git write probe"
   assert_status "$HTTP_STATUS" 200 "$role native Git commit is available"
-  assert_json '.result.structuredContent.exitCode == 0' "$role native Git commit succeeds"
+  assert_json '.result.structuredContent.exit_code == 0' "$role native Git commit succeeds"
 
   git_tool push origin HEAD
   assert_status "$HTTP_STATUS" 200 "$role push reaches native Git policy"
@@ -110,3 +114,5 @@ for role in developer devops; do
       '{project:$project,work_id:$work_id,command:"pwd"}')"
   assert_json '.result.isError == true' "$role still cannot invoke general shell commands"
 done
+
+assertion_summary
