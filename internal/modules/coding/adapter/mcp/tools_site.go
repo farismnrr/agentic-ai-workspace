@@ -2,7 +2,6 @@ package mcp
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -46,11 +45,7 @@ func (t *tools) addSiteTools(server *sdk.Server) {
 		func(in startSiteInput) string { return "start web app: " + in.Command }, t.startSite))
 	sdk.AddTool(server, toolOf(domain.ToolStopSite), guarded(t.guard, domain.ToolStopSite,
 		func(Target) string { return "stop web app" }, t.stopSite))
-	sdk.AddTool(server, toolOf(domain.ToolBrowserTest), guarded(t.guard, domain.ToolBrowserTest,
-		func(in browserInput) string {
-			return "test the web app with " + fmt.Sprint(len(in.Actions)) + " browser actions"
-		},
-		t.browserTest))
+	sdk.AddTool(server, toolOf(domain.ToolBrowserTest), t.browserTestWithImage)
 }
 
 type browserInput struct {
@@ -59,8 +54,27 @@ type browserInput struct {
 }
 
 type browserOutput struct {
-	Steps         []BrowserStep `json:"steps"`
-	ScreenshotPNG string        `json:"screenshot_png_base64"`
+	Steps []BrowserStep `json:"steps"`
+	PNG   []byte        `json:"-"`
+}
+
+func (t *tools) browserTestWithImage(
+	ctx context.Context, request *sdk.CallToolRequest, in browserInput,
+) (*sdk.CallToolResult, browserOutput, error) {
+	handler := guarded(t.guard, domain.ToolBrowserTest, func(input browserInput) string {
+		return "test the web app with " + fmt.Sprint(len(input.Actions)) + " browser actions"
+	}, t.browserTest)
+	result, output, err := handler(ctx, request, in)
+	if err != nil || result != nil || len(output.PNG) == 0 {
+		return result, output, err
+	}
+
+	image := output.PNG
+	output.PNG = nil
+	return &sdk.CallToolResult{Content: []sdk.Content{
+		&sdk.TextContent{Text: fmt.Sprintf("Browser test steps: %v", output.Steps)},
+		&sdk.ImageContent{Data: image, MIMEType: "image/png"},
+	}}, output, nil
 }
 
 func (t *tools) browserTest(ctx context.Context, in browserInput) (browserOutput, report, error) {
@@ -87,7 +101,7 @@ func (t *tools) browserTest(ctx context.Context, in browserInput) (browserOutput
 	if err != nil {
 		return browserOutput{}, report{}, err
 	}
-	output := browserOutput{Steps: result.Steps, ScreenshotPNG: base64.StdEncoding.EncodeToString(result.PNG)}
+	output := browserOutput{Steps: result.Steps, PNG: result.PNG}
 	for _, step := range result.Steps {
 		if step.Status == "FAIL" {
 			return output, report{detail: fmt.Sprintf("browser step %d (%s) failed: %s", step.Index, step.Action, step.Detail), failed: true}, nil

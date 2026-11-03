@@ -50,7 +50,7 @@ func (a *agentTools) executeBrowserTest(ctx context.Context, scope taskapp.ToolS
 		status = "failed"
 	}
 	return taskapp.ToolResult{
-		Output: fmt.Sprintf("Browser test %s. Actions: %v", status, result.Steps),
+		Output: fmt.Sprintf("Browser test %s. Screenshot attached to the task thread. Actions: %v", status, result.Steps),
 		Image:  result.PNG,
 	}
 }
