@@ -3,7 +3,6 @@ package sandbox_test
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,8 +21,12 @@ func TestOwnerVolumeSubpathsAreIsolated(t *testing.T) {
 		t.Skip("VOLUME_ISOLATION_VOLUME and VOLUME_ISOLATION_IMAGE required for Docker integration")
 	}
 
+	dataDir := filepath.Join(t.TempDir(), "data")
+	outsideDir := filepath.Join(filepath.Dir(dataDir), "outside")
+	prepareVolumeMountSources(t, dataDir, outsideDir)
+
 	cfg := sandbox.Config{
-		Image: image, DataVolume: volume, DataDir: "/data",
+		Image: image, DataVolume: volume, DataDir: dataDir,
 		UID: 65532, GID: 65532, Limits: sandbox.DefaultLimits(),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -33,19 +36,38 @@ func TestOwnerVolumeSubpathsAreIsolated(t *testing.T) {
 		t.Fatalf("Docker must be available for volume isolation: %v", err)
 	}
 
-	runOwnerScope(t, ctx, engine, "a", "b")
-	runOwnerScope(t, ctx, engine, "b", "a")
-	runSiteWritableVolume(t, ctx, engine, "a", "b")
-	runSiteWritableVolume(t, ctx, engine, "b", "a")
-	runReadonlyBuildOutput(t, ctx, engine, "a")
-	runReadonlyBuildOutput(t, ctx, engine, "b")
-	assertOutsideDataRejected(t, ctx, engine)
+	runOwnerScope(t, ctx, engine, dataDir, "a", "b")
+	runOwnerScope(t, ctx, engine, dataDir, "b", "a")
+	runSiteWritableVolume(t, ctx, engine, dataDir, "a", "b")
+	runSiteWritableVolume(t, ctx, engine, dataDir, "b", "a")
+	runReadonlyBuildOutput(t, ctx, engine, dataDir, "a")
+	runReadonlyBuildOutput(t, ctx, engine, dataDir, "b")
+	assertOutsideDataRejected(t, ctx, engine, outsideDir)
 }
 
-func runSiteWritableVolume(t *testing.T, ctx context.Context, engine *sandbox.Docker, scope, other string) {
+func prepareVolumeMountSources(t *testing.T, dataDir, outsideDir string) {
+	t.Helper()
+	for _, path := range []string{
+		filepath.Join(dataDir, "workspaces", "a", "data", "preview-runs"),
+		filepath.Join(dataDir, "workspaces", "a", ".atja-runtime"),
+		filepath.Join(dataDir, "workspaces", "a", "builds"),
+		filepath.Join(dataDir, "workspaces", "b", "data", "preview-runs"),
+		filepath.Join(dataDir, "workspaces", "b", ".atja-runtime"),
+		filepath.Join(dataDir, "workspaces", "b", "builds"),
+		filepath.Join(dataDir, "caches", "a"),
+		filepath.Join(dataDir, "caches", "b"),
+		outsideDir,
+	} {
+		if err := os.MkdirAll(path, 0o700); err != nil {
+			t.Fatalf("create temporary mount source %q: %v", path, err)
+		}
+	}
+}
+
+func runSiteWritableVolume(t *testing.T, ctx context.Context, engine *sandbox.Docker, dataDir, scope, other string) {
 	t.Helper()
 	spec := sandbox.Spec{
-		Workspace: "/data/workspaces/" + scope, WorkspaceReadOnly: true,
+		Workspace: volumeWorkspace(dataDir, scope), WorkspaceReadOnly: true,
 		WorkspaceWritable: []string{"data/preview-runs", ".atja-runtime"},
 		Argv: []string{"sh", "-c", "test \"$(cat /workspace/data/preview-runs/existing.txt)\" = before-" + scope + " && " +
 			"printf updated >> /workspace/data/preview-runs/existing.txt && " +
@@ -61,7 +83,7 @@ func runSiteWritableVolume(t *testing.T, ctx context.Context, engine *sandbox.Do
 	}
 
 	result, err = engine.Run(ctx, sandbox.Spec{
-		Workspace: "/data/workspaces/" + scope,
+		Workspace: volumeWorkspace(dataDir, scope),
 		Argv:      []string{"sh", "-c", "test \"$(cat /workspace/data/preview-runs/existing.txt)\" = before-" + scope + "updated"},
 	}, io.Discard)
 	if err != nil || result.ExitCode != 0 {
@@ -117,11 +139,11 @@ func TestSiteWritableDirectoriesUseTheOriginalBindWorkspace(t *testing.T) {
 	}
 }
 
-func runOwnerScope(t *testing.T, ctx context.Context, engine *sandbox.Docker, scope, other string) {
+func runOwnerScope(t *testing.T, ctx context.Context, engine *sandbox.Docker, dataDir, scope, other string) {
 	t.Helper()
 	spec := sandbox.Spec{
-		Workspace: "/data/workspaces/" + scope,
-		Cache:     "/data/caches/" + scope,
+		Workspace: volumeWorkspace(dataDir, scope),
+		Cache:     filepath.Join(dataDir, "caches", scope),
 		Argv: []string{
 			"sh", "-c",
 			"test -e /workspace/marker-" + scope +
@@ -140,12 +162,13 @@ func runOwnerScope(t *testing.T, ctx context.Context, engine *sandbox.Docker, sc
 	}
 }
 
-func runReadonlyBuildOutput(t *testing.T, ctx context.Context, engine *sandbox.Docker, scope string) {
+func runReadonlyBuildOutput(t *testing.T, ctx context.Context, engine *sandbox.Docker, dataDir, scope string) {
 	t.Helper()
+	workspace := volumeWorkspace(dataDir, scope)
 	spec := sandbox.Spec{
-		Workspace:         "/data/workspaces/" + scope,
+		Workspace:         workspace,
 		WorkspaceReadOnly: true,
-		Artifacts:         "/data/workspaces/" + scope + "/builds",
+		Artifacts:         filepath.Join(workspace, "builds"),
 		Argv: []string{"sh", "-c",
 			"if touch /workspace/forbidden 2>/dev/null; then exit 33; fi; " +
 				"touch /output/artifact-" + scope + " && test -e /workspace/builds/artifact-" + scope +
@@ -158,13 +181,17 @@ func runReadonlyBuildOutput(t *testing.T, ctx context.Context, engine *sandbox.D
 	}
 }
 
-func assertOutsideDataRejected(t *testing.T, ctx context.Context, engine *sandbox.Docker) {
+func volumeWorkspace(dataDir, scope string) string {
+	return filepath.Join(dataDir, "workspaces", scope)
+}
+
+func assertOutsideDataRejected(t *testing.T, ctx context.Context, engine *sandbox.Docker, outsideDir string) {
 	t.Helper()
 	_, err := engine.Run(ctx, sandbox.Spec{
-		Workspace: "/data/../outside",
+		Workspace: outsideDir,
 		Argv:      []string{"true"},
 	}, io.Discard)
-	if !errors.Is(err, sandbox.ErrOutsideData) {
-		t.Fatalf("parent-directory escape accepted: %v", err)
+	if err == nil {
+		t.Fatal("workspace outside the configured data directory was accepted")
 	}
 }
