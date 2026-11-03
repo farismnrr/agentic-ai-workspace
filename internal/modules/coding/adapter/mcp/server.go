@@ -33,6 +33,8 @@ type Options struct {
 	Works WorkSessions
 	// WorkCalls records file, read and command activity under an explicit work ID.
 	WorkCalls WorkCalls
+	// BrowserShots reuses task-owned screenshot storage for browser evidence.
+	BrowserShots ScreenshotStore
 	// ResourceMetadataURL is advertised in scope challenges.
 	ResourceMetadataURL string
 }
@@ -51,6 +53,7 @@ type tools struct {
 	workspaces Workspaces
 	guard      *guard
 	works      WorkSessions
+	shots      ScreenshotStore
 }
 
 // services returns the workspace of the person whose token made this call.
@@ -143,7 +146,7 @@ func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
 		}
 		return opts.Works.Authorize(ctx, user, client, svc.ProjectID, workID, tool)
 	}
-	t := &tools{workspaces: workspaces, guard: g, works: opts.Works}
+	t := &tools{workspaces: workspaces, guard: g, works: opts.Works, shots: opts.BrowserShots}
 
 	t.addReadTools(server)
 	t.addWriteTools(server)
@@ -172,5 +175,3 @@ func toolOf(info domain.ToolInfo) *sdk.Tool {
 		},
 	}
 }
-
-

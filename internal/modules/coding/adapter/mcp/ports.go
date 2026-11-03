@@ -92,8 +92,9 @@ type BrowserStep struct {
 }
 
 type BrowserReport struct {
-	Steps []BrowserStep `json:"steps"`
-	PNG   []byte        `json:"screenshot_png"`
+	Steps       []BrowserStep `json:"steps"`
+	PNG         []byte        `json:"screenshot_png"`
+	SiteVersion int64         `json:"site_version,omitempty"`
 }
 
 // TaskLog writes the app's conversation into a thread the person can open. It is optional.

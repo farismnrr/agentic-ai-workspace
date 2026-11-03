@@ -52,7 +52,7 @@ var knownErrors = []error{
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
 	domain.ErrServerBusy, domain.ErrUnknownProject, domain.ErrBadGitArgs, domain.ErrBadVerifyArgs,
 	domain.ErrBrowserSiteNotRunning, domain.ErrBrowserBadPath, domain.ErrBrowserBadInput,
-	domain.ErrBrowserUnavailable, domain.ErrBrowserFailed,
+	domain.ErrBrowserUnavailable, domain.ErrBrowserFailed, domain.ErrBrowserShotUnavailable,
 	domain.ErrBadQuestion, errBadMessage, taskdomain.ErrUnknownWork,
 	taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused, taskdomain.ErrBadRole, taskdomain.ErrRoleForbidden,
 	errMoLabDeveloperRequired,

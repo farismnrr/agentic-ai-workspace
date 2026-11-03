@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -16,6 +17,7 @@ import (
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
+	taskshots "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/adapter/shots"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/config"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/httpserver"
@@ -35,6 +37,7 @@ func newSpaceMounts(
 	handler := codingHandler(appWorkspaces{projects: projects, tools: tools}, codingmcp.Options{
 		Gate: gate{permissions: permissions}, Recorder: NewRecorder(log), Tasks: appThreads{tasks: tasks},
 		Works: appWorks{works: works, sessions: agentSessions}, WorkCalls: appWorkCalls{works: works},
+		BrowserShots:        taskshots.New(filepath.Join(cfg.DataDir, "shots")),
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 

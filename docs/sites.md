@@ -54,6 +54,7 @@ A site is a web app the AI runs in the sandbox so you can open it in your browse
 ## Screenshots
 
 - The AI can take a screenshot of your running app, on a desktop or a phone screen, to check how it looks. It shows in the thread.
+- The QA role can run browser actions against a running app. Its screenshot reference works only for the same task, active QA work and Site start; stopping or restarting the app expires it.
 - It uses a headless browser in the sandbox. That browser has no internet, so fonts and images from other websites don't load in the screenshot, but they do for you.
 - It reaches only your project's own app.
 - `screenshot_session` can log in or out with a test account stored as Project Env secrets, or clear the agent's local session.

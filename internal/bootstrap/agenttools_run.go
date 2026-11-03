@@ -12,35 +12,35 @@ import (
 )
 
 type toolArgs struct {
-	Path             string `json:"path"`
-	Pattern          string `json:"pattern"`
-	Query            string `json:"query"`
-	OldText          string `json:"old_text"`
-	NewText          string `json:"new_text"`
-	Content          string `json:"content"`
-	From             string `json:"from"`
-	To               string `json:"to"`
-	Name             string `json:"name"`
+	Path             string   `json:"path"`
+	Pattern          string   `json:"pattern"`
+	Query            string   `json:"query"`
+	OldText          string   `json:"old_text"`
+	NewText          string   `json:"new_text"`
+	Content          string   `json:"content"`
+	From             string   `json:"from"`
+	To               string   `json:"to"`
+	Name             string   `json:"name"`
 	Args             []string `json:"args"`
-	Command          string `json:"command"`
-	Device           string `json:"device"`
-	URL              string `json:"url"`
-	Action           string `json:"action"`
-	EmailSecret      string `json:"email_secret"`
-	PasswordSecret   string `json:"password_secret"`
-	EmailSelector    string `json:"email_selector"`
-	PasswordSelector string `json:"password_selector"`
-	SubmitSelector   string `json:"submit_selector"`
-	ReadySelector    string `json:"ready_selector"`
-	ErrorSelector    string `json:"error_selector"`
-	Port             int    `json:"port"`
-	Y                int    `json:"y"`
-	StartLine        int    `json:"start_line"`
-	TimeoutSecs      int    `json:"timeout_seconds"`
-	EndLine          int    `json:"end_line"`
-	ReplaceAll       bool   `json:"replace_all"`
-	CaseSensitive    bool   `json:"case_sensitive"`
-	Overview         bool   `json:"overview"`
+	Command          string   `json:"command"`
+	Device           string   `json:"device"`
+	URL              string   `json:"url"`
+	Action           string   `json:"action"`
+	EmailSecret      string   `json:"email_secret"`
+	PasswordSecret   string   `json:"password_secret"`
+	EmailSelector    string   `json:"email_selector"`
+	PasswordSelector string   `json:"password_selector"`
+	SubmitSelector   string   `json:"submit_selector"`
+	ReadySelector    string   `json:"ready_selector"`
+	ErrorSelector    string   `json:"error_selector"`
+	Port             int      `json:"port"`
+	Y                int      `json:"y"`
+	StartLine        int      `json:"start_line"`
+	TimeoutSecs      int      `json:"timeout_seconds"`
+	EndLine          int      `json:"end_line"`
+	ReplaceAll       bool     `json:"replace_all"`
+	CaseSensitive    bool     `json:"case_sensitive"`
+	Overview         bool     `json:"overview"`
 }
 
 type toolHandler func(ctx context.Context, services codingmcp.Services, in toolArgs) taskapp.ToolResult
@@ -50,6 +50,9 @@ func (a *agentTools) Execute(ctx context.Context, scope taskapp.ToolScope, call 
 	projectID := scope.ProjectID
 	if call.Name == codingdomain.ToolBrowserTest.Name {
 		return a.executeBrowserTest(ctx, scope, call)
+	}
+	if call.Name == "read_browser_screenshot" {
+		return a.readBrowserScreenshot(ctx, scope, call)
 	}
 	if isSiteTool(call.Name) {
 		return a.executeSite(ctx, projectID, call)
@@ -91,22 +94,22 @@ func failure(err error) taskapp.ToolResult {
 
 func toolHandlers() map[string]toolHandler {
 	return map[string]toolHandler{
-		"list_files":  listFiles,
-		"find_files":  findFiles,
-		"read_file":   readFile,
-		"search_code": searchCode,
-		"list_tasks":  listTasks,
-		"edit_file":   editFile,
-		"write_file":  writeFile,
-		"delete_file": deleteFile,
-		"move_file":   moveFile,
-		"run_task":    runTask,
-		"verify":      runVerify,
-		"run_build":   runBuild,
+		"list_files":   listFiles,
+		"find_files":   findFiles,
+		"read_file":    readFile,
+		"search_code":  searchCode,
+		"list_tasks":   listTasks,
+		"edit_file":    editFile,
+		"write_file":   writeFile,
+		"delete_file":  deleteFile,
+		"move_file":    moveFile,
+		"run_task":     runTask,
+		"verify":       runVerify,
+		"run_build":    runBuild,
 		"run_artifact": runArtifact,
-		"git": runGit,
-		"gh": runGh,
-		"run_command": runCommand,
+		"git":          runGit,
+		"gh":           runGh,
+		"run_command":  runCommand,
 	}
 }
 
@@ -185,5 +188,3 @@ func runCommand(ctx context.Context, s codingmcp.Services, in toolArgs) taskapp.
 
 	return ran(commandName(in.Command), "Command", in.Command, result, err)
 }
-
-

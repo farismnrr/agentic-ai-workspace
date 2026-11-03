@@ -38,8 +38,9 @@ type BrowserStep struct {
 
 // BrowserReport contains bounded diagnostics and the final screenshot.
 type BrowserReport struct {
-	Steps []BrowserStep `json:"steps"`
-	PNG   []byte        `json:"-"`
+	Steps       []BrowserStep `json:"steps"`
+	PNG         []byte        `json:"-"`
+	SiteVersion int64         `json:"-"`
 }
 
 // BrowserRuntime runs declarative actions in the isolated Site capture container.
@@ -80,12 +81,24 @@ func (s *Service) BrowserForAgent(
 			return runErr
 		}
 		report, runErr = parseBrowserReport(output)
+		if runErr == nil {
+			report.SiteVersion = site.StartedAt.UnixNano()
+		}
 		return runErr
 	})
 	if err != nil {
 		return BrowserReport{}, fmt.Errorf("run browser test: %w", err)
 	}
 	return report, nil
+}
+
+// RunningVersion returns the current start generation for an owned running Site.
+func (s *Service) RunningVersion(ctx context.Context, userID, projectID string) (int64, error) {
+	site, err := s.runningSite(ctx, projectID)
+	if err != nil || site.UserID != userID {
+		return 0, domain.ErrNotRunning
+	}
+	return site.StartedAt.UnixNano(), nil
 }
 
 func validateBrowserActions(actions []BrowserAction) error {

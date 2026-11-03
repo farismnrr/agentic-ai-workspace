@@ -25,8 +25,7 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/opaque"
 )
 
-// agentTools lets the agent use the coding tools inside a project's own folder.
-// Each project gets its own confined view of its files.
+// agentTools lets the agent use coding tools inside each project's confined folder.
 type agentTools struct {
 	folders *folder.Folders
 	engine  *codingrunner.Engine
@@ -35,6 +34,7 @@ type agentTools struct {
 		Secret(context.Context, string, string, string) (string, error)
 	}
 	sites *siteapp.Service
+	shots taskapp.Shots
 	// extensions packages the browser extensions the AI builds.
 	extensions *extensionapp.Service
 	web        *webapp.Service
