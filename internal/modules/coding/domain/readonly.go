@@ -6,6 +6,7 @@ import "context"
 type readOnlyWorkspaceKey struct{}
 type gitOnlyKey struct{}
 type vcsRoleKey struct{}
+type writableGitWorkspaceKey struct{}
 
 // WithVCSRole records the authenticated teammate role for operation checks.
 // It is set by the server, never copied from a tool's JSON input.
@@ -26,6 +27,17 @@ func WithGitOnly(ctx context.Context) context.Context {
 
 func GitOnly(ctx context.Context) bool {
 	flag, _ := ctx.Value(gitOnlyKey{}).(bool)
+	return flag
+}
+
+// WithWritableGitWorkspace permits only the native Git runner to mount the
+// authorized workspace writable for this server-selected Git operation.
+func WithWritableGitWorkspace(ctx context.Context) context.Context {
+	return context.WithValue(ctx, writableGitWorkspaceKey{}, true)
+}
+
+func WritableGitWorkspace(ctx context.Context) bool {
+	flag, _ := ctx.Value(writableGitWorkspaceKey{}).(bool)
 	return flag
 }
 

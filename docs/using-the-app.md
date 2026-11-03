@@ -388,7 +388,7 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 | Role | What it does |
 | --- | --- |
 | Orchestrator (lead) | Coordinates and delegates, without changing files in team mode |
-| Researcher | Reads the project and researches the web with sources; cannot edit or execute |
+| Researcher | Researches with sources; assigned Git work uses the bounded `git` tool only |
 | Planner | Requirements, PRD and architecture approach before implementation; cannot code or test |
 | Developer | Codes, UI, media, docs, MoLab; regular Git operations and GitHub Issues/PRs via `git`/`gh`, reads CI; cannot run QA tests or deploy |
 | QA & Review | Runs tests, lint, typechecks and reviews through `verify` in a read-only sandbox; named checks are optional |

@@ -49,7 +49,8 @@ Each connected-app conversation shows as a task beside the work done in the app.
   work ID for all roles and tool calls, and use `set_role` when responsibilities change.
   Only account/project discovery is available before starting work.
 - Every tool is also checked against the current enabled Agent Team role. OAuth scope
-  and tool switches cannot expand that role: Researcher cannot edit or execute,
+  and tool switches cannot expand that role: Researcher cannot edit files or use shell,
+  but may use the bounded native `git` tool for assigned Git operations,
   Developer edits source/UI/assets/documents and uses MoLab, commits and pushes changes through
   `git` with separate arguments (e.g. `["cherry-pick", "abc123"]`, `["push", "origin", "HEAD:dev"]`).
   Developer also uses `gh` for GitHub Issues, Pull Requests, and reading Actions/CI.

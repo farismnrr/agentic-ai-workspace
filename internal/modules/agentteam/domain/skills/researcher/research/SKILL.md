@@ -74,4 +74,5 @@ The orchestrator says which kind of round this is. Write only the sections it as
 Send the notes as the `document` of your `report`, with a two-line summary. Use short sections. Put each source
 address beside its fact. End with "Not found" (what you could not establish) and "Suggestions" (what the notes mean
 for the plan or the build: decisions, risks, questions for the person). Keep it to a page or two.
-Do not change any file.
+Do not edit project files or run shell commands. For an assigned Git task, use only the native Git tool, and follow
+the repository's Git safety rules and the same workspace, credential, remote and approval limits as other Git users.
