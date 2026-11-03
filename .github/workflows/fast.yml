@@ -23,17 +23,17 @@ jobs:
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       # Publish both immutable images before changing the moving dev channel.
       - name: Build and push app (immutable)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          build-args: VERSION=\${{ github.sha }}
+          build-args: VERSION=${{ github.sha }}
           push: true
-          tags: ghcr.io/\${{ github.repository }}:sha-\${{ github.sha }}
-          labels: org.opencontainers.image.revision=\${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=app
           cache-to: type=gha,mode=max,scope=app
       - name: Build and push sandbox (immutable)
@@ -42,14 +42,14 @@ jobs:
           context: .
           file: sandbox/Dockerfile
           push: true
-          tags: ghcr.io/\${{ github.repository }}-sandbox:sha-\${{ github.sha }}
-          labels: org.opencontainers.image.revision=\${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=sandbox
           cache-to: type=gha,mode=max,scope=sandbox
       - name: Promote both images to dev after successful publication
         env:
-          IMAGE: ghcr.io/\${{ github.repository }}
-          COMMIT: \${{ github.sha }}
+          IMAGE: ghcr.io/${{ github.repository }}
+          COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
           docker buildx imagetools inspect "$IMAGE:sha-$COMMIT" >/dev/null
@@ -78,11 +78,11 @@ jobs:
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Verify Docker isolation on disposable runner
         env:
-          SANDBOX_TEST_IMAGE: ghcr.io/\${{ github.repository }}-sandbox:sha-\${{ github.sha }}
+          SANDBOX_TEST_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
         run: |
           set -o pipefail
           if make volume-isolation 2>&1 | tee "$RUNNER_TEMP/docker-volume-isolation.log"; then
@@ -115,15 +115,15 @@ jobs:
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build app binary for Git parity scenario
-        run: make backend-build VERSION="\${{ github.sha }}"
+        run: make backend-build VERSION="${{ github.sha }}"
       - name: Verify native Git parity on fresh disposable runner
         env:
-          APP_BIN: \${{ github.workspace }}/bin/agentic-ai-workspace
-          SANDBOX_IMAGE: ghcr.io/\${{ github.repository }}-sandbox:sha-\${{ github.sha }}
-          SANDBOX_TEST_IMAGE: ghcr.io/\${{ github.repository }}-sandbox:sha-\${{ github.sha }}
+          APP_BIN: ${{ github.workspace }}/bin/agentic-ai-workspace
+          SANDBOX_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
+          SANDBOX_TEST_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
         run: |
           set -euo pipefail
           if ! ./test/run.sh blackbox 13-researcher-git-parity 2>&1 | tee "$RUNNER_TEMP/docker-git-parity.log"; then
