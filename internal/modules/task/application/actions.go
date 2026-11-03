@@ -32,10 +32,18 @@ func (s *Service) Answer(ctx context.Context, userID, taskID, eventID string, an
 		// The person answers in the same UI, but the external lead, not the
 		// internal scheduler, decides which worker runs next.
 		event, err := s.deps.Events.FindEvent(ctx, taskID, eventID)
-		if err != nil { return err }
-		if event.Kind != domain.EventQuestion { return domain.ErrWrongState }
-		if err := resolve(&event, answer); err != nil { return err }
-		if err := s.deps.Events.UpdateEvent(ctx, taskID, event); err != nil { return err }
+		if err != nil {
+			return err
+		}
+		if event.Kind != domain.EventQuestion {
+			return domain.ErrWrongState
+		}
+		if err := resolve(&event, answer); err != nil {
+			return err
+		}
+		if err := s.deps.Events.UpdateEvent(ctx, taskID, event); err != nil {
+			return err
+		}
 		return s.deps.Tasks.SetStatus(ctx, taskID, domain.StatusWorking, s.now())
 	}
 	if task.Source != "" {
@@ -99,6 +107,12 @@ func (s *Service) Cancel(ctx context.Context, userID, taskID string) error {
 			return fmt.Errorf("stop external work: %w", err)
 		}
 		return nil
+	}
+	if task.Source == "" && task.Status == domain.StatusNeedsInput {
+		if s.dispatcher == nil || s.dispatcher.HasTask(task.ID) {
+			return domain.ErrWrongState
+		}
+		return s.closeStaleNeedsInput(ctx, userID, task.ID)
 	}
 
 	switch s.dispatcher.Cancel(task.ID) {
@@ -182,5 +196,3 @@ func (s *Service) Retry(ctx context.Context, userID, taskID string) error {
 
 	return s.requeue(ctx, task)
 }
-
-

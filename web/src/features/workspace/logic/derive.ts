@@ -11,7 +11,7 @@ export interface InboxItem {
 }
 
 const headlines: Record<InboxKind, string> = {
-  waiting: 'Waiting for your answer',
+  waiting: 'Needs attention',
   review: 'Finished and ready to check',
   failed: "Couldn't finish",
 };

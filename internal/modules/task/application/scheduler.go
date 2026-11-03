@@ -23,6 +23,7 @@ const (
 type Dispatcher interface {
 	Enqueue(taskID, projectID string)
 	Cancel(taskID string) CancelState
+	HasTask(taskID string) bool
 }
 
 type job struct {
@@ -117,6 +118,16 @@ func (s *Scheduler) Cancel(taskID string) CancelState {
 	}
 
 	return CancelNone
+}
+
+// HasTask reports whether a task is running or waiting in the dispatch queue.
+func (s *Scheduler) HasTask(taskID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.running[taskID] != nil {
+		return true
+	}
+	return slices.ContainsFunc(s.queue, func(queued job) bool { return queued.taskID == taskID })
 }
 
 // Wait blocks until a running task has returned from its worker.
