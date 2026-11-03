@@ -107,6 +107,7 @@ async function apply(page: Page, base: string, action: Action): Promise<string> 
     await target.waitFor({ state: 'visible', timeout: 5000 });
     return 'selected element is visible';
   }
+  await target.waitFor({ state: 'visible', timeout: 5000 });
   const text = await target.innerText({ timeout: 5000 });
   if (!text.includes(action.value ?? '')) throw new Error('expected text was not found in the selected element');
   return 'expected text is visible';
