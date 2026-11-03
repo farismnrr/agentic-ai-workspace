@@ -21,7 +21,8 @@ import { projects, refresh } from '../logic/workspace-store';
 
   $effect(() => {
     const allowed = new Set(eligible.map((item) => item.id));
-    selected = selected.filter((id) => allowed.has(id));
+    const next = selected.filter((id) => allowed.has(id));
+    if (next.length !== selected.length) selected = next;
   });
 
   function toggle(id: string): void {
