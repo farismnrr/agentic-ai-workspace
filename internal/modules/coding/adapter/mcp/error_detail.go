@@ -51,6 +51,8 @@ var knownErrors = []error{
 	domain.ErrTooLarge, domain.ErrExists, domain.ErrNotUnique, domain.ErrNoMatch, domain.ErrBadRange,
 	domain.ErrBadPattern, domain.ErrNoTasks, domain.ErrUnknownTask, domain.ErrBadTasks, domain.ErrTaskBusy,
 	domain.ErrServerBusy, domain.ErrUnknownProject, domain.ErrBadGitArgs, domain.ErrBadVerifyArgs,
+	domain.ErrBrowserSiteNotRunning, domain.ErrBrowserBadPath, domain.ErrBrowserBadInput,
+	domain.ErrBrowserUnavailable, domain.ErrBrowserFailed,
 	domain.ErrBadQuestion, errBadMessage, taskdomain.ErrUnknownWork,
 	taskdomain.ErrWorkClosed, taskdomain.ErrStaleRevision, taskdomain.ErrKeyReused, taskdomain.ErrBadRole, taskdomain.ErrRoleForbidden,
 	errMoLabDeveloperRequired,

@@ -9,10 +9,10 @@ import (
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	oauthapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/application"
+	oauthdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/domain"
 	orchestratorfiles "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/adapter/files"
 	orchestratormcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/adapter/mcp"
 	orchestratordomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/orchestrator/domain"
-	oauthdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/oauth/domain"
 	projectapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/project/application"
 	spacehttp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/adapter/http"
 	spaceapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/space/application"
@@ -25,7 +25,7 @@ import (
 func newSpaceMounts(
 	cfg config.Config, projects *projectapp.Service, tools *agentTools, tasks *taskapp.Service, works *taskapp.Works,
 	registry *spaceapp.Registry, log *spaceapp.ActivityLog, permissions *spaceapp.Permissions, oauth *oauthapp.Service,
-	sess sessions, sameOrigin fiber.Handler,
+	sess sessions, agentSessions taskapp.AgentSessionCleanup, sameOrigin fiber.Handler,
 ) []httpserver.Mount {
 	api := spacehttp.NewAPI(registry, sess, permissions, log)
 	mounts := []httpserver.Mount{api.Mount(sameOrigin)}
@@ -34,7 +34,7 @@ func newSpaceMounts(
 	mounter := spacehttp.NewMounter(registry, cfg.Connector(), cfg.Connector(), verifier{oauth: oauth})
 	handler := codingHandler(appWorkspaces{projects: projects, tools: tools}, codingmcp.Options{
 		Gate: gate{permissions: permissions}, Recorder: NewRecorder(log), Tasks: appThreads{tasks: tasks},
-		Works: appWorks{works: works}, WorkCalls: appWorkCalls{works: works},
+		Works: appWorks{works: works, sessions: agentSessions}, WorkCalls: appWorkCalls{works: works},
 		ResourceMetadataURL: cfg.Connector() + space.MetadataPath(),
 	})
 

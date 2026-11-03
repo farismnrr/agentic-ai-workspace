@@ -9,6 +9,7 @@ import (
 
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 	codingdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
+	siteapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
 	sitedomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/site/domain"
 	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	taskdomain "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -21,7 +22,7 @@ var (
 )
 
 func siteDefinitions() []taskdomain.ToolDef {
-	return []taskdomain.ToolDef{
+	definitions := []taskdomain.ToolDef{
 		{
 			Name: toolStartSite, Description: codingdomain.ToolStartSite.Description,
 			Schema: json.RawMessage(`{"type":"object","properties":{"command":{"type":"string","description":` +
@@ -34,6 +35,7 @@ func siteDefinitions() []taskdomain.ToolDef {
 			Schema: json.RawMessage(`{"type":"object","properties":{}}`),
 		},
 	}
+	return append(definitions, browserTestDefinition())
 }
 
 var siteDescribers = map[string]describer{
@@ -139,5 +141,47 @@ func (s projectSites) Start(ctx context.Context, command string, port int) codin
 func (s projectSites) Stop(ctx context.Context) {
 	if s.tools.sites != nil {
 		s.tools.sites.StopProject(ctx, s.projectID)
+	}
+}
+
+// Browser carries only the server-resolved user, task and project into the Site boundary.
+func (s projectSites) Browser(
+	ctx context.Context, userID, taskID string, actions []codingmcp.BrowserAction,
+) (codingmcp.BrowserReport, error) {
+	if s.tools.sites == nil {
+		return codingmcp.BrowserReport{}, fmt.Errorf("web apps are not available right now")
+	}
+	input := make([]siteapp.BrowserAction, 0, len(actions))
+	for _, action := range actions {
+		input = append(input, siteapp.BrowserAction{
+			Action: action.Action, Path: action.Path, LocatorType: action.LocatorType,
+			Locator: action.Locator, Value: action.Value, Check: action.Check,
+		})
+	}
+	result, err := s.tools.sites.BrowserForAgent(ctx, userID, s.projectID, taskID, input)
+	if err != nil {
+		return codingmcp.BrowserReport{}, browserError(err)
+	}
+	steps := make([]codingmcp.BrowserStep, 0, len(result.Steps))
+	for _, step := range result.Steps {
+		steps = append(steps, codingmcp.BrowserStep{
+			Index: step.Index, Action: step.Action, Status: step.Status, Detail: step.Detail,
+		})
+	}
+	return codingmcp.BrowserReport{Steps: steps, PNG: result.PNG}, nil
+}
+
+func browserError(err error) error {
+	switch {
+	case errors.Is(err, sitedomain.ErrNotRunning):
+		return codingdomain.ErrBrowserSiteNotRunning
+	case errors.Is(err, sitedomain.ErrBadBrowserPath):
+		return codingdomain.ErrBrowserBadPath
+	case errors.Is(err, sitedomain.ErrBadBrowserInput):
+		return codingdomain.ErrBrowserBadInput
+	case errors.Is(err, sitedomain.ErrNoSandboxes):
+		return codingdomain.ErrBrowserUnavailable
+	default:
+		return codingdomain.ErrBrowserFailed
 	}
 }

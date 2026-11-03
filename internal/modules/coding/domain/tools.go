@@ -145,7 +145,8 @@ func Tools() []ToolInfo {
 	return []ToolInfo{
 		ToolListFiles, ToolFindFiles, ToolReadFile, ToolSearchCode, ToolListTasks, ToolWhoami, ToolListProjects,
 		ToolLogMessage,
-		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolVerify, ToolRunBuild, ToolRunArtifact, ToolGit, ToolGh, ToolRunCommand, ToolMarimoExecute, ToolScreenshotSession,
+		ToolEditFile, ToolWriteFile, ToolDeleteFile, ToolMoveFile, ToolRunTask, ToolVerify, ToolRunBuild, ToolRunArtifact,
+		ToolGit, ToolGh, ToolRunCommand, ToolMarimoExecute, ToolScreenshotSession, ToolBrowserTest,
 		ToolApprovePlan,
 	}
 }

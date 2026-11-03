@@ -12,7 +12,10 @@ import (
 const planFieldsPerStep = 3
 
 // appWorks adapts the task use cases to the MCP adapter's consumer-owned port.
-type appWorks struct{ works *taskapp.Works }
+type appWorks struct {
+	works    *taskapp.Works
+	sessions taskapp.AgentSessionCleanup
+}
 
 func (a appWorks) Validate(ctx context.Context, user, client, project, workID string) error {
 	err := a.works.Validate(ctx, user, client, project, workID)
@@ -135,6 +138,9 @@ func (a appWorks) Complete(ctx context.Context, user, client, project, workID st
 	if err != nil {
 		return codingmcp.CompleteWorkResult{}, workBridgeError("read completed work", err)
 	}
+	if state.State != taskdomain.WorkOpen && state.State != taskdomain.WorkBlocked && a.sessions != nil {
+		a.sessions.RevokeTask(user, state.TaskID)
+	}
 	return codingmcp.CompleteWorkResult{
 		Already: result.Already, WorkID: workID, Revision: state.Revision, State: string(state.State),
 		TaskStatus: completionStatus(in.Outcome), Verified: codingmcp.VerifiedWork{
@@ -152,5 +158,3 @@ func (a appWorks) State(ctx context.Context, user, client, project, workID strin
 	}
 	return stateResult(result), nil
 }
-
-
