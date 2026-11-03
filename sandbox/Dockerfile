@@ -88,6 +88,12 @@ ARG LUCIDE_VERSION=1.59.0
 RUN npm install --prefix /opt/vector --no-audit --no-fund "svgo@${SVGO_VERSION}" "lucide-static@${LUCIDE_VERSION}" \
     && chmod -R a+rX /opt/vector
 
+# QA browser actions use the image's Chromium and never download a browser at runtime.
+FROM node AS browser
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN npm install --prefix /opt/browser --no-audit --no-fund "playwright-core@1.63.0" \
+    && chmod -R a+rX /opt/browser
+
 # The vendors' own coding CLIs, unmodified, from npm and pinned. People sign in to them with their own plan, and the
 # server only starts them (never the agent's commands) in a container that can reach nothing but the vendor's hosts.
 FROM node AS cli
@@ -136,6 +142,7 @@ RUN ln -s "$(ls -d /opt/python/cpython-*/bin/python3 | head -n1)" /usr/local/bin
 
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=browser /opt/browser /opt/browser
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
     && ln -s ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack

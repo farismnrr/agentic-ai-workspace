@@ -48,6 +48,9 @@ type toolHandler func(ctx context.Context, services codingmcp.Services, in toolA
 // Execute runs a project tool. Failures become results the model can read and react to.
 func (a *agentTools) Execute(ctx context.Context, scope taskapp.ToolScope, call taskapp.Call) taskapp.ToolResult {
 	projectID := scope.ProjectID
+	if call.Name == codingdomain.ToolBrowserTest.Name {
+		return a.executeBrowserTest(ctx, scope, call)
+	}
 	if isSiteTool(call.Name) {
 		return a.executeSite(ctx, projectID, call)
 	}

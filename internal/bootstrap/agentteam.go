@@ -140,6 +140,8 @@ func roleMayUseTool(role teamdomain.Role, tool string) bool {
 		return role.Key == "qa" || role.Key == "security"
 	case codingdomain.ToolVerify.Name:
 		return role.Key == "qa"
+	case codingdomain.ToolBrowserTest.Name:
+		return role.Key == "qa"
 	case codingdomain.ToolMarimoExecute.Name:
 		return role.Key == "developer"
 	case codingdomain.ToolApprovePlan.Name:

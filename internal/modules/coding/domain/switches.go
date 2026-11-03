@@ -25,7 +25,7 @@ func SwitchOf(tool string) string {
 		return ToolLogMessage.Name
 	}
 
-	if tool == ToolVerify.Name {
+	if tool == ToolVerify.Name || tool == ToolBrowserTest.Name {
 		// Keep one existing QA execution switch. Named tasks are optional,
 		// and owners need not discover an additional toggle for verification.
 		return ToolRunTask.Name

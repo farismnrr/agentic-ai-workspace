@@ -8,9 +8,11 @@ import (
 
 // Screenshot errors.
 var (
-	ErrNotRunning = errors.New("no app is running for this project; start it first")
-	ErrBadPath    = errors.New("use a page address that starts with /, such as /pricing")
-	ErrNoPicture  = errors.New("the browser could not take the picture")
+	ErrNotRunning      = errors.New("no app is running for this project; start it first")
+	ErrBadPath         = errors.New("use a page address that starts with /, such as /pricing")
+	ErrBadBrowserPath  = errors.New("use a relative Site page path without a leading slash or ..")
+	ErrNoPicture       = errors.New("the browser could not take the picture")
+	ErrBadBrowserInput = errors.New("use up to 12 supported browser actions with a relative page path")
 )
 
 // Window sizes of the two kinds of device, in CSS pixels.

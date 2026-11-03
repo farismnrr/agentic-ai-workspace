@@ -8,6 +8,7 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/site/application"
@@ -19,8 +20,10 @@ const (
 	captureTimeout = 90 * time.Second
 	// captureScript is where the sandbox image keeps the script that drives the browser.
 	captureScript = "/usr/local/share/capture/capture.ts"
+	browserScript = "/usr/local/share/capture/playwright.ts"
 	// maxCaptureOutput holds a base64 screenshot of a tall page with room to spare.
 	maxCaptureOutput = 16 << 20
+	maxBrowserOutput = 8 << 20
 )
 
 // Capture photographs a page of the running app. It runs in a container of its own that reaches the app through
@@ -39,6 +42,40 @@ func (r *Runtime) Session(ctx context.Context, req application.CaptureRequest) (
 		return "", domain.ErrNoPicture
 	}
 	return r.runCapture(ctx, req, input)
+}
+
+// Browser runs the QA action sequence in a disposable Playwright browser process.
+func (r *Runtime) Browser(ctx context.Context, req application.CaptureRequest, actions []application.BrowserAction) (string, error) {
+	docker, err := r.engine.Docker(ctx)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", domain.ErrNoSandboxes, err)
+	}
+	prefix := req.Prefix
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
+	payload, err := json.Marshal(map[string]any{"prefix": prefix, "actions": actions})
+	if err != nil {
+		return "", fmt.Errorf("describe browser run: %w", err)
+	}
+	port := strconv.Itoa(req.Port)
+	env := []string{
+		"LANG=C.UTF-8", "PATH=" + sandbox.Path, "HOME=/tmp", "TMPDIR=/tmp", "CAPTURE_PORT=" + port,
+	}
+	if req.ViewSocket != "" {
+		env = append(env, "CAPTURE_SOCKET=/run/view/"+filepath.Base(req.ViewSocket))
+	}
+	spec := sandbox.Spec{Site: r.dir(req.ProjectID), Argv: []string{"node", browserScript}, Env: env, Stdin: bytes.NewReader(payload)}
+	if req.ViewSocket != "" {
+		spec.View = filepath.Dir(req.ViewSocket)
+	}
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	out := &cappedBuffer{limit: maxBrowserOutput}
+	if _, err = r.engine.RunOnce(ctx, docker, spec, out); err != nil {
+		return "", fmt.Errorf("run the browser: %w", err)
+	}
+	return out.String(), nil
 }
 
 func sessionPayload(action *application.SessionAction) map[string]string {

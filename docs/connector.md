@@ -65,6 +65,10 @@ Each connected-app conversation shows as a task beside the work done in the app.
   or `["python3", "-m", "pytest"]`. The source mount is read-only and
   the run receives no project secrets, Git credentials, or egress grants.
   The existing Run a task switch also controls `verify`; named checks are optional.
+- QA can use `browser_test` after `start_site` to open the project's running app,
+  fill or click a control, check visible text, and return a screenshot. It accepts
+  up to 12 fixed actions and relative Site paths; arbitrary scripts and outside
+  addresses are blocked. It uses the existing Run a task switch.
 - Declare DevOps builds in `.workspace/tasks.json` with `"kind":"build"`;
   QA checks use `"kind":"check"` (or omit kind). `run_task` refuses build
   entries, while `run_build` refuses check entries. Turn on the separate **Run a build**
@@ -161,7 +165,7 @@ Turn each tool on or off under Settings, Spaces & tools. The switches are the sa
 | --- | --- | --- |
 | Look around | List, find and read files, search code, list checks | On |
 | Change files | Edit, write, delete and move files | Off |
-| Run things | Run a named check or a command, start the web app it builds | Off |
+| Run things | Run a named check or a command, start and QA-test the web app | Off |
 
 ### Undo
 

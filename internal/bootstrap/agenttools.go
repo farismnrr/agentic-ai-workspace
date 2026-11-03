@@ -143,7 +143,7 @@ func (a *agentTools) Risk(name string) taskdomain.Risk {
 		codingdomain.ToolRunBuild.Name,
 		codingdomain.ToolRunArtifact.Name, codingdomain.ToolGit.Name, codingdomain.ToolGh.Name,
 		codingdomain.ToolRunCommand.Name,
-		toolStartSite, toolScreenshotSession, codingdomain.ToolDeployExtension.Name:
+		toolStartSite, toolScreenshotSession, codingdomain.ToolDeployExtension.Name, codingdomain.ToolBrowserTest.Name:
 		return taskdomain.RiskMedium
 	}
 

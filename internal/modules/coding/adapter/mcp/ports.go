@@ -74,6 +74,28 @@ type Note struct {
 	Technical string
 }
 
+// BrowserAction mirrors only the fixed actions accepted by the Site browser boundary.
+type BrowserAction struct {
+	Action      string `json:"action"`
+	Path        string `json:"path,omitempty"`
+	LocatorType string `json:"locator_type,omitempty"`
+	Locator     string `json:"locator,omitempty"`
+	Value       string `json:"value,omitempty"`
+	Check       string `json:"check,omitempty"`
+}
+
+type BrowserStep struct {
+	Index  int    `json:"index"`
+	Action string `json:"action"`
+	Status string `json:"status"`
+	Detail string `json:"detail"`
+}
+
+type BrowserReport struct {
+	Steps []BrowserStep `json:"steps"`
+	PNG   []byte        `json:"screenshot_png"`
+}
+
 // TaskLog writes the app's conversation into a thread the person can open. It is optional.
 type TaskLog interface {
 	// Log adds the note to the app's current thread in the project and returns the thread's id.

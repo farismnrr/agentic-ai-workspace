@@ -1,5 +1,15 @@
 package domain
 
+import "errors"
+
+var (
+	ErrBrowserSiteNotRunning = errors.New("no app is running for this project; start it first")
+	ErrBrowserBadPath        = errors.New("use a relative Site page path without a leading slash or ..")
+	ErrBrowserBadInput       = errors.New("use up to 12 supported browser actions with a relative page path")
+	ErrBrowserUnavailable    = errors.New("the Site browser is unavailable; ask DevOps to check the sandbox image")
+	ErrBrowserFailed         = errors.New("the browser could not finish the test; check the Site and retry")
+)
+
 // The site tools start and stop the project's web app. They have no switch of their own: they are allowed
 // exactly when run_command is, because starting an app is running a command (see SwitchOf).
 var (
@@ -37,6 +47,13 @@ var ToolScreenshot = ToolInfo{
 		"facts the picture does not show (sideways scroll, broken images, low contrast, console errors). Start the " +
 		"app first. Pass device mobile for a phone, y to look further down a long page, overview for the whole " +
 		"page scaled down.",
+}
+
+// ToolBrowserTest gives QA a bounded set of browser actions against the running project Site.
+var ToolBrowserTest = ToolInfo{
+	Name: "browser_test", Title: "Test the web app", Scope: ScopeExec, Group: GroupExec,
+	Description: "QA only: use a real browser to open the running app, fill or click controls, check visible text, " +
+		"and return a screenshot. Actions are limited to this app; arbitrary scripts and outside addresses are blocked.",
 }
 
 // ToolScreenshotSession is a separate, off-by-default permission because it can change an app login session.

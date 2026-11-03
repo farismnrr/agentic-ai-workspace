@@ -74,7 +74,9 @@ func Wire(db *sql.DB, cfg config.Config) ([]httpserver.Mount, func(), error) {
 	}
 
 	cleanUpOnDelete(account, projects, sites, tasks, tools)
-	spaceMounts := newSpaceMounts(cfg, projects, tools, tasks, works, registry, log, permissions, oauth, sess, sameOrigin)
+	spaceMounts := newSpaceMounts(
+		cfg, projects, tools, tasks, works, registry, log, permissions, oauth, sess, agentSessions, sameOrigin,
+	)
 
 	mounts := joinMounts(
 		[]httpserver.Mount{accountMount, oauthMount, projectMount, egressMount}, projectSettings, agentMounts,
