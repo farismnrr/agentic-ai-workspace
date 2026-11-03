@@ -12,6 +12,7 @@
   import { currentLabel } from './settings-nav';
   import SpacesTab from './SpacesTab.svelte';
   import TeamTab from './TeamTab.svelte';
+  import TasksTab from './TasksTab.svelte';
   import UsageTab from './UsageTab.svelte';
 
   interface Props {
@@ -25,5 +26,5 @@
 <svelte:head><title>Settings · Masih Awam</title></svelte:head>
 
 <SettingsFrame crumbs={[{ label: 'Settings', href: '/app/settings' }, { label }]}>
-  {#if tab === 'models'}<ModelsTab />{:else if tab === 'persona'}<PersonaTab />{:else if tab === 'team'}<TeamTab />{:else if tab === 'spaces'}<SpacesTab />{:else if tab === 'connected'}<ConnectedAppsTab />{:else if tab === 'integrations'}<IntegrationsTab />{:else if tab === 'activity'}<ActivityTab />{:else if tab === 'usage'}<UsageTab />{:else if tab === 'notifications'}<NotificationsTab />{:else if tab === 'database'}<DatabaseTab />{:else}<AccountTab />{/if}
+  {#if tab === 'models'}<ModelsTab />{:else if tab === 'persona'}<PersonaTab />{:else if tab === 'team'}<TeamTab />{:else if tab === 'spaces'}<SpacesTab />{:else if tab === 'connected'}<ConnectedAppsTab />{:else if tab === 'integrations'}<IntegrationsTab />{:else if tab === 'activity'}<ActivityTab />{:else if tab === 'usage'}<UsageTab />{:else if tab === 'notifications'}<NotificationsTab />{:else if tab === 'database'}<DatabaseTab />{:else if tab === 'tasks'}<TasksTab />{:else}<AccountTab />{/if}
 </SettingsFrame>
