@@ -133,10 +133,18 @@ func updateEventIn(ctx context.Context, exec eventExecutor, taskID string, event
 		return fmt.Errorf("encode event: %w", err)
 	}
 
-	err = exec.QueryRowContext(ctx, `UPDATE task_events SET body = ?, undo = ?, version =
+	query := `UPDATE task_events SET body = ?, undo = ?, version =
 		(SELECT COALESCE(MAX(version), 0) + 1 FROM task_events WHERE task_id = ?)
-		WHERE task_id = ? AND id = ? RETURNING version`, string(body), event.Undo, taskID, taskID, event.ID).
-		Scan(&event.Version)
+		WHERE task_id = ? AND id = ?`
+	args := []any{string(body), event.Undo, taskID, taskID, event.ID}
+	if event.Kind == domain.EventQuestion || event.Kind == domain.EventApproval {
+		query += ` AND EXISTS (SELECT 1 FROM tasks WHERE id = ? AND status <> 'done' AND archived_at IS NULL)`
+		args = append(args, taskID)
+	}
+	err = exec.QueryRowContext(ctx, query+` RETURNING version`, args...).Scan(&event.Version)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.ErrWrongState
+	}
 	if err != nil {
 		return fmt.Errorf("update event: %w", err)
 	}
