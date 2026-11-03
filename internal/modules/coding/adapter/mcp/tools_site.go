@@ -87,8 +87,13 @@ func (t *tools) browserTest(ctx context.Context, in browserInput) (browserOutput
 	if err != nil {
 		return browserOutput{}, report{}, err
 	}
-	return browserOutput{Steps: result.Steps, ScreenshotPNG: base64.StdEncoding.EncodeToString(result.PNG)},
-		report{detail: "browser actions completed"}, nil
+	output := browserOutput{Steps: result.Steps, ScreenshotPNG: base64.StdEncoding.EncodeToString(result.PNG)}
+	for _, step := range result.Steps {
+		if step.Status == "FAIL" {
+			return output, report{detail: fmt.Sprintf("browser step %d (%s) failed: %s", step.Index, step.Action, step.Detail), failed: true}, nil
+		}
+	}
+	return output, report{detail: "browser actions completed"}, nil
 }
 
 func (t *tools) startSite(ctx context.Context, in startSiteInput) (siteOutput, report, error) {
