@@ -73,9 +73,22 @@ type CLITool struct {
 
 // CLIBridge is the tools the server runs for a program, and how.
 type CLIBridge struct {
-	// Call runs a tool the program asked for; failed says the call did not work.
-	Call  func(ctx context.Context, name string, input json.RawMessage) (text string, failed bool)
+	// Call runs a tool the program asked for and returns its bounded result.
+	Call  func(ctx context.Context, name string, input json.RawMessage) CLIToolResult
 	Tools []CLITool
+}
+
+// CLIToolResult carries text and optional media without exposing transport types to the application.
+type CLIToolResult struct {
+	Text   string
+	Failed bool
+	Media  []CLIMedia
+}
+
+// CLIMedia is a bounded image returned by a server-mediated tool.
+type CLIMedia struct {
+	MIMEType string
+	Data     []byte
 }
 
 // CLIResult is how a turn ended.
