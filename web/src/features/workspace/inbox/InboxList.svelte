@@ -3,7 +3,7 @@
   import StatusDot from '../components/StatusDot.svelte';
   import { findProject, type InboxItem } from '../logic/derive';
   import { acceptTask } from '../logic/tasks-api';
-import { projects, refresh } from '../logic/workspace-store';
+  import { projects, refresh } from '../logic/workspace-store';
   import { timeAgo } from '../logic/time';
 
   interface Props {
@@ -46,35 +46,38 @@ import { projects, refresh } from '../logic/workspace-store';
 </script>
 
 <div class="border-b border-[var(--brand-border)] px-3 py-2">
-  <div class="flex flex-wrap items-center gap-2">
-    <label class="flex min-h-11 items-center gap-2 text-sm">
-      <input class="checkbox checkbox-sm" type="checkbox"
-        checked={eligible.length > 0 && selectedVisible.length === eligible.length}
-        disabled={eligible.length === 0 || busy}
-        aria-label="Select all items eligible to mark done"
-        onchange={(event) => { selected = event.currentTarget.checked ? eligible.map((item) => item.id) : []; }} />
-      Select all eligible ({eligible.length})
-    </label>
-    <span class="text-xs text-[var(--brand-text-secondary)]" aria-live="polite">{selectedVisible.length} selected · review items only</span>
-    <div class="ml-auto flex flex-wrap gap-2">
+  <div class="flex flex-col gap-1.5">
+    <div class="flex min-w-0 items-center justify-between gap-2">
+      <label class="flex min-h-9 min-w-0 items-center gap-2 text-xs">
+        <input class="checkbox checkbox-sm" type="checkbox"
+          checked={eligible.length > 0 && selectedVisible.length === eligible.length}
+          disabled={eligible.length === 0 || busy}
+          aria-label="Select all items eligible to mark done"
+          onchange={(event) => { selected = event.currentTarget.checked ? eligible.map((item) => item.id) : []; }} />
+        <span class="truncate">Select all ({eligible.length})</span>
+      </label>
+      <span class="shrink-0 text-xs text-[var(--brand-text-secondary)]" aria-live="polite">{selectedVisible.length} selected</span>
+    </div>
+    <div class="flex min-w-0 flex-wrap items-center gap-1.5">
       {#if selectedVisible.length > 0}
-        <button class="btn btn-primary btn-sm" type="button" disabled={busy}
+        <button class="btn btn-primary btn-xs" type="button" disabled={busy}
           onclick={() => void complete(selectedVisible)}>Mark selected done</button>
       {/if}
       {#if eligible.length > 0}
-        <button class="btn btn-outline btn-sm" type="button" disabled={busy}
-          onclick={() => void complete(eligible.map((item) => item.id))}>Mark all {eligible.length} eligible done</button>
+        <button class="btn btn-outline btn-xs" type="button" disabled={busy}
+          onclick={() => void complete(eligible.map((item) => item.id))}>Mark all done</button>
       {/if}
     </div>
   </div>
+  <p class="mt-1 text-xs text-[var(--brand-text-tertiary)]">Only review-ready tasks can be marked done here. Open blocked or stale items to resolve them.</p>
   {#if message !== ''}<p class="mt-1 text-sm" role="status" aria-live="polite">{message}</p>{/if}
 </div>
 
 <ul class="flex flex-col" aria-label="Things waiting for you">
   {#each items as item (item.id)}
     <li class="border-b border-[var(--brand-border)]">
-      <div class="flex items-start gap-2">
-        <label class="flex min-h-16 items-center pl-3" aria-label="Select {item.task.title} to mark done">
+      <div class="flex w-full min-w-0 items-stretch gap-1">
+        <label class="flex min-h-16 w-10 shrink-0 items-center justify-center" aria-label="Select {item.task.title} to mark done">
           <input class="checkbox checkbox-sm" type="checkbox" checked={selectedVisible.includes(item.id)}
             disabled={item.task.status !== 'review' || busy} aria-label="Select {item.task.title} to mark done"
             onchange={() => { toggle(item.id); }} />
@@ -82,7 +85,7 @@ import { projects, refresh } from '../logic/workspace-store';
         <a
           href="/app/inbox/{item.id}"
           aria-current={selectedId === item.id ? 'page' : undefined}
-          class="flex min-h-16 min-w-0 flex-1 items-start gap-3 py-3 pr-4 hover:bg-base-100/70 {selectedId === item.id ? 'bg-base-100 shadow-[inset_3px_0_0_var(--color-primary)]' : ''}"
+          class="flex min-h-16 min-w-0 flex-1 items-start gap-2 py-3 pr-3 hover:bg-base-100/70 {selectedId === item.id ? 'bg-base-100 shadow-[inset_3px_0_0_var(--color-primary)]' : ''}"
         >
           <span class="mt-0.5"><StatusDot status={item.task.status} /></span>
           <span class="flex min-w-0 flex-1 flex-col">
