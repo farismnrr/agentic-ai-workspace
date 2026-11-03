@@ -1,4 +1,4 @@
-export type SettingsTab = 'models' | 'persona' | 'team' | 'spaces' | 'connected' | 'integrations' | 'activity' | 'usage' | 'notifications' | 'database' | 'account';
+export type SettingsTab = 'models' | 'persona' | 'team' | 'spaces' | 'connected' | 'integrations' | 'activity' | 'usage' | 'notifications' | 'database' | 'account' | 'tasks';
 
 export type Route =
   | { name: 'not-found' }
@@ -18,7 +18,7 @@ export type Route =
   | { name: 'task'; projectId: string; taskId: string }
   | { name: 'settings'; tab: SettingsTab };
 
-const settingsTabs: readonly string[] = ['models', 'persona', 'team', 'spaces', 'connected', 'integrations', 'activity', 'usage', 'notifications', 'database', 'account'];
+const settingsTabs: readonly string[] = ['models', 'persona', 'team', 'spaces', 'connected', 'integrations', 'activity', 'usage', 'notifications', 'database', 'account', 'tasks'];
 const isSettingsTab = (value: string | undefined): value is SettingsTab => value !== undefined && settingsTabs.includes(value);
 
 const staticRoutes: Record<string, Route> = {
