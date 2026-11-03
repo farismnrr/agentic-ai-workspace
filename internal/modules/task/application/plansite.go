@@ -20,7 +20,7 @@ import (
 var siteToolNames = []string{
 	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
 	"screenshot", toolRequestEgress, "ci_logs",
-	"run_task", "verify", "run_build", "run_artifact", "git", "gh",
+	"run_task", "verify", "browser_test", "run_build", "run_artifact", "git", "gh",
 }
 
 // siteSession serves site, Git and GitHub tools to a teammate's program. Each call goes through the same code as a call of the
