@@ -36,6 +36,14 @@ func (s egressTasks) SetStatus(ctx context.Context, id string, status taskdomain
 	return nil
 }
 
+func (s egressTasks) CloseStaleNeedsInput(ctx context.Context, userID, id string, at time.Time) error {
+	if err := s.TaskStore.CloseStaleNeedsInput(ctx, userID, id, at); err != nil {
+		return err //nolint:wrapcheck // a pass-through
+	}
+	s.ended(ctx, id)
+	return nil
+}
+
 func (s egressTasks) Archive(ctx context.Context, userID, id string, at time.Time) error {
 	if err := s.TaskStore.Archive(ctx, userID, id, at); err != nil {
 		return err //nolint:wrapcheck // a pass-through
