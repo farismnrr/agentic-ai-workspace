@@ -80,16 +80,23 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Verify Docker isolation on disposable runner
+      - name: Build app binary for Git parity scenario
+        run: make backend-build VERSION="${{ github.sha }}"
+      - name: Verify Docker isolation and native Git parity on disposable runner
         env:
+          APP_BIN: ${{ github.workspace }}/bin/agentic-ai-workspace
+          SANDBOX_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
           SANDBOX_TEST_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
         run: |
           set -o pipefail
-          if make volume-isolation 2>&1 | tee "$RUNNER_TEMP/docker-volume-isolation.log"; then
-            echo 'PASS Docker volume-isolation'
-          else
+          if ! ./test/run.sh blackbox 13-researcher-git-parity 2>&1 | tee "$RUNNER_TEMP/docker-git-parity.log"; then
             # Annotate a bounded failure excerpt: the GitHub API can read it
             # even when the Actions blob log endpoint is blocked by egress.
-            python3 -c 'import os,pathlib; t=pathlib.Path(os.environ["RUNNER_TEMP"]+"/docker-volume-isolation.log").read_text(errors="replace")[-3500:]; print("::error title=Docker isolation failure::"+t.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            python3 -c 'import os,pathlib; t=pathlib.Path(os.environ["RUNNER_TEMP"]+"/docker-git-parity.log").read_text(errors="replace")[-3500:]; print("::error title=Native Git parity failure::"+t.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
             exit 1
           fi
+          if ! make volume-isolation 2>&1 | tee "$RUNNER_TEMP/docker-volume-isolation.log"; then
+            python3 -c 'import os,pathlib; t=pathlib.Path(os.environ["RUNNER_TEMP"]+"/docker-volume-isolation.log").read_text(errors="replace")[-3500:]; print("::error title=Docker volume isolation failure::"+t.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            exit 1
+          fi
+          echo 'PASS native Git parity black-box and Docker volume-isolation'

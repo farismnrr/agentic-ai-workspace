@@ -41,6 +41,9 @@ git config user.email 'blackbox@example.test'
 printf 'tracked fixture\n' > README.md
 git add README.md
 git commit -qm 'seed isolated Git fixture'
+git remote add local-fixture remote.git
+git init --bare -q "$project_dir/remote.git"
+git push -q local-fixture HEAD:refs/heads/main
 printf 'Researcher commit probe\n' >> README.md
 cd "$REPO_ROOT"
 
@@ -54,6 +57,10 @@ git_tool() {
 git_tool status --short
 assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git status'
 assert_json '.result.structuredContent.exitCode == 0' 'Researcher Git status succeeds'
+
+git_tool fetch local-fixture main
+assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git fetch'
+assert_json '.result.structuredContent.exitCode == 0' 'Researcher Git fetch writes FETCH_HEAD'
 
 git_tool add README.md
 assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git add'
@@ -81,20 +88,22 @@ for role in developer devops; do
   git_tool status --short
   assert_status "$HTTP_STATUS" 200 "$role can invoke native Git status"
   assert_json '.result.structuredContent.exitCode == 0' "$role Git status succeeds"
+  git_tool fetch local-fixture main
+  assert_status "$HTTP_STATUS" 200 "$role can invoke native Git fetch"
+  assert_json '.result.structuredContent.exitCode == 0' "$role Git fetch writes FETCH_HEAD"
+
+  printf '%s native Git write probe\n' "$role" > "$project_dir/$role-git-probe.txt"
+  git_tool add "$role-git-probe.txt"
+  assert_status "$HTTP_STATUS" 200 "$role native Git add is available"
+  assert_json '.result.structuredContent.exitCode == 0' "$role native Git add succeeds"
+  git_tool commit -m "$role native Git write probe"
+  assert_status "$HTTP_STATUS" 200 "$role native Git commit is available"
+  assert_json '.result.structuredContent.exitCode == 0' "$role native Git commit succeeds"
+
   git_tool push origin HEAD
   assert_status "$HTTP_STATUS" 200 "$role push reaches native Git policy"
   assert_json '.result.structuredContent.output | contains("CONNECT_GITHUB_REQUIRED")' \
     "$role push has the same connected-GitHub restriction"
-
-  if [[ "$role" == "devops" ]]; then
-    printf 'DevOps native Git write probe\n' > "$project_dir/devops-git-probe.txt"
-    git_tool add devops-git-probe.txt
-    assert_status "$HTTP_STATUS" 200 'DevOps native Git add is available'
-    assert_json '.result.structuredContent.exitCode == 0' 'DevOps native Git add can write to the workspace'
-    git_tool commit -m 'DevOps native Git write probe'
-    assert_status "$HTTP_STATUS" 200 'DevOps native Git commit is available'
-    assert_json '.result.structuredContent.exitCode == 0' 'DevOps native Git commit can write to the workspace'
-  fi
 
   mcp_call_tool "$WORK_TOKEN" run_command \
     "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" \
