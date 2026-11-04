@@ -105,6 +105,11 @@ func (t *tools) recheckWork(ctx context.Context, projectID string) error {
 // serverInstructions are shown to the app's model when it connects. The person follows the work in their own
 // workspace, and only what the model writes down tells them what they asked for.
 const serverInstructions = "These tools work in the person's own workspace, where they follow your work in a thread. " +
+	"PRE-ACTION TOOL SOP: inspect available role-authorized tools before executing. Use the server git/gh tools " +
+	"for GitHub (args arrays, verify branch/remote, never shell Git or proxy bypass); if unavailable, stop and " +
+	"report the exact missing tool or permission. For Playwright E2E switch to QA, ensure start_site is running, " +
+	"use browser_test and then read_browser_screenshot with screenshot_ref; never shell Playwright fallback. " +
+	"For CI failures use ci_logs via DevOps. Do not create extra tasks for retries. " +
 	"Start tracked work with begin_work and an enabled role before any workspace operation. " +
 	"Call begin_work only ONCE per user issue. Use that SAME work_id for all roles and tool calls. " +
 	"A repeated begin_work resumes the open work by default; use new_task=true only for a separate user issue. " +
