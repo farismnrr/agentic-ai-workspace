@@ -25,6 +25,14 @@ Applies to Masih Awam internal teammate tasks, plan-backed Claude/ChatGPT worker
 - Large ignored build outputs must not block quota-safe, read-only Git inspections or pushing an existing commit through the server tool. Workspace-expanding Git operations still require quota compliance.
 - DevOps gets CI failed-job logs via **ci_logs**. Do not rely on shell `gh run view --log-failed` or browser downloads from GitHub Actions storage.
 
+## Execution, large workspaces and lifecycle
+
+- **Read-only Git inspection on large projects:** use the server `git` tool for `status --short --branch`, `diff --check`, `branch -vv`, `log -1`, and `ls-files`. These inspect an immutable mount; they must not be blocked by old ignored/generated files. Git add, fetch, commit, checkout and other mutations still require capacity and normal authorization.
+- **QA checks:** `verify` or approved named checks use read-only source and no project secrets. Pre-existing oversized source should not block these checks. Never use arbitrary shell scripts as an alternative.
+- **DevOps builds:** use an owner-configured `run_build` task (source read-only, output written only to `BUILD_OUT`); the newly generated output is size-limited independently. Use `start_site` to run or replace an app after the build, specifying the correct command and port. A successful build **does not** mean a Site is running.
+- **Shell boundary:** Developer does not have general `run_command` under the built-in role policy. DevOps can use the team server `run_command` for diagnostics **only** when the owner switch is on and existing execution approval is granted; never use it for GitHub or Docker daemon bypass. If a tool is absent, distinguish a disabled switch from a role policy; do not claim disconnected permissions.
+- **Completion:** an internal teammate returns a final report. The external Orchestrator calls `complete_task` after the work is complete or blocked. `complete_work` is an external Coding Space lifecycle tool, not an internal teammate tool.
+
 ## Browser, Playwright and site
 
 - Start the project app through **start_site** using a role authorized to do so. Never use a background shell web server to impersonate a Site.
