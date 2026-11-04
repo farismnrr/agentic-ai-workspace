@@ -41,15 +41,24 @@ type siteSession struct {
 	mu      sync.Mutex
 }
 
-// siteBridge exposes server-mediated site and VCS tools to a teammate's program, honoring the server-owned role.
-func (r *Runner) siteBridge(task domain.Task, role AgentRole, jobID string) *siteSession {
+// bridgedTools uses the same role-filtered, owner-switch-filtered names
+// for actual MCP registration as the prompt advertises. No tool may be
+// exposed only because it exists in the global server catalogue.
+func bridgedTools(defs []domain.ToolDef, enabled []string) []CLITool {
+	allowed := roleToolSet(enabled)
 	tools := []CLITool{}
-
-	for _, def := range r.deps.Tools.Definitions() {
-		if contains(siteToolNames, def.Name) && roleToolSet(role.Tools)[def.Name] {
+	for _, def := range defs {
+		if contains(siteToolNames, def.Name) && allowed[def.Name] {
 			tools = append(tools, toolOfDef(def))
 		}
 	}
+	return tools
+}
+
+// siteBridge exposes bounded project-file, site and VCS tools to the vendor,
+// always enforcing the server-owned role and owner's live tool switches.
+func (r *Runner) siteBridge(task domain.Task, role AgentRole, jobID string) *siteSession {
+	tools := bridgedTools(r.deps.Tools.Definitions(), role.Tools)
 
 	if len(tools) == 0 {
 		return nil
