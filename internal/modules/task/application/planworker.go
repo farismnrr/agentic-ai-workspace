@@ -130,6 +130,7 @@ func (r *Runner) rolePrompt(ctx context.Context, task domain.Task, role AgentRol
 		out.WriteString("\nYou start and stop the web app with the start_site and stop_site tools of the team server, " +
 			"never with a shell command.\n")
 	}
+	out.WriteString(bridgeVCSInstructions(role.Tools))
 	out.WriteString(reviewModePrompt(task.ReviewMode))
 
 	out.WriteString("\n" + strings.TrimSpace(laneRule) + "\n")
@@ -150,4 +151,34 @@ func (r *Runner) brief(ctx context.Context, task domain.Task, d Delegation) stri
 	}
 
 	return d.Brief
+}
+
+// bridgeVCSInstructions prevents restricted vendor CLI workers from attempting GitHub
+// operations through their own shell. That container deliberately has neither
+// GitHub credentials nor GitHub egress; the server-mediated git/gh tools alone
+// enforce the project's owner credentials and the teammate's role permissions.
+func bridgeVCSInstructions(tools []string) string {
+	gitAllowed := slices.Contains(tools, "git")
+	ghAllowed := slices.Contains(tools, "gh")
+	if !gitAllowed && !ghAllowed {
+		return ""
+	}
+
+	var out strings.Builder
+	out.WriteString("\nGitHub access for this restricted teammate is ONLY through the team's server tools. " +
+		"Your shell/native Git subprocess has no GitHub token or github.com network access by design. " +
+		"Do NOT use Bash, run_command, shell git/gh, or bypass HTTPS_PROXY for GitHub operations. ")
+	if gitAllowed {
+		out.WriteString("Use the server tool named git with an args array for status, diff, fetch, commit and push. " +
+			"For example, a normal dev push is git with args [\"push\", \"origin\", \"dev\"]. ")
+	}
+	if ghAllowed {
+		out.WriteString("Use the server tool named gh with an args array for authorized GitHub CLI operations. ")
+	}
+	out.WriteString("If the server tool is disabled or missing, report that blocker instead of falling back to shell. " +
+		"If it says CONNECT_GITHUB_REQUIRED, tell the orchestrator the project owner must connect GitHub " +
+		"in Masih Awam Settings. An HTTP proxy 403 from a shell is a restricted-container policy denial; " +
+		"retry with the appropriate server tool, not with curl, an alternate proxy, or direct DNS. " +
+		"Keep the repository's dirty-worktree and non-force-push safety rules.\n")
+	return out.String()
 }
