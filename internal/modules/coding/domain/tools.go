@@ -118,11 +118,11 @@ var (
 	}
 	ToolGit = ToolInfo{
 		Name: "git", Title: "Git", Scope: ScopeExec, Group: GroupExec,
-		Description: "Researcher, Developer and DevOps: use native Git commands for allowed operations (status, log, diff, fetch, add, commit, push, branch and more) as argv; repository safety rules still apply.",
+		Description: "Server-mediated Git tool for Researcher, Developer and DevOps. Pass subcommand and arguments as an args array without the git prefix (e.g. [\"push\", \"origin\", \"dev\"]). Use this tool, NOT Bash or shell git, for GitHub operations in a restricted teammate session: only the server tool receives project-owner GitHub authorization and egress. A CONNECT_GITHUB_REQUIRED error means the owner must connect GitHub in Masih Awam Settings. Respect repository and non-force-push rules.",
 	}
 	ToolGh = ToolInfo{
 		Name: "gh", Title: "GitHub CLI", Scope: ScopeExec, Group: GroupExec,
-		Description: "GitHub Issues, PRs, CI runs, workflows, releases, repo status and read-only API. Operations are authorized for Developer, QA or DevOps by category.",
+		Description: "Server-mediated GitHub CLI for Developer, QA or DevOps; send subcommand and arguments as an args array without the gh prefix. For restricted teammate sessions use THIS tool, not shell gh: the vendor CLI sandbox does not hold GitHub credentials or GitHub egress. Actions remain role-authorized by category.",
 	}
 )
 
@@ -137,7 +137,8 @@ func workTool(name, title, description string) ToolInfo {
 var ToolRunCommand = ToolInfo{
 	Name: "run_command", Title: "Run a command", Scope: ScopeExec, Group: GroupExec,
 	Description: "Run a shell command in the isolated sandbox (bash; Python, Node, Go, Rust and Java are installed; " +
-		"only package registries can be reached) and return its exit code and output.",
+		"only package registries can be reached) and return its exit code and output. " +
+		"Do not run shell git push/fetch or gh here: use the server-mediated git/gh tools for authorized GitHub access.",
 }
 
 // Tools lists every tool in display order.
