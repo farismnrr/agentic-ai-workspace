@@ -31,6 +31,10 @@ func (r *Runner) workOnPlan(
 		return failed("I could not check what the "+d.RoleName+" may use.", "")
 	}
 
+	// The model prompt, CLI built-ins and team MCP bridge MUST see the
+	// same owner-switch-filtered tool inventory. Never advertise a disabled
+	// server tool or imply that a missing tool has a shell fallback.
+	role.Tools = allowed
 	sink := &planSink{runner: worker, task: teammate, quiet: true}
 	site := worker.siteBridge(teammate, role, d.ID)
 
@@ -119,6 +123,7 @@ func (r *Runner) rolePrompt(ctx context.Context, task domain.Task, role AgentRol
 	if role.Purpose != "" {
 		out.WriteString("Your part on the team: " + role.Purpose + "\n")
 	}
+	out.WriteString(preActionToolSOP(role.Key, role.Tools))
 
 	if role.Prompt != "" {
 		out.WriteString("\n" + role.Prompt + "\n")

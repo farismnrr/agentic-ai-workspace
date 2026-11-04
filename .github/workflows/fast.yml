@@ -117,8 +117,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Verify restricted worker Git bridge instructions
-        run: go test ./internal/modules/task/application ./internal/modules/coding/domain -run TestBridgeVCSInstructionsAreScopedToServerAuthorizedTools -count=1
+      - name: Verify pre-action role SOP and restricted Git bridge
+        run: go test ./internal/modules/task/application ./internal/modules/coding/domain -run 'Test(BridgeVCSInstructionsAreScopedToServerAuthorizedTools|PreActionToolSOPRespectsEnabledRoleInventory|LeadToolSOPNamesCorrectOwnersBeforeAction)' -count=1
+      - name: Verify quota-safe Git allowlist
+        run: go test ./internal/modules/coding/adapter/runner -run 'TestQuotaSafeGit' -count=1
       - name: Build app binary for Git parity scenario
         run: make backend-build VERSION="${{ github.sha }}"
       - name: Verify native Git parity on fresh disposable runner

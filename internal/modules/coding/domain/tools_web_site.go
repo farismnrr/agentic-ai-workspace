@@ -53,14 +53,17 @@ var ToolScreenshot = ToolInfo{
 // ToolBrowserTest gives QA a bounded set of browser actions against the running project Site.
 var ToolBrowserTest = ToolInfo{
 	Name: "browser_test", Title: "Test the web app", Scope: ScopeExec, Group: GroupExec,
-	Description: "QA only: use a real browser to open the running app, fill or click controls, check visible text, " +
-		"and return a screenshot. Actions are limited to this app; arbitrary scripts and outside addresses are blocked.",
+	Description: "QA only: server-mediated Playwright browser test against a running project Site. " +
+		"Arrange start_site through an authorized role first; fill or click controls and verify visible text. " +
+		"Use read_browser_screenshot with returned screenshot_ref for image evidence. " +
+		"Do not substitute shell Playwright or arbitrary scripts; outside addresses are blocked.",
 }
 
 // ToolReadBrowserScreenshot retrieves bounded evidence from the active QA work session.
 var ToolReadBrowserScreenshot = ToolInfo{
 	Name: "read_browser_screenshot", Title: "Read browser screenshot", Scope: ScopeExec, Group: GroupExec,
-	Description: "QA only: retrieve a screenshot_ref returned by browser_test for the active work session.",
+	Description: "QA only: retrieve the exact screenshot_ref returned by browser_test in the same active work session. " +
+		"Do not use arbitrary filesystem paths or shell browser tools.",
 }
 
 // ToolScreenshotSession is a separate, off-by-default permission because it can change an app login session.

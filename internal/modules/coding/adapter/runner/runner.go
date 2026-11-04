@@ -83,7 +83,7 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 
 	defer release()
 
-	if sizeOver(r.dir, r.quota) {
+	if !quotaSafeGit(ctx, task) && sizeOver(r.dir, r.quota) {
 		return application.RunResult{ExitCode: -1, Output: overQuota}, nil
 	}
 
@@ -117,10 +117,12 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 
 // readOnlyCheck means the project is mounted read-only by the sandbox.
 // These contexts are server-owned, not values supplied by the assistant.
-// Git operations and build/artifact jobs must never claim immutable effects.
+// Quota-exempt Git runs use an OS read-only workspace mount; unlike normal
+// Git writes, their effects can be attested as immutable. Builds/artifacts
+// still have writable output folders and must never claim immutable effects.
 func readOnlyCheck(ctx context.Context, task domain.Task) bool {
-	return domain.ReadOnlyWorkspace(ctx) && !domain.GitOnly(ctx) &&
-		(task.Kind == "" || task.Kind == "check")
+	return quotaSafeGit(ctx, task) || (domain.ReadOnlyWorkspace(ctx) && !domain.GitOnly(ctx) &&
+		(task.Kind == "" || task.Kind == "check"))
 }
 
 const (
