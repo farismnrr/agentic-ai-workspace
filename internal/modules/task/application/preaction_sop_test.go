@@ -66,3 +66,49 @@ func TestLeadToolSOPNamesCorrectOwnersBeforeAction(t *testing.T) {
 		}
 	}
 }
+
+func TestPreActionToolSOPShowsActualBridgedProjectFileTools(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		role string
+		enabled []string
+		want []string
+		absent []string
+	}{
+		{
+			name: "researcher can read source",
+			role: "researcher",
+			enabled: []string{"list_files", "find_files", "read_file", "search_code", "get_work_state", "report_progress"},
+			want: []string{"ACTUAL TEAM MCP TOOLS: find_files, list_files, read_file, search_code", "Project source inspection: prefer team MCP read_file", "relative/file.ext"},
+			absent: []string{"ACTUAL TEAM MCP TOOLS: get_work_state", "ACTUAL TEAM MCP TOOLS: report_progress", "team read_file is NOT available"},
+		},
+		{
+			name: "disabled read cannot be claimed",
+			role: "researcher",
+			enabled: []string{"list_files", "get_work_state"},
+			want: []string{"ACTUAL TEAM MCP TOOLS: list_files", "team read_file is NOT available", "Settings > Spaces & tools"},
+			absent: []string{"Project source inspection: prefer team MCP read_file", "ACTUAL TEAM MCP TOOLS: get_work_state"},
+		},
+		{
+			name: "developer has authorized writes",
+			role: "developer",
+			enabled: []string{"edit_file", "read_file", "write_file"},
+			want: []string{"ACTUAL TEAM MCP TOOLS: edit_file, read_file, write_file"},
+			absent: []string{"Editing is unavailable"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := preActionToolSOP(tc.role, tc.enabled)
+			for _, want := range tc.want {
+				if !strings.Contains(got, want) {
+					t.Errorf("missing %q", want)
+				}
+			}
+			for _, absent := range tc.absent {
+				if strings.Contains(got, absent) {
+					t.Errorf("unexpected claim %q", absent)
+				}
+			}
+		})
+	}
+}

@@ -12,14 +12,16 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
-// siteToolNames are the tools a program on a plan lacks or cannot use, so the server serves them. Starting the web
-// app: it is started the same way and shows up under Sites, as for any other model. Looking things up on the web:
-// the program's own WebFetch runs in its container, which reaches package registries only and so refuses every
-// page, while these run on the server (SearXNG for the search, a public-only fetch for the page). The screenshot runs
-// there too, because a program has no browser; QA screenshot tools return the task-owned PNG through the bridge.
-// CI logs are served here as well: GitHub sends them from a storage host the program's container cannot reach, so the
-// server downloads them with the project owner's GitHub connection and passes on the text.
+// siteToolNames lists the project capabilities mediated by the team MCP server.
+// The vendor's native file tools have different names (Read/Glob/Write, etc.)
+// and can be unavailable in restricted sessions. Expose the existing bounded
+// project-file tools here too, so enabled read/write capabilities are always
+// discoverable by their app names, with the same role, owner-switch, risk,
+// project-scope and undo checks as normal project tool calls.
+// Site, browser, CI, web, and Git operations remain server-mediated.
 var siteToolNames = []string{
+	"list_files", "find_files", "read_file", "search_code", "list_tasks", "view_image",
+	"edit_file", "write_file", "delete_file", "move_file",
 	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
 	"screenshot", toolRequestEgress, "ci_logs",
 	"run_task", "verify", "browser_test", "read_browser_screenshot", "run_build", "run_artifact", "git", "gh",
@@ -39,15 +41,24 @@ type siteSession struct {
 	mu      sync.Mutex
 }
 
-// siteBridge exposes server-mediated site and VCS tools to a teammate's program, honoring the server-owned role.
-func (r *Runner) siteBridge(task domain.Task, role AgentRole, jobID string) *siteSession {
+// bridgedTools uses the same role-filtered, owner-switch-filtered names
+// for actual MCP registration as the prompt advertises. No tool may be
+// exposed only because it exists in the global server catalogue.
+func bridgedTools(defs []domain.ToolDef, enabled []string) []CLITool {
+	allowed := roleToolSet(enabled)
 	tools := []CLITool{}
-
-	for _, def := range r.deps.Tools.Definitions() {
-		if contains(siteToolNames, def.Name) && roleToolSet(role.Tools)[def.Name] {
+	for _, def := range defs {
+		if contains(siteToolNames, def.Name) && allowed[def.Name] {
 			tools = append(tools, toolOfDef(def))
 		}
 	}
+	return tools
+}
+
+// siteBridge exposes bounded project-file, site and VCS tools to the vendor,
+// always enforcing the server-owned role and owner's live tool switches.
+func (r *Runner) siteBridge(task domain.Task, role AgentRole, jobID string) *siteSession {
+	tools := bridgedTools(r.deps.Tools.Definitions(), role.Tools)
 
 	if len(tools) == 0 {
 		return nil
@@ -74,8 +85,18 @@ func (s *siteSession) bridge() *CLIBridge {
 // call answers one call of the program like the loop answers one of the model's. The call keeps its name between
 // turns, so a step the person already approved is not asked about again when the job starts over.
 func (s *siteSession) call(ctx context.Context, name string, input json.RawMessage) CLIToolResult {
-	if !contains(siteToolNames, name) {
-		return CLIToolResult{Text: "There is no tool called " + name + ".", Failed: true}
+	// A client must never invoke a capability that was omitted from its
+	// registered MCP inventory. Re-check the exact session list, not only the
+	// global bridge catalogue, even if it sends a crafted tool-call request.
+	visible := false
+	for _, tool := range s.tools {
+		if tool.Name == name {
+			visible = true
+			break
+		}
+	}
+	if !contains(siteToolNames, name) || !visible {
+		return CLIToolResult{Text: "There is no enabled team tool called " + name + " for this role.", Failed: true}
 	}
 
 	s.mu.Lock()

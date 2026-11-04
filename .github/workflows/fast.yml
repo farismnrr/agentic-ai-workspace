@@ -118,7 +118,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Verify pre-action role SOP and restricted Git bridge
-        run: go test ./internal/modules/task/application ./internal/modules/coding/domain -run 'Test(BridgeVCSInstructionsAreScopedToServerAuthorizedTools|PreActionToolSOPRespectsEnabledRoleInventory|LeadToolSOPNamesCorrectOwnersBeforeAction)' -count=1
+        run: go test ./internal/modules/task/application ./internal/modules/coding/domain -run 'Test(BridgeVCSInstructionsAreScopedToServerAuthorizedTools|PreActionToolSOPRespectsEnabledRoleInventory|LeadToolSOPNamesCorrectOwnersBeforeAction|BridgedToolsExposesEnabledProjectFilesOnly|TeamBridgeRejectsHiddenToolBeforeExecution|ReadOnlyTeamFileToolsAreCatalogued|PreActionToolSOPShowsActualBridgedProjectFileTools)' -count=1
       - name: Verify quota-safe Git allowlist
         run: go test ./internal/modules/coding/adapter/runner -run 'TestQuotaSafeGit' -count=1
       - name: Build app binary for Git parity scenario
