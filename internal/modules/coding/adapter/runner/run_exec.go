@@ -16,8 +16,9 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	out := &tail{limit: domain.MaxOutputBytes}
 
 	gitWorkspaceWrite := domain.GitOnly(ctx) && task.Kind == "git" && domain.WritableGitWorkspace(ctx)
+	quotaExempt := quotaSafeGit(ctx, task)
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command,
-		WorkspaceReadOnly: domain.ReadOnlyWorkspace(ctx) && !gitWorkspaceWrite}
+		WorkspaceReadOnly: (domain.ReadOnlyWorkspace(ctx) || quotaExempt) && !gitWorkspaceWrite}
 	if task.Kind == "build" || task.Kind == "artifact" {
 		// The source stays read-only; each build or document/media run gets
 		// a fresh isolated output folder for review and download.
@@ -95,7 +96,13 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	}
 	spec.Env = MergeProjectEnvironment(baseEnv, projectValues)
 
-	over := watchSize(ctx, r.dir, r.quota, cancel)
+	// The quota-exempt operations run against an OS read-only mount, so no
+	// workspace file can grow. Other commands retain the live size watcher.
+	watchLimit := r.quota
+	if quotaExempt {
+		watchLimit = 0
+	}
+	over := watchSize(ctx, r.dir, watchLimit, cancel)
 
 	started := time.Now()
 	res, err := docker.Run(ctx, spec, out)

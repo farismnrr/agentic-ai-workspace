@@ -54,6 +54,29 @@ git_tool() {
   mcp_call_tool "$WORK_TOKEN" git "$input"
 }
 
+# Regression: a repository may be larger than the normal command quota
+# because of generated/ignored assets. Simulate >2 GiB with a sparse file
+# without consuming 2 GiB of physical storage.
+oversized_fixture="$project_dir/.oversized-git-fixture"
+printf '%s\n' '.oversized-git-fixture' >> "$project_dir/.git/info/exclude"
+truncate -s $(( (2 << 30) + 4096 )) "$oversized_fixture"
+
+git_tool status --short
+assert_status "$HTTP_STATUS" 200 'oversized project still reaches server Git status'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git status succeeds over 2 GiB'
+
+git_tool push origin HEAD
+assert_status "$HTTP_STATUS" 200 'oversized project still reaches Git push authorization gate'
+assert_json '.result.structuredContent | .exit_code == -1 and (.output | contains("CONNECT_GITHUB_REQUIRED")) and (.output | contains("size limit") | not)' \
+  'quota-safe Git push reaches GitHub connection policy before quota refusal'
+
+git_tool add README.md
+assert_status "$HTTP_STATUS" 200 'oversized project still rejects Git index mutation'
+assert_json '.result.structuredContent | .exit_code == -1 and (.output | contains("workspace is over its size limit"))' \
+  'workspace-expanding Git operations remain quota-limited'
+
+rm -- "$oversized_fixture"
+
 git_tool status --short
 assert_status "$HTTP_STATUS" 200 'Researcher can invoke native Git status'
 assert_json '.result.structuredContent.exit_code == 0' 'Researcher Git status succeeds'

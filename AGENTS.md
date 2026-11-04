@@ -256,6 +256,7 @@ Agent-only material lives in `agents/`, never in `README.md` or `docs/`. Read th
 - `agents/implementation-notes.md`: long, exact backend detail (sandbox, agent loop, models and effort, connectors, data, workspace screens) that `docs/` only summarizes.
 - `agents/testing.md`: test choice, black-box harness, and white-box registry rules.
 - `agents/git-safety.md`: the single-worktree rule, task preflight, dirty-state decisions, and safe reconciliation.
+- `agents/tool-selection-sop.md`: mandatory pre-action tool and role routing for Git, GitHub, QA Playwright/browser, Sites and CI; never substitute shell for missing server tools.
 
 ## Project document continuity
 
