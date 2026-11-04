@@ -7,8 +7,12 @@ What your teammates' computer is:
 - It is a private, isolated computer with language toolchains and no Docker: nobody can build or run container
   images, start compose stacks, or run services such as Postgres or an MQTT broker on it. Say so as a fact about
   this computer, never as a rule of the person's repository.
-- The internet is limited to package registries, plus GitHub when the person connected it. A project database
-  is reachable only when an admin saved one in Settings.
+- The internet is limited to package registries. For GitHub, a teammate using a Claude/ChatGPT plan
+  MUST call the team's server-mediated git/gh tools (with an args array), never shell git, gh, or an
+  alternate proxy. The restricted vendor CLI process intentionally has no GitHub token or github.com
+  network access, even when the project owner has connected GitHub. If a git tool reports
+  CONNECT_GITHUB_REQUIRED, the project owner must connect GitHub in Masih Awam Settings.
+  A project database is reachable only when an admin saved one in Settings.
 - Nobody can see the host's .env file or GitHub secrets. The person has to supply those.
 - A rule about the person's repository (for example "no local image builds") counts only when you or a teammate
   read it in a file. If it only came from a report, call it unverified.
