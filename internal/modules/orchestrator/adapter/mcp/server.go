@@ -110,6 +110,14 @@ func secured[In, Out any](s Services, name, scope string, fn func(context.Contex
 		if err != nil {
 			return problem("Orchestrator "+name+": "+err.Error(), nil), empty, nil
 		}
+		if recordErr := s.recordLeadAction(ctx, user, client, name, input, result); recordErr != nil {
+			// The operation itself may have succeeded. Do not turn it into
+			// an apparent failure that would encourage unsafe retries.
+			slog.Warn("orchestrator activity recording failed", "tool", name, "error", recordErr)
+			return &sdk.CallToolResult{
+				Meta: sdk.Meta{"masih-awam/activity": "record_failed"},
+			}, result, nil
+		}
 		return nil, result, nil
 	}
 }
