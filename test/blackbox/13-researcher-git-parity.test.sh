@@ -58,6 +58,7 @@ git_tool() {
 # because of generated/ignored assets. Simulate >2 GiB with a sparse file
 # without consuming 2 GiB of physical storage.
 oversized_fixture="$project_dir/.oversized-git-fixture"
+printf '.oversized-git-fixture\\n' >> "$project_dir/.git/info/exclude"
 truncate -s $(( (2 << 30) + 4096 )) "$oversized_fixture"
 
 git_tool status --short
