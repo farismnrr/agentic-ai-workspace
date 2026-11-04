@@ -98,7 +98,7 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
      An enabled kind=artifact task may generate documents/media via `run_artifact`, never shell.
    - QA & Review: independent review, targeted read-only named checks and QA-only browser interaction.
    - Security: combined security/architecture review ONLY when owner enables `@deep-review`.
-     Verification uses named checks or owner-enabled bounded sandbox diagnostics; no app start, build or source edits.
+     Verification uses owner-configured named read-only checks only; no generic shell, Site start, build or source edits.
    - DevOps: authorized named builds, CI, Site start/stop, release and native Git; no feature coding or QA ownership.
      Owner-enabled bounded `run_command` is for diagnostics, not shell Git or launching Site outside `start_site`.
    Retired Business Analyst, Designer/Media/Documents and Reviewer responsibilities merge into these roles.

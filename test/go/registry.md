@@ -3,11 +3,12 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 114 Go test files contain 253 top-level test functions:
-103 registered test files contain 253 functions and 11 support files contain no test functions.
+After this slice, 115 Go test files contain 254 top-level test functions:
+104 registered test files contain 254 functions and 11 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
+| `test/go/modules/bootstrap/role_catalogue_test.go::TestBuiltInRoleToolOwnershipMatrix` | Critical tool authorization | Seven server-owned built-in roles must expose their own operations and deny generic shell, Site, browser and source writes to other roles. | none |
 | `test/go/modules/task/role_boundary_regression_test.go::TestRoleDependencyRemainsPending` | Critical task lifecycle | The server must distinguish normal cross-role prerequisites from genuine failed work, including legacy Site reports. | none |
 | `test/go/modules/task/role_boundary_regression_test.go::TestSuccessfulReadOnlyJobResetsIdleCounter` | Critical orchestration state | Read-only audit delegations must not falsely trip TEAM_STUCK, while genuinely blocked reports must remain counted. | none |
 | `test/go/modules/task/role_boundary_regression_test.go::TestHistoricRoleDefaultsUpgradeWithoutOverwritingCustomText` | Agent role migration/authz | Historic shipped defaults must upgrade to current mandatory boundaries without overwriting owner-written instructions. | none |

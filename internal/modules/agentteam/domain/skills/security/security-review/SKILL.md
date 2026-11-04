@@ -29,9 +29,11 @@ Read `package.json`, `nuxt.config.ts`, `server/` and the pages. Note the stack, 
 is stored and which routes take input. Skip nothing you can read in a few minutes.
 
 ## 2. Run only authorized checks (owner-enabled @deep-review)
-Use named `run_task` checks when configured. `run_command` requires the Security role, the owner's separate
-execution switch, and the read-only sandbox; do not assume shell access is enabled. A tool absence is an exact
-permission/prerequisite to report, never a reason to bypass it with another tool or role.
+Use named, owner-configured `run_task` checks only. Security does NOT receive generic `run_command`,
+even when shell is enabled for another role. The sample commands below describe requirements for
+preconfigured named checks, not shell commands for Security to run. If a required check is not
+configured or enabled, report that exact prerequisite; never claim a passing security review.
+
 1. Known vulnerabilities: `bun audit`. For each high or critical one, find where it comes from
    (`bun why <package>`) and whether a fix exists (a version above the installed one). Apply a real fix by asking the
    Developer to update it. A high advisory with no patch in a build-only tool (bundlers, dev servers) that does not

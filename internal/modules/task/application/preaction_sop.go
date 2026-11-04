@@ -69,6 +69,12 @@ func PreActionToolSOP(role string, enabled []string) string {
 	out.WriteString("- External Coding lifecycle names such as get_work_state, report_progress and complete_work " +
 		"are not teammate MCP tools. Finish an internal delegation with your final report; the external Orchestrator calls complete_task.\n")
 
+	if role == "security" {
+		out.WriteString("- Security is only available in owner-enabled Deep Review. " +
+			"Use configured read-only run_task checks; generic run_command, Site start, builds and source edits " +
+			"are unavailable even if a playbook requests them. Report a missing named check precisely.\n")
+	}
+
 	if slices.Contains(tools, "git") || slices.Contains(tools, "gh") {
 		out.WriteString("- Git / GitHub: use the team MCP tool named git (args such as [\"status\", \"--short\"] or " +
 			"[\"push\", \"origin\", \"dev\"]) and/or gh (args such as [\"auth\", \"status\"]) ONLY if listed above. " +

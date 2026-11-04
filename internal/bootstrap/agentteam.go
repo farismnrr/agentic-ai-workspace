@@ -58,6 +58,17 @@ func agentRole(role teamdomain.Role) taskapp.AgentRole {
 // toolsFor lists the tools a role may use: those of the access groups it has. Starting and stopping the
 // web app count as running commands.
 func toolsFor(role teamdomain.Role) []string {
+	if role.Lead {
+		// The lead has read access only. Delegation, planning and asking are
+		// separate loop tools, never inherited coding/exec capabilities.
+		return []string{
+			codingdomain.ToolListFiles.Name, codingdomain.ToolFindFiles.Name,
+			codingdomain.ToolReadFile.Name, codingdomain.ToolSearchCode.Name,
+			codingdomain.ToolListTasks.Name, codingdomain.ToolWhoami.Name,
+			codingdomain.ToolListProjects.Name, toolScreenshot, toolViewImage,
+		}
+	}
+
 	names := []string{}
 
 	for _, tool := range codingdomain.Tools() {
@@ -122,13 +133,14 @@ func toolsFor(role teamdomain.Role) []string {
 }
 
 // roleMayUseTool narrows broad exec access for the built-in SDLC roles.
-// Generic shell commands can run arbitrary test or edit scripts, so built-in roles
-// do not receive them. QA/Security run read-only named checks; DevOps runs named builds and
-// bounded Git. Researcher may use only the bounded native Git tool.
+// Generic shell commands can run arbitrary test or edit scripts. Developer,
+// QA, Security and the lead never receive them. Security uses owner-enabled
+// named checks in Deep Review; DevOps owns builds and diagnostics.
 func roleMayUseTool(role teamdomain.Role, tool string) bool {
 	switch tool {
 	case codingdomain.ToolRunCommand.Name:
-		return role.Key != "developer" && role.Key != "qa"
+		return role.Key != "developer" && role.Key != "qa" &&
+			role.Key != "security" && role.Key != "orchestrator"
 	case codingdomain.ToolRunBuild.Name:
 		return role.Key == "devops"
 	case codingdomain.ToolRunArtifact.Name:
@@ -181,4 +193,9 @@ func lookupFor(role teamdomain.Role) func(string) (string, bool) {
 	}
 
 	return func(name string) (string, bool) { return teamdomain.ReferenceText(role.Key, name) }
+}
+
+// ToolsForRoleForTest exposes the enforced role catalogue to P0 regression tests.
+func ToolsForRoleForTest(role teamdomain.Role) []string {
+	return toolsFor(role)
 }

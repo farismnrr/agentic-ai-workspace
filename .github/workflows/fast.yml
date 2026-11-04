@@ -121,6 +121,8 @@ jobs:
         run: go test ./internal/modules/task/application ./internal/modules/coding/domain -run 'Test(BridgeVCSInstructionsAreScopedToServerAuthorizedTools|PreActionToolSOPRespectsEnabledRoleInventory|LeadToolSOPNamesCorrectOwnersBeforeAction|BridgedToolsExposesEnabledProjectFilesOnly|TeamBridgeRejectsHiddenToolBeforeExecution|ReadOnlyTeamFileToolsAreCatalogued|PreActionToolSOPShowsActualBridgedProjectFileTools|RolePreflightSOPAndSitePrerequisites)' -count=1
       - name: Verify P0 role ownership and dependency lifecycle
         run: go test ./test/go/modules/task -run 'Test(RoleDependencyRemainsPending|SuccessfulReadOnlyJobResetsIdleCounter|HistoricRoleDefaultsUpgradeWithoutOverwritingCustomText)' -count=1
+      - name: Verify P0 seven-role server tool ownership
+        run: go test ./test/go/modules/bootstrap -run TestBuiltInRoleToolOwnershipMatrix -count=1
       - name: Verify quota-safe Git allowlist
         run: go test ./internal/modules/coding/adapter/runner -run 'Test(QuotaSafeGit|OversizedWorkspaceImmutableChecksAndIsolatedOutputs)' -count=1
       - name: Build app binary for Git parity scenario
