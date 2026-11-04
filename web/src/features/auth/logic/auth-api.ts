@@ -10,5 +10,8 @@ export const createAccount = (name: string, email: string, password: string): Pr
 
 /** Turns a failed auth request into a sentence a person can act on. */
 export function describeError(error: unknown): string {
-  return error instanceof ApiError ? (errorCopy[error.code] ?? FALLBACK_ERROR) : FALLBACK_ERROR;
+  if (error instanceof ApiError) {
+    return errorCopy[error.code] ?? error.detail ?? error.title ?? error.code;
+  }
+  return error instanceof Error ? error.message : FALLBACK_ERROR;
 }

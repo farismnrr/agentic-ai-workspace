@@ -11,9 +11,16 @@ type healthPayload struct {
 	Version string `json:"version"`
 }
 
-type errorPayload struct {
-	Error string `json:"error"`
+// ProblemDetails adheres to RFC 7807 and RFC 9457 ("Problem Details for HTTP APIs").
+type ProblemDetails struct {
+	Type   string `json:"type,omitempty"`
+	Title  string `json:"title,omitempty"`
+	Status int    `json:"status,omitempty"`
+	Detail string `json:"detail,omitempty"`
+	Error  string `json:"error"`
 }
+
+type errorPayload = ProblemDetails
 
 func registerAPI(app *fiber.App, version string) {
 	api := app.Group("/api")

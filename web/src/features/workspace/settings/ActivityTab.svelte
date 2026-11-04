@@ -29,7 +29,10 @@
 
   function explain(error: unknown): string {
     const known: Record<string, string> = activityCopy.undoErrors;
-    return (error instanceof ApiError ? known[error.code] : undefined) ?? activityCopy.undoFallback;
+    if (error instanceof ApiError) {
+      return known[error.code] ?? error.detail ?? error.title ?? error.code;
+    }
+    return error instanceof Error ? error.message : activityCopy.undoFallback;
   }
 
   async function confirmUndo(): Promise<void> {

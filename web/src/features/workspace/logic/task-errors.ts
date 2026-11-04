@@ -3,5 +3,8 @@ import { taskErrors, taskFallbackError } from '../content/tasks-copy';
 
 /** Turns a failed task request into a sentence a person can act on. */
 export function describeTaskError(error: unknown): string {
-  return (error instanceof ApiError ? taskErrors[error.code] : undefined) ?? taskFallbackError;
+  if (error instanceof ApiError) {
+    return taskErrors[error.code] ?? error.detail ?? error.title ?? error.code;
+  }
+  return error instanceof Error ? error.message : taskFallbackError;
 }

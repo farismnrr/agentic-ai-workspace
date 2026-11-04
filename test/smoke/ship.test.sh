@@ -1,9 +1,26 @@
 #!/bin/sh
 # Offline regression tests for imported Git repositories and ship status.
 set -eu
-root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+
+# Verify strict rejection when Git identity is not configured (no silent fallback).
+mkdir "$tmp/noident"
+(
+  cd "$tmp/noident"
+  git init -q -b dev
+  if env -i PATH="$PATH" PROJECT_DIR="$tmp/noident" sh "$root/sandbox/ship.sh" "Test missing ident" 2> "$tmp/noident.err"; then
+    echo "ship must fail when Git identity is not configured" >&2
+    exit 1
+  fi
+  grep -q "error: Git author or committer identity is not configured." "$tmp/noident.err"
+)
+
+export GIT_AUTHOR_NAME='Test Committer'
+export GIT_AUTHOR_EMAIL='test@example.com'
+export GIT_COMMITTER_NAME='Test Committer'
+export GIT_COMMITTER_EMAIL='test@example.com'
 
 git init -q --bare "$tmp/remote.git"
 mkdir "$tmp/source"

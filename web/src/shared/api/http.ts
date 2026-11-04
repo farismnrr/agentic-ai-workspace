@@ -2,12 +2,16 @@
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly title?: string | undefined;
+  readonly detail?: string | undefined;
 
-  constructor(status: number, code: string) {
-    super(code);
+  constructor(status: number, code: string, title?: string, detail?: string) {
+    super(detail ?? title ?? code);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.title = title;
+    this.detail = detail;
   }
 }
 
@@ -16,9 +20,18 @@ async function readBody(response: Response): Promise<unknown> {
   return text === '' ? undefined : JSON.parse(text);
 }
 
-function errorCode(data: unknown): string {
-  if (typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string') return data.error;
-  return 'unknown';
+function parseProblem(data: unknown): { code: string; title?: string | undefined; detail?: string | undefined } {
+  if (typeof data === 'object' && data !== null) {
+    const rec = data as Record<string, unknown>;
+    const codeVal = rec['error'] ?? rec['code'];
+    const code = typeof codeVal === 'string' ? codeVal : 'unknown';
+    const titleVal = rec['title'];
+    const title = typeof titleVal === 'string' ? titleVal : undefined;
+    const detailVal = rec['detail'];
+    const detail = typeof detailVal === 'string' ? detailVal : undefined;
+    return { code, title, detail };
+  }
+  return { code: 'unknown' };
 }
 
 /** Sends a same-origin request, JSON or a form with files (cookies included) and returns the parsed body. */
@@ -36,6 +49,9 @@ export async function request<T>(method: string, path: string, body?: unknown, s
   }
   const response = await fetch(path, init);
   const data = await readBody(response);
-  if (!response.ok) throw new ApiError(response.status, errorCode(data));
+  if (!response.ok) {
+    const problem = parseProblem(data);
+    throw new ApiError(response.status, problem.code, problem.title, problem.detail);
+  }
   return data as T;
 }

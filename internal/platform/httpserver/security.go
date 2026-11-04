@@ -43,10 +43,21 @@ func CORS(origins []string) fiber.Handler {
 
 // Failure is the standard error body; handlers send it with c.Status(code).JSON(Failure("reason")).
 func Failure(code string) any {
-	return errorPayload{Error: code}
+	return ProblemDetails{Type: "about:blank", Title: code, Error: code}
+}
+
+// ProblemFailure constructs an RFC 7807/9457 Problem Details object with detailed explanation.
+func ProblemFailure(status int, title, detail, code string) ProblemDetails {
+	return ProblemDetails{
+		Type:   "about:blank",
+		Title:  title,
+		Status: status,
+		Detail: detail,
+		Error:  code,
+	}
 }
 
 // JSONError writes the standard error body.
 func JSONError(c fiber.Ctx, status int, code string) error {
-	return c.Status(status).JSON(errorPayload{Error: code})
+	return c.Status(status).JSON(ProblemFailure(status, code, "", code))
 }

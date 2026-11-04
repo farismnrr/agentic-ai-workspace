@@ -13,8 +13,11 @@ message="${1:-}"
 cd "${PROJECT_DIR:-/workspace}" || exit 2
 
 git rev-parse --is-inside-work-tree > /dev/null 2>&1 || git init -q -b dev || { echo "could not start a repository" >&2; exit 2; }
-git config user.name > /dev/null 2>&1 || git config user.name "Masih Awam Workspace"
-git config user.email > /dev/null 2>&1 || git config user.email "workspace@users.noreply.github.com"
+if ! git var GIT_AUTHOR_IDENT > /dev/null 2>&1 || ! git var GIT_COMMITTER_IDENT > /dev/null 2>&1; then
+  echo "error: Git author or committer identity is not configured." >&2
+  echo "detail: Connect GitHub in Settings or configure user.name and user.email before shipping." >&2
+  exit 2
+fi
 
 # Keep secrets and generated folders out, whatever the project already ignores.
 touch .gitignore
