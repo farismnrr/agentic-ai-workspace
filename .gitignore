@@ -64,3 +64,9 @@ dist
 target
 __pycache__
 .venv
+
+# Server-generated task notes and runtime uploads
+project-notes/tasks/
+project-notes/index.md
+.workspace/
+uploads/
