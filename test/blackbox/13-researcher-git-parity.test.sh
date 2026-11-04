@@ -61,9 +61,27 @@ oversized_fixture="$project_dir/.oversized-git-fixture"
 printf '%s\n' '.oversized-git-fixture' >> "$project_dir/.git/info/exclude"
 truncate -s $(( (2 << 30) + 4096 )) "$oversized_fixture"
 
-git_tool status --short
+git_tool status --short --branch
 assert_status "$HTTP_STATUS" 200 'oversized project still reaches server Git status'
 assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git status succeeds over 2 GiB'
+
+# These were previously rejected because the quota exception covered only a
+# handful of Git verbs, despite all checks reading the existing checkout.
+git_tool diff --check
+assert_status "$HTTP_STATUS" 200 'oversized project reaches safe Git diff'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git diff --check succeeds'
+
+git_tool branch -vv
+assert_status "$HTTP_STATUS" 200 'oversized project reaches Git branch inspection'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git branch -vv succeeds'
+
+git_tool log -1 --oneline
+assert_status "$HTTP_STATUS" 200 'oversized project reaches Git log inspection'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git log -1 succeeds'
+
+git_tool ls-files
+assert_status "$HTTP_STATUS" 200 'oversized project reaches Git tracked file inspection'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git ls-files succeeds'
 
 git_tool push origin HEAD
 assert_status "$HTTP_STATUS" 200 'oversized project still reaches Git push authorization gate'
