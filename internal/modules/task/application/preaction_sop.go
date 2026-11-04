@@ -36,7 +36,8 @@ func preActionToolSOP(role string, enabled []string) string {
 	}
 
 	if role == "qa" && slices.Contains(tools, "browser_test") {
-		out.WriteString("- Browser / Playwright E2E: use browser_test on a running project Site, and call " +
+		out.WriteString("- Browser / Playwright E2E: browser_test navigation to the Site root uses actions [{\"action\":\"goto\",\"path\":\"\"}], " +
+			"NOT '/' (paths are relative with no leading slash, '.' or '..'). Then call " +
 			"read_browser_screenshot with the returned screenshot_ref when evidence is needed. " +
 			"Arrange start_site through an authorized role if the Site is not running. " +
 			"Never launch shell Playwright, arbitrary browser scripts or a different host as a fallback.\n")
@@ -64,7 +65,8 @@ const preActionLeadSOP = "\nMANDATORY PRE-ACTION TOOL SOP for the orchestrator: 
 	"Before delegating, decide which role owns each operation and name the exact server tool in the brief. " +
 	"Git/git push/gh goes to Developer or DevOps (Researcher only where allowed) through the server git/gh tool, " +
 	"not the teammate's shell. Browser/Playwright E2E goes to QA through browser_test; " +
-	"start_site must already be running and read_browser_screenshot retrieves screenshot_ref evidence. " +
+	"start_site must already be running; browser_test goto path is relative, empty for root (not '/'); " +
+	"read_browser_screenshot retrieves screenshot_ref evidence. " +
 	"CI failures go to DevOps through ci_logs, not shell gh log downloads. " +
 	"If a role's tool is missing/disabled, record the exact blocker and request that permission; " +
 	"never ask the worker to bypass proxy, run shell Git, use shell Playwright or silently change roles. " +
@@ -77,7 +79,8 @@ const preActionLeadSOP = "\nMANDATORY PRE-ACTION TOOL SOP for the orchestrator: 
 const soloPreActionSOP = "\nPRE-ACTION TOOL SOP: Before any Git, browser, CI or site work, inspect the tools actually available and the owner's switches. " +
 	"Prefer the built-in git/gh tools for GitHub operations when offered, and check remote, branch, current HEAD, clean state and fast-forward before push. " +
 	"Never bypass HTTPS_PROXY, reveal a token or retry an unavailable authorized tool using a different transport. " +
-	"Browser/Playwright E2E belongs to QA using browser_test and read_browser_screenshot on a running Site; " +
+	"Browser/Playwright E2E belongs to QA using browser_test goto path=\"\" for Site root (never '/'), " +
+	"then read_browser_screenshot on a running Site; " +
 	"start_site starts the preview (never a background shell), and screenshot alone is not interactive E2E. " +
 	"Use ci_logs for failed CI logs rather than guessing from gh downloads. " +
 	"If the required tool or permission is unavailable, report that blocker rather than improvising.\n"
