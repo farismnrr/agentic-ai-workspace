@@ -83,7 +83,10 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 
 	defer release()
 
-	if !quotaSafeGit(ctx, task) && sizeOver(r.dir, r.quota) {
+	// A pre-existing oversized project must not block operations which
+	// cannot add bytes to that project. Immutable checks mount it read-only;
+	// named builds only write into their own separately capped output dir.
+	if !readOnlyCheck(ctx, task) && !isolatedOutput(ctx, task) && sizeOver(r.dir, r.quota) {
 		return application.RunResult{ExitCode: -1, Output: overQuota}, nil
 	}
 
@@ -123,6 +126,14 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 func readOnlyCheck(ctx context.Context, task domain.Task) bool {
 	return quotaSafeGit(ctx, task) || (domain.ReadOnlyWorkspace(ctx) && !domain.GitOnly(ctx) &&
 		(task.Kind == "" || task.Kind == "check"))
+}
+
+// isolatedOutput covers ONLY named build/artifact tasks. Their source mount
+// is read-only and generated files go to a newly created, size-watched output
+// directory. This is not an exception for arbitrary shell commands.
+func isolatedOutput(ctx context.Context, task domain.Task) bool {
+	return domain.ReadOnlyWorkspace(ctx) &&
+		(task.Kind == "build" || task.Kind == "artifact")
 }
 
 const (

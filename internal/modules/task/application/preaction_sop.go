@@ -48,11 +48,24 @@ func preActionToolSOP(role string, enabled []string) string {
 			"Ask the owner to enable the read_file tool in Settings > Spaces & tools, or report the missing role permission. " +
 			"Do not use shell or a different project as a bypass.\n")
 	}
-	if role == "developer" && !slices.Contains(bridged, "write_file") && !slices.Contains(bridged, "edit_file") {
-		out.WriteString("- Editing is unavailable to this Developer session. Check edit_file/write_file switches; do not promise changes.\n")
+	if role == "developer" {
+		if !slices.Contains(bridged, "write_file") && !slices.Contains(bridged, "edit_file") {
+			out.WriteString("- Editing is unavailable to this Developer session. Check edit_file/write_file switches; do not promise changes.\n")
+		}
+		out.WriteString("- Developer intentionally has NO unrestricted run_command shell. Use authorized read_file/edit_file/write_file and server git/gh. " +
+			"Delegate named builds, application start/recreate and command diagnostics to DevOps; do not claim a missing shell is a disconnected tool.\n")
+	}
+	if role == "devops" {
+		if slices.Contains(bridged, "run_command") {
+			out.WriteString("- DevOps has the server run_command tool when needed for bounded diagnostics, with existing risk approval and sandbox limits. " +
+				"Prefer an owner-configured run_build for builds and start_site for app lifecycle; never run shell Git/gh or Docker daemon commands.\n")
+		} else {
+			out.WriteString("- DevOps server run_command is NOT enabled in this session. Check the owner switch and role. " +
+				"Use run_build/start_site when enabled; do not fall back to vendor Bash or bypass the proxy.\n")
+		}
 	}
 	out.WriteString("- External Coding lifecycle names such as get_work_state, report_progress and complete_work " +
-		"are not teammate MCP tools; finish this delegated job with your final report.\n")
+		"are not teammate MCP tools. Finish an internal delegation with your final report; the external Orchestrator calls complete_task.\n")
 
 	if slices.Contains(tools, "git") || slices.Contains(tools, "gh") {
 		out.WriteString("- Git / GitHub: use the team MCP tool named git (args such as [\"status\", \"--short\"] or " +
@@ -66,10 +79,10 @@ func preActionToolSOP(role string, enabled []string) string {
 	}
 
 	if role == "qa" && slices.Contains(tools, "browser_test") {
-		out.WriteString("- Browser / Playwright E2E: browser_test navigation to the Site root uses actions [{\"action\":\"goto\",\"path\":\"\"}], " +
-			"NOT '/' (paths are relative with no leading slash, '.' or '..'). Then call " +
-			"read_browser_screenshot with the returned screenshot_ref when evidence is needed. " +
-			"Arrange start_site through an authorized role if the Site is not running. " +
+		out.WriteString("- Browser / Playwright E2E: before calling browser_test, confirm DevOps has started the project Site successfully through start_site. " +
+			"If no Site is running, that is a missing prerequisite, NOT proof the browser is broken. Ask DevOps for the valid app start command/port and wait for a successful Site response. " +
+			"Use browser_test actions [{\"action\":\"goto\",\"path\":\"\"}] for root, NOT '/' (paths are relative). " +
+			"Then call read_browser_screenshot with the returned screenshot_ref when evidence is needed. " +
 			"Never launch shell Playwright, arbitrary browser scripts or a different host as a fallback.\n")
 	} else {
 		out.WriteString("- Browser / Playwright E2E: browser_test and read_browser_screenshot belong to enabled QA. " +
@@ -98,6 +111,10 @@ const preActionLeadSOP = "\nMANDATORY PRE-ACTION TOOL SOP for the orchestrator: 
 	"start_site must already be running; browser_test goto path is relative, empty for root (not '/'); " +
 	"read_browser_screenshot retrieves screenshot_ref evidence. " +
 	"CI failures go to DevOps through ci_logs, not shell gh log downloads. " +
+	"For QA browser testing, first assign DevOps to build the app if needed and start_site using a valid command/port; " +
+	"only after a successful Site start should QA invoke browser_test. Site-not-running is a prerequisite, not a browser failure. " +
+	"Developer is intentionally denied run_command; DevOps uses run_build/start_site and may use server run_command only with the owner's enabled switch and existing approvals. " +
+	"Internal teammates finish by final report; the external lead calls complete_task, not team complete_work. " +
 	"If a role's tool is missing/disabled, record the exact blocker and request that permission; " +
 	"never ask the worker to bypass proxy, run shell Git, use shell Playwright or silently change roles. " +
 	"Do not create extra tasks per delegation.\n"

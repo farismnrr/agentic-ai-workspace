@@ -50,6 +50,16 @@ func TestBridgedToolsExposesEnabledProjectFilesOnly(t *testing.T) {
 			want: []string{"read_file", "search_code", "browser_test"},
 		},
 		{
+			name: "DevOps explicit command switch",
+			allowed: []string{"list_files", "run_command"},
+			want: []string{"list_files", "run_command"},
+		},
+		{
+			name: "DevOps command disabled",
+			allowed: []string{"list_files"},
+			want: []string{"list_files"},
+		},
+		{
 			name: "empty owner switches",
 			allowed: nil,
 			want: nil,
