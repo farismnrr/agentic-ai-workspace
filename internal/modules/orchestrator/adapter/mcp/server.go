@@ -40,7 +40,7 @@ type Services struct {
 
 func NewServer(s Services) *sdk.Server {
 	server := sdk.NewServer(&sdk.Implementation{Name: "masih-awam-orchestrator", Version: "1.0.0"},
-		&sdk.ServerOptions{Instructions: "You are the sole external lead. Select an existing project and create one primary task per issue. Delegate directly to enabled internal worker agents; do not delegate to the internal orchestrator or create extra tasks per worker. After every worker has finished and your final report is ready, call complete_task once with that report, including when work is partial or not verified. Do not call complete_task after each worker. There is no conversation-ended signal, so the task stays Working until you explicitly call complete_task or the owner stops it."})
+		&sdk.ServerOptions{Instructions: "You are the sole external lead. Select an existing project and create one primary task per issue. Delegate directly to enabled internal worker agents; do not delegate to the internal orchestrator or create extra tasks per worker. After every worker has finished and your final report is ready, call complete_task once with that report, including when work is partial or not verified. Do not call complete_task after each worker. There is no conversation-ended signal, so the task stays Working until you explicitly call complete_task or the owner stops it. For work the person should see in the Masih Awam timeline, call Masih Awam MCP tools: native host tools are not automatically reported to this server."})
 	s.addRead(server)
 	s.addWrite(server)
 	s.addUploads(server)
@@ -109,6 +109,14 @@ func secured[In, Out any](s Services, name, scope string, fn func(context.Contex
 		result, err := fn(ctx, user, client, input)
 		if err != nil {
 			return problem("Orchestrator "+name+": "+err.Error(), nil), empty, nil
+		}
+		if recordErr := s.recordLeadAction(ctx, user, client, name, input, result); recordErr != nil {
+			// The operation itself may have succeeded. Do not turn it into
+			// an apparent failure that would encourage unsafe retries.
+			slog.Warn("orchestrator activity recording failed", "tool", name, "error", recordErr)
+			return &sdk.CallToolResult{
+				Meta: sdk.Meta{"masih-awam/activity": "record_failed"},
+			}, result, nil
 		}
 		return nil, result, nil
 	}
