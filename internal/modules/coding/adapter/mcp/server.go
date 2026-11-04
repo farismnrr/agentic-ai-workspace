@@ -126,7 +126,9 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"Start a web app with start_site, never with a shell command. " +
 	"marimo_execute requires an active Developer work_id; reuse the same task for notebook calls. " +
 	"The user may supply URL and token directly in chat. No pairing or new task per call. " +
-	"coding:exec permission is required. Do not echo or log tokens."
+	"coding:exec permission is required. Do not echo or log tokens. " +
+	"For actions that must appear in Masih Awam activity, call these MCP workspace tools with the SAME work_id; " +
+	"native host tools outside this server are not automatically traced."
 
 // NewServer builds the MCP server exposing the coding tools.
 func NewServer(workspaces Workspaces, opts Options) *sdk.Server {
