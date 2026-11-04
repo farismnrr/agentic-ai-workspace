@@ -32,7 +32,7 @@ func TestQuotaSafeGitOnlyPermitsServerAuthorizedReadOnlyWorkspaceOperations(t *t
 		{"remote set-url", []string{"remote", "set-url", "origin", "https://example.org/repo"}, false},
 		{"branch creates ref", []string{"branch", "feature"}, false},
 		{"branch renames ref", []string{"branch", "--move", "dev", "feature"}, false},
-		{"log patch is not quota exempt", []string{"log", "-p"}, false},
+		{"log patch is not quota exempt", []string{"log", "--patch"}, false},
 		{"fetch writes Git metadata", []string{"fetch", "origin"}, false},
 		{"git add mutates index", []string{"add", "README.md"}, false},
 		{"git commit writes objects", []string{"commit", "-m", "test"}, false},
