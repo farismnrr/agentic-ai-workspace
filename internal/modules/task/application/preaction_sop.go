@@ -24,6 +24,36 @@ func preActionToolSOP(role string, enabled []string) string {
 	out.WriteString("- First choose the matching allowed server tool, check prerequisites and repository rules, then act once. " +
 		"If a tool is absent, disabled or errors, report the precise blocker instead of trying random transports or proxies.\n")
 
+	// The vendor also has native file commands and the app has external
+	// work-lifecycle tools. Advertise the *actual* MCP team bridge subset so
+	// an agent does not mistake those capabilities for available server tools.
+	var bridged []string
+	for _, name := range tools {
+		if slices.Contains(siteToolNames, name) {
+			bridged = append(bridged, name)
+		}
+	}
+	if len(bridged) > 0 {
+		out.WriteString("- ACTUAL TEAM MCP TOOLS: " + strings.Join(bridged, ", ") + ". " +
+			"Use the server tool with that exact name; vendor built-ins are not a substitute for a missing project permission.\n")
+	} else {
+		out.WriteString("- No team MCP project tools were exposed to this role. Report the permission or tool-switch blocker.\n")
+	}
+	if slices.Contains(bridged, "read_file") {
+		out.WriteString("- Project source inspection: prefer team MCP read_file with {\\"path\\":\\"relative/file.ext\\"}, " +
+			"find_files for paths, search_code for content, and list_files for a folder, only when listed above. " +
+			"Do not report that file inspection is unavailable without checking the named team tools.\n")
+	} else {
+		out.WriteString("- Project source inspection: team read_file is NOT available. " +
+			"Ask the owner to enable the read_file tool in Settings > Spaces & tools, or report the missing role permission. " +
+			"Do not use shell or a different project as a bypass.\n")
+	}
+	if role == "developer" && !slices.Contains(bridged, "write_file") && !slices.Contains(bridged, "edit_file") {
+		out.WriteString("- Editing is unavailable to this Developer session. Check edit_file/write_file switches; do not promise changes.\n")
+	}
+	out.WriteString("- External Coding lifecycle names such as get_work_state, report_progress and complete_work " +
+		"are not teammate MCP tools; finish this delegated job with your final report.\n")
+
 	if slices.Contains(tools, "git") || slices.Contains(tools, "gh") {
 		out.WriteString("- Git / GitHub: use the team MCP tool named git (args such as [\"status\", \"--short\"] or " +
 			"[\"push\", \"origin\", \"dev\"]) and/or gh (args such as [\"auth\", \"status\"]) ONLY if listed above. " +
