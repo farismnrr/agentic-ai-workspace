@@ -9,6 +9,13 @@ Applies to Masih Awam internal teammate tasks, plan-backed Claude/ChatGPT worker
 3. Preserve pre-existing worktree changes and remote history. A failed tool is not permission to reset, clean, force-push or bypass a sandbox rule.
 4. If unavailable, stop and report: tool name, role, missing switch/scope/connection or exact error; delegate to the correct role or ask the owner for permission. Do not brute-force alternative transports.
 
+## Project files and source-code inspection
+
+- Internal teammates MUST use the actual, role-authorized **team MCP** project-file tools: `list_files`, `find_files`, `read_file`, and `search_code` when enabled. Send paths relative to the current project. Example: `read_file` with `{"path":"AGENTS.md"}`. Do not assume a vendor-native `Read`/`Glob` tool is equivalent or always available.
+- Developer can use `edit_file`, `write_file`, `delete_file`, and `move_file` only when their role and the owner's corresponding switches permit them. The server still enforces scoped paths and approval/undo requirements.
+- SOP and tool inventory must name **actually registered team MCP tools**. A role-capability list can include lifecycle actions such as `get_work_state`, `report_progress`, or `complete_work`, but these are not automatically exposed as teammate MCP tools. Teammates finish a delegated job by returning their report to the orchestrator.
+- When a read or edit tool is absent, check the corresponding tool switch in Settings → Spaces & tools and the role's access; report a specific blocker. Do not use arbitrary shell reads or another project as a workaround.
+
 ## Git, GitHub and release
 
 - Researcher/Developer/DevOps use the Masih Awam **git** server tool when granted; Developer/QA/DevOps use **gh** where granted. Pass args as a list, e.g. `git(["status", "--short", "--branch"])`, `git(["ls-remote", "origin", "HEAD"])`, `git(["push", "origin", "dev"])`. The role/tool policy is the authority.
