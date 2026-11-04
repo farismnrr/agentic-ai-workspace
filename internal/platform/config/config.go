@@ -91,7 +91,7 @@ func Load() Config {
 		allowed = append(allowed, connector)
 	}
 
-	dataDir := getenv("DATA_DIR", defaultDataDir)
+	dataDir := getenv("DATA_DIR", getenv("APP_DATA_DIR", defaultDataDir))
 	workIdleAfter, workAbandonAfter, workSweepEvery := workDurations()
 	workSweepMode := workSweepMode()
 
