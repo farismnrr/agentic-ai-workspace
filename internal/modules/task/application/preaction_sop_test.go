@@ -28,7 +28,7 @@ func TestPreActionToolSOPRespectsEnabledRoleInventory(t *testing.T) {
 		{
 			name: "QA Playwright", role: "qa",
 			enabled: []string{"read_browser_screenshot", "browser_test", "verify"},
-			want: []string{"ENABLED project tools: browser_test, read_browser_screenshot, verify", "Browser / Playwright E2E", "use browser_test", "read_browser_screenshot", "running project Site"},
+			want: []string{"ENABLED project tools: browser_test, read_browser_screenshot, verify", "Browser / Playwright E2E", "browser_test navigation", "actions [{\"action\":\"goto\",\"path\":\"\"}]", "NOT '/'", "read_browser_screenshot", "Arrange start_site"},
 			absent: []string{"ENABLED project tools: git"},
 		},
 		{
