@@ -3,11 +3,14 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 113 Go test files contain 250 top-level test functions:
-102 registered test files contain 250 functions and 11 support files contain no test functions.
+After this slice, 114 Go test files contain 253 top-level test functions:
+103 registered test files contain 253 functions and 11 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
+| `test/go/modules/task/role_boundary_regression_test.go::TestRoleDependencyRemainsPending` | Critical task lifecycle | The server must distinguish normal cross-role prerequisites from genuine failed work, including legacy Site reports. | none |
+| `test/go/modules/task/role_boundary_regression_test.go::TestSuccessfulReadOnlyJobResetsIdleCounter` | Critical orchestration state | Read-only audit delegations must not falsely trip TEAM_STUCK, while genuinely blocked reports must remain counted. | none |
+| `test/go/modules/task/role_boundary_regression_test.go::TestHistoricRoleDefaultsUpgradeWithoutOverwritingCustomText` | Agent role migration/authz | Historic shipped defaults must upgrade to current mandatory boundaries without overwriting owner-written instructions. | none |
 | `test/go/platform/mcpbridge/media_test.go::TestScreenshotToolReturnsImageContentThroughMCP` | MCP media serialization | A real Go SDK client must assert that the Unix-socket bridge preserves the actual image content bytes. | none |
 | `test/go/app/connectors/orchestrator_approval_test.go::TestOrchestratorApprovePlanOptInAndFreshRevision` | auth/authz | Real HTTP MCP verifies default-off approval, required OAuth step-up, current owner-bound revision and replay-safe approval. | none |
 | `test/go/app/connectors/orchestrator_delegate_refusals_test.go::TestOrchestratorDelegationRefusalsExplainNextStep` | app-level integration | Real HTTP MCP verifies actionable missing-plan, pending-approval, wrong-state and disallowed-role refusals. | none |
