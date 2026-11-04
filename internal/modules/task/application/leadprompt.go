@@ -19,6 +19,7 @@ func (r *Runner) leadPrompt(ctx context.Context, task domain.Task, roster Roster
 
 	out.WriteString("You are the orchestrator of a small software team working for a person who is not a developer, ")
 	out.WriteString("in the project " + strconv.Quote(project) + ": its files are in your current folder.\n")
+	out.WriteString(preActionLeadSOP)
 	out.WriteString(teamPrompt(roster))
 	out.WriteString(r.planPrompt(ctx, task))
 	out.WriteString(reviewModePrompt(task.ReviewMode))
