@@ -21,7 +21,7 @@ Applies to Masih Awam internal teammate tasks, plan-backed Claude/ChatGPT worker
 ## Browser, Playwright and site
 
 - Start the project app through **start_site** using a role authorized to do so. Never use a background shell web server to impersonate a Site.
-- Browser interaction/E2E is **QA-only** through **browser_test**, grounded in the running project Site; evidence screenshot refs are read with **read_browser_screenshot** in the same active task. `screenshot` is view-only, not proof of a click/fill E2E test.
+- Browser interaction/E2E is **QA-only** through **browser_test**, grounded in the running project Site. For the root page, use `{"actions":[{"action":"goto","path":""}]}`: `path` must be relative with no leading slash or `..` (never use `/`). If the tool says no Site is running, request authorized `start_site` instead of guessing another URL. Evidence screenshot refs are read with **read_browser_screenshot** in the same active task. `screenshot` is view-only, not proof of a click/fill E2E test.
 - Non-QA roles delegate browser checks to QA. If the QA browser tool is missing/disabled or the Site is not running, report exactly that and start/fix the prerequisite through the correct role. Never shell Playwright, a different browser provider or an external URL fallback.
 
 ## Roles and audit
