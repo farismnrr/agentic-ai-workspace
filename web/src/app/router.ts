@@ -4,7 +4,18 @@ export { matchRoute, type Route, type SettingsTab } from './route-matcher';
 
 const pathOf = (url: string): string => url.split(/[?#]/)[0] ?? url;
 
-const resolve = (url: string): Route => matchRoute(pathOf(url)) ?? { name: 'not-found' };
+const routePath = (url: string): string => {
+  const path = pathOf(url);
+  const base = (window as Window & { __SITE_BASE__?: string }).__SITE_BASE__;
+  if (typeof base !== 'string' || base === '' || base === '/') return path;
+
+  const prefix = base.endsWith('/') ? base.slice(0, -1) : base;
+  return path === prefix || path.startsWith(`${prefix}/`)
+    ? path.slice(prefix.length) || '/'
+    : path;
+};
+
+const resolve = (url: string): Route => matchRoute(routePath(url)) ?? { name: 'not-found' };
 
 export const route = writable<Route>(resolve(window.location.pathname));
 
@@ -14,7 +25,7 @@ export const route = writable<Route>(resolve(window.location.pathname));
  * history entry behind, so Back does not return to the page that was left.
  */
 export function goTo(path: string, replace = false): void {
-  if (matchRoute(pathOf(path)) !== undefined) navigate(path, replace);
+  if (matchRoute(routePath(path)) !== undefined) navigate(path, replace);
   else if (replace) window.location.replace(path);
   else window.location.assign(path);
 }
@@ -42,7 +53,7 @@ const internalAnchor = (event: MouseEvent): HTMLAnchorElement | undefined => {
 /** Turns plain same-origin clicks on known routes into client-side navigation. */
 export function interceptLinkClick(event: MouseEvent): void {
   const anchor = isPlainClick(event) ? internalAnchor(event) : undefined;
-  if (anchor?.hash === '' && matchRoute(anchor.pathname) !== undefined) {
+  if (anchor?.hash === '' && matchRoute(routePath(anchor.pathname)) !== undefined) {
     event.preventDefault();
     navigate(anchor.pathname);
   }
