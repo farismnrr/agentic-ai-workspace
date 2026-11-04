@@ -108,7 +108,8 @@ const serverInstructions = "These tools work in the person's own workspace, wher
 	"PRE-ACTION TOOL SOP: inspect available role-authorized tools before executing. Use the server git/gh tools " +
 	"for GitHub (args arrays, verify branch/remote, never shell Git or proxy bypass); if unavailable, stop and " +
 	"report the exact missing tool or permission. For Playwright E2E switch to QA, ensure start_site is running, " +
-	"use browser_test and then read_browser_screenshot with screenshot_ref; never shell Playwright fallback. " +
+	"use browser_test with a relative goto path (empty string for Site root; never '/'), " +
+	"then read_browser_screenshot with screenshot_ref; never shell Playwright fallback. " +
 	"For CI failures use ci_logs via DevOps. Do not create extra tasks for retries. " +
 	"Start tracked work with begin_work and an enabled role before any workspace operation. " +
 	"Call begin_work only ONCE per user issue. Use that SAME work_id for all roles and tool calls. " +
