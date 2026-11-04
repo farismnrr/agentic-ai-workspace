@@ -1,8 +1,9 @@
-package application
+package task_test
 
 import (
 	"testing"
 
+	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
@@ -27,7 +28,7 @@ func TestExternalDeepReviewLongHistoryRequiresExplicitCommandAuditAndRealCheck(t
 		"Assessment: internal/modules/task/application/example.go\n" +
 		"Checks:\n- " + cmd
 	events[3].Text = report
-	if externalDeepReviewReady(task, events) {
+	if taskapp.ExternalDeepReviewReady(task, events) {
 		t.Fatal("historical unknown-effect command may not be omitted silently")
 	}
 	events[3].Text = "Verdict: PASS\n" +
@@ -36,27 +37,27 @@ func TestExternalDeepReviewLongHistoryRequiresExplicitCommandAuditAndRealCheck(t
 		"Assessment: internal/modules/task/application/example.go\n" +
 		"Command Audit: reviewed all recorded task commands, including unverified workspace effects\n" +
 		"Checks:\n- " + cmd
-	if missing := externalDeepReviewMissing(task, events); missing != "" {
+	if missing := taskapp.ExternalDeepReviewMissing(task, events); missing != "" {
 		t.Fatalf("explicit scoped audit and genuine check should permit completion: %s", missing)
 	}
 	events[2].Run.EffectsKnown = false
-	if externalDeepReviewReady(task, events) {
+	if taskapp.ExternalDeepReviewReady(task, events) {
 		t.Fatal("declared command audit cannot replace observed safe check effects")
 	}
 	events[2].Run.EffectsKnown = true
 	events[2].Run.TestExecuted = false
-	if externalDeepReviewReady(task, events) {
+	if taskapp.ExternalDeepReviewReady(task, events) {
 		t.Fatal("declared command audit cannot replace executed test evidence")
 	}
 	events[2].Run.TestExecuted = true
 	events[3].Work.Role = "developer"
-	if externalDeepReviewReady(task, events) {
+	if taskapp.ExternalDeepReviewReady(task, events) {
 		t.Fatal("developer cannot impersonate Security verdict")
 	}
 	events[3].Work.Role = "security"
 	events = append(events, domain.Event{Kind: domain.EventAction, Version: 5,
 		Files: []string{"internal/modules/task/application/example.go"}})
-	if externalDeepReviewReady(task, events) {
+	if taskapp.ExternalDeepReviewReady(task, events) {
 		t.Fatal("subsequent code changes must invalidate the earlier audit and check")
 	}
 }

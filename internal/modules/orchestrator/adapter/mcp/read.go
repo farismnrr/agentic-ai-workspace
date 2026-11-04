@@ -21,9 +21,12 @@ type projectList struct {
 	Projects []projectItem `json:"projects"`
 }
 type agentItem struct {
-	Key     string `json:"key"`
-	Name    string `json:"name"`
-	Purpose string `json:"purpose"`
+	Key         string   `json:"key"`
+	Name        string   `json:"name"`
+	Purpose     string   `json:"purpose"`
+	Tools       []string `json:"tools,omitempty"`
+	CanWrite    bool     `json:"can_write"`
+	CanParallel bool     `json:"can_parallel"`
 }
 type agentList struct {
 	Agents []agentItem `json:"agents"`
@@ -102,7 +105,14 @@ func (s Services) addRead(server *sdk.Server) {
 				if role.Lead {
 					continue
 				}
-				out.Agents = append(out.Agents, agentItem{Key: role.Key, Name: role.Name, Purpose: role.Purpose})
+				out.Agents = append(out.Agents, agentItem{
+					Key:         role.Key,
+					Name:        role.Name,
+					Purpose:     role.Purpose,
+					Tools:       role.Tools,
+					CanWrite:    taskapp.RoleCanWrite(role),
+					CanParallel: taskapp.CanParallel(role),
+				})
 			}
 			return out, nil
 		}))

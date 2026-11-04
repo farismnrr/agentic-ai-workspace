@@ -158,11 +158,11 @@ func (r *Runner) brief(ctx context.Context, task domain.Task, d Delegation) stri
 	return d.Brief
 }
 
-// bridgeVCSInstructions prevents restricted vendor CLI workers from attempting GitHub
+// BridgeVCSInstructions prevents restricted vendor CLI workers from attempting GitHub
 // operations through their own shell. That container deliberately has neither
 // GitHub credentials nor GitHub egress; the server-mediated git/gh tools alone
 // enforce the project's owner credentials and the teammate's role permissions.
-func bridgeVCSInstructions(tools []string) string {
+func BridgeVCSInstructions(tools []string) string {
 	gitAllowed := slices.Contains(tools, "git")
 	ghAllowed := slices.Contains(tools, "gh")
 	if !gitAllowed && !ghAllowed {
@@ -186,4 +186,8 @@ func bridgeVCSInstructions(tools []string) string {
 		"retry with the appropriate server tool, not with curl, an alternate proxy, or direct DNS. " +
 		"Keep the repository's dirty-worktree and non-force-push safety rules.\n")
 	return out.String()
+}
+
+func bridgeVCSInstructions(tools []string) string {
+	return BridgeVCSInstructions(tools)
 }

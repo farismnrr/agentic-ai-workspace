@@ -80,23 +80,13 @@ func (s *Service) DelegateExternal(ctx context.Context, userID string, in Extern
 	if in.AgentKey == "" || strings.TrimSpace(in.Brief) == "" || len(in.RequestKey) < 8 || len(in.RequestKey) > 128 {
 		return ExternalAgentJob{}, domain.ErrBadRequest
 	}
-	task, err := s.externalOwned(ctx, userID, in.TaskID)
-	if err != nil {
-		return ExternalAgentJob{}, err
-	}
-	if task.Status == domain.StatusDone || task.Status == domain.StatusFailed {
-		return ExternalAgentJob{}, refusal("TASK_NOT_ACTIVE", "This task has ended. Start a new task to assign more work.")
-	}
-	sum := sha256.Sum256([]byte(task.ID + "\x00" + in.RequestKey))
+	sum := sha256.Sum256([]byte(in.TaskID + "\x00" + in.RequestKey))
 	jobID := "external-" + hex.EncodeToString(sum[:16])
 	s.externalMu.Lock()
 	defer s.externalMu.Unlock()
-	task, err = s.externalOwned(ctx, userID, in.TaskID)
+	task, err := s.externalOwned(ctx, userID, in.TaskID)
 	if err != nil {
 		return ExternalAgentJob{}, err
-	}
-	if task.Status == domain.StatusDone || task.Status == domain.StatusFailed {
-		return ExternalAgentJob{}, refusal("TASK_NOT_ACTIVE", "This task has ended. Start a new task to assign more work.")
 	}
 	r := s.externalRunner
 	if r == nil || r.deps.Delegations == nil {
@@ -163,25 +153,6 @@ func (s *Service) launchExternal(r *Runner, task domain.Task, state *runState, c
 			_ = r.deps.Delegations.SetDelegationStatus(context.Background(), task.ID, d.ID, "cancelled")
 		}
 	}()
-}
-
-func externalWorkerRunner(r *Runner) *Runner {
-	worker := *r
-	worker.externalFacts = true
-	worker.externalWorker = true
-	worker.deps.Tools = cancellationAwareTools{ToolSet: r.deps.Tools}
-	return &worker
-}
-
-type cancellationAwareTools struct {
-	ToolSet
-}
-
-func (t cancellationAwareTools) Execute(ctx context.Context, scope ToolScope, call Call) ToolResult {
-	if err := ctx.Err(); err != nil {
-		return ToolResult{Output: err.Error(), IsError: true}
-	}
-	return t.ToolSet.Execute(ctx, scope, call)
 }
 
 func (s *Service) resumeExternal(r *Runner, task domain.Task, in ExternalAgentInput, jobID string, d Delegation) {

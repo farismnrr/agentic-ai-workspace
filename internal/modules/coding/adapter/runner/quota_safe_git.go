@@ -68,3 +68,11 @@ func quotaSafeGit(ctx context.Context, task domain.Task) bool {
 	return task.Name == "gh" && len(args) == 3 &&
 		args[0] == "gh" && args[1] == "auth" && args[2] == "status"
 }
+
+func QuotaSafeGit(ctx context.Context, task domain.Task) bool {
+	return quotaSafeGit(ctx, task)
+}
+
+func ReadOnlyCheck(ctx context.Context, task domain.Task) bool {
+	return readOnlyCheck(ctx, task)
+}

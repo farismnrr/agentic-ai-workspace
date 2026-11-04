@@ -39,6 +39,7 @@ type stopInput struct {
 type completeInput struct {
 	TaskID  string `json:"task_id"`
 	Summary string `json:"summary"`
+	Outcome string `json:"outcome,omitempty"`
 }
 type doneOutput struct {
 	Status string `json:"status"`
@@ -92,9 +93,14 @@ func (s Services) addWrite(server *sdk.Server) {
 			err := s.Tasks.StopExternalLeadTask(ctx, user, in.TaskID)
 			return doneOutput{Status: "stopped"}, err
 		}))
+	sdk.AddTool(server, tool("continue_task"), secured(s, "continue_task", domain.ScopeTasks,
+		func(ctx context.Context, user, _ string, in stopInput) (doneOutput, error) {
+			err := s.Tasks.ContinueExternalLeadTask(ctx, user, in.TaskID)
+			return doneOutput{Status: "working"}, err
+		}))
 	sdk.AddTool(server, tool("complete_task"), secured(s, "complete_task", domain.ScopeTasks,
 		func(ctx context.Context, user, _ string, in completeInput) (doneOutput, error) {
-			err := s.Tasks.CompleteExternalLeadTask(ctx, user, in.TaskID, in.Summary)
+			err := s.Tasks.CompleteExternalLeadTask(ctx, user, in.TaskID, in.Summary, in.Outcome)
 			return doneOutput{Status: "done"}, err
 		}))
 	sdk.AddTool(server, tool("update_task_plan"), secured(s, "update_task_plan", domain.ScopeTasks,

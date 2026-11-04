@@ -19,7 +19,7 @@ oauth_code_token "$jar" 'openid email coding:read coding:write' "$resource"
 assert_status "$HTTP_STATUS" 200 'issue MCP token'
 WORK_TOKEN=$(jq -r '.access_token' "$HTTP_BODY_FILE")
 
-work_begin "MCP Research and Plan Workflow"
+work_begin "MCP Research and Plan Workflow" researcher
 test_work=$WORK_ID
 test_task=$TASK_ID
 
@@ -59,6 +59,8 @@ assert_status "$HTTP_STATUS" 200 'finish_research succeeds'
 assert_json '.result.structuredContent.ready == true' 'finish_research marks ready'
 
 # 5. Test save_requirements
+work_tool set_role "$(jq -cn --arg id "$test_work" '{work_id:$id,role:"planner"}')"
+assert_status "$HTTP_STATUS" 200 'switch role to planner'
 work_tool save_requirements "$(jq -cn --arg id "$test_work" \
   '{work_id:$id,markdown:"# Requirements Document\n1. Swift-by-default mode.\n2. Deep review capability.\n3. Explicit human-authorized release."}')"
 assert_status "$HTTP_STATUS" 200 'save_requirements succeeds'

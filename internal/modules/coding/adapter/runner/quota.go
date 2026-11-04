@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -46,15 +47,30 @@ func watchSize(ctx context.Context, dir string, limit int64, stop func()) *atomi
 }
 
 // sizeOver reports whether the regular files under dir add up to more than limit,
-// stopping the walk as soon as they do.
+// stopping the walk as soon as they do. Transient build and preview run outputs
+// are excluded so they do not block routine project and Git commands.
 func sizeOver(dir string, limit int64) bool {
 	var total int64
 
 	errOver := fs.ErrClosed // any sentinel that ends the walk early
 
-	err := filepath.WalkDir(dir, func(_ string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil || !entry.Type().IsRegular() {
-			return nil //nolint:nilerr // files that vanish while walking do not count
+	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return nil
+		}
+		if entry.IsDir() {
+			rel, relErr := filepath.Rel(dir, path)
+			if relErr == nil && rel != "." {
+				base := filepath.Base(path)
+				if strings.HasPrefix(base, ".build-output-") || strings.HasPrefix(base, ".artifact-output-") ||
+					rel == "data/preview-runs" || rel == ".atja-runtime" || strings.HasPrefix(base, ".playwright") {
+					return filepath.SkipDir
+				}
+			}
+			return nil
+		}
+		if !entry.Type().IsRegular() {
+			return nil // files that vanish while walking do not count
 		}
 
 		if info, infoErr := entry.Info(); infoErr == nil {

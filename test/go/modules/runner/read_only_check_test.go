@@ -1,9 +1,10 @@
-package runner
+package runner_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/runner"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
@@ -26,7 +27,7 @@ func TestReadOnlyCheckRequiresServerEnforcedNonWritableCommand(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := readOnlyCheck(tc.ctx, domain.Task{Kind: tc.kind})
+			got := runner.ReadOnlyCheck(tc.ctx, domain.Task{Kind: tc.kind})
 			if got != tc.want {
 				t.Fatalf("readOnlyCheck(kind=%q) = %v, want %v", tc.kind, got, tc.want)
 			}

@@ -6,9 +6,9 @@ work_tool() {
 }
 
 work_begin() {
-  local summary=$1
-  work_tool begin_work "$(jq -cn --arg summary "$summary" \
-    '{summary:$summary,role:"developer",new_task:true}')"
+  local summary=$1 role=${2:-developer}
+  work_tool begin_work "$(jq -cn --arg summary "$summary" --arg role "$role" \
+    '{summary:$summary,role:$role,new_task:true}')"
   assert_status "$HTTP_STATUS" 200 "begin work: $summary"
   WORK_RESULT=$(jq -c '.result.structuredContent // (.result.content[0].text | fromjson)' "$HTTP_BODY_FILE")
   WORK_ID=$(jq -r '.work_id' <<<"$WORK_RESULT")

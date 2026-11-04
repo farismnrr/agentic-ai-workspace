@@ -230,6 +230,7 @@ func TestExternalWorkerReportSeparatesCommandSuccessFromProof(t *testing.T) {
 	}
 	project := apptest.Do(t, env.App, "POST", "/api/projects",
 		`{"name":"Command evidence"}`, apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	apptest.Do(t, env.App, "PUT", "/api/spaces/coding/approvals", `{"skip":true}`, apptest.JSONCookie(cookie))
 	apptest.EnableTool(t, env.App, cookie, "run_command")
 	token := orchestratorToken(t, env.App, cookie, client)
 	for _, name := range []string{"create_task", "delegate_agent", "update_task_plan"} {
@@ -240,7 +241,7 @@ func TestExternalWorkerReportSeparatesCommandSuccessFromProof(t *testing.T) {
 	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
 		`{"task_id":"`+task+`","steps":[{"id":"check","title":"Check evidence","state":"active"}]}`))
 	job := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent",
-		`{"task_id":"`+task+`","agent_key":"developer","brief":"Run echo harmless and report the result",`+
+		`{"task_id":"`+task+`","agent_key":"devops","brief":"Run echo harmless and report the result",`+
 			`"idempotency_key":"evidence-worker-12345"}`))
 	jobID := job["job_id"].(string)
 	var report string

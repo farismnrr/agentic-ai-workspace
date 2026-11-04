@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -23,7 +24,7 @@ func (s *Service) externalParallelCheck(ctx context.Context, r *Runner, task dom
 		}
 		count++
 		if count >= 4 {
-			return errors.New("too many concurrent jobs on this task")
+			return refusal("CONCURRENCY_LIMIT", "Too many concurrent jobs (max 4 concurrent workers allowed). Wait for active workers to complete or cancel one.")
 		}
 		id := strings.TrimPrefix(key, task.ID+"/")
 		existing, found, err := r.deps.Delegations.FindDelegation(ctx, task.ID, id)
@@ -40,10 +41,10 @@ func (s *Service) externalParallelCheck(ctx context.Context, r *Runner, task dom
 		if roleCanWrite(role) && roleCanWrite(desired) {
 			// Persisted delegation records do not store separate write scopes;
 			// serialize write-capable jobs until a durable scope model exists.
-			return errors.New("another file-changing worker is active; finish or cancel it first")
+			return refusal("MUTATING_WORKER_ACTIVE", fmt.Sprintf("Worker %q (%s) is actively modifying files. Mutating workers cannot run in parallel; finish or cancel job %s first.", role.Name, role.Key, id))
 		}
 		if !canParallel(role) || !canParallel(desired) {
-			return errors.New("this worker must run on its own")
+			return refusal("SOLO_WORKER_ACTIVE", fmt.Sprintf("Worker %q (%s) requires exclusive execution. Wait for job %s to finish or cancel it first.", role.Name, role.Key, id))
 		}
 	}
 	return nil

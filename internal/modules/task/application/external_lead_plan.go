@@ -39,8 +39,21 @@ func (s *Service) UpdateExternalPlan(ctx context.Context, userID, taskID string,
 	if err := s.deps.Tasks.SavePlan(ctx, task.ID, steps, s.now()); err != nil {
 		return err
 	}
+	isProgress := len(task.Plan) > 0 && len(task.Plan) == len(steps)
+	if isProgress {
+		for i := range task.Plan {
+			if task.Plan[i].ID != steps[i].ID || task.Plan[i].Title != steps[i].Title {
+				isProgress = false
+				break
+			}
+		}
+	}
+	text := "External orchestrator updated the plan"
+	if isProgress {
+		text = "External orchestrator updated step progress"
+	}
 	_, err = s.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-		Kind: domain.EventPlan, Text: "External orchestrator updated the plan",
+		Kind: domain.EventPlan, Text: text,
 		Technical: strings.Join(lines, "\n"), Agent: task.Source, Time: s.now(),
 	})
 	return err
@@ -59,7 +72,7 @@ func (s *Service) SubmitExternalPlan(ctx context.Context, userID, taskID string)
 	if prd == 0 || len(task.Plan) == 0 {
 		return ExternalPlanApproval{}, domain.ErrWrongState
 	}
-	prd = max(prd, lastSeq(events, domain.EventPlan))
+	prd = max(prd, lastPlanRevisionSeq(events))
 	if approvedAfter(events, task.Source, prd) {
 		return ExternalPlanApproval{Status: "approved"}, nil
 	}
@@ -102,7 +115,7 @@ func (s *Service) ExternalApproval(ctx context.Context, userID, taskID string) (
 	if prd == 0 {
 		return ExternalPlanApproval{Status: "not-required-yet"}, nil
 	}
-	prd = max(prd, lastSeq(events, domain.EventPlan))
+	prd = max(prd, lastPlanRevisionSeq(events))
 	if approvedAfter(events, task.Source, prd) {
 		return ExternalPlanApproval{Status: "approved"}, nil
 	}

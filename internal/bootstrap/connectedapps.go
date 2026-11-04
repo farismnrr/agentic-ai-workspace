@@ -75,7 +75,7 @@ func (w appWorkspaces) byID(ctx context.Context, userID, id string) (projectdoma
 	}
 
 	for _, project := range all {
-		if strings.EqualFold(project.Slug, id) {
+		if strings.EqualFold(project.Slug, id) || strings.EqualFold(project.ID, id) {
 			return project, nil
 		}
 	}
@@ -110,6 +110,8 @@ func (g toolGate) Enabled(ctx context.Context, userID string) (map[string]bool, 
 		codingdomain.ToolVerify.Name,
 		codingdomain.ToolBrowserTest.Name,
 		codingdomain.ToolReadBrowserScreenshot.Name,
+		codingdomain.ToolGit.Name, codingdomain.ToolGh.Name, codingdomain.ToolRunBuild.Name,
+		codingdomain.ToolRunArtifact.Name, codingdomain.ToolMarimoExecute.Name,
 		codingdomain.ToolBeginWork.Name, codingdomain.ToolSetRole.Name, codingdomain.ToolUpdatePlan.Name,
 		codingdomain.ToolSaveResearch.Name, codingdomain.ToolSaveRequirements.Name,
 		codingdomain.ToolReportProgress.Name, codingdomain.ToolCompleteWork.Name, codingdomain.ToolGetWorkState.Name,

@@ -23,17 +23,23 @@ var siteToolNames = []string{
 	"list_files", "find_files", "read_file", "search_code", "list_tasks", "view_image",
 	"edit_file", "write_file", "delete_file", "move_file",
 	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
-	"screenshot", toolRequestEgress, "ci_logs",
+	"screenshot", "screenshot_session", toolRequestEgress, "ci_logs", "docker_host_status",
 	"run_task", "verify", "browser_test", "read_browser_screenshot", "run_build", "run_artifact", "git", "gh",
+	"marimo_execute", "molab_execute", "ask_user",
 	// DevOps may use this only when the server's role gate AND the owner tool
 	// switch authorize it. It remains a medium-risk approval-gated sandbox
 	// action; Developer's role intentionally never receives run_command.
 	"run_command",
 }
 
-// siteSession serves site, Git and GitHub tools to a teammate's program. Each call goes through the same code as a call of the
+// SiteToolNames returns a copy of the mediated site and project tool names.
+func SiteToolNames() []string {
+	return append([]string(nil), siteToolNames...)
+}
+
+// SiteSession serves site, Git and GitHub tools to a teammate's program. Each call goes through the same code as a call of the
 // app's own loop (the Security check, the person's approval, the link in the thread).
-type siteSession struct {
+type SiteSession struct {
 	inline  *Runner
 	state   *runState
 	results *capturedResults
@@ -43,6 +49,19 @@ type siteSession struct {
 	task    domain.Task
 	role    AgentRole
 	mu      sync.Mutex
+}
+
+type siteSession = SiteSession
+
+// NewSiteSessionForTest creates a minimal SiteSession for testing tool bridge checks.
+func NewSiteSessionForTest(tools []CLITool) *SiteSession {
+	return &SiteSession{tools: tools}
+}
+
+// BridgedTools uses the same role-filtered, owner-switch-filtered names
+// for actual MCP registration as the prompt advertises.
+func BridgedTools(defs []domain.ToolDef, enabled []string) []CLITool {
+	return bridgedTools(defs, enabled)
 }
 
 // bridgedTools uses the same role-filtered, owner-switch-filtered names
@@ -133,6 +152,11 @@ func (s *siteSession) call(ctx context.Context, name string, input json.RawMessa
 	}
 
 	return result
+}
+
+// Call answers one call of the program from an external caller or test.
+func (s *SiteSession) Call(ctx context.Context, name string, input json.RawMessage) CLIToolResult {
+	return s.call(ctx, name, input)
 }
 
 // stoppedOutcome is the outcome that ends the job early, when a call asked for it.

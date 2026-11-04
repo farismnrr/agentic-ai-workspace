@@ -50,7 +50,7 @@ type BrowserRuntime interface {
 
 // BrowserForAgent uses only the current task's cookie jar and running project Site.
 func (s *Service) BrowserForAgent(
-	ctx context.Context, userID, projectID, taskID string, actions []BrowserAction,
+	ctx context.Context, userID, projectID, taskID string, actions []BrowserAction, mobile ...bool,
 ) (BrowserReport, error) {
 	if err := validateBrowserActions(actions); err != nil {
 		return BrowserReport{}, err
@@ -65,7 +65,10 @@ func (s *Service) BrowserForAgent(
 	}
 	var report BrowserReport
 	err = s.withAgentSession(ctx, site, userID, projectID, taskID, func(opCtx context.Context, jar http.CookieJar) error {
-		request := CaptureRequest{ProjectID: projectID, Port: site.Port, Prefix: site.BasePath()}
+		request := CaptureRequest{
+			ProjectID: projectID, Port: site.Port, Prefix: site.BasePath(),
+			Spec: domain.CaptureSpec{Mobile: len(mobile) > 0 && mobile[0]},
+		}
 		if s.deps.View != nil {
 			view, closeView, openErr := s.deps.View.Open(
 				opCtx, s.deps.Runtime.Socket(projectID), site.BasePath(), site.BasePath(), jar,
@@ -124,12 +127,25 @@ func validateBrowserActions(actions []BrowserAction) error {
 				(action.Action == "click" && action.Value != "") {
 				return domain.ErrBadBrowserInput
 			}
-		case "assert":
-			if !validLocator(action.LocatorType, action.Locator) ||
-				(action.Check != "visible" && action.Check != "text") ||
-				(action.Check == "text" && action.Value == "") ||
-				(action.Check == "visible" && action.Value != "") || action.Path != "" {
+		case "submit", "wait":
+			if action.Path != "" || action.Check != "" || action.Value != "" {
 				return domain.ErrBadBrowserInput
+			}
+			if action.Locator != "" && !validLocator(action.LocatorType, action.Locator) {
+				return domain.ErrBadBrowserInput
+			}
+		case "assert":
+			if action.Check == "url" || action.Check == "title" {
+				if action.Value == "" || action.Path != "" || action.Locator != "" {
+					return domain.ErrBadBrowserInput
+				}
+			} else {
+				if !validLocator(action.LocatorType, action.Locator) || action.Path != "" ||
+					(action.Check != "visible" && action.Check != "text" && action.Check != "value") ||
+					((action.Check == "text" || action.Check == "value") && action.Value == "") ||
+					(action.Check == "visible" && action.Value != "") {
+					return domain.ErrBadBrowserInput
+				}
 			}
 		case "screenshot":
 			if action.Path != "" || action.Locator != "" || action.Value != "" || action.Check != "" {
@@ -140,30 +156,6 @@ func validateBrowserActions(actions []BrowserAction) error {
 		}
 	}
 	return nil
-}
-
-func validRelativeSitePath(path string) bool {
-	if strings.HasPrefix(path, "/") || strings.ContainsAny(path, "\\?#%") || strings.Contains(path, ":") {
-		return false
-	}
-	for _, part := range strings.Split(path, "/") {
-		if part == ".." || part == "." {
-			return false
-		}
-	}
-	return true
-}
-
-func validLocator(kind, value string) bool {
-	if value == "" || kind == "" {
-		return false
-	}
-	switch kind {
-	case "css", "text", "label", "placeholder", "role", "testid":
-		return true
-	default:
-		return false
-	}
 }
 
 func parseBrowserReport(output string) (BrowserReport, error) {

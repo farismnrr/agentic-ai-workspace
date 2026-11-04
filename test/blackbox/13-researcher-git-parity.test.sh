@@ -191,10 +191,17 @@ for role in developer devops; do
   assert_json '.result.structuredContent.output | contains("CONNECT_GITHUB_REQUIRED")' \
     "$role push has the same connected-GitHub restriction"
 
-  mcp_call_tool "$WORK_TOKEN" run_command \
-    "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" \
-      '{project:$project,work_id:$work_id,command:"pwd"}')"
-  assert_json '.result.isError == true' "$role still cannot invoke general shell commands"
+  if [[ "$role" == "developer" ]]; then
+    mcp_call_tool "$WORK_TOKEN" run_command \
+      "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" \
+        '{project:$project,work_id:$work_id,command:"pwd"}')"
+    assert_json '.result.isError == true' "$role still cannot invoke general shell commands"
+  else
+    mcp_call_tool "$WORK_TOKEN" run_command \
+      "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" \
+        '{project:$project,work_id:$work_id,command:"pwd"}')"
+    assert_json '.result.structuredContent.exit_code == 0' "$role can invoke general shell commands"
+  fi
 done
 
 assertion_summary

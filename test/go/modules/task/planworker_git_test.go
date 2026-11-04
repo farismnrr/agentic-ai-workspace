@@ -1,8 +1,10 @@
-package application
+package task_test
 
 import (
 	"strings"
 	"testing"
+
+	taskapp "github.com/farismnrr/agentic-ai-workspace/internal/modules/task/application"
 )
 
 func TestBridgeVCSInstructionsAreScopedToServerAuthorizedTools(t *testing.T) {
@@ -15,12 +17,12 @@ func TestBridgeVCSInstructionsAreScopedToServerAuthorizedTools(t *testing.T) {
 		{name: "no vcs tools", tools: []string{"list_files"}, wantNone: []string{"GitHub access", "git with args", "gh with an args"}},
 		{
 			name: "researcher git only", tools: []string{"git", "read_file"},
-			want: []string{"ONLY through the team's server tools", "server tool named git", "CONNECT_GITHUB_REQUIRED", "HTTP proxy 403", "non-force-push"},
+			want:     []string{"ONLY through the team's server tools", "server tool named git", "CONNECT_GITHUB_REQUIRED", "HTTP proxy 403", "non-force-push"},
 			wantNone: []string{"server tool named gh"},
 		},
 		{
 			name: "qa gh only", tools: []string{"gh", "verify"},
-			want: []string{"server tool named gh", "no GitHub token", "not with curl"},
+			want:     []string{"server tool named gh", "no GitHub token", "not with curl"},
 			wantNone: []string{"server tool named git"},
 		},
 		{
@@ -30,7 +32,7 @@ func TestBridgeVCSInstructionsAreScopedToServerAuthorizedTools(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := bridgeVCSInstructions(tc.tools)
+			got := taskapp.BridgeVCSInstructions(tc.tools)
 			for _, want := range tc.want {
 				if !strings.Contains(got, want) {
 					t.Errorf("bridge instructions missing %q", want)

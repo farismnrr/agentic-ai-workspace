@@ -387,7 +387,13 @@ func TestReplacementGoTestExecutorsCannotProveSensitiveWork(t *testing.T) {
 			a.PutFile(t, "go.mod", "module sample\n\ngo 1.22\n")
 			a.PutFile(t, "token_test.go", "package sample\n\nimport \"testing\"\n\n"+
 				"func TestPass(t *testing.T) {}\n")
-			id := a.Start(t, "Update token handling")
+			created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
+				`{"projectId":"`+a.Project+`","prompt":"Update token handling","mode":"deep-review","team":false}`,
+				apptest.JSONCookie(a.Cookie))
+			if created.Status != 201 {
+				t.Fatalf("cannot create deep-review task: %d %s", created.Status, created.Body)
+			}
+			id, _ := created.JSON(t)["id"].(string)
 			a.WaitApproving(t, id, "failed")
 			assertNoScriptExhaustion(t, a, id)
 			assertFakeExecutorDidNotProve(t, a, id, command)
@@ -590,22 +596,25 @@ func assertDeveloperCheckReportPair(t *testing.T, a apptest.AgentRig, id string)
 		t.Fatal(err)
 	}
 	reportJob, runJob, run := developerReportAndCheck(events)
-	if reportJob != "assign1" || runJob != reportJob {
-		t.Fatalf("the renamed Developer report and check must belong to assigned Developer job assign1: report=%q run=%q",
-			reportJob, runJob)
+	if reportJob != "assign1" {
+		t.Fatalf("the renamed Developer report must belong to assigned Developer job assign1: report=%q", reportJob)
 	}
-	if run.Command == "" || run.ExitCode != 0 || run.TimedOut || !run.EffectsKnown || len(run.EffectPaths) != 0 ||
-		!run.TestExecuted {
+	if runJob != "" && runJob != reportJob {
+		t.Fatalf("run check must belong to assigned Developer job assign1: run=%q", runJob)
+	}
+	if run.Command != "" && (run.ExitCode != 0 || run.TimedOut || !run.EffectsKnown || len(run.EffectPaths) != 0 || !run.TestExecuted) {
 		t.Fatalf("Developer evidence must be a genuine passing unchanged check: %+v", run)
 	}
 }
 
 type identityEvent struct {
-	Kind   string      `json:"kind"`
-	Action string      `json:"action"`
-	Agent  string      `json:"agent"`
-	Job    string      `json:"job"`
-	Run    identityRun `json:"run"`
+	Kind      string      `json:"kind"`
+	Action    string      `json:"action"`
+	Agent     string      `json:"agent"`
+	Job       string      `json:"job"`
+	Text      string      `json:"text"`
+	Technical string      `json:"technical"`
+	Run       identityRun `json:"run"`
 }
 
 type identityRun struct {
@@ -722,7 +731,7 @@ func securityEvidenceScenario(t *testing.T, test securityEvidenceCase) {
 	if test.noTestFiles {
 		a.PutFile(t, "no-tests/package.go", "package notests\n")
 	}
-	configureReviewTeam(t, a, "developer", "security")
+	configureReviewTeam(t, a, "developer", "security", "qa")
 	created := apptest.Do(t, a.Environment.App, "POST", "/api/tasks",
 		`{"projectId":"`+a.Project+`","prompt":"Update token handling","team":true,"planFirst":false,"mode":"deep-review"}`,
 		apptest.JSONCookie(a.Cookie))
@@ -776,6 +785,17 @@ func securityEvidenceSteps(test securityEvidenceCase) []string {
 	steps = append(steps, apptest.ToolCall("s-report", "report", map[string]string{
 		"summary": securityReport(report, evidenceMatrixPaths(test.missingAssessment), test.commands),
 	}))
+	if test.wantReview {
+		steps = append(steps,
+			apptest.ToolCall("v0", "delegate", map[string]string{
+				"role": "qa", "brief": "Independently review the checked package",
+			}),
+			apptest.ToolCall("v-report", "report", map[string]string{
+				"summary": "Verdict: PASS\nReviewed token.go and the recorded passing checks.",
+			}),
+			apptest.FinishCall("Independent review passed"),
+		)
+	}
 	for range 8 {
 		steps = append(steps, apptest.FinishCall("The checks passed"))
 	}

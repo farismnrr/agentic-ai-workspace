@@ -3,9 +3,12 @@
   import EmptyState from '../../../../shared/ui/EmptyState.svelte';
   import Icon from '../../../../shared/ui/Icon.svelte';
   import ConfirmModal from '../../components/ConfirmModal.svelte';
-  import FormField from '../../components/FormField.svelte';
   import SettingsSection from '../../settings/parts/SettingsSection.svelte';
-  import { deleteVariable, listVariables, saveVariable, getDatabase, revealVariable, type EnvVariable } from './env-api';
+  import RevealSecretModal from './RevealSecretModal.svelte';
+  import VariableForm from './VariableForm.svelte';
+  import VariableRow from './VariableRow.svelte';
+  import { createRevealState } from './env-reveal.svelte';
+  import { deleteVariable, listVariables, saveVariable, getDatabase, type EnvVariable } from './env-api';
   import { formatUpdatedAt, normalizeVariableName, variableErrorMessage, variableValue } from './env-logic';
 
   interface Props { projectId: string; revision: number }
@@ -21,22 +24,15 @@
   let busy = $state(false);
   let loading = $state(true);
   let loadFailed = $state(false);
-  let valueInput = $state<HTMLInputElement>();
+  let variableForm = $state<ReturnType<typeof VariableForm>>();
   let pending = $state<{ kind: 'replace' | 'delete'; item: EnvVariable }>();
-  let revealTarget = $state<EnvVariable>();
-  let revealPassword = $state('');
-  let revealed = $state<{ name: string; value: string }>();
-  let revealMessage = $state('');
-  let revealing = $state(false);
-  let revealInput = $state<HTMLInputElement>();
-  let revealTimer: ReturnType<typeof setTimeout> | undefined;
-  let revealRequest = 0;
+  const reveal = createRevealState(() => projectId);
 
   $effect(() => {
     const activeProjectID = projectId;
     untrack(() => {
       void activeProjectID;
-      closeReveal();
+      reveal.closeReveal();
     });
   });
 
@@ -44,59 +40,13 @@
     if (projectId !== '' && revision >= 0) reload().catch(() => undefined);
   });
 
-  function clearSecret(): void {
-    if (revealTimer !== undefined) clearTimeout(revealTimer);
-    revealTimer = undefined;
-    revealed = undefined;
-  }
-
-  function closeReveal(): void {
-    revealRequest += 1;
-    revealing = false;
-    revealTarget = undefined;
-    revealPassword = '';
-    revealMessage = '';
-    clearSecret();
-  }
-
-  async function beginReveal(item: EnvVariable): Promise<void> {
-    closeReveal();
-    revealTarget = item;
-    await tick();
-    revealInput?.focus();
-  }
-
-  async function submitReveal(): Promise<void> {
-    if (revealTarget === undefined || revealPassword === '' || revealing) return;
-    const requestID = ++revealRequest;
-    const requestProjectID = projectId;
-    const { name: selectedName } = revealTarget;
-    const password = revealPassword;
-    revealPassword = '';
-    revealMessage = '';
-    clearSecret();
-    revealing = true;
-    try {
-      const result = await revealVariable(requestProjectID, selectedName, password);
-      if (requestID !== revealRequest || projectId !== requestProjectID) return;
-      revealed = result;
-      revealTarget = undefined;
-      revealMessage = 'Secret revealed. It will be hidden automatically in 20 seconds.';
-      revealTimer = setTimeout(clearSecret, 20_000);
-    } catch {
-      if (requestID === revealRequest) revealMessage = 'Could not verify your password or reveal this secret.';
-    } finally {
-      if (requestID === revealRequest) revealing = false;
-    }
-  }
-
   function onVisibilityChange(): void {
-    if (document.hidden) closeReveal();
+    if (document.hidden) reveal.closeReveal();
   }
 
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibilityChange);
   onDestroy(() => {
-    closeReveal();
+    reveal.closeReveal();
     if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibilityChange);
   });
 
@@ -123,7 +73,7 @@
     message = 'Enter a new value. The saved value cannot be viewed.';
     error = false;
     await tick();
-    valueInput?.focus();
+    variableForm?.focusValue();
   }
 
   async function submit(): Promise<void> {
@@ -170,89 +120,45 @@
   {:else}
     <ul class="divide-y divide-[var(--brand-border)]">
       {#each variables as item (item.name)}
-        <li class="flex flex-wrap items-center gap-3 py-3">
-          <div class="min-w-0 flex-1">
-            <p class="font-mono text-sm font-medium">{item.name}</p>
-            <p class="break-all text-sm text-[var(--brand-text-secondary)]">
-              {#if revealed?.name === item.name}{revealed.value}{:else}{variableValue(item)}{/if}
-            </p>
-            {#if item.name === managedName}<p class="mt-1 text-xs text-[var(--brand-text-secondary)]">Managed in the Database section.</p>{/if}
-          </div>
-          <div class="flex items-center gap-2 text-xs text-[var(--brand-text-secondary)]">
-            {#if item.isSecret}<span class="badge badge-outline badge-sm">Secret</span>{/if}
-            <time datetime={item.updatedAt}>{formatUpdatedAt(item.updatedAt)}</time>
-          </div>
-          {#if item.name !== managedName}
-            {#if item.isSecret}
-              <button class="btn btn-ghost btn-sm" type="button" aria-label="Reveal secret {item.name}" onclick={() => void beginReveal(item)}>
-                <Icon name="eye" class="size-4" />Reveal
-              </button>
-            {/if}
-            <button class="btn btn-ghost btn-sm" type="button" aria-label="Replace {item.name}" onclick={() => void beginReplace(item)}>
-              <Icon name="pencil" class="size-4" />Replace
-            </button>
-            <button class="btn btn-ghost btn-sm text-error" type="button" aria-label="Delete {item.name}" onclick={() => (pending = { kind: 'delete', item })}>
-              <Icon name="trash" class="size-4" />Delete
-            </button>
-          {/if}
-        </li>
+        <VariableRow
+          {item}
+          {managedName}
+          revealed={reveal.revealed}
+          onreveal={(target) => reveal.beginReveal(target)}
+          onreplace={(target) => void beginReplace(target)}
+          ondelete={(target) => (pending = { kind: 'delete', item: target })}
+        />
       {/each}
     </ul>
   {/if}
-  {#if !loading && !loadFailed}<form class="grid gap-3 py-4" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <FormField id="variable-name" label="Name" hint="Uppercase letters, numbers and underscores.">
-        {#snippet children({ describedby, invalid })}
-          <input id="variable-name" class="input input-sm w-full font-mono uppercase" value={name} readonly={editing}
-          oninput={(event) => (name = normalizeVariableName(event.currentTarget.value))}
-          placeholder="SERVICE_TOKEN" required maxlength="64" pattern="[A-Za-z_][A-Za-z0-9_]*" autocomplete="off" aria-describedby={describedby} aria-invalid={invalid} />
-        {/snippet}
-      </FormField>
-      <FormField id="variable-value" label="Value">
-        {#snippet children({ describedby, invalid })}
-          <input id="variable-value" bind:this={valueInput} class="input input-sm w-full" type="password" bind:value required
-            maxlength="4096" autocomplete="new-password" placeholder="Enter value" aria-describedby={describedby} aria-invalid={invalid} />
-        {/snippet}
-      </FormField>
-    </div>
-    <label class="flex w-fit items-center gap-2 text-sm"><input class="checkbox checkbox-sm" type="checkbox" bind:checked={isSecret} />Secret</label>
-    <div class="flex flex-wrap items-center gap-3">
-      <button class="btn btn-primary btn-sm" type="submit" disabled={busy}>
-        {editing ? 'Save replacement' : 'Add variable'}
-      </button>
-      {#if editing}<button class="btn btn-ghost btn-sm" type="button" onclick={() => { editing = false; name = ''; value = ''; }}>Cancel</button>{/if}
-    </div>
-    <div class="min-h-6" aria-live="polite">
-      {#if message !== ''}<p class="text-xs {error ? 'text-error' : 'text-[var(--brand-text-secondary)]'}" role={error ? 'alert' : 'status'}>{message}</p>{/if}
-    </div>
-  </form>{/if}
+  {#if !loading && !loadFailed}
+    <VariableForm
+      bind:this={variableForm}
+      bind:name
+      bind:value
+      bind:isSecret
+      bind:editing
+      {busy}
+      {message}
+      {error}
+      onsubmit={() => void submit()}
+      oncancel={() => { editing = false; name = ''; value = ''; }}
+    />
+  {/if}
 </SettingsSection>
 
-{#if revealTarget !== undefined}
-  <dialog class="modal modal-open" aria-labelledby="reveal-title" aria-modal="true" open>
-    <div class="modal-box max-w-md">
-      <h2 id="reveal-title" class="text-lg font-semibold">Reveal {revealTarget.name}</h2>
-      <p class="mt-2 text-sm text-[var(--brand-text-secondary)]">Enter your account password to view this saved secret.</p>
-      <form class="mt-4 grid gap-4" onsubmit={(event) => { event.preventDefault(); void submitReveal(); }}>
-        <label class="form-control gap-1" for="reveal-password">
-          <span class="label-text">Current account password</span>
-          <input bind:this={revealInput} id="reveal-password" class="input input-bordered w-full" type="password"
-            bind:value={revealPassword} autocomplete="current-password" required />
-        </label>
-        {#if revealMessage}<p class="text-sm text-error" role="alert">{revealMessage}</p>{/if}
-        <div class="modal-action">
-          <button class="btn btn-ghost" type="button" onclick={closeReveal}>Cancel</button>
-          <button class="btn btn-primary" type="submit" disabled={revealing || revealPassword === ''}>
-            {revealing ? 'Checking…' : 'Reveal'}
-          </button>
-        </div>
-      </form>
-    </div>
-    <button class="modal-backdrop" type="button" aria-label="Close reveal dialog" onclick={closeReveal}></button>
-  </dialog>
+{#if reveal.target !== undefined}
+  <RevealSecretModal
+    target={reveal.target}
+    bind:password={reveal.password}
+    message={reveal.message}
+    revealing={reveal.revealing}
+    oncancel={reveal.closeReveal}
+    onsubmit={() => void reveal.submitReveal()}
+  />
 {/if}
-{#if revealed}
-  <div class="sr-only" role="status" aria-live="polite">Secret {revealed.name} is visible for up to 20 seconds.</div>
+{#if reveal.revealed}
+  <div class="sr-only" role="status" aria-live="polite">Secret {reveal.revealed.name} is visible for up to 20 seconds.</div>
 {/if}
 
 <ConfirmModal

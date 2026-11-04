@@ -50,8 +50,8 @@ func (s *Service) CreateExternalLeadTask(ctx context.Context, userID, client, pr
 	return task, nil
 }
 
-// CompleteExternalLeadTask closes an external-led task, not any of its internal worker tasks.
-func (s *Service) CompleteExternalLeadTask(ctx context.Context, userID, taskID, summary string) error {
+// ContinueExternalLeadTask resumes a stopped or finished external-led task.
+func (s *Service) ContinueExternalLeadTask(ctx context.Context, userID, taskID string) error {
 	task, err := s.owned(ctx, userID, taskID)
 	if err != nil {
 		return err
@@ -59,13 +59,60 @@ func (s *Service) CompleteExternalLeadTask(ctx context.Context, userID, taskID, 
 	if !strings.HasPrefix(task.Source, externalLeadSource) {
 		return domain.ErrWrongState
 	}
-	if strings.TrimSpace(summary) == "" {
+	if task.Status != domain.StatusDone && task.Status != domain.StatusFailed {
+		return domain.ErrWrongState
+	}
+	if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, s.now()); err != nil {
+		return err
+	}
+	_, err = s.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
+		Kind: domain.EventMessage, Text: "Task continued by the external lead.", Time: s.now(),
+	})
+	return err
+}
+
+// CompleteExternalLeadTask closes an external-led task, not any of its internal worker tasks.
+func (s *Service) CompleteExternalLeadTask(ctx context.Context, userID, taskID, summary string, outcome ...string) error {
+	task, err := s.owned(ctx, userID, taskID)
+	if err != nil {
+		return err
+	}
+	if !strings.HasPrefix(task.Source, externalLeadSource) {
+		return domain.ErrWrongState
+	}
+	summary = strings.TrimSpace(summary)
+	if summary == "" {
 		return domain.ErrBadRequest
+	}
+	out := ""
+	if len(outcome) > 0 {
+		out = strings.ToLower(strings.TrimSpace(outcome[0]))
+	}
+	if out == "pass" {
+		verified := false
+		if reader, ok := s.deps.Delegations.(interface {
+			ListDelegations(context.Context, string) ([]Delegation, error)
+		}); ok {
+			if delegations, err := reader.ListDelegations(ctx, taskID); err == nil {
+				for _, d := range delegations {
+					if (d.RoleKey == "qa" || d.RoleKey == "reviewer" || d.RoleKey == "devops") && d.Status == DelegationDone {
+						verified = true
+						break
+					}
+				}
+			}
+		}
+		if !verified {
+			return errors.New("cannot report PASS without completed build or QA verification; use 'partial' or 'blocked'")
+		}
+	}
+	if out != "" && !strings.HasPrefix(strings.ToLower(summary), out) && !strings.HasPrefix(strings.ToLower(summary), "["+out+"]") {
+		summary = fmt.Sprintf("[%s] %s", strings.ToUpper(out), summary)
 	}
 	s.externalMu.Lock()
 	defer s.externalMu.Unlock()
 	if s.externalActiveLocked(taskID) {
 		return errors.New("worker jobs are still active")
 	}
-	return s.deps.Tasks.CompleteExternalLead(ctx, taskID, task.Source, strings.TrimSpace(summary), s.now())
+	return s.deps.Tasks.CompleteExternalLead(ctx, taskID, task.Source, summary, s.now())
 }

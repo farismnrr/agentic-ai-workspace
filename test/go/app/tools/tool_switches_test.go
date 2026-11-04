@@ -94,14 +94,16 @@ func TestToolSwitchesStartOffForWritingAndRunning(t *testing.T) {
 	}
 
 	body := apptest.Do(t, app, "GET", "/api/spaces", "", map[string]string{"Cookie": cookie}).Body
-	if err := json.Unmarshal(body, &spaces); err != nil || len(spaces) != 1 {
-		t.Fatalf("one space expected: %v %s", err, body)
+	if err := json.Unmarshal(body, &spaces); err != nil || len(spaces) == 0 {
+		t.Fatalf("spaces expected: %v %s", err, body)
 	}
 
-	for _, tool := range spaces[0].Tools {
-		want := tool.Group == "read" && tool.Name != "approve_plan"
-		if tool.Enabled != want {
-			t.Errorf("%s (%s) enabled=%v, want %v", tool.Name, tool.Group, tool.Enabled, want)
+	for _, space := range spaces {
+		for _, tool := range space.Tools {
+			want := tool.Group == "read" && tool.Name != "approve_plan"
+			if tool.Enabled != want {
+				t.Errorf("%s (%s) enabled=%v, want %v", tool.Name, tool.Group, tool.Enabled, want)
+			}
 		}
 	}
 }

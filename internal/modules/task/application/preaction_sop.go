@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-// preActionToolSOP is generated from the actual enabled role tools, not a
+// PreActionToolSOP is generated from the actual enabled role tools, not a
 // static capabilities claim. It is sent at the start of a vendor teammate's
 // turn, before the assignment, so tool selection is deterministic rather
 // than trial-and-error. The server bridge uses the same filtered list.
-func preActionToolSOP(role string, enabled []string) string {
+func PreActionToolSOP(role string, enabled []string) string {
 	tools := slices.Clone(enabled)
 	slices.Sort(tools)
 
@@ -102,9 +102,13 @@ func preActionToolSOP(role string, enabled []string) string {
 	return out.String()
 }
 
-// preActionLeadSOP is sent before team planning/delegation: the lead never
+func preActionToolSOP(role string, enabled []string) string {
+	return PreActionToolSOP(role, enabled)
+}
+
+// PreActionLeadSOP is sent before team planning/delegation: the lead never
 // performs privileged work directly and must assign the right owner first.
-const preActionLeadSOP = "\nMANDATORY PRE-ACTION TOOL SOP for the orchestrator: " +
+const PreActionLeadSOP = "\nMANDATORY PRE-ACTION TOOL SOP for the orchestrator: " +
 	"Before delegating, decide which role owns each operation and name the exact server tool in the brief. " +
 	"Git/git push/gh goes to Developer or DevOps (Researcher only where allowed) through the server git/gh tool, " +
 	"not the teammate's shell. Browser/Playwright E2E goes to QA through browser_test; " +
@@ -118,6 +122,8 @@ const preActionLeadSOP = "\nMANDATORY PRE-ACTION TOOL SOP for the orchestrator: 
 	"If a role's tool is missing/disabled, record the exact blocker and request that permission; " +
 	"never ask the worker to bypass proxy, run shell Git, use shell Playwright or silently change roles. " +
 	"Do not create extra tasks per delegation.\n"
+
+const preActionLeadSOP = PreActionLeadSOP
 
 
 // soloPreActionSOP guides the app's own model when no limited vendor

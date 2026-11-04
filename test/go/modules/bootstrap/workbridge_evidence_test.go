@@ -1,14 +1,15 @@
-package bootstrap
+package bootstrap_test
 
 import (
 	"testing"
 
+	"github.com/farismnrr/agentic-ai-workspace/internal/bootstrap"
 	codingmcp "github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/adapter/mcp"
 )
 
 func TestExternalWorkPreservesServerRecordedCheckEvidence(t *testing.T) {
 	const command = "go test -count=1 -run TestExternalDeepReview ./test/go/app/connectors"
-	event := eventOf(codingmcp.Note{
+	event := bootstrap.EventOf(codingmcp.Note{
 		Kind: codingmcp.NoteAction,
 		Run: &codingmcp.RunNote{
 			Name: "command", Command: "bash -c " + command, ShellCommand: command,
@@ -41,7 +42,7 @@ func TestExternalWorkRejectsShellAndFakeTestEvidence(t *testing.T) {
 				ShellCommand: tc.command, Output: tc.output, Truncated: tc.truncated,
 				EffectsKnown: true,
 			}}
-			got := eventOf(note)
+			got := bootstrap.EventOf(note)
 			if got.Run == nil || got.Run.TestExecuted {
 				t.Fatalf("unsafe or unverified command counted as real executed test: %+v", got.Run)
 			}
@@ -59,7 +60,7 @@ func TestExternalWorkRetainsFailureAndChangedPaths(t *testing.T) {
 		EffectsKnown: true, EffectPaths: []string{"internal/example.go"},
 		Output: "FAIL\n",
 	}}
-	got := eventOf(note)
+	got := bootstrap.EventOf(note)
 	if got.Run == nil || got.Run.ExitCode != 1 || got.Run.TestExecuted ||
 		len(got.Run.EffectPaths) != 1 || got.Run.EffectPaths[0] != "internal/example.go" {
 		t.Fatalf("failure and file effects were lost: %+v", got.Run)

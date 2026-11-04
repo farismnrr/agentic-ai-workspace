@@ -44,7 +44,7 @@ func (s *Store) ApproveExternalPlanEvent(
 		return fmt.Errorf("read latest PRD revision: %w", err)
 	}
 	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(seq),0) FROM task_events
-        WHERE task_id = ? AND kind IN ('prd','plan')`, taskID).Scan(&latestRevision); err != nil {
+        WHERE task_id = ? AND (kind = 'prd' OR (kind = 'plan' AND COALESCE(json_extract(body, '$.text'),'') != 'External orchestrator updated step progress'))`, taskID).Scan(&latestRevision); err != nil {
 		return fmt.Errorf("read latest plan revision: %w", err)
 	}
 	if latestPRD == 0 {

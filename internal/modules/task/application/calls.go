@@ -110,7 +110,7 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 		if roleKey == "qa" || roleKey == "security" || roleKey == "devops" {
 			executeCtx = codingdomain.WithReadOnlyWorkspace(ctx)
 		}
-		if roleKey == "devops" && call.Name == "git" {
+		if roleKey == "devops" && call.Name == "git" && isMutatingGitCall(call.Input) {
 			executeCtx = codingdomain.WithWritableGitWorkspace(executeCtx)
 		}
 	}

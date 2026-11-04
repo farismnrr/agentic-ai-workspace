@@ -18,16 +18,23 @@ var (
 
 var repoPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9._-]{1,100}$`)
 
-// LogRef names the logs wanted: the failed jobs of a run, or one job.
+// LogRef names the logs wanted: the failed jobs of a run, or one job, or latest failed if RunID==0 && JobID==0.
 type LogRef struct {
-	Repo  string
-	RunID int64
-	JobID int64
+	Repo   string
+	RunID  int64
+	JobID  int64
+	Branch string
 }
 
-// Valid reports whether the reference can only name a real repository and exactly one run or job.
+// Valid reports whether the reference can name a real repository and either a specific run/job or latest run (RunID == 0 && JobID == 0).
 func (r LogRef) Valid() bool {
-	return repoPattern.MatchString(r.Repo) && (r.RunID > 0) != (r.JobID > 0)
+	if !repoPattern.MatchString(r.Repo) {
+		return false
+	}
+	if r.RunID == 0 && r.JobID == 0 {
+		return true
+	}
+	return (r.RunID > 0) != (r.JobID > 0)
 }
 
 // JobLog is the log of one job of a workflow run.

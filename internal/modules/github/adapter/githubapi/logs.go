@@ -81,6 +81,40 @@ func (c *Client) FailedJobLogs(ctx context.Context, access, repo string, runID i
 	return logs, nil
 }
 
+type workflowRunsList struct {
+	WorkflowRuns []struct {
+		ID         int64  `json:"id"`
+		Conclusion string `json:"conclusion"`
+	} `json:"workflow_runs"`
+}
+
+// LatestFailedJobLogs returns the failed job logs of the latest failed run on the branch.
+func (c *Client) LatestFailedJobLogs(ctx context.Context, access, repo, branch string) ([]domain.JobLog, error) {
+	if branch == "" {
+		branch = "dev"
+	}
+	endpoint := fmt.Sprintf("%s/repos/%s/actions/runs?branch=%s&per_page=5", c.api, repo, url.QueryEscape(branch))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+access)
+	var list workflowRunsList
+	status, err := c.do(req, &list)
+	if err != nil {
+		return nil, err
+	}
+	if err = refused(status); err != nil {
+		return nil, err
+	}
+	for _, run := range list.WorkflowRuns {
+		if run.Conclusion == "failure" || run.Conclusion == "timed_out" {
+			return c.FailedJobLogs(ctx, access, repo, run.ID)
+		}
+	}
+	return nil, nil
+}
+
 // JobLog returns the log of one job. GitHub answers with a redirect to a short-lived address; the token is sent to
 // GitHub's API only, never to that address.
 func (c *Client) JobLog(ctx context.Context, access, repo string, jobID int64) (domain.JobLog, error) {

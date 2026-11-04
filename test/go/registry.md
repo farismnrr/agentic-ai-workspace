@@ -3,8 +3,8 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 80 Go test files contain 172 top-level test functions:
-70 registered test files contain 172 functions and 10 support files contain no test functions.
+After this slice, 113 Go test files contain 250 top-level test functions:
+102 registered test files contain 250 functions and 11 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
@@ -226,6 +226,38 @@ After this slice, 80 Go test files contain 172 top-level test functions:
 | `test/go/modules/site/runtime_storage_test.go::TestSitesWritablePathsRejectSymlinkedProjectAncestor` | sandbox/path safety | A disposable project path whose ancestor redirects outside storage is rejected before approved runtime directories can be created. | none |
 | `test/go/platform/sandbox/mount_test.go::TestMountsRejectSymlinkedWorkspaceAncestor` | sandbox/path safety | The mount builder rejects a lexically contained workspace redirected through a symlink for bind and volume configurations without Docker. | none |
 | `test/go/platform/sandbox/mount_test.go::TestMountsKeepWorkspaceReadonlyAndWritableSubpathsNarrow` | sandbox/data integrity | Checks bind sources, Docker volume subpaths, read-only workspace behavior, the two writable targets, and preservation of existing project data without Docker. | none |
+| `test/go/modules/zipupload/resumable_test.go::TestResumableZIPReopensFromDurableOffsetAndPublishesOnce` | data integrity | Verifies resumable upload offset resumption and atomic publish. | none |
+| `test/go/modules/zipupload/resumable_test.go::TestResumableZIPRejectsUnsafeArchiveAndReleasesReservation` | sandbox/path safety | Rejects zip-slip and unsafe paths while releasing chunk reservations. | none |
+| `test/go/modules/zipupload/resumable_test.go::TestResumableZIPBoundsAndCancel` | data integrity | Enforces chunk limits and cleans temporary storage on cancellation. | none |
+| `test/go/app/connectors/external_review_cases_test.go::TestExternalDeepReviewSensitiveCodeNeedsRecordedCriticalRun` | auth/authz | Ensures sensitive code changes require recorded critical verification under deep review. | none |
+| `test/go/app/connectors/external_review_cases_test.go::TestExternalDeepReviewDocsOnlyMayCompleteWithoutSecurity` | auth/authz | Verifies documentation-only changes can complete without security review gate. | none |
+| `test/go/app/connectors/work_plan_revision_test.go::TestExternalPlanRevisionSurvivesRoleSwitch` | app-level integration | Confirms plan revision state persists across worker role transitions. | none |
+| `test/go/app/connectors/external_review_completion_test.go::TestExternalDeepReviewRequiresFreshSecurityReviewBeforeCompletion` | auth/authz | Deep review requires security review recorded after the latest code change. | none |
+| `test/go/app/connectors/external_deep_review_test.go::TestExternalSecurityRequiresOwnerEnabledDeepReview` | auth/authz | External security review is gated on owner-enabled deep review mode. | none |
+| `test/go/app/connectors/orchestrator_space_test.go::TestExternalWorkerReportSeparatesCommandSuccessFromProof` | app-level integration | External worker report separates raw command exit status from verified proof. | none |
+| `test/go/app/connectors/orchestrator_space_test.go::TestExternalWorkerUsesParentToolsWithoutCodingWorkSession` | app-level integration | External worker uses parent tools directly without requiring coding work session. | none |
+| `test/go/app/projects/resumable_upload_test.go::TestResumableZIPHTTPBlackBoxAuthorizesResumesAndPublishes` | app-level integration | Verifies chunked upload HTTP authorization, resumption, and publication. | none |
+| `test/go/app/projects/resumable_upload_large_test.go::TestResumableZIPHTTP50MiBChunked` | app-level integration | Exercises large 50MiB chunked archive upload over HTTP. | none |
+| `test/go/app/account/env_test.go::TestProjectEnvRevealRequiresCurrentPasswordAndReturnsOnlyOneSecret` | crypto/credentials | Project env secret reveal requires current password and returns one secret at a time. | none |
+| `test/go/app/account/env_test.go::TestProjectEnvRevealRejectsCrossSiteAndLimitsFailedPasswords` | auth/authz | Rejects cross-origin secret reveal requests and rate limits failed password attempts. | none |
+| `test/go/app/account/env_test.go::TestProjectEnvRevealNoStoreForWrongOwnerMethodAndOversizedBody` | auth/authz | Ensures no secret caching or store for invalid owner, method, or oversized payload. | none |
+| `test/go/app/tasks/execution/role_prompt_migration_test.go::TestMergedRoleDefaultsUpgradeWithoutOverwritingCustomPrompts` | app-level integration | Upgrades merged role prompt defaults without overwriting custom prompt text. | none |
+| `test/go/app/tasks/execution/docs_only_mode_test.go::TestDeepReviewDocumentationOnlyChangeSkipsSecurityAndQA` | app-level integration | Deep review documentation-only changes safely skip Security and QA requirements. | none |
+| `test/go/app/tasks/execution/verification_policy_test.go::TestSwiftAuthChangeDoesNotSummonSecurity` | app-level integration | Swift review mode does not invoke Security review for routine auth changes. | none |
+| `test/go/modules/task/preaction_site_test.go::TestRolePreflightSOPAndSitePrerequisites` | sandbox/privilege | Enforces role-specific preflight SOP and site start prerequisites for browser testing. | none |
+| `test/go/modules/task/preaction_sop_test.go::TestPreActionToolSOPRespectsEnabledRoleInventory` | sandbox/privilege | Confirms SOP only advertises actually enabled role tools and prevents unauthorized fallbacks. | none |
+| `test/go/modules/task/preaction_sop_test.go::TestLeadToolSOPNamesCorrectOwnersBeforeAction` | app-level integration | Ensures orchestrator lead SOP designates correct tool owners before delegation. | none |
+| `test/go/modules/task/preaction_sop_test.go::TestPreActionToolSOPShowsActualBridgedProjectFileTools` | sandbox/privilege | Verifies MCP file inspection tools accurately reflect granted role access. | none |
+| `test/go/modules/task/planworker_git_test.go::TestBridgeVCSInstructionsAreScopedToServerAuthorizedTools` | sandbox/privilege | Scopes vendor worker Git/GitHub instructions strictly to server-authorized tools. | none |
+| `test/go/modules/task/work_review_completion_test.go::TestExternalDeepReviewLongHistoryRequiresExplicitCommandAuditAndRealCheck` | auth/authz | Requires explicit command audit and genuine check evidence for deep review completion. | none |
+| `test/go/modules/task/plansite_files_test.go::TestBridgedToolsExposesEnabledProjectFilesOnly` | sandbox/privilege | Filters bridged tool definitions by role permissions and owner switches. | none |
+| `test/go/modules/task/plansite_files_test.go::TestTeamBridgeRejectsHiddenToolBeforeExecution` | sandbox/privilege | Rejects execution of unexposed or unauthorized tools at the bridge boundary. | none |
+| `test/go/modules/task/plansite_files_test.go::TestReadOnlyTeamFileToolsAreCatalogued` | app-level integration | Verifies all required read-only project file tools are catalogued in siteToolNames. | none |
+| `test/go/modules/runner/read_only_check_test.go::TestReadOnlyCheckRequiresServerEnforcedNonWritableCommand` | sandbox/privilege | Verifies read-only check rejects commands that could mutate the workspace. | none |
+| `test/go/modules/runner/quota_safe_git_test.go::TestQuotaSafeGitOnlyPermitsServerAuthorizedReadOnlyWorkspaceOperations` | sandbox/privilege | Enforces that only safe read-only Git operations bypass workspace size limits. | none |
+| `test/go/modules/bootstrap/workbridge_evidence_test.go::TestExternalWorkPreservesServerRecordedCheckEvidence` | app-level integration | Preserves server-verified command execution evidence across MCP bridge. | none |
+| `test/go/modules/bootstrap/workbridge_evidence_test.go::TestExternalWorkRejectsShellAndFakeTestEvidence` | auth/authz | Rejects unverified shell scripts and fake test runs from counting as verified check evidence. | none |
+| `test/go/modules/bootstrap/workbridge_evidence_test.go::TestExternalWorkRetainsFailureAndChangedPaths` | app-level integration | Retains failure status and modified path metadata from external worker checks. | none |
 
 ## Support files
 

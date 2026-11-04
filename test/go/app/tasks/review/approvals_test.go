@@ -39,6 +39,7 @@ func TestSkipApprovalsIsPerSpaceAndNeverTurnsAToolOn(t *testing.T) {
 	skipApprovals(t, app, cookie)
 
 	var spaces []struct {
+		Slug  string `json:"slug"`
 		Tools []struct {
 			Name    string `json:"name"`
 			Enabled bool   `json:"enabled"`
@@ -51,14 +52,24 @@ func TestSkipApprovalsIsPerSpaceAndNeverTurnsAToolOn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(spaces) != 1 || !spaces[0].SkipApprovals {
-		t.Fatalf("the setting should be saved for the space: %+v", spaces)
-	}
-
-	for _, tool := range spaces[0].Tools {
-		if tool.Name == "edit_file" && tool.Enabled {
-			t.Fatal("skipping approvals must never switch a tool on")
+	var foundCoding bool
+	for _, space := range spaces {
+		if space.Slug == "coding" {
+			foundCoding = true
+			if !space.SkipApprovals {
+				t.Fatalf("the setting should be saved for the space: %+v", spaces)
+			}
+			for _, tool := range space.Tools {
+				if tool.Name == "edit_file" && tool.Enabled {
+					t.Fatal("skipping approvals must never switch a tool on")
+				}
+			}
+		} else if space.SkipApprovals {
+			t.Fatalf("skip approvals should only be saved for coding space, got %+v", space)
 		}
+	}
+	if !foundCoding {
+		t.Fatalf("expected coding space in spaces: %+v", spaces)
 	}
 }
 

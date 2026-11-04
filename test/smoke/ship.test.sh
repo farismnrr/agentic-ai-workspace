@@ -47,6 +47,23 @@ git clone -q --depth 1 "file://$tmp/remote.git" "$tmp/imported2"
   PROJECT_DIR="$tmp/imported2" sh "$root/sandbox/ship.sh" "Check repeat" > "$tmp/out"
   test "$(git config --get-all remote.origin.fetch | grep -Fc "+refs/heads/dev:refs/remotes/origin/dev")" = 1
 )
+
+# Test fetch-first and safe sync when remote dev is ahead.
+git clone -q "file://$tmp/remote.git" "$tmp/peer"
+(
+  cd "$tmp/peer"
+  git switch dev
+  printf 'peer work\n' >> README.md
+  git commit -qam 'Peer commit on remote dev'
+  git push -q origin dev
+)
+(
+  cd "$tmp/imported2"
+  printf 'local work\n' >> LOCAL.md
+  PROJECT_DIR="$tmp/imported2" sh "$root/sandbox/ship.sh" 'Local commit syncing upstream' > "$tmp/out_sync"
+  grep -q 'pushed: yes (origin/dev at ' "$tmp/out_sync"
+  test "$(git rev-parse HEAD)" = "$(git ls-remote origin refs/heads/dev | cut -f1)"
+)
 mkdir "$tmp/local"
 (
   cd "$tmp/local"

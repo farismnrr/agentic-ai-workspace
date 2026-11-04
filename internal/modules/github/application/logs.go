@@ -12,6 +12,7 @@ type LogSource interface {
 	// FailedJobLogs returns the logs of the jobs of a run that failed; none failed gives no logs.
 	FailedJobLogs(ctx context.Context, access, repo string, runID int64) ([]domain.JobLog, error)
 	JobLog(ctx context.Context, access, repo string, jobID int64) (domain.JobLog, error)
+	LatestFailedJobLogs(ctx context.Context, access, repo, branch string) ([]domain.JobLog, error)
 }
 
 // WithLogs lets the service read workflow logs. Without it CILogs reports that GitHub is unavailable.
@@ -44,6 +45,18 @@ func (s *Service) CILogs(ctx context.Context, userID string, ref domain.LogRef) 
 		}
 
 		return []domain.JobLog{log}, nil
+	}
+
+	if ref.RunID == 0 {
+		branch := ref.Branch
+		if branch == "" {
+			branch = "dev"
+		}
+		logs, err := s.logs.LatestFailedJobLogs(ctx, cred.Token, ref.Repo, branch)
+		if err != nil {
+			return nil, fmt.Errorf("read latest failed run logs: %w", err)
+		}
+		return logs, nil
 	}
 
 	logs, err := s.logs.FailedJobLogs(ctx, cred.Token, ref.Repo, ref.RunID)

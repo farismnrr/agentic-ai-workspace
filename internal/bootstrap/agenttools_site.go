@@ -74,10 +74,13 @@ func (a *agentTools) executeSite(ctx context.Context, projectID string, call tas
 	}
 
 	link := site.BasePath() + "/"
+	commitInfo := ""
+	if commit := a.projectCommit(projectID); commit != "" {
+		commitInfo = " (commit: " + commit + ")"
+	}
 
 	return taskapp.ToolResult{
-		Output: "The app is running and the person can open it from the link shown in the thread (" + link + "). " +
-			"Say so in plain words; do not paste the address." + pathReport(a.sites.Audit(ctx, site)),
+		Output: fmt.Sprintf("The app is running on port %d, status: active%s. The person can open it from the link shown in the thread (%s). Say so in plain words; do not paste the address.%s", in.Port, commitInfo, link, pathReport(a.sites.Audit(ctx, site))),
 		Link: link,
 	}
 }

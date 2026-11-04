@@ -26,7 +26,7 @@ func SiteArgv(command string) ([]string, error) {
 		if action == "run" && len(argv) > 2 {
 			action = argv[2]
 		}
-		allowed = action == "start" || action == "preview" || action == "serve"
+		allowed = action == "start" || action == "preview" || action == "serve" || strings.HasPrefix(action, "start:")
 	case "node", "nodejs":
 		allowed = strings.HasSuffix(argv[1], ".js") || strings.HasSuffix(argv[1], ".mjs") ||
 			strings.HasSuffix(argv[1], ".cjs")
@@ -35,7 +35,9 @@ func SiteArgv(command string) ([]string, error) {
 			(argv[2] == "http.server" || argv[2] == "uvicorn")
 	case "go":
 		allowed = argv[1] == "run" && len(argv) >= 3
-	case "next":
+	case "next", "nuxt", "nuxi":
+		allowed = argv[1] == "start" || argv[1] == "preview"
+	case "nest":
 		allowed = argv[1] == "start"
 	case "vite", "astro":
 		allowed = argv[1] == "preview"
@@ -43,6 +45,9 @@ func SiteArgv(command string) ([]string, error) {
 		allowed = len(argv) >= 3 &&
 			((argv[1] == "vite" && argv[2] == "preview") ||
 				(argv[1] == "next" && argv[2] == "start") ||
+				(argv[1] == "nuxt" && (argv[2] == "start" || argv[2] == "preview")) ||
+				(argv[1] == "nuxi" && (argv[2] == "start" || argv[2] == "preview")) ||
+				(argv[1] == "nest" && argv[2] == "start") ||
 				(argv[1] == "astro" && argv[2] == "preview"))
 	case "uvicorn", "gunicorn", "http-server":
 		allowed = true

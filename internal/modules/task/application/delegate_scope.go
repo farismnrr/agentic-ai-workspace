@@ -14,10 +14,10 @@ var (
 	soloOnlyRoleKeys = []string{"planner", "devops"}
 )
 
-// canParallel reports whether a role may run concurrently with other teammates in the same delegation batch.
+// CanParallel reports whether a role may run concurrently with other teammates in the same delegation batch.
 // Only Developer, Researcher, QA, Security (and custom roles without solo-only
 // duties like writing the PRD, asking the person, designing the global look, or starting the site) may run in parallel.
-func canParallel(role AgentRole) bool {
+func CanParallel(role AgentRole) bool {
 	if slices.Contains(soloOnlyRoleKeys, role.Key) {
 		return false
 	}
@@ -30,6 +30,10 @@ func canParallel(role AgentRole) bool {
 	return true
 }
 
+func canParallel(role AgentRole) bool {
+	return CanParallel(role)
+}
+
 func parallelRoleRefused(role AgentRole) string {
 	if canParallel(role) {
 		return ""
@@ -39,11 +43,15 @@ func parallelRoleRefused(role AgentRole) string {
 		role.Name + " in a separate turn."
 }
 
-// roleCanWrite reports whether a role can create, edit, move or delete files in the project.
-func roleCanWrite(role AgentRole) bool {
+// RoleCanWrite reports whether a role can create, edit, move or delete files in the project.
+func RoleCanWrite(role AgentRole) bool {
 	return slices.ContainsFunc(role.Tools, func(tool string) bool {
 		return slices.Contains(writeToolNames, tool)
 	})
+}
+
+func roleCanWrite(role AgentRole) bool {
+	return RoleCanWrite(role)
 }
 
 // cleanScope normalizes relative file or folder prefixes and drops root or parent-traversal entries.

@@ -87,7 +87,7 @@ func (r *Runner) Run(ctx context.Context, task domain.Task) (application.RunResu
 	// cannot add bytes to that project. Immutable checks mount it read-only;
 	// named builds only write into their own separately capped output dir.
 	if !readOnlyCheck(ctx, task) && !isolatedOutput(ctx, task) && sizeOver(r.dir, r.quota) {
-		return application.RunResult{ExitCode: -1, Output: overQuota}, nil
+		return application.RunResult{ExitCode: -1, Output: workspaceQuotaReport(r.dir, r.quota)}, nil
 	}
 
 	ctx, cancel := context.WithTimeout(r.bind(ctx), task.Timeout())

@@ -48,7 +48,7 @@ func awaitingApproval(task domain.Task, lead string, role AgentRole, events []do
 	}
 
 	if strings.HasPrefix(task.Source, externalLeadSource) && prd > 0 {
-		prd = max(prd, lastSeq(events, domain.EventPlan))
+		prd = max(prd, lastPlanRevisionSeq(events))
 	}
 	if prd == 0 || approvedAfter(events, lead, prd) {
 		return ""
@@ -68,4 +68,14 @@ func approvedAfter(events []domain.Event, lead string, prd int64) bool {
 	}
 
 	return false
+}
+
+func lastPlanRevisionSeq(events []domain.Event) int64 {
+	var seq int64
+	for _, event := range events {
+		if event.Kind == domain.EventPlan && event.Text != "External orchestrator updated step progress" {
+			seq = event.Seq
+		}
+	}
+	return seq
 }

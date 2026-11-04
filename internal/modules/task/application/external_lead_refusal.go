@@ -50,6 +50,12 @@ func (s *Service) externalPlanRefusal(
 	if r.lim.RequirePlan && request >= plan {
 		return refusal("PLAN_REQUIRED", "Add this request to the task plan with update_task_plan, then delegate again.")
 	}
+	if why := researchFirst(roster, role, events); why != "" {
+		return refusal("RESEARCH_REQUIRED", why)
+	}
+	if idleJobs(events) >= r.lim.idleJobs() {
+		return refusal("TEAM_STUCK", stuckText(r.lim.idleJobs()))
+	}
 	return nil
 }
 

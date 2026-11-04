@@ -15,37 +15,19 @@
   import { createAttachmentInputHandlers } from '../logic/attachment-drop';
 
   interface Props {
-    id: string;
-    placeholder: string;
-    text?: string | undefined;
-    projects?: Project[] | undefined;
-    project?: string | undefined;
-    busy?: boolean | undefined;
-    disabled?: boolean | undefined;
-    error?: string | undefined;
-    attachments?: Attachment[] | undefined;
-    projectId?: string | undefined;
-    uploadProgress?: string | undefined;
-    attachable?: boolean | undefined;
-    tools?: Snippet | undefined;
+    id: string; placeholder: string; text?: string | undefined;
+    projects?: Project[] | undefined; project?: string | undefined;
+    busy?: boolean | undefined; disabled?: boolean | undefined;
+    error?: string | undefined; attachments?: Attachment[] | undefined;
+    projectId?: string | undefined; uploadProgress?: string | undefined;
+    attachable?: boolean | undefined; tools?: Snippet | undefined;
     onsend: (text: string, project: string) => void;
   }
 
   let {
-    id,
-    placeholder,
-    text = $bindable(''),
-    projects,
-    project = $bindable(''),
-    busy = false,
-    disabled = false,
-    error = '',
-    attachments = $bindable([]),
-    projectId,
-    uploadProgress = '',
-    attachable = false,
-    tools,
-    onsend,
+    id, placeholder, text = $bindable(''), projects, project = $bindable(''),
+    busy = false, disabled = false, error = '', attachments = $bindable([]),
+    projectId, uploadProgress = '', attachable = false, tools, onsend,
   }: Props = $props();
 
   let pickerErrors = $state<string[]>([]);

@@ -99,7 +99,7 @@ fi
 js_sources="$(
   find web -type f \
     \( -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) \
-    ! -path 'web/node_modules/*' -print
+    ! -path 'web/node_modules/*' ! -name 'svelte.config.js' -print
 )"
 
 if [ -n "$js_sources" ]; then

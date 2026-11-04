@@ -66,27 +66,6 @@ func (s *Service) Answer(ctx context.Context, userID, taskID, eventID string, an
 	return s.requeue(ctx, task)
 }
 
-func resolve(event *domain.Event, answer Answer) error {
-	switch {
-	case event.Kind == domain.EventApproval && event.Resolved == "" && answer.Allow != nil:
-		event.Resolved = domain.Denied
-		if *answer.Allow {
-			event.Resolved = domain.Allowed
-		}
-	case event.Kind == domain.EventQuestion && event.Answered == "":
-		summary, err := answerQuestion(*event, answer)
-		if err != nil {
-			return err
-		}
-
-		event.Answered = summary
-	default:
-		return domain.ErrNotWaiting
-	}
-
-	return nil
-}
-
 // Cancel stops a task that is working or queued.
 func (s *Service) Cancel(ctx context.Context, userID, taskID string) error {
 	task, err := s.owned(ctx, userID, taskID)
@@ -189,10 +168,20 @@ func (s *Service) Retry(ctx context.Context, userID, taskID string) error {
 	if task.ArchivedAt != nil {
 		return domain.ErrWrongState
 	}
-
+	if strings.HasPrefix(task.Source, externalLeadSource) {
+		if task.Status != domain.StatusFailed && task.Status != domain.StatusDone {
+			return domain.ErrWrongState
+		}
+		if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, s.deps.Now()); err != nil {
+			return fmt.Errorf("retry task: %w", err)
+		}
+		_, err := s.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
+			Kind: domain.EventMessage, Text: "Task resumed", Time: s.deps.Now(),
+		})
+		return err
+	}
 	if task.Status != domain.StatusFailed {
 		return domain.ErrWrongState
 	}
-
 	return s.requeue(ctx, task)
 }

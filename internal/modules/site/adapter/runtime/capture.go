@@ -54,7 +54,7 @@ func (r *Runtime) Browser(ctx context.Context, req application.CaptureRequest, a
 	if !strings.HasSuffix(prefix, "/") {
 		prefix += "/"
 	}
-	payload, err := json.Marshal(map[string]any{"prefix": prefix, "actions": actions})
+	payload, err := json.Marshal(map[string]any{"prefix": prefix, "actions": actions, "mobile": req.Spec.Mobile})
 	if err != nil {
 		return "", fmt.Errorf("describe browser run: %w", err)
 	}

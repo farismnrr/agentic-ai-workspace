@@ -61,7 +61,8 @@ func appStep(client, projectID string, note codingmcp.Note) taskapp.RecordInput 
 	return taskapp.RecordInput{ProjectID: projectID, Source: appName(client), Event: eventOf(note)}
 }
 
-func eventOf(note codingmcp.Note) taskdomain.Event {
+// EventOf maps a completed MCP note to a task domain event.
+func EventOf(note codingmcp.Note) taskdomain.Event {
 	event := taskdomain.Event{Kind: taskdomain.EventAction, Text: note.Text, Technical: note.Technical}
 
 	switch note.Kind {
@@ -107,4 +108,8 @@ func cut(text string) string {
 	}
 
 	return string(runes[:maxStepText]) + "…"
+}
+
+func eventOf(note codingmcp.Note) taskdomain.Event {
+	return EventOf(note)
 }

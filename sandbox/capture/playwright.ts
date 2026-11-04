@@ -4,15 +4,15 @@ import { readFileSync } from 'node:fs';
 import type { Browser, Locator, Page } from 'playwright-core';
 
 interface Action {
-  action: 'goto' | 'click' | 'fill' | 'assert' | 'screenshot';
+  action: 'goto' | 'click' | 'fill' | 'submit' | 'wait' | 'assert' | 'screenshot';
   path?: string;
   locator_type?: 'css' | 'text' | 'label' | 'placeholder' | 'role' | 'testid';
   locator?: string;
   value?: string;
-  check?: 'visible' | 'text';
+  check?: 'visible' | 'text' | 'value' | 'url' | 'title';
 }
 
-interface Input { prefix: string; actions: Action[] }
+interface Input { prefix: string; actions: Action[]; mobile?: boolean }
 interface Step { index: number; action: string; status: 'PASS' | 'FAIL'; detail: string }
 interface PlaywrightModule { chromium: { launch(options: object): Promise<Browser> } }
 
@@ -22,9 +22,8 @@ const socketPath = process.env.CAPTURE_SOCKET ?? '';
 const maxScreenshot = 5 * 1024 * 1024;
 const maxRequests = 128;
 
-function replyError(response: import('node:http').ServerResponse, message: string): void {
-  response.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
-  response.end(message);
+function replyError(res: import('node:http').ServerResponse, msg: string): void {
+  res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' }).end(msg);
 }
 
 function safePath(pathname: string, prefix: string): boolean {
@@ -38,20 +37,16 @@ function safePath(pathname: string, prefix: string): boolean {
 
 function proxyRequest(input: import('node:http').IncomingMessage, response: import('node:http').ServerResponse): void {
   const pathname = new URL(input.url ?? '/', 'http://site').pathname;
-  if (!safePath(pathname, '/')) {
-    replyError(response, 'the Site path cannot leave this app');
-    return;
-  }
+  if (!safePath(pathname, '/')) return replyError(response, 'the Site path cannot leave this app');
   const upstream = httpRequest({
-    socketPath: socketPath, path: input.url ?? '/', method: input.method,
+    socketPath, path: input.url ?? '/', method: input.method,
     headers: { ...input.headers, host: 'site' },
-  }, (upstreamResponse) => {
-    const headers = { ...upstreamResponse.headers, connection: 'close' };
-    response.writeHead(upstreamResponse.statusCode ?? 502, headers);
-    upstreamResponse.pipe(response);
+  }, (up) => {
+    response.writeHead(up.statusCode ?? 502, { ...up.headers, connection: 'close' });
+    up.pipe(response);
   });
-  upstream.on('error', (error: Error) => {
-    if (!response.headersSent) replyError(response, error.message.slice(0, 160));
+  upstream.on('error', (e: Error) => {
+    if (!response.headersSent) replyError(response, e.message.slice(0, 160));
     else response.destroy();
   });
   input.pipe(upstream);
@@ -94,19 +89,31 @@ async function apply(page: Page, base: string, action: Action): Promise<string> 
     return `opened ${path || 'the app home page'}`;
   }
   if (action.action === 'screenshot') return 'screenshot captured after all actions';
+  if (action.action === 'wait' && !action.locator) {
+    await page.waitForTimeout(1000);
+    return 'waited';
+  }
+  if (action.check === 'url') {
+    if (!page.url().includes(action.value ?? '')) throw new Error('expected URL was not matched');
+    return 'expected URL matched';
+  }
+  if (action.check === 'title') {
+    const title = await page.title();
+    if (!title.includes(action.value ?? '')) throw new Error('expected title was not matched');
+    return 'expected title matched';
+  }
   const target = locator(page, action);
-  if (action.action === 'click') {
-    await target.click({ timeout: 5000 });
-    return 'clicked the selected control';
-  }
-  if (action.action === 'fill') {
-    await target.fill(action.value ?? '', { timeout: 5000 });
-    return 'filled the selected field';
-  }
-  if (action.check === 'visible') {
+  if (action.action === 'click') { await target.click({ timeout: 5000 }); return 'clicked the selected control'; }
+  if (action.action === 'submit') { await target.press('Enter', { timeout: 5000 }); return 'submitted form'; }
+  if (action.action === 'wait') { await target.waitFor({ state: 'visible', timeout: 5000 }); return 'waited for element to appear'; }
+  if (action.action === 'fill') { await target.fill(action.value ?? '', { timeout: 5000 }); return 'filled the selected field'; }
+  if (action.check === 'value') {
     await target.waitFor({ state: 'visible', timeout: 5000 });
-    return 'selected element is visible';
+    const val = await target.inputValue({ timeout: 5000 });
+    if (!val.includes(action.value ?? '')) throw new Error('expected value was not found');
+    return 'expected value is present';
   }
+  if (action.check === 'visible') { await target.waitFor({ state: 'visible', timeout: 5000 }); return 'selected element is visible'; }
   await target.waitFor({ state: 'visible', timeout: 5000 });
   const text = await target.innerText({ timeout: 5000 });
   if (!text.includes(action.value ?? '')) throw new Error('expected text was not found in the selected element');
@@ -127,7 +134,8 @@ async function run(input: Input): Promise<object> {
       executablePath: '/usr/bin/chromium-headless-shell', headless: true,
       args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars'], timeout: 10000,
     });
-    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const viewport = input.mobile ? { width: 375, height: 667 } : { width: 1280, height: 800 };
+    const context = await browser.newContext({ viewport, isMobile: Boolean(input.mobile) });
     let requests = 0;
     await context.route('**/*', async (route) => {
       const url = new URL(route.request().url());

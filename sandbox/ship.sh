@@ -67,21 +67,37 @@ fi
 
 # A successful push is verified against the remote's actual branch tip, not
 # merely against the exit code or a locally configured tracking branch.
+refspec='+refs/heads/dev:refs/remotes/origin/dev'
+if ! git config --get-all remote.origin.fetch 2>/dev/null | grep -qxF "$refspec"; then
+  git config --add remote.origin.fetch "$refspec"
+fi
+
+# Fetch origin dev before pushing and set upstream tracking.
+if git fetch -q origin refs/heads/dev:refs/remotes/origin/dev 2>/dev/null; then
+  git branch --set-upstream-to=origin/dev dev > /dev/null 2>&1 || true
+fi
+
+# When remote dev is ahead, safely synchronize without force-pushing.
+if git rev-parse --verify -q origin/dev > /dev/null 2>&1; then
+  behind="$(git rev-list --count HEAD..origin/dev 2>/dev/null || echo 0)"
+  ahead="$(git rev-list --count origin/dev..HEAD 2>/dev/null || echo 0)"
+  if [ "$behind" -gt 0 ]; then
+    if [ "$ahead" -eq 0 ]; then
+      git merge --ff-only origin/dev > /dev/null 2>&1 || true
+    else
+      if ! git rebase origin/dev > /dev/null 2>&1; then
+        git rebase --abort > /dev/null 2>&1 || true
+        echo "warning: upstream dev has diverged and could not be automatically rebased" >&2
+      fi
+    fi
+    head="$(git rev-parse HEAD 2>/dev/null || true)"
+  fi
+fi
+
 if output="$(git push --porcelain -u origin HEAD:refs/heads/dev 2>&1)"; then
   remote_head="$(git ls-remote --heads origin refs/heads/dev 2>/dev/null | awk 'NR == 1 {print $1}')"
   if [ -n "$head" ] && [ "$remote_head" = "$head" ]; then
-    # A shallow import often fetches main only. Track dev explicitly so future
-    # pull/status commands work after the first push.
-    refspec='+refs/heads/dev:refs/remotes/origin/dev'
-    if ! git config --get-all remote.origin.fetch | grep -qxF "$refspec"; then
-      git config --add remote.origin.fetch "$refspec"
-    fi
-    if git fetch -q origin refs/heads/dev:refs/remotes/origin/dev; then
-      git branch --set-upstream-to=origin/dev dev > /dev/null 2>&1 || \
-        echo 'warning: push verified, but upstream tracking could not be configured'
-    else
-      echo 'warning: push verified, but origin/dev tracking could not be fetched'
-    fi
+    git branch --set-upstream-to=origin/dev dev > /dev/null 2>&1 || true
     echo "pushed: yes (origin/dev at $head)"
   else
     echo "pushed: no (push returned success but remote dev could not be verified against local HEAD)"

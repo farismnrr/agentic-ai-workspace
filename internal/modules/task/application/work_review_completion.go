@@ -7,15 +7,21 @@ import (
 )
 
 // External work has no orchestrator delegation record. Its Security review must
-// instead be attributed by the server to the active Security role, be newer
-// than every relevant mutation, and have the evidence required by its impact.
-func externalDeepReviewReady(task domain.Task, events []domain.Event) bool {
-	return externalDeepReviewMissing(task, events) == ""
+// ExternalDeepReviewReady verifies if external deep review has all required evidence.
+func ExternalDeepReviewReady(task domain.Task, events []domain.Event) bool {
+	return ExternalDeepReviewMissing(task, events) == ""
 }
 
-// The reason is intentionally short and contains no paths or assistant-supplied
-// content. This helps a reviewer resolve a fail-closed gate without guessing.
+func externalDeepReviewReady(task domain.Task, events []domain.Event) bool {
+	return ExternalDeepReviewReady(task, events)
+}
+
 func externalDeepReviewMissing(task domain.Task, events []domain.Event) string {
+	return ExternalDeepReviewMissing(task, events)
+}
+
+// ExternalDeepReviewMissing reports any missing requirements for deep review.
+func ExternalDeepReviewMissing(task domain.Task, events []domain.Event) string {
 	if task.ReviewMode != domain.ReviewModeDeepReview {
 		return ""
 	}

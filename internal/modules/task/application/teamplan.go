@@ -18,6 +18,7 @@ func idleJobs(events []domain.Event) int {
 
 		switch {
 		case event.Kind == domain.EventPRD, event.Kind == domain.EventResearch,
+			event.Kind == domain.EventPlan, event.Kind == domain.EventRequest,
 			event.Kind == domain.EventAction && (len(event.Files) > 0 || event.Run != nil):
 			return idle
 		case event.Kind == domain.EventHandoff && event.Action == handoffAssigned:
@@ -127,14 +128,32 @@ func (r *Runner) briefWithPlan(ctx context.Context, task domain.Task, args deleg
 			truncate(current.Research, maxResearch)
 	}
 
-	if len(current.Plan) == 0 {
-		return text
+	if len(current.Plan) != 0 {
+		lines := make([]string, 0, len(current.Plan))
+		for _, step := range current.Plan {
+			lines = append(lines, fmt.Sprintf("- [%s] %s", step.State, step.Title))
+		}
+		text += "\n\n## The team's plan so far:\n\n" + strings.Join(lines, "\n")
 	}
 
-	lines := make([]string, 0, len(current.Plan))
-	for _, step := range current.Plan {
-		lines = append(lines, fmt.Sprintf("- [%s] %s", step.State, step.Title))
+	if reader, ok := r.deps.Delegations.(interface {
+		ListDelegations(context.Context, string) ([]Delegation, error)
+	}); ok {
+		if delegations, err := reader.ListDelegations(ctx, task.ID); err == nil {
+			var reports []string
+			for _, d := range delegations {
+				if d.Report != "" && d.Status == DelegationDone {
+					reports = append(reports, fmt.Sprintf("### %s (%s):\n%s", d.RoleName, d.RoleKey, truncate(d.Report, 1500)))
+				}
+			}
+			if len(reports) > 0 {
+				if len(reports) > 3 {
+					reports = reports[len(reports)-3:]
+				}
+				text += "\n\n## Recent teammate reports:\n\n" + strings.Join(reports, "\n\n")
+			}
+		}
 	}
 
-	return text + "\n\n## The team's plan so far:\n\n" + strings.Join(lines, "\n")
+	return text
 }

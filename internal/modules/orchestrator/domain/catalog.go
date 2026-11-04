@@ -45,6 +45,7 @@ func Space() spacedomain.Space {
 			tool("delegate_agent", "Run a configured internal worker directly", ScopeDelegate, "exec", false),
 			tool("cancel_delegation", "Cancel a worker job", ScopeDelegate, "exec", false),
 			tool("stop_task", "Stop an external-led task", ScopeTasks, "write", false),
+			tool("continue_task", "Continue a stopped or finished external-led task", ScopeTasks, "write", false),
 			tool("complete_task", "Complete an external-led task", ScopeTasks, "write", false,
 				"Call once after all workers finish and your final summary is ready. Partial and not-verified results are allowed."),
 			tool("update_task_plan", "Update the external lead plan", ScopeTasks, "write", false),

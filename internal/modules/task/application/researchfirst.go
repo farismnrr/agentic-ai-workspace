@@ -26,13 +26,22 @@ func researchFirst(roster *Roster, role AgentRole, events []domain.Event) string
 	}
 
 	prd, written := firstPRD(events)
-	if !written || askedAfter(events, scout, prd) {
+	if !written || askedAfter(events, scout, prd) || hasEventResearch(events) {
 		return ""
 	}
 
 	return "The PRD is ready. Before the " + role.Name + " starts, hand the " + scout + " one round on the PRD's " +
 		"stack and kind of work: design references, official docs and current versions, pictures, and quality " +
 		"checks, as they apply. Then put the section that is theirs into the " + role.Name + "'s brief."
+}
+
+func hasEventResearch(events []domain.Event) bool {
+	for _, event := range events {
+		if event.Kind == domain.EventResearch {
+			return true
+		}
+	}
+	return false
 }
 
 // askedAfter reports whether the Researcher has been given a job, or has delivered notes, after an event.

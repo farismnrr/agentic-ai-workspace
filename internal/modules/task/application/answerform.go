@@ -59,3 +59,24 @@ func cleanReplies(replies []string) ([]string, bool) {
 
 	return out, len(out) > 0
 }
+
+func resolve(event *domain.Event, answer Answer) error {
+	switch {
+	case event.Kind == domain.EventApproval && event.Resolved == "" && answer.Allow != nil:
+		event.Resolved = domain.Denied
+		if *answer.Allow {
+			event.Resolved = domain.Allowed
+		}
+	case event.Kind == domain.EventQuestion && event.Answered == "":
+		summary, err := answerQuestion(*event, answer)
+		if err != nil {
+			return err
+		}
+
+		event.Answered = summary
+	default:
+		return domain.ErrNotWaiting
+	}
+
+	return nil
+}

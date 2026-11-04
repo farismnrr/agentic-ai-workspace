@@ -20,6 +20,7 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command,
 		WorkspaceReadOnly: (domain.ReadOnlyWorkspace(ctx) || quotaExempt) && !gitWorkspaceWrite}
 	if task.Kind == "build" || task.Kind == "artifact" {
+		pruneOldArtifactOutputs(r.dir, 3)
 		// The source stays read-only; each build or document/media run gets
 		// a fresh isolated output folder for review and download.
 		prefix := ".build-output-"
