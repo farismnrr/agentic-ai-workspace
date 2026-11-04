@@ -25,7 +25,7 @@ func TestBridgeVCSInstructionsAreScopedToServerAuthorizedTools(t *testing.T) {
 		},
 		{
 			name: "devops and developer", tools: []string{"git", "gh", "run_command"},
-			want: []string{"server tool named git", "server tool named gh", "never", "HTTPS_PROXY"},
+			want: []string{"server tool named git", "server tool named gh", "Do NOT use Bash", "HTTPS_PROXY"},
 		},
 	}
 	for _, tc := range tests {
