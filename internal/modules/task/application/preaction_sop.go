@@ -69,3 +69,15 @@ const preActionLeadSOP = "\nMANDATORY PRE-ACTION TOOL SOP for the orchestrator: 
 	"If a role's tool is missing/disabled, record the exact blocker and request that permission; " +
 	"never ask the worker to bypass proxy, run shell Git, use shell Playwright or silently change roles. " +
 	"Do not create extra tasks per delegation.\n"
+
+
+// soloPreActionSOP guides the app's own model when no limited vendor
+// teammate is involved. Solo runners can have separately authorized
+// credentials, so this does not falsely assert they share the CLI sandbox.
+const soloPreActionSOP = "\nPRE-ACTION TOOL SOP: Before any Git, browser, CI or site work, inspect the tools actually available and the owner's switches. " +
+	"Prefer the built-in git/gh tools for GitHub operations when offered, and check remote, branch, current HEAD, clean state and fast-forward before push. " +
+	"Never bypass HTTPS_PROXY, reveal a token or retry an unavailable authorized tool using a different transport. " +
+	"Browser/Playwright E2E belongs to QA using browser_test and read_browser_screenshot on a running Site; " +
+	"start_site starts the preview (never a background shell), and screenshot alone is not interactive E2E. " +
+	"Use ci_logs for failed CI logs rather than guessing from gh downloads. " +
+	"If the required tool or permission is unavailable, report that blocker rather than improvising.\n"
