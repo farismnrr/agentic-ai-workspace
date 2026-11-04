@@ -36,6 +36,7 @@ func systemPrompt(project string, persona Persona, installed []string, github st
 	}
 
 	appendRules(&out, persona.Rules)
+	out.WriteString(soloPreActionSOP)
 	appendComputer(&out, installed)
 	appendGitHub(&out, installed, github)
 	out.WriteString(workflow)
