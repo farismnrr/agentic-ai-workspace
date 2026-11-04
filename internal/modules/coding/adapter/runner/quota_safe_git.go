@@ -24,8 +24,32 @@ func quotaSafeGit(ctx context.Context, task domain.Task) bool {
 			return false
 		}
 		switch args[4] {
-		case "status", "rev-parse", "ls-remote":
+		case "status", "rev-parse", "ls-remote", "ls-files", "show-ref", "merge-base":
 			return true
+		case "diff":
+			// GitTask forces --no-ext-diff for diff to prevent repository
+			// configured diff helpers from executing with GitHub credentials.
+			return len(args) >= 6 && args[5] == "--no-ext-diff"
+		case "log":
+			// Commit inspection only. Patch/textconv modes remain quota-gated.
+			for _, arg := range args[5:] {
+				if arg == "-p" || arg == "--patch" || arg == "--textconv" ||
+					arg == "--ext-diff" || arg == "--remerge-diff" {
+					return false
+				}
+			}
+			return true
+		case "branch":
+			// Listing branches is safe; create, rename, delete and
+			// upstream operations must still obey workspace quota.
+			if len(args) == 5 {
+				return true
+			}
+			switch args[5] {
+			case "-a", "-r", "-v", "-vv", "--list", "--show-current":
+				return len(args) == 6
+			}
+			return false
 		case "push":
 			// Remote writes are subject to the existing role, credentials and
 			// dangerousGit guards. The local project remains read-only.

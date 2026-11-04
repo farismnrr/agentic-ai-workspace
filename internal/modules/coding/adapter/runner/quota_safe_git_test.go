@@ -15,6 +15,13 @@ func TestQuotaSafeGitOnlyPermitsServerAuthorizedReadOnlyWorkspaceOperations(t *t
 		safe bool
 	}{
 		{"status", []string{"status", "--short", "--branch"}, true},
+		{"diff check", []string{"diff", "--check"}, true},
+		{"diff stat", []string{"diff", "--stat"}, true},
+		{"branch verbose", []string{"branch", "-vv"}, true},
+		{"branch current", []string{"branch", "--show-current"}, true},
+		{"log last commit", []string{"log", "-1", "--oneline"}, true},
+		{"ls-files", []string{"ls-files"}, true},
+		{"show-ref", []string{"show-ref"}, true},
 		{"rev-parse", []string{"rev-parse", "HEAD"}, true},
 		{"ls-remote", []string{"ls-remote", "origin", "HEAD"}, true},
 		{"push", []string{"push", "origin", "dev"}, true},
@@ -23,6 +30,9 @@ func TestQuotaSafeGitOnlyPermitsServerAuthorizedReadOnlyWorkspaceOperations(t *t
 		{"remote -v", []string{"remote", "-v"}, true},
 		{"remote get-url", []string{"remote", "get-url", "origin"}, true},
 		{"remote set-url", []string{"remote", "set-url", "origin", "https://example.org/repo"}, false},
+		{"branch creates ref", []string{"branch", "feature"}, false},
+		{"branch renames ref", []string{"branch", "--move", "dev", "feature"}, false},
+		{"log patch is not quota exempt", []string{"log", "-p"}, false},
 		{"fetch writes Git metadata", []string{"fetch", "origin"}, false},
 		{"git add mutates index", []string{"add", "README.md"}, false},
 		{"git commit writes objects", []string{"commit", "-m", "test"}, false},
@@ -69,5 +79,26 @@ func TestQuotaSafeGitRejectsSpoofedCommandAndGhMutations(t *testing.T) {
 	}
 	if !quotaSafeGit(ctx, status) || !readOnlyCheck(ctx, status) {
 		t.Fatal("server-authorized gh auth status should be available over quota")
+	}
+}
+
+func TestOversizedWorkspaceImmutableChecksAndIsolatedOutputs(t *testing.T) {
+	readOnly := domain.WithReadOnlyWorkspace(context.Background())
+	check := domain.Task{Kind: "check", Name: "verify", Command: []string{"go", "test", "./..."}}
+	if !readOnlyCheck(readOnly, check) || isolatedOutput(readOnly, check) {
+		t.Fatal("QA check must be immutable, not treated as writable build output")
+	}
+	for _, kind := range []string{"build", "artifact"} {
+		job := domain.Task{Kind: kind, Name: "isolated-output", Command: []string{"bash", "-c", "true"}}
+		if readOnlyCheck(readOnly, job) || !isolatedOutput(readOnly, job) {
+			t.Fatalf("%s must use a separate bounded writable output, not skip its output quota", kind)
+		}
+		if isolatedOutput(context.Background(), job) {
+			t.Fatalf("%s without server read-only context must never bypass source quota", kind)
+		}
+	}
+	command := domain.Task{Name: "command", Command: []string{"bash", "-c", "true"}}
+	if readOnlyCheck(context.Background(), command) || isolatedOutput(context.Background(), command) {
+		t.Fatal("arbitrary shell must remain subject to the full workspace quota")
 	}
 }

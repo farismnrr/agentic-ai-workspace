@@ -19,6 +19,10 @@ project_id=$(jq -r '.id' "$HTTP_BODY_FILE")
 
 http_request PUT "$owner" /api/spaces/coding/tools/run_command '{"enabled":true}'
 assert_status "$HTTP_STATUS" 204 'enable the shared Git tool switch'
+http_request PUT "$owner" /api/spaces/coding/tools/run_task '{"enabled":true}'
+assert_status "$HTTP_STATUS" 204 'enable QA verification tool'
+http_request PUT "$owner" /api/spaces/coding/tools/run_build '{"enabled":true}'
+assert_status "$HTTP_STATUS" 204 'enable named DevOps build tool'
 oauth_code_token "$owner" 'openid email coding:read coding:exec' "$APP_BASE/api/coding"
 assert_status "$HTTP_STATUS" 200 'issue execution-scoped Coding token'
 WORK_TOKEN=$(jq -r '.access_token' "$HTTP_BODY_FILE")
@@ -45,6 +49,22 @@ git remote add local-fixture remote.git
 git init --bare -q "$project_dir/remote.git"
 git push -q local-fixture HEAD:refs/heads/main
 printf 'Researcher commit probe\n' >> README.md
+# A minimal source check and a build writing only into the isolated /output
+# mount. Both must survive an oversized pre-existing (ignored) project file.
+mkdir -p .workspace
+cat > go.mod <<'GOMOD'
+module example.test/oversized
+
+go 1.20
+GOMOD
+cat > parity_test.go <<'GOTEST'
+package oversized
+import "testing"
+func TestSmoke(t *testing.T) {}
+GOTEST
+cat > .workspace/tasks.json <<'TASKS'
+{"tasks":{"smoke-build":{"description":"Bounded isolated build probe","kind":"build","command":["sh","-c","printf safe-output > $BUILD_OUT/probe.txt"]}}}
+TASKS
 cd "$REPO_ROOT"
 
 git_tool() {
@@ -61,14 +81,53 @@ oversized_fixture="$project_dir/.oversized-git-fixture"
 printf '%s\n' '.oversized-git-fixture' >> "$project_dir/.git/info/exclude"
 truncate -s $(( (2 << 30) + 4096 )) "$oversized_fixture"
 
-git_tool status --short
+git_tool status --short --branch
 assert_status "$HTTP_STATUS" 200 'oversized project still reaches server Git status'
 assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git status succeeds over 2 GiB'
+
+# These were previously rejected because the quota exception covered only a
+# handful of Git verbs, despite all checks reading the existing checkout.
+git_tool diff --check
+assert_status "$HTTP_STATUS" 200 'oversized project reaches safe Git diff'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git diff --check succeeds'
+
+git_tool branch -vv
+assert_status "$HTTP_STATUS" 200 'oversized project reaches Git branch inspection'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git branch -vv succeeds'
+
+git_tool log -1 --oneline
+assert_status "$HTTP_STATUS" 200 'oversized project reaches Git log inspection'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git log -1 succeeds'
+
+git_tool ls-files
+assert_status "$HTTP_STATUS" 200 'oversized project reaches Git tracked file inspection'
+assert_json '.result.structuredContent.exit_code == 0' 'quota-safe Git ls-files succeeds'
 
 git_tool push origin HEAD
 assert_status "$HTTP_STATUS" 200 'oversized project still reaches Git push authorization gate'
 assert_json '.result.structuredContent | .exit_code == -1 and (.output | contains("CONNECT_GITHUB_REQUIRED")) and (.output | contains("size limit") | not)' \
   'quota-safe Git push reaches GitHub connection policy before quota refusal'
+
+# QA verification uses a read-only OS source mount. The project can be larger
+# than the execution quota before the check begins.
+mcp_call_tool "$WORK_TOKEN" set_role "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" --arg role qa '{project:$project,work_id:$work_id,role:$role}')"
+assert_status "$HTTP_STATUS" 200 'switch to QA for oversized immutable check'
+mcp_call_tool "$WORK_TOKEN" verify "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" '{project:$project,work_id:$work_id,args:["go","test","./..."]}')"
+assert_status "$HTTP_STATUS" 200 'run QA verification on oversized source'
+assert_json '.result.structuredContent | .exit_code == 0 and (.output | contains("workspace is over its size limit") | not)' \
+  'QA Go test succeeds despite old oversized read-only source'
+
+# DevOps named build writes only into a fresh /output mount. Existing ignored
+# project data must not consume this new output's own size cap.
+mcp_call_tool "$WORK_TOKEN" set_role "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" --arg role devops '{project:$project,work_id:$work_id,role:$role}')"
+assert_status "$HTTP_STATUS" 200 'switch to DevOps for isolated output build'
+mcp_call_tool "$WORK_TOKEN" run_build "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" '{project:$project,work_id:$work_id,name:"smoke-build"}')"
+assert_status "$HTTP_STATUS" 200 'run DevOps build on oversized source'
+assert_json '.result.structuredContent | .exit_code == 0 and (.output | contains("Generated outputs:"))' \
+  'isolated build succeeds with output cap independent of old project size'
+
+mcp_call_tool "$WORK_TOKEN" set_role "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" --arg role researcher '{project:$project,work_id:$work_id,role:$role}')"
+assert_status "$HTTP_STATUS" 200 'return to Researcher for quota mutation denial'
 
 git_tool add README.md
 assert_status "$HTTP_STATUS" 200 'oversized project still rejects Git index mutation'
