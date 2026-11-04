@@ -20,7 +20,7 @@ import (
 // project-scope and undo checks as normal project tool calls.
 // Site, browser, CI, web, and Git operations remain server-mediated.
 var siteToolNames = []string{
-	"list_files", "find_files", "read_file", "search_code", "list_tasks",
+	"list_files", "find_files", "read_file", "search_code", "list_tasks", "view_image",
 	"edit_file", "write_file", "delete_file", "move_file",
 	toolStartSite, "stop_site", "deploy_extension", "web_search", "fetch_page", "search_images", "download_asset",
 	"screenshot", toolRequestEgress, "ci_logs",
@@ -85,8 +85,18 @@ func (s *siteSession) bridge() *CLIBridge {
 // call answers one call of the program like the loop answers one of the model's. The call keeps its name between
 // turns, so a step the person already approved is not asked about again when the job starts over.
 func (s *siteSession) call(ctx context.Context, name string, input json.RawMessage) CLIToolResult {
-	if !contains(siteToolNames, name) {
-		return CLIToolResult{Text: "There is no tool called " + name + ".", Failed: true}
+	// A client must never invoke a capability that was omitted from its
+	// registered MCP inventory. Re-check the exact session list, not only the
+	// global bridge catalogue, even if it sends a crafted tool-call request.
+	visible := false
+	for _, tool := range s.tools {
+		if tool.Name == name {
+			visible = true
+			break
+		}
+	}
+	if !contains(siteToolNames, name) || !visible {
+		return CLIToolResult{Text: "There is no enabled team tool called " + name + " for this role.", Failed: true}
 	}
 
 	s.mu.Lock()
