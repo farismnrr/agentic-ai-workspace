@@ -84,17 +84,17 @@ func (t Team) WithBuiltIns() Team {
 		roles[at].Access = slices.Clone(built.Access)
 		// The merged jobs have new required responsibilities; persisted old
 		// descriptions must not keep telling agents to delegate to retired roles.
-		if built.Key == "developer" || built.Key == "qa" || built.Key == "planner" || built.Key == "security" || built.Key == "devops" {
-			if roles[at].Name == "" {
+		if built.Key == "orchestrator" || built.Key == "planner" || built.Key == "researcher" ||
+			built.Key == "developer" || built.Key == "qa" || built.Key == "security" || built.Key == "devops" {
+			if roles[at].Name == "" || (built.Key == "qa" && roles[at].Name == "QA Tester") {
 				roles[at].Name = built.Name
 			}
-			oldPrompt, oldPurpose := previousBuiltInDefaults(built.Key)
-			if roles[at].Purpose == "" || (oldPurpose != "" && roles[at].Purpose == oldPurpose) {
+			if roles[at].Purpose == "" || knownShippedPurpose(built.Key, roles[at].Purpose) {
 				roles[at].Purpose = built.Purpose
 			}
 			// Only exact, known shipped defaults may be rewritten. Custom
 			// instructions are kept byte-for-byte and migration is idempotent.
-			if roles[at].Prompt == "" || (oldPrompt != "" && roles[at].Prompt == oldPrompt) {
+			if roles[at].Prompt == "" || knownShippedPrompt(built.Key, roles[at].Prompt) {
 				roles[at].Prompt = built.Prompt
 			}
 		}

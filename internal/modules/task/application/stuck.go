@@ -15,12 +15,13 @@ const (
 	maxStuckError = 600
 
 	stuckNudge = "Several steps in a row did not work. Stop trying variations of the same thing: call report now " +
-		"with a summary that starts with \"Stuck:\" and says what you were doing, what you tried, the exact error, " +
+		"with a summary starting \"Stuck:\" for a real repeated failure, or \"Needs <role>:\" for a normal " +
+		"missing prerequisite owned by a teammate; include what you tried and the exact error, " +
 		"and the question that someone who can search the web should answer for you."
 	// stuckAdvice goes after a teammate's failed job, so the orchestrator hands the problem to the Researcher.
-	stuckAdvice = " Do not send the same job again as it was. Hand the Researcher the exact problem (the error, " +
-		"what was tried, the stack) and ask how it is done properly, with sources; then send this job again with " +
-		"what it found."
+	stuckAdvice = " Do not repeat the same job unchanged. If a prerequisite belongs to another role, " +
+		"delegate to that owner and then resume. For a genuine technical unknown, ask Researcher to investigate " +
+		"the exact failure with sources before retrying."
 )
 
 // trackMisses counts the steps of a teammate that failed in a row, so one that is going in circles is told to

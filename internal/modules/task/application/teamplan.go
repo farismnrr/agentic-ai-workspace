@@ -9,7 +9,8 @@ import (
 )
 
 // idleJobs is how many jobs in a row the orchestrator has handed out since anything last got anywhere: a file
-// changed, a check ran or a document was written. Reading and reporting alone is not progress.
+// changed, a check ran or a document was written. A successful teammate report,
+// including a read-only audit, is meaningful progress; a blocked report is not.
 func idleJobs(events []domain.Event) int {
 	idle := 0
 
@@ -20,6 +21,9 @@ func idleJobs(events []domain.Event) int {
 		case event.Kind == domain.EventPRD, event.Kind == domain.EventResearch,
 			event.Kind == domain.EventPlan, event.Kind == domain.EventRequest,
 			event.Kind == domain.EventAction && (len(event.Files) > 0 || event.Run != nil):
+			return idle
+		case event.Kind == domain.EventHandoff && event.Action == handoffReported &&
+			blockedReason(event.Technical) == "" && strings.TrimSpace(event.Technical) != "":
 			return idle
 		case event.Kind == domain.EventHandoff && event.Action == handoffAssigned:
 			idle++
@@ -104,7 +108,7 @@ func (r *Runner) keepResearch(ctx context.Context, taskID, document string) erro
 }
 
 func stuckText(jobs int) string {
-	return fmt.Sprintf("The last %d jobs changed nothing, ran no check and wrote no document, so the team is stuck. "+
+	return fmt.Sprintf("The last %d jobs reported no completed work, changed no file and ran no check, so the team is stuck. "+
 		"Stop handing out the same kind of job: change the approach, or finish and tell the person plainly what is "+
 		"blocking and what is left.", jobs)
 }
@@ -156,4 +160,9 @@ func (r *Runner) briefWithPlan(ctx context.Context, task domain.Task, args deleg
 	}
 
 	return text
+}
+
+// IdleJobsForTest exposes the task-wide progress accounting contract for regression tests.
+func IdleJobsForTest(events []domain.Event) int {
+	return idleJobs(events)
 }

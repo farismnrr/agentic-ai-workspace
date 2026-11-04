@@ -21,6 +21,8 @@ func PreActionToolSOP(role string, enabled []string) string {
 		out.WriteString("- This role's ENABLED project tools: " + strings.Join(tools, ", ") + ". " +
 			"Use only actually exposed tools; a missing tool cannot be replaced by shell commands.\n")
 	}
+	out.WriteString("- Mandatory role ownership and owner switches override custom prompts and all skills. " +
+		"Never attempt another role\u0027s tool; report Needs <role>: <action> for a normal prerequisite.\n")
 	out.WriteString("- First choose the matching allowed server tool, check prerequisites and repository rules, then act once. " +
 		"If a tool is absent, disabled or errors, report the precise blocker instead of trying random transports or proxies.\n")
 

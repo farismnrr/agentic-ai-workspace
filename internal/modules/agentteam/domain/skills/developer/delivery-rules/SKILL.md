@@ -7,8 +7,8 @@ always: true
 # Delivery rules
 
 ## 0. Keep the checks in proportion
-A finished test is not a finished job. While you build, run affected type checks
-and relevant public-boundary scenarios. Follow `agents/testing.md`; do not add
+A finished test is not a finished job. While you build, ask QA to run affected type checks
+and relevant public-boundary scenarios; DevOps runs the named build. Do not run their tools as Developer. Follow `agents/testing.md`; do not add
 non-critical white-box tests. Select checks from saved mode and changed
 behavior, dependencies, contracts and configuration. Sensitive changes retain baseline authorization and sandbox safeguards. Only owner-enabled @deep-review triggers combined Security + Architecture verification and recorded critical scenarios. Deep-review broadens
 applicable regression, static, dependency and security checks; unknown impact broadens conservatively. Run full lint,
@@ -17,7 +17,8 @@ Do not start or restart the app yourself; DevOps does that when someone needs
 to look.
 
 ## 1. One slice at a time
-Your brief names one slice of the PRD's todo (or less). Do that slice completely, run it, and report. If the brief
+Your brief names one slice of the PRD's todo (or less). Implement that slice with project file tools,
+request the appropriate QA/DevOps check, and report only results actually received. If the brief
 asks for the whole app, build the first coherent slice, say what is left in your report, and stop; the lead sends the
 next one. A slice is done when a person could use it: the pages exist, the data is real, the errors are handled.
 

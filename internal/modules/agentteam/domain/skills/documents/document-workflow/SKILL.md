@@ -19,8 +19,9 @@ quotes, names or sources: when a fact is missing, write a clear placeholder such
 it in your report.
 
 ## 1b. Reading a document that already exists
-The team sends you here when a PDF, Word, Excel or PowerPoint file in the project has to be read, quoted or converted;
-the Researcher and the Developer cannot open those files. Use the tools of the sandbox, one file at a time:
+The team sends you here when a PDF, Word, Excel or PowerPoint needs to be read or converted. Developer cannot
+run shell commands. Use an enabled, owner-configured `run_artifact` extraction/conversion task, or ask for the
+extracted text. The commands below are references for named artifact tasks, not Developer shell instructions:
 - PDF: `pdftotext -layout file.pdf out.txt` (add `-f 3 -l 9` for pages 3 to 9), then read the text. A scanned PDF has
   no text layer: say so, and render a page with `pdftoppm -png -r 80 -f 1 -l 1 file.pdf page` to see it.
 - Word, Excel, PowerPoint: `docpython` with `docx`, `openpyxl` or `pptx`, or `docconvert file.docx pdf .` first.
@@ -41,24 +42,26 @@ Write the outline in your own words before you build: the title, each section or
 goes on it (text, table, picture, chart). Keep it short. Build from that outline so the structure is clear.
 
 ## 4. Build with the sandbox tools
-Everything runs with `run_command`, offline.
+Developer has NO `run_command`. Only execute an owner-configured kind=artifact task through `run_artifact`.
+If none is configured or enabled, report that exact prerequisite rather than pretending a file was produced.
 - `docpython script.py` runs Python with python-pptx, python-docx, reportlab, pypdf, openpyxl and Pillow.
 - `docconvert file.docx pdf` converts with LibreOffice (to `pdf`, `docx`, `pptx`); the output lands beside the input.
 - `docsite documents` turns the files of a folder into a website with a picture of every page (see step 5).
 - `pdftoppm`, `pdftotext`, `pdfinfo` and `qpdf` (poppler) read and render PDFs.
-Keep the build script in `documents/src/` (for example `documents/src/deck.py`) so the file can be rebuilt after a
-fix. Write the result to `documents/`, with a file name that says what it is (`proposal-kopi-nusantara.docx`).
+Keep reproducible source under `documents/src/`; a configured artifact task stores the generated files in its
+`.artifact-output-*` folder. Report the actual returned path and never claim an artifact you did not generate.
 Pictures come from `assets/`; if a needed picture is missing, say so in your report rather than leaving a hole.
 
 ## 5. Look at every page
-Never report a file you have not seen. `docsite` makes the pictures for you and builds the page the person will open.
-1. Run `docsite documents` (the folder of your files). For every Word, PowerPoint, Excel and PDF file in it, it makes
+Never report a file you have not seen. A configured artifact preview task can run `docsite` and render page images;
+inspect available images with `view_image`. Developer must not invoke `docsite` through a shell.
+1. Invoke the configured preview artifact task to run `docsite documents` (the folder of your files). For every Word, PowerPoint, Excel and PDF file in it, it makes
    a PDF with LibreOffice, a picture of each page in `documents/preview/<name>-<ext>/page-N.png`, and
    `documents/index.html`. `pdfinfo` gives a PDF's page count.
 2. Open the pictures with `view_image` (PNG only, one by one) and check: text cut off or overflowing, text too small
    to read, overlapping items, empty pages, a table running off the page, a picture stretched, wrong language, a
    placeholder left in, inconsistent fonts or colours.
-3. Fix the script, rebuild the file, run `docsite documents` again. At most three rounds; then report what is still
+3. Fix the source and rerun the configured artifact preview task. At most three rounds; then report what is still
    wrong.
 LibreOffice may differ a little from Word or PowerPoint, so keep layouts simple and leave room: do not fill a slide to
 its edge.
@@ -68,7 +71,7 @@ The person opens the result from Sites, not from screenshots. After the last `do
 report that the DevOps teammate must start the app with the command
 `python3 -m http.server 8000 --bind 127.0.0.1 --directory documents` and port 8000. You cannot start it yourself. The page shows
 every file with a Download button and all its pages; the links are relative, so it works under the site address.
-Run `docsite documents` again after every change to a file, and ask for the app to be started again. Do not edit `index.html` or `preview/`
+Run the configured artifact preview task after every source change, and ask DevOps to restart the Site. Do not edit `index.html` or `preview/`
 by hand: they are rebuilt each time.
 
 ## 7. Report

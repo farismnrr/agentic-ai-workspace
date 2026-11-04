@@ -98,6 +98,9 @@ var blocked = regexp.MustCompile(`(?is)^[\s*#_>-]*((stuck|needs)[^:\n]{0,40}):`)
 // blockedReason returns what a teammate said it was stuck on or needs, or "" for a report that finished the job.
 func blockedReason(report string) string {
 	if !blocked.MatchString(report) {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(report)), "needs the app started") {
+			return "Needs DevOps: start_site"
+		}
 		return ""
 	}
 
@@ -109,16 +112,25 @@ func blockedReason(report string) string {
 
 const maxStepDetail = 160
 
-// planStateAfter says how a plan step ends: done, or failed when the job failed or the teammate reported being
-// stuck or needing another role, with that line as the reason.
+// planStateAfter leaves a normal cross-role prerequisite pending, marks genuine
+// failures or stuck work failed, and marks completed work done.
 func planStateAfter(jobFailed bool, report string) (domain.PlanState, string) {
 	if jobFailed {
 		return domain.PlanFailed, ""
 	}
 
 	if reason := blockedReason(report); reason != "" {
+		if strings.HasPrefix(strings.ToLower(reason), "needs") {
+			// Respecting another role is not failure: let the lead route the dependency.
+			return domain.PlanPending, reason
+		}
 		return domain.PlanFailed, reason
 	}
 
 	return domain.PlanDone, ""
+}
+
+// PlanStateAfterForTest exposes the critical plan-status contract to black-box Go tests.
+func PlanStateAfterForTest(jobFailed bool, report string) (domain.PlanState, string) {
+	return planStateAfter(jobFailed, report)
 }

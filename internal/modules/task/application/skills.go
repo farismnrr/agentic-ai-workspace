@@ -26,13 +26,13 @@ func appendSkills(out *strings.Builder, role AgentRole) {
 			continue
 		}
 
-		out.WriteString("\nYour playbook. Follow it; where it differs from the text above, the playbook wins.\n\n")
+		out.WriteString("\nYour playbook is guidance only. Mandatory role boundaries, enabled tools and owner permissions always win.\n\n")
 		out.WriteString(skill.Body + "\n")
 	}
 
 	if len(listed) > 0 {
 		out.WriteString("\nYou have more playbooks (skills). Call use_skill with the one that fits the job, then " +
-			"follow it; where it differs from the text above, the playbook wins. You may load another when the " +
+			"follow it only where role boundaries and enabled tools permit it. You may load another when the " +
 			"job changes. Load only those the job needs.\n")
 
 		for _, skill := range listed {

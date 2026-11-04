@@ -88,9 +88,24 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 5. Runtime environment access belongs in `internal/platform/config`.
 6. Register API routes before the SPA fallback.
 7. Prefer explicit constructor/function injection over package globals.
-8. External tasks (`Source != ""` or `WorkID != ""`) never enqueue the internal
-   agent. External work roles enforce the same Agent Team tool allowlist as internal teammates; tool access also requires the owner's switch and OAuth scope. The eight built-in roles merge Business Analyst into Planner, Designer/Media/Documents into Developer and Reviewer into QA. Researcher may use only the bounded native Git tool for assigned Git work; it has no shell or project-file editing. Developer edits/UI/assets/docs/MoLab but never runs checks/builds/deploy; QA/Security run read-only named checks; DevOps runs only typed named builds, starts/stops and deploys, and uses the native Git tool for Developer-allowed Git actions under the same repository safety rules. Never infer authorization from the model's own role claim.
-   Record role transitions with `EventRole`; never model them as `EventHandoff`.
+8. External tasks (`Source != ""` or `WorkID != ""`) never enqueue the internal lead.
+   Role authorization is server-owned: role policy AND owner tool switch AND OAuth scope must allow each action.
+   Seven built-in roles have one authoritative ownership contract:
+   - Orchestrator: plan and delegate, never edit files, execute tools or create tasks per handoff.
+   - Planner: requirements, early architecture and ONE PRD; never implement or run checks.
+   - Researcher: source/web research and permitted native Git, no project-file edit or general shell.
+   - Developer: code, UI, assets, documents, MoLab and permitted Git. No QA, generic shell, build or Site start.
+     An enabled kind=artifact task may generate documents/media via `run_artifact`, never shell.
+   - QA & Review: independent review, targeted read-only named checks and QA-only browser interaction.
+   - Security: combined security/architecture review ONLY when owner enables `@deep-review`.
+     Verification uses named checks or owner-enabled bounded sandbox diagnostics; no app start, build or source edits.
+   - DevOps: authorized named builds, CI, Site start/stop, release and native Git; no feature coding or QA ownership.
+     Owner-enabled bounded `run_command` is for diagnostics, not shell Git or launching Site outside `start_site`.
+   Retired Business Analyst, Designer/Media/Documents and Reviewer responsibilities merge into these roles.
+   Skills and stored legacy prompts must not override server role policy or disabled tools.
+   A normal `Needs <role>: <action>` report means a pending cross-role dependency, not a failed job.
+   Delegate it to the owner role within the SAME task, then resume the original step.
+   Never infer authorization from a model claim. Record role transitions as `EventRole`, not `EventHandoff`.
 9. `begin_work` requires an enabled non-lead role. Plan lifecycle is separate
    from task status; `ready_for_approval` maps to `needs-input` and adds no
    status. Approval requires the independent `coding:approve` scope and the

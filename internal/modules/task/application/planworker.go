@@ -130,6 +130,10 @@ func (r *Runner) rolePrompt(ctx context.Context, task domain.Task, role AgentRol
 	}
 
 	appendSkills(&out, role)
+	// Mandatory server-owned role rules win over old saved prompts/playbooks.
+	out.WriteString(preActionToolSOP(role.Key, role.Tools))
+	out.WriteString("\nA playbook is not permission to use a missing tool. " +
+		"For cross-role prerequisites report Needs <role>: <action>, not Stuck.\n")
 
 	if slices.Contains(role.Tools, toolStartSite) {
 		out.WriteString("\nYou start and stop the web app with the start_site and stop_site tools of the team server, " +

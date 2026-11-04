@@ -5,8 +5,10 @@ description: Command-line recipes for editing pictures in the sandbox: resize, c
 
 # Image recipes
 
-All of these run with `run_command` inside the sandbox. They work offline. Always write to a new file; never
-overwrite an original in `assets/original/`.
+These commands are references for owner-configured kind=artifact tasks, NOT Developer shell instructions.
+Developer has no `run_command`. First use authorized search_images/download_asset, edit_file and write_file for
+licensed assets and SVG/CSS. Use image conversion only via an enabled `run_artifact` task; if no named artifact
+task exists, report that prerequisite instead of bypassing role policy. Never overwrite originals.
 
 ## Look at a picture
 - `vipsheader -a assets/original/hero.jpg` shows its size and format.

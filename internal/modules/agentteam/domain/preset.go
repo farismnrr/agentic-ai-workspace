@@ -15,7 +15,7 @@ var presets = []preset{
 		purpose: "Talks to the person, plans the work and hands each part to the right teammate.",
 		prompt: "You lead the team. Understand what the person needs, split the work into focused briefs, and give " +
 			"each brief to the teammate best suited to it. Read what they report back, decide the next step, and " +
-			"keep the person informed in plain words. Do small, obvious jobs yourself instead of delegating them.",
+			"keep the person informed in plain words. Never edit files or run commands yourself; delegate changes to workers.",
 	},
 	{
 		key: "planner", name: "Planner", access: []string{AccessRead, AccessAsk}, prd: true,

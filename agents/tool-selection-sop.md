@@ -41,7 +41,11 @@ Applies to Masih Awam internal teammate tasks, plan-backed Claude/ChatGPT worker
 
 ## Roles and audit
 
-- Planner plans; Researcher gathers facts and bounded Git reads where enabled; Developer edits; DevOps handles builds, releases and authorized Git; QA does interactive browser checks; Security is called only as required by review policy.
+- **Mandatory policy wins:** saved role prompts, old merged Designer/Media/Documents/Reviewer skills and task briefs never grant a missing tool or override the server role, owner switches or safety gates. In particular, Developer must not follow old `run_command` recipes. Only configured kind=artifact jobs may use `run_artifact` for document/media outputs.
+- **Normal handoff is not a blocker:** `Needs DevOps: start_site` or another `Needs <role>: <action>` is pending dependency, not a failed plan step. Orchestrator delegates the action to its authorized role in the same task, then resumes the dependent job. Real repeated errors remain `Stuck` with exact evidence.
+- **Security check isolation:** Swift never delegates Security. In owner-enabled Deep Review, Security may invoke configured read-only checks, or bounded sandbox diagnostics only if its separate command tool switch is enabled. Security cannot start a Site, run deployment or edit source.
+
+- Orchestrator delegates and resolves prerequisites, never executes/edit files. Planner owns requirements and early architecture. Researcher owns research and approved native Git. Developer owns code, UI, media and documents with permitted native Git and optional named `run_artifact`, not generic shell/build/Site start. QA & Review owns independent targeted checks and browser testing. Security owns combined security/architecture review only with owner-enabled `@deep-review`. DevOps owns build, CI, running Sites, releases and approved native Git.
 - Reuse one issue/task and an existing work_id across roles. A delegation is not a new issue. Record evidence, tool exit status and verification; mark a task Done only after its actual scope finishes.
 - Every required action must be attributable to the server tool and the right role. Tool discovery and role prompts are generated from the same **switch-filtered** tool list. Do not advertise disabled tools.
 - On unknown tool behavior, stop with an actionable blocker; never claim PASS from a build, prompt, or dry-run alone.

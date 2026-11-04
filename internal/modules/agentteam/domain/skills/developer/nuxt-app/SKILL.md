@@ -29,8 +29,8 @@ never ask them about libraries.
 - This is the default for a new web app. If the project already has code in another stack (Next.js, SvelteKit, Rust,
   Go, Python...) or the brief says the person asked for one, work in that stack and ignore the rest of this skill that
   is specific to Nuxt; the rules of `delivery-rules` still apply to every stack. Do not convert a project to Nuxt.
-- Always the latest stable. Never copy a version from memory or an old tutorial: run `bun pm view <package> version`
-  and check what a package requires before you pin anything old. Keep `bun.lock`. One exception you must know:
+- Always the latest stable. Never copy a version from memory or an old tutorial: ask Researcher to verify current official package versions and compatibility, then have DevOps run the named build
+  to confirm the selected dependencies; do not run package-manager commands as Developer. Keep `bun.lock`. One exception you must know:
   TypeScript 7 has no `lib/tsc`, so `vue-tsc` (the Vue type checker) cannot run on it; install `typescript@6`, the
   newest that works, and say so. If another latest version breaks the build, step back one major, and report it.
   Read the current docs (nuxt.com, ui.nuxt.com, better-auth.com) for any API you are unsure of. If you cannot find
@@ -42,10 +42,10 @@ If the project has a `.template` file or `DESIGN.md` has a "Template" section, b
 template (its `app/` is already in the project; read the rest in `/usr/local/share/templates/<name>/`; add the
 modules its `package.json` lists, such as Nuxt Content or `@nuxt/image`): keep its pages, layouts and components as the Designer adapted them, and wire the
 team's own backend behind them. Never take the template's login, server or data code.
-Run `new-nuxt-app` in the project folder (with `run_command`). It copies the toolbox's Nuxt starter without overwriting a
-file that exists, writes `package.json`, installs the latest stable packages with Bun, makes `.env` with a fresh
-`NUXT_AUTH_SECRET`, and runs `nuxt prepare`. Do not use `bun create nuxt` or `npm create nuxt`: they download their
-template from GitHub, which the sandbox cannot reach. What the starter already is, all in TypeScript:
+Use authorized project file tools to inspect existing files and create a focused Nuxt starter when needed;
+never run `new-nuxt-app`, `run_command`, `bun create`, or shell setup as Developer. Ask DevOps for a named `run_build`
+that installs dependencies and prepares the app from the files you created. Ask the owner to configure a missing
+named build if required. Never generate or expose an auth secret in source or task logs. What the starter already is, all in TypeScript:
 - `nuxt.config.ts` with Nuxt UI, `nuxt-security` and `@nuxt/eslint`, the Bun preset and rate limits on the login routes;
   `app/app.vue` (`<UApp>`), `app/app.config.ts` (colours), `app/assets/css/main.css` (Tailwind, Nuxt UI and the font).
 - `app/utils/brand.ts`: the one place that names the product. Replace its words with the PRD's.
@@ -54,10 +54,10 @@ template from GitHub, which the sandbox cannot reach. What the starter already i
   (dashboard with an empty state); `app/middleware/auth.global.ts` (every `/app` page needs a session) and `app/error.vue`.
 - `server/infrastructure/db.ts` (`bun:sqlite`) and `auth.ts` (Better Auth), `server/api/auth/[...all].ts`, `server/api/me.get.ts`
   and `server/plugins/migrate.ts`; `eslint.config.ts`, `tsconfig.json`, `tests/smoke.test.ts`, `.gitignore`.
-It type-checks, lints, tests and builds as it is. Your slices turn it into the PRD's product: set the colours and the font
+It is ready only after QA/DevOps independently run and report the relevant named checks and build. Your slices turn it into the PRD's product: set the colours and the font
 from `DESIGN.md` (install its Fontsource package, `bun add @fontsource-variable/<name>`, import it in `main.css`), replace the words and the sections of the landing page, add the feature pages and routes, and put the
 real numbers on the dashboard. Keep what works (the login, the middleware, the layouts); change what the PRD changes.
-Scripts: `typecheck`, `lint`, `test`, `build`. Add packages the PRD needs with `bun add <package>`. Bun does not run a
+Scripts: `typecheck`, `lint`, `test`, `build`. Update `package.json` for packages the PRD needs; have DevOps install them through a named build. Bun does not run a
 dependency's install script unless it is listed under `trustedDependencies` in `package.json`; add one only when a
 package really needs it (a native module). A secret is never written into code, a page or a report; `.env`, `data/` and
 `.output` are already in `.gitignore`.
@@ -131,8 +131,8 @@ Check every body and query with `zod` (`readValidatedBody`, `getValidatedQuery`)
 the HTTP methods a route needs. Limit file uploads by size and type. Show errors in plain words and never the stack.
 
 ## 6. Build and start
-Check with `run_command`, one step per call (a command has about 2 GB of memory, and an install followed by a type
-check in the same call can run out). Use the saved task mode and impact to choose affected type checks and
+Do not use `run_command`: Developer edits source, DevOps owns `run_build`, and QA owns `verify`/`run_task`.
+Ask those roles for affected checks and exact results once the source is ready. Use the saved task mode and impact to choose affected type checks and
 public-boundary scenarios. Add broader applicable regression, lint, dependency and security checks for deep-review or
 sensitive impact; include critical scenarios for sensitive changes in either mode. Run the full project suite only
 when the final product scope, impact or brief requires it. The app then runs from `.output`. You do not start it: the
@@ -140,8 +140,8 @@ DevOps teammate does, and your report says so.
 Give it the start command, port 3000: `bun /usr/local/share/serve/site-serve.ts bun .output/server/index.mjs`.
 `site-serve` makes Nuxt work under the address prefix the sites proxy uses; do not run `.output` directly.
 In the preview the page has no cookies, so a login cannot stay signed in there. That is the preview's sandbox, not
-a fault in the app: test accounts with `curl` against the API instead (sign up, sign in, then call a protected
-route with the returned cookie) and say so in your report. Never weaken a security setting to make the preview work.
+a fault in the app: ask QA to verify authentication through authorized black-box checks against the running Site and report the
+actual outcomes. Do not start test servers or shell `curl` as Developer. Never weaken a security setting to make the preview work.
 Only owner-enabled @deep-review triggers Security + Architecture verification, including for sensitive changes. Swift never delegates Security. Baseline auth, secret, network and sandbox protections always apply. Starting the private app during development does not itself require Security review.
 
 ## 7. Report

@@ -28,7 +28,10 @@ read command, successful write or unrecorded claim is not evidence.
 Read `package.json`, `nuxt.config.ts`, `server/` and the pages. Note the stack, whether there are accounts, what data
 is stored and which routes take input. Skip nothing you can read in a few minutes.
 
-## 2. Run the checks (with `run_command`, from the project folder)
+## 2. Run only authorized checks (owner-enabled @deep-review)
+Use named `run_task` checks when configured. `run_command` requires the Security role, the owner's separate
+execution switch, and the read-only sandbox; do not assume shell access is enabled. A tool absence is an exact
+permission/prerequisite to report, never a reason to bypass it with another tool or role.
 1. Known vulnerabilities: `bun audit`. For each high or critical one, find where it comes from
    (`bun why <package>`) and whether a fix exists (a version above the installed one). Apply a real fix by asking the
    Developer to update it. A high advisory with no patch in a build-only tool (bundlers, dev servers) that does not
@@ -40,11 +43,10 @@ is stored and which routes take input. Skip nothing you can read in a few minute
 4. Secrets: look for keys, tokens and passwords in the code and in `git ls-files`
    (`grep -rnE "(secret|token|password|api[_-]?key)\s*[:=]\s*['\"][^'\"]{8,}" --include=*.ts --include=*.vue .`
    skipping `node_modules` and `.output`). `.env` must be in `.gitignore`.
-5. Headers and limits, on a throwaway copy of the server: start `bun .output/server/index.mjs` on port
-   4999 in the background of one command (`PORT=4999 bun .output/server/index.mjs & sleep 4; curl -si http://127.0.0.1:4999/ ...; kill $!`)
-   and check the response has `content-security-policy`, `x-content-type-options`, `x-frame-options` or `frame-ancestors`,
-   `referrer-policy`, `strict-transport-security`; and that more than ten sign-in attempts in a minute are refused (429).
-   Build first if `.output` is missing.
+5. Headers and rate limits: ask DevOps to build and start the Site using its authorized tools, then ask QA
+   to run a named browser/black-box check and provide recorded response evidence. Check for CSP,
+   x-content-type-options, frame protection, referrer-policy, HSTS and authentication rate limits as applicable.
+   Security must never launch a background web server, run a build or call the QA browser tool itself.
 
 ## 3. Read the code for what tools miss
 - Queries built by joining strings, `v-html` or `innerHTML` with visitor text, `eval`, shell commands made from input.

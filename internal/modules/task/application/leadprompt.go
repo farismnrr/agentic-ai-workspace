@@ -21,6 +21,7 @@ func (r *Runner) leadPrompt(ctx context.Context, task domain.Task, roster Roster
 	out.WriteString("in the project " + strconv.Quote(project) + ": its files are in your current folder.\n")
 	out.WriteString(preActionLeadSOP)
 	out.WriteString(teamPrompt(roster))
+	out.WriteString(preActionLeadSOP)
 	out.WriteString(r.planPrompt(ctx, task))
 	out.WriteString(reviewModePrompt(task.ReviewMode))
 	out.WriteString("\nYou have three tools from the team's server: delegate, ask_user and update_plan. You can look ")
