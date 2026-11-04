@@ -40,7 +40,7 @@ func preActionToolSOP(role string, enabled []string) string {
 		out.WriteString("- No team MCP project tools were exposed to this role. Report the permission or tool-switch blocker.\n")
 	}
 	if slices.Contains(bridged, "read_file") {
-		out.WriteString("- Project source inspection: prefer team MCP read_file with {\\"path\\":\\"relative/file.ext\\"}, " +
+		out.WriteString("- Project source inspection: prefer team MCP read_file with {\"path\":\"relative/file.ext\"}, " +
 			"find_files for paths, search_code for content, and list_files for a folder, only when listed above. " +
 			"Do not report that file inspection is unavailable without checking the named team tools.\n")
 	} else {
