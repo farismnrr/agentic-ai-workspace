@@ -52,6 +52,12 @@ func GitTask(args []string) (Task, error) {
 	if dangerousGit(args) {
 		return Task{}, fmt.Errorf("%w: destructive operations, command helpers and hooks need explicit approval", ErrBadGitArgs)
 	}
+	// Git diff can invoke a repository-configured external helper even if
+	// the model did not request --ext-diff. Disable it before granting the
+	// read-only oversized-workspace exception (which may carry Git auth).
+	if verb == "diff" {
+		args = append([]string{"diff", "--no-ext-diff"}, args[1:]...)
+	}
 	// --no-pager, terminal-only editors disabled in runner environment,
 	// command-local hooks disabled even if the repository config enables them.
 	argv := append([]string{"git", "-c", "core.hooksPath=/dev/null", "--no-pager"}, args...)
