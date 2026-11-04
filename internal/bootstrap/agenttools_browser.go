@@ -18,7 +18,7 @@ type browserTestInput struct {
 
 func browserTestDefinition() taskdomain.ToolDef {
 	return taskdomain.ToolDef{
-		Name: "browser_test", Description: "QA only: interact with the running project app using bounded browser actions.",
+		Name: "browser_test", Description: "QA only: interact with the running project app using bounded browser actions. Use actions [{\"action\":\"goto\",\"path\":\"\"}] for Site root; path must be relative, never '/' or '..'. If no Site is running, ask an authorized role to start_site.",
 		Schema: json.RawMessage(`{"type":"object","properties":{"actions":{"type":"array","minItems":1,"maxItems":12,"items":{"type":"object","properties":{"action":{"type":"string","enum":["goto","click","fill","assert","screenshot"]},"path":{"type":"string"},"locator_type":{"type":"string","enum":["css","text","label","placeholder","role","testid"]},"locator":{"type":"string","maxLength":512},"value":{"type":"string","maxLength":512},"check":{"type":"string","enum":["visible","text"]}},"required":["action"]}}},"required":["actions"]}`),
 	}
 }

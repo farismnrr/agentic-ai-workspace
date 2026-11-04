@@ -54,7 +54,8 @@ var ToolScreenshot = ToolInfo{
 var ToolBrowserTest = ToolInfo{
 	Name: "browser_test", Title: "Test the web app", Scope: ScopeExec, Group: GroupExec,
 	Description: "QA only: server-mediated Playwright browser test against a running project Site. " +
-		"Arrange start_site through an authorized role first; fill or click controls and verify visible text. " +
+		"First arrange start_site through an authorized role. For the Site root send actions [{\"action\":\"goto\",\"path\":\"\"}]; " +
+		"goto paths are relative, never start with '/' and never contain '..'. Then fill or click controls and verify visible text. " +
 		"Use read_browser_screenshot with returned screenshot_ref for image evidence. " +
 		"Do not substitute shell Playwright or arbitrary scripts; outside addresses are blocked.",
 }
