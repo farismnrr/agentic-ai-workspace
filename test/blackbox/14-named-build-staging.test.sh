@@ -32,7 +32,7 @@ http_request PUT "$owner" /api/spaces/coding/tools/run_command '{"enabled":true}
 assert_status "$HTTP_STATUS" 204 'enable bounded command probe'
 http_request PUT "$owner" /api/spaces/coding/tools/run_build '{"enabled":true}'
 assert_status "$HTTP_STATUS" 204 'enable named build tool'
-oauth_code_token "$owner" 'openid email coding:exec' "$APP_BASE/api/coding"
+oauth_code_token "$owner" 'openid email coding:read coding:exec' "$APP_BASE/api/coding"
 assert_status "$HTTP_STATUS" 200 'issue execution-scoped Coding token'
 WORK_TOKEN=$(jq -r '.access_token' "$HTTP_BODY_FILE")
 mcp_call_tool "$WORK_TOKEN" list_projects '{}'
