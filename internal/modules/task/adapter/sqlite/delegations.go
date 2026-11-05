@@ -36,9 +36,12 @@ func (s *Store) StartDelegation(ctx context.Context, taskID string, d applicatio
 	if err != nil {
 		return fmt.Errorf("encode delegation scope: %w", err)
 	}
-	mutating := 0
+	mutating, allowNeedsInput := 0, 0
 	if d.Mutating {
 		mutating = 1
+	}
+	if d.AllowNeedsInput {
+		allowNeedsInput = 1
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -50,14 +53,17 @@ func (s *Store) StartDelegation(ctx context.Context, taskID string, d applicatio
 		   start_seq, started_at, execution_context, request_effort, execution_scope, mutating,
 		   parameters_verified)
 		 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-		 WHERE EXISTS (SELECT 1 FROM tasks WHERE id = ? AND status IN ('queued', 'planning', 'working'))
+		 WHERE EXISTS (SELECT 1 FROM tasks WHERE id = ? AND (
+		   status IN ('queued', 'planning', 'working') OR
+		   (status = 'needs-input' AND source LIKE 'orchestrator:%' AND ? = 1
+		     AND ? = 'researcher' AND ? = 0)))
 		   AND (SELECT COUNT(*) FROM task_delegations
 		     WHERE task_id = ? AND status IN ('working', 'waiting')) < 4
 		   AND (? = 0 OR NOT EXISTS (SELECT 1 FROM task_delegations
 		     WHERE task_id = ? AND mutating = 1 AND status IN ('working', 'waiting')))`,
 		taskID, d.ID, d.RoleKey, d.RoleName, d.ProviderID, d.Model, string(d.Effort), d.Brief, d.Status,
 		d.StartSeq, at.Unix(), d.Context, d.RequestEffort, string(scope), mutating, 1, taskID,
-		taskID, mutating, taskID)
+		allowNeedsInput, d.RoleKey, mutating, taskID, taskID, mutating, taskID)
 	if err != nil {
 		return mapBusy(fmt.Errorf("insert delegation: %w", err))
 	}
@@ -165,7 +171,7 @@ func (s *Store) EndDelegation(
 	if err := tx.QueryRowContext(ctx,
 		`SELECT status, report FROM task_delegations WHERE task_id = ? AND id = ?`, taskID, id).
 		Scan(&currentStatus, &currentReport); err != nil {
-			return "", "", fmt.Errorf("read ended delegation: %w", err)
+		return "", "", fmt.Errorf("read ended delegation: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
 		return "", "", fmt.Errorf("commit delegation read: %w", err)

@@ -81,6 +81,17 @@ func (r *Runner) handle(ctx context.Context, task domain.Task, state *runState, 
 func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, call Call) (outcome, bool) {
 	described := r.deps.Tools.Describe(call)
 
+	if r.approvalResearcher {
+		roleKey := ""
+		if r.role != nil {
+			roleKey = r.role.Key
+		}
+		if why := approvalResearcherRefusal(roleKey, call); why != "" {
+			r.result(ctx, task, call.ID, why, true)
+			return outcome{}, false
+		}
+	}
+
 	if why := r.scopeHold(call); why != "" {
 		r.result(ctx, task, call.ID, why, true)
 

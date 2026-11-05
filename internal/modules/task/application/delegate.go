@@ -91,6 +91,7 @@ func (r *Runner) startDelegation(
 		ID: call.ID, RoleKey: role.Key, RoleName: role.Name, ProviderID: providerID, Model: model, Effort: effort,
 		Brief: truncate(args.Brief, maxBrief), Context: args.Context, RequestEffort: args.Effort,
 		Status: DelegationWorking, Scope: args.Scope, Mutating: roleCanWrite(role),
+		AllowNeedsInput: r.approvalResearcher && role.Key == "researcher" && !buildsThings(role),
 	}
 
 	seed := domain.Block{Kind: domain.BlockText, Text: r.briefWithPlan(ctx, task, args)}

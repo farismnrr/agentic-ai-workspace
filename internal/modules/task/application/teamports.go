@@ -115,19 +115,21 @@ const (
 
 // Delegation is one job the orchestrator handed to a teammate. Its id is the delegate tool call's id.
 type Delegation struct {
-	ID         string
-	RoleKey    string
-	RoleName   string
-	ProviderID string
-	Model      string
-	Effort     domain.Effort
-	Brief              string
-	Context            string
-	RequestEffort      string
-	Status             string
-	Report             string
-	Scope              []string
-	Mutating           bool
+	ID            string
+	RoleKey       string
+	RoleName      string
+	ProviderID    string
+	Model         string
+	Effort        domain.Effort
+	Brief         string
+	Context       string
+	RequestEffort string
+	Status        string
+	Report        string
+	Scope         []string
+	Mutating      bool
+	// AllowNeedsInput is a one-call server authorization for Researcher on the exact external approval wait.
+	AllowNeedsInput    bool
 	ParametersVerified bool
 	// StartSeq is the last thread event before the teammate began, so their steps can be found again.
 	StartSeq int64

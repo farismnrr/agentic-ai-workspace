@@ -64,6 +64,8 @@ type Runner struct {
 	externalFacts bool
 	// externalWorker marks an internal teammate launched by the external Orchestrator.
 	externalWorker bool
+	// approvalResearcher is set only after checking the exact pending external approval question.
+	approvalResearcher bool
 }
 
 // NewRunner builds the agent loop.

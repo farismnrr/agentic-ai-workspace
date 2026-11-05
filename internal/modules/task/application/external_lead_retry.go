@@ -48,9 +48,6 @@ func (s *Service) retryExternal(
 	if !valid || !sameExternalInput(d, in) {
 		return ExternalAgentJob{}, domain.ErrBadRequest
 	}
-	if !task.Status.Running() {
-		return ExternalAgentJob{}, refusal("TASK_NOT_ACTIVE", "This task is stopped or finished. Start an active task before retrying work.")
-	}
 	roster := r.roster(ctx, task)
 	if roster == nil {
 		return ExternalAgentJob{}, refusal("ROLE_NOT_ALLOWED", "No enabled team is available for this task. Enable a team member in Settings, then try again.")
@@ -64,7 +61,11 @@ func (s *Service) retryExternal(
 	if err := s.externalPlanRefusal(ctx, userID, task, r, roster, in.AgentKey); err != nil {
 		return ExternalAgentJob{}, err
 	}
-	s.resumeExternal(r, task, jobID, d, roster)
+	workerRunner, err := s.externalApprovalResearcherRunner(ctx, task, r, roster, in.AgentKey)
+	if err != nil {
+		return ExternalAgentJob{}, err
+	}
+	s.resumeExternal(workerRunner, task, jobID, d, roster)
 	return externalJob(jobID, d), nil
 }
 
@@ -89,7 +90,11 @@ func (s *Service) startExternal(
 	if err := s.externalPlanRefusal(ctx, userID, task, r, roster, in.AgentKey); err != nil {
 		return ExternalAgentJob{}, err
 	}
-	state := &runState{budget: &budget{left: r.lim.steps(true)}, segment: r.lim.delegateSteps(), roster: roster}
+	workerRunner, err := s.externalApprovalResearcherRunner(ctx, task, r, roster, in.AgentKey)
+	if err != nil {
+		return ExternalAgentJob{}, err
+	}
+	state := &runState{budget: &budget{left: workerRunner.lim.steps(true)}, segment: workerRunner.lim.delegateSteps(), roster: roster}
 	state.clarifyAsked = maxClarifyHolds
 	args := delegateArgs{Role: in.AgentKey, Brief: in.Brief, Context: in.Context, Effort: in.Effort, Scope: in.Scope}
 	raw, err := json.Marshal(args)
@@ -97,11 +102,11 @@ func (s *Service) startExternal(
 		return ExternalAgentJob{}, err
 	}
 	call := Call{ID: jobID, Name: toolDelegate, Input: raw}
-	d, ok := r.startDelegation(ctx, task, state, call, args)
+	d, ok := workerRunner.startDelegation(ctx, task, state, call, args)
 	if !ok {
 		return ExternalAgentJob{}, refusal("POLICY_REFUSED", "The worker could not start under this task's current rules. Update the plan or required inputs, then try again.")
 	}
-	s.launchExternal(r, task, state, call, d)
+	s.launchExternal(workerRunner, task, state, call, d)
 	return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: d.Status}, nil
 }
 

@@ -47,7 +47,7 @@ func (r *Runner) child(role AgentRole, d Delegation) *Runner {
 
 	return &Runner{
 		deps: deps, lim: r.lim, role: &role, job: d.ID, scope: d.Scope, since: d.StartSeq,
-		externalWorker: r.externalWorker,
+		externalWorker: r.externalWorker, approvalResearcher: r.approvalResearcher,
 	}
 }
 
