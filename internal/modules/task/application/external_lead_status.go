@@ -1,6 +1,10 @@
 package application
 
-import "context"
+import (
+	"context"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
+)
 
 // externalJobStatus reconciles interrupted external worker jobs on read. A
 // persisted "working" record without a live worker is waiting for a safe retry,
@@ -16,7 +20,14 @@ func (s *Service) externalJobStatus(ctx context.Context, taskID string, d Delega
 		return d, nil
 	}
 	if err := s.deps.Delegations.SetDelegationStatus(ctx, taskID, d.ID, DelegationWaiting); err != nil {
-		return d, err
+		current, found, readErr := s.deps.Delegations.FindDelegation(ctx, taskID, d.ID)
+		if readErr != nil {
+			return d, readErr
+		}
+		if !found {
+			return d, domain.ErrNotFound
+		}
+		return current, nil
 	}
 	d.Status = DelegationWaiting
 	return d, nil

@@ -2,7 +2,6 @@ package application
 
 import (
 	"encoding/json"
-	"path"
 	"slices"
 	"strings"
 
@@ -10,7 +9,11 @@ import (
 )
 
 var (
-	writeToolNames   = []string{"write_file", "edit_file", "delete_file", "move_file", "download_asset"}
+	writeToolNames = []string{
+		"write_file", "edit_file", "delete_file", "move_file", "download_asset",
+		"run_command", "run_task", "verify", "run_build", "start_site", "browser_test",
+		"run_artifact", "marimo_execute", "molab_execute",
+	}
 	soloOnlyRoleKeys = []string{"planner", "devops"}
 )
 
@@ -43,7 +46,7 @@ func parallelRoleRefused(role AgentRole) string {
 		role.Name + " in a separate turn."
 }
 
-// RoleCanWrite reports whether a role can create, edit, move or delete files in the project.
+// RoleCanWrite reports whether a role can write files or use an unbounded execution tool.
 func RoleCanWrite(role AgentRole) bool {
 	return slices.ContainsFunc(role.Tools, func(tool string) bool {
 		return slices.Contains(writeToolNames, tool)
@@ -52,69 +55,6 @@ func RoleCanWrite(role AgentRole) bool {
 
 func roleCanWrite(role AgentRole) bool {
 	return RoleCanWrite(role)
-}
-
-// cleanScope normalizes relative file or folder prefixes and drops root or parent-traversal entries.
-func cleanScope(raw []string) []string {
-	var out []string
-
-	for _, item := range raw {
-		cleaned, ok := cleanScopePath(item)
-		if ok && !slices.Contains(out, cleaned) {
-			out = append(out, cleaned)
-		}
-	}
-
-	return out
-}
-
-func cleanScopePath(raw string) (string, bool) {
-	trimmed := strings.TrimSpace(strings.ReplaceAll(raw, "\\", "/"))
-	trimmed = strings.TrimLeft(trimmed, "/")
-	if trimmed == "" {
-		return "", false
-	}
-
-	cleaned := path.Clean(trimmed)
-	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, "../") {
-		return "", false
-	}
-
-	return cleaned, true
-}
-
-// pathsOverlap reports whether two normalized paths name the same file/folder or one is inside the other.
-func pathsOverlap(a, b string) bool {
-	return a == b || strings.HasPrefix(a, b+"/") || strings.HasPrefix(b, a+"/")
-}
-
-// scopesOverlap reports whether any path prefix in a overlaps with any path prefix in b.
-func scopesOverlap(a, b []string) bool {
-	for _, left := range a {
-		for _, right := range b {
-			if pathsOverlap(left, right) {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-// inScope reports whether target lies inside at least one prefix of scope.
-func inScope(target string, scope []string) bool {
-	cleaned, ok := cleanScopePath(target)
-	if !ok {
-		return false
-	}
-
-	for _, prefix := range scope {
-		if cleaned == prefix || strings.HasPrefix(cleaned, prefix+"/") {
-			return true
-		}
-	}
-
-	return false
 }
 
 // parallelScopeConflict checks whether a delegation may run in parallel and whether its write scope is disjoint.
@@ -150,6 +90,13 @@ func (r *Runner) scopeHold(call Call) string {
 		return ""
 	}
 
+	switch call.Name {
+	case toolRunCommand, "run_task", "verify", "run_build", "start_site", "browser_test",
+		"run_artifact", "marimo_execute", "molab_execute":
+		return "This execution tool cannot be limited to your assigned file scope. Complete scoped file work " +
+			"with the named file tools; ask the orchestrator to run unrestricted work in an exclusive turn."
+	}
+
 	// Git source mutations can change arbitrary paths (cherry-picks, merges,
 	// commits, branch switches). Refuse them in parallel folder-scoped jobs;
 	// do them in an exclusive delegation after the slices are complete.
@@ -166,6 +113,10 @@ func (r *Runner) scopeHold(call Call) string {
 
 	targets, checked := writeTargets(call)
 	if !checked {
+		if slices.Contains(writeToolNames, call.Name) {
+			return "The file target could not be checked against your assigned scope. Use a named file tool " +
+				"with a clear relative path."
+		}
 		return ""
 	}
 

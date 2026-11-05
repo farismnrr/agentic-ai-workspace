@@ -410,4 +410,56 @@ func TestOrchestratorCancelledWorkerStaysCancelled(t *testing.T) {
 	}
 }
 
+func TestExternalLeadPASSRequiresServerRecordedVerification(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	gateway := apptest.NewGateway(t, apptest.ToolCall("report", "report", map[string]any{
+		"summary": "QA reports that the checks passed.",
+	}))
+	provider := apptest.AddProvider(t, env, cookie, gateway.Server.URL, "k").JSON(t)["id"].(string)
+	prefs := `{"defaultProviderId":"` + provider + `","defaultModel":"fake-model","rules":[]}`
+	if response := apptest.Do(t, env.App, "PUT", "/api/preferences", prefs,
+		apptest.JSONCookie(cookie)); response.Status != 200 && response.Status != 204 {
+		t.Fatalf("model preference failed: %d %s", response.Status, response.Body)
+	}
+	project := apptest.Do(t, env.App, "POST", "/api/projects",
+		`{"name":"External completion evidence"}`, apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	token := orchestratorToken(t, env.App, cookie, client)
+	for _, name := range []string{"create_task", "delegate_agent", "update_task_plan", "complete_task"} {
+		orchestratorOn(t, env.App, cookie, name)
+	}
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		`{"project":"`+project+`","summary":"Check external completion proof",`+
+			`"idempotency_key":"completion-proof-task-12345"}`))["ID"].(string)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		`{"task_id":"`+task+`","steps":[{"id":"review","title":"Review the result","state":"active"}]}`))
+	job := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent",
+		`{"task_id":"`+task+`","agent_key":"qa","brief":"Review the change and report whether it is ready",`+
+			`"idempotency_key":"completion-proof-qa-12345"}`))
+	jobID := job["job_id"].(string)
+	for attempt := 0; attempt < 200; attempt++ {
+		state := orchestratorData(t, orchestratorCall(t, env.App, token, "get_delegation",
+			`{"task_id":"`+task+`","job_id":"`+jobID+`"}`))
+		if state["status"] == "done" {
+			break
+		}
+		if state["status"] == "failed" {
+			t.Fatalf("QA report failed: %+v", state)
+		}
+		if attempt == 199 {
+			t.Fatal("QA report did not finish")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	pass := orchestratorCall(t, env.App, token, "complete_task",
+		`{"task_id":"`+task+`","summary":"PASS: QA says it is ready","outcome":"pass"}`)
+	apptest.MustContain(t, pass.Body, `"isError":true`, "server-recorded successful verification")
+	partial := orchestratorData(t, orchestratorCall(t, env.App, token, "complete_task",
+		`{"task_id":"`+task+`","summary":"Partial: review completed, checks are unverified",`+
+			`"outcome":"partial"}`))
+	if partial["status"] != "done" {
+		t.Fatalf("partial audit should remain completable: %+v", partial)
+	}
+}
+
 func jsonNumber(n int) string { return fmt.Sprint(n) }

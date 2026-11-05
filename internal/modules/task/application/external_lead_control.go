@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -86,11 +87,8 @@ func (s *Service) cancelRunningExternalJob(ctx context.Context, taskID, jobID st
 	}
 	s.externalMu.Unlock()
 	started = time.Now()
-	err := s.deps.Delegations.SetDelegationStatus(ctx, taskID, jobID, DelegationCancelled)
+	writeErr := s.deps.Delegations.SetDelegationStatus(ctx, taskID, jobID, DelegationCancelled)
 	trace.terminalWrite = time.Since(started)
-	if err != nil {
-		return ExternalAgentJob{}, err
-	}
 	// The worker may have completed just before the cancellation write. Return
 	// the persisted winner so a completed job is not reported as cancelled.
 	started = time.Now()
@@ -101,6 +99,10 @@ func (s *Service) cancelRunningExternalJob(ctx context.Context, taskID, jobID st
 	}
 	if !found {
 		return ExternalAgentJob{}, domain.ErrNotFound
+	}
+	if writeErr != nil && d.Status != DelegationDone && d.Status != DelegationFailed &&
+		d.Status != DelegationCancelled {
+		return ExternalAgentJob{}, writeErr
 	}
 	trace.outcome = d.Status
 	return externalJob(jobID, d), nil
@@ -123,8 +125,15 @@ func (trace *externalCancelTrace) log() {
 		"reread_ms", trace.reread.Milliseconds(), "total_ms", time.Since(trace.started).Milliseconds())
 }
 
-// StopExternalLeadTask marks the external-led task done and cancels its active
-// worker jobs. It cannot stop or alter a normal internal task.
+type ExternalLeadAnswerStore interface {
+	AnswerExternalLeadQuestion(ctx context.Context, userID, taskID, source string, event domain.Event, at time.Time) error
+}
+
+type ExternalLeadStopStore interface {
+	StopExternalLeadTask(ctx context.Context, userID, taskID, source string, at time.Time) error
+}
+
+// StopExternalLeadTask stops the parent and its durable waiting jobs atomically.
 func (s *Service) StopExternalLeadTask(ctx context.Context, userID, taskID string) error {
 	task, err := s.externalOwned(ctx, userID, taskID)
 	if err != nil {
@@ -136,24 +145,18 @@ func (s *Service) StopExternalLeadTask(ctx context.Context, userID, taskID strin
 	if err != nil {
 		return err
 	}
-	if task.Status == domain.StatusDone {
-		return nil
+	store, ok := s.deps.Tasks.(ExternalLeadStopStore)
+	if !ok {
+		return domain.ErrWrongState
 	}
-	cancels := make([]context.CancelFunc, 0)
-	for key, cancel := range s.externalRunning {
-		if len(key) > len(taskID) && key[:len(taskID)+1] == taskID+"/" {
-			s.externalCancelled[key] = true
-			cancels = append(cancels, cancel)
-		}
-	}
-	for _, cancel := range cancels {
-		cancel()
-	}
-	if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusDone, s.now()); err != nil {
+	if err := store.StopExternalLeadTask(ctx, userID, task.ID, task.Source, s.now()); err != nil {
 		return err
 	}
-	_, err = s.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-		Kind: domain.EventMessage, Text: "Stopped by the external lead", Time: s.now(),
-	})
-	return err
+	for key, cancel := range s.externalRunning {
+		if strings.HasPrefix(key, taskID+"/") {
+			s.externalCancelled[key] = true
+			cancel()
+		}
+	}
+	return nil
 }

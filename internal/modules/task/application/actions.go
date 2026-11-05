@@ -41,10 +41,11 @@ func (s *Service) Answer(ctx context.Context, userID, taskID, eventID string, an
 		if err := resolve(&event, answer); err != nil {
 			return err
 		}
-		if err := s.deps.Events.UpdateEvent(ctx, taskID, event); err != nil {
-			return err
+		store, ok := s.deps.Events.(ExternalLeadAnswerStore)
+		if !ok {
+			return domain.ErrWrongState
 		}
-		return s.deps.Tasks.SetStatus(ctx, taskID, domain.StatusWorking, s.now())
+		return store.AnswerExternalLeadQuestion(ctx, userID, taskID, task.Source, event, s.now())
 	}
 	if task.Source != "" {
 		return domain.ErrWrongState

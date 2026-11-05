@@ -3,8 +3,8 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 115 Go test files contain 254 top-level test functions:
-104 registered test files contain 254 functions and 11 support files contain no test functions.
+After this slice, 115 Go test files contain 255 top-level test functions:
+104 registered test files contain 255 functions and 11 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
@@ -18,6 +18,7 @@ After this slice, 115 Go test files contain 254 top-level test functions:
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorSpaceSeparateResourceAndOneTask` | auth/authz | Real HTTP MCP verifies distinct token resource, tool switches and durable one-task idempotency. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorFileToolsRespectProjectAndTask` | cross-user/project isolation | Real MCP requests verify task-scoped writes and SHA-256-validated binary upload into the right project. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorDirectInternalResearcher` | app-level integration | Real MCP delegation runs the configured internal Researcher via scripted model; checks job report and no extra task. | none |
+| `test/go/app/connectors/orchestrator_space_test.go::TestExternalLeadPASSRequiresServerRecordedVerification` | critical completion proof | Real Orchestrator MCP confirms a completed QA report cannot establish PASS and partial completion remains available. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorCancelledWorkerStaysCancelled` | app-level integration | Real MCP cancellation is idempotent and a held worker's late completion cannot replace the durable cancelled status. | none |
 | `test/go/app/molab/mcp_test.go::TestChatGPTMoLabRequiresDeveloperWork` | auth/authz | Exercises OAuth MCP discovery, permission switch, Developer work requirement and credential-free activity logging. | none |
 | `test/go/app/molab/mcp_test.go::TestChatGPTMoLabRequiresExecScope` | auth/authz | Verifies step-up consent is required for coding:exec. | none |

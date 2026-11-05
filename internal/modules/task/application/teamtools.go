@@ -87,6 +87,9 @@ func parseDelegate(input json.RawMessage) (delegateArgs, bool) {
 	}
 
 	args.Role, args.Brief = strings.TrimSpace(args.Role), strings.TrimSpace(args.Brief)
+	if !validScope(args.Scope) {
+		return delegateArgs{}, false
+	}
 	args.Scope = cleanScope(args.Scope)
 
 	return args, args.Role != "" && args.Brief != ""

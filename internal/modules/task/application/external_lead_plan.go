@@ -4,9 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
+
+type ExternalLeadPlanApprovalStore interface {
+	SubmitExternalLeadApproval(ctx context.Context, userID, taskID, source string, event domain.Event, at time.Time) (domain.Event, error)
+}
 
 type ExternalPlanApproval struct {
 	Status  string `json:"status"`
@@ -64,6 +69,9 @@ func (s *Service) SubmitExternalPlan(ctx context.Context, userID, taskID string)
 	if err != nil {
 		return ExternalPlanApproval{}, err
 	}
+	if task.Status == domain.StatusDone || task.Status == domain.StatusFailed {
+		return ExternalPlanApproval{}, domain.ErrWrongState
+	}
 	events, err := s.deps.Events.EventsAfter(ctx, task.ID, 0)
 	if err != nil {
 		return ExternalPlanApproval{}, err
@@ -82,8 +90,13 @@ func (s *Service) SubmitExternalPlan(ctx context.Context, userID, taskID string)
 			return ExternalPlanApproval{Status: "pending", EventID: event.ID}, nil
 		}
 	}
-	event, err := s.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-		Kind: domain.EventQuestion, Agent: task.Source, Time: s.now(),
+	store, ok := s.deps.Events.(ExternalLeadPlanApprovalStore)
+	if !ok {
+		return ExternalPlanApproval{}, domain.ErrWrongState
+	}
+	at := s.now()
+	event, err := store.SubmitExternalLeadApproval(ctx, userID, task.ID, task.Source, domain.Event{
+		Kind: domain.EventQuestion, Agent: task.Source, Time: at,
 		Text: "The external orchestrator submitted the PRD. Start building?",
 		Questions: []domain.Question{{
 			Text: "Approve the PRD and start implementation?", Type: domain.QuestionSingle,
@@ -92,11 +105,8 @@ func (s *Service) SubmitExternalPlan(ctx context.Context, userID, taskID string)
 				{Label: "Change something", Description: "Revise the PRD before implementation"},
 			},
 		}},
-	})
+	}, at)
 	if err != nil {
-		return ExternalPlanApproval{}, err
-	}
-	if err := s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusNeedsInput, s.now()); err != nil {
 		return ExternalPlanApproval{}, err
 	}
 	return ExternalPlanApproval{Status: "pending", EventID: event.ID}, nil
@@ -110,6 +120,14 @@ func (s *Service) ExternalApproval(ctx context.Context, userID, taskID string) (
 	events, err := s.deps.Events.EventsAfter(ctx, task.ID, 0)
 	if err != nil {
 		return ExternalPlanApproval{}, err
+	}
+	if task.Status == domain.StatusDone || task.Status == domain.StatusFailed {
+		for _, event := range events {
+			if event.Kind == domain.EventMessage && event.Text == "Stopped by the external lead" {
+				return ExternalPlanApproval{Status: "stopped"}, nil
+			}
+		}
+		return ExternalPlanApproval{Status: "not-pending"}, nil
 	}
 	prd := lastSeq(events, domain.EventPRD)
 	if prd == 0 {

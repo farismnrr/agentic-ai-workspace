@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"strings"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -97,39 +95,9 @@ func (s *Service) DelegateExternal(ctx context.Context, userID string, in Extern
 		return ExternalAgentJob{}, err
 	}
 	if found {
-		if d.RoleKey != in.AgentKey || d.Brief != truncate(strings.TrimSpace(in.Brief), maxBrief) {
-			return ExternalAgentJob{}, domain.ErrBadRequest
-		}
-		s.resumeExternal(r, task, in, jobID, d)
-		return ExternalAgentJob{ID: d.ID, Role: d.RoleKey, Status: d.Status, Report: d.Report}, nil
+		return s.retryExternal(ctx, userID, task, r, in, jobID, d)
 	}
-	roster := r.roster(ctx, task)
-	if roster == nil {
-		return ExternalAgentJob{}, refusal("ROLE_NOT_ALLOWED", "No enabled team is available for this task. Enable a team member in Settings, then try again.")
-	}
-	if err := s.externalParallelCheck(ctx, r, task, roster, in.AgentKey); err != nil {
-		if errors.Is(err, domain.ErrBadRole) {
-			return ExternalAgentJob{}, refusal("ROLE_NOT_ALLOWED", "That team role is not enabled. Choose an enabled role from list_agents.")
-		}
-		return ExternalAgentJob{}, err
-	}
-	if err := s.externalPlanRefusal(ctx, userID, task, r, roster, in.AgentKey); err != nil {
-		return ExternalAgentJob{}, err
-	}
-	state := &runState{budget: &budget{left: r.lim.steps(true)}, segment: r.lim.delegateSteps(), roster: roster}
-	state.clarifyAsked = maxClarifyHolds
-	args := delegateArgs{Role: in.AgentKey, Brief: in.Brief, Context: in.Context, Effort: in.Effort, Scope: cleanScope(in.Scope)}
-	raw, err := json.Marshal(args)
-	if err != nil {
-		return ExternalAgentJob{}, err
-	}
-	call := Call{ID: jobID, Name: toolDelegate, Input: raw}
-	d, ok := r.startDelegation(ctx, task, state, call, args)
-	if !ok {
-		return ExternalAgentJob{}, refusal("POLICY_REFUSED", "The worker could not start under this task's current rules. Update the plan or required inputs, then try again.")
-	}
-	s.launchExternal(r, task, state, call, d)
-	return ExternalAgentJob{ID: jobID, Role: d.RoleKey, Status: d.Status}, nil
+	return s.startExternal(ctx, userID, task, r, in, jobID)
 }
 
 // Jobs are detached from MCP request lifetime but bounded by the runner's wall-time.
@@ -153,22 +121,4 @@ func (s *Service) launchExternal(r *Runner, task domain.Task, state *runState, c
 			_ = r.deps.Delegations.SetDelegationStatus(context.Background(), task.ID, d.ID, "cancelled")
 		}
 	}()
-}
-
-func (s *Service) resumeExternal(r *Runner, task domain.Task, in ExternalAgentInput, jobID string, d Delegation) {
-	if d.Status != DelegationWorking && d.Status != DelegationWaiting {
-		return
-	}
-	if _, running := s.externalRunning[task.ID+"/"+jobID]; running {
-		return
-	}
-	roster := r.roster(context.Background(), task)
-	if roster == nil {
-		return
-	}
-	state := &runState{budget: &budget{left: r.lim.steps(true)}, segment: r.lim.delegateSteps(), roster: roster}
-	state.clarifyAsked = maxClarifyHolds
-	d.Scope = cleanScope(in.Scope)
-	raw, _ := json.Marshal(delegateArgs{Role: in.AgentKey, Brief: in.Brief, Context: in.Context, Scope: d.Scope})
-	s.launchExternal(r, task, state, Call{ID: jobID, Name: toolDelegate, Input: raw}, d)
 }

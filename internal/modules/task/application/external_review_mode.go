@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
@@ -22,7 +23,11 @@ func (s *Service) EnableExternalDeepReview(
 	if err != nil {
 		return domain.Task{}, err
 	}
-	if task.Source == "" || task.WorkID == "" || task.ArchivedAt != nil {
+	externalOrchestrator := strings.HasPrefix(task.Source, externalLeadSource) && task.WorkID == ""
+	externalCoding := task.Source != "" && task.WorkID != ""
+	if (!externalOrchestrator && !externalCoding) || task.ArchivedAt != nil ||
+		(!task.Status.Running() && task.Status != domain.StatusNeedsInput &&
+			!(externalCoding && task.Status == domain.StatusReview)) {
 		return domain.Task{}, domain.ErrWrongState
 	}
 	if task.ReviewMode == domain.ReviewModeDeepReview {

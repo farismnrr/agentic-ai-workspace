@@ -91,6 +91,21 @@ func (s egressTasks) endAll(ctx context.Context, tasks []taskdomain.Task) {
 	}
 }
 
+// StopExternalLeadTask forwards the owner stop through the lifecycle wrapper.
+func (s egressTasks) StopExternalLeadTask(
+	ctx context.Context, userID, taskID, source string, at time.Time,
+) error {
+	stopper, ok := s.TaskStore.(taskapp.ExternalLeadStopStore)
+	if !ok {
+		return taskdomain.ErrWrongState
+	}
+	if err := stopper.StopExternalLeadTask(ctx, userID, taskID, source, at); err != nil {
+		return err //nolint:wrapcheck // a pass-through
+	}
+	s.ended(ctx, taskID)
+	return nil
+}
+
 // EnableExternalDeepReview forwards the owner-only review-mode mutation
 // without bypassing the egress task lifecycle wrapper.
 func (s egressTasks) EnableExternalDeepReview(

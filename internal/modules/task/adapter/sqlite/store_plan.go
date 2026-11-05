@@ -70,6 +70,14 @@ func (s *Store) CompleteExternalLead(
 	if err := rejectPendingOwnerAction(ctx, tx, id); err != nil {
 		return err
 	}
+	var activeJobs int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM task_delegations
+		WHERE task_id = ? AND status IN ('working', 'waiting')`, id).Scan(&activeJobs); err != nil {
+		return fmt.Errorf("check active external workers: %w", err)
+	}
+	if activeJobs > 0 {
+		return errors.New("worker jobs are still active")
+	}
 	if status != string(domain.StatusWorking) {
 		return domain.ErrWrongState
 	}

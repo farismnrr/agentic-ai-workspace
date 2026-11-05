@@ -89,21 +89,10 @@ func (s *Service) CompleteExternalLeadTask(ctx context.Context, userID, taskID, 
 		out = strings.ToLower(strings.TrimSpace(outcome[0]))
 	}
 	if out == "pass" {
-		verified := false
-		if reader, ok := s.deps.Delegations.(interface {
-			ListDelegations(context.Context, string) ([]Delegation, error)
-		}); ok {
-			if delegations, err := reader.ListDelegations(ctx, taskID); err == nil {
-				for _, d := range delegations {
-					if (d.RoleKey == "qa" || d.RoleKey == "reviewer" || d.RoleKey == "devops") && d.Status == DelegationDone {
-						verified = true
-						break
-					}
-				}
-			}
-		}
-		if !verified {
-			return errors.New("cannot report PASS without completed build or QA verification; use 'partial' or 'blocked'")
+		events, err := s.deps.Events.EventsAfter(ctx, taskID, 0)
+		if err != nil || !buildProof(events, nil).Proven {
+			return errors.New("cannot report PASS without server-recorded successful verification " +
+				"after the latest change; use 'partial' or 'blocked'")
 		}
 	}
 	if out != "" && !strings.HasPrefix(strings.ToLower(summary), out) && !strings.HasPrefix(strings.ToLower(summary), "["+out+"]") {

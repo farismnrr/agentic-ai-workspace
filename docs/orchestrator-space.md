@@ -29,7 +29,9 @@ An owner can enable **Approve plans** in Settings → Spaces → Orchestrator.
 Granting the `orchestrator:approve` OAuth scope allows `approve_plan` calls.
 Approvals require matching owner, client, and latest PRD revision.
 Stale or answered events cannot approve a different plan.
-Security review requires the owner to enable deep-review mode.
+For an active Orchestrator-led task, the signed-in owner can enable Deep Review
+from the task header. That makes Security available; it does not start a review
+by itself.
 
 Workers may run in parallel when their roles allow it, but file-changing workers are serialized to prevent conflicting edits.
 
@@ -48,6 +50,10 @@ Binary transfer requires the connected AI app to provide the actual bytes to the
 - Mutating tools and delegation must be explicitly enabled.
 - Workers needing Docker may not run until a Docker-enabled host is available.
 - Remote app behavior depends on the client and the configured internal models.
+- A QA or DevOps report alone cannot prove PASS.
+  PASS needs successful checks the server recorded after
+  the latest project change. Use partial or blocked while
+  results remain unverified.
 - File operation and job activity are visible in the project's existing UI.
 
 The new Space is independent of the existing Coding connector. For Coding Space instructions, see [Connecting AI apps](connector.md).

@@ -61,6 +61,20 @@ type observedTasks struct {
 	owners *owners
 }
 
+func (o observedTasks) StopExternalLeadTask(
+	ctx context.Context, userID, taskID, source string, at time.Time,
+) error {
+	stopper, ok := o.TaskStore.(ExternalLeadStopStore)
+	if !ok {
+		return domain.ErrWrongState
+	}
+	if err := stopper.StopExternalLeadTask(ctx, userID, taskID, source, at); err != nil {
+		return err
+	}
+	o.notify.Changed(userID, taskID)
+	return nil
+}
+
 func (o observedTasks) EnableExternalDeepReview(
 	ctx context.Context, userID, taskID string, at time.Time,
 ) error {

@@ -38,7 +38,8 @@ func (r *Runner) delegate(ctx context.Context, task domain.Task, state *runState
 			return outcome{}, false
 		}
 	default:
-		d.Scope = args.Scope
+		// Retries reuse the original durable execution context and scope.
+		args.Context, args.Effort, args.Scope = d.Context, d.RequestEffort, d.Scope
 	}
 
 	return r.runDelegation(ctx, task, state, call, d)
@@ -88,7 +89,8 @@ func (r *Runner) startDelegation(
 	effort = r.fitEffort(ctx, task.UserID, providerID, model, effort, args.Effort)
 	d := Delegation{
 		ID: call.ID, RoleKey: role.Key, RoleName: role.Name, ProviderID: providerID, Model: model, Effort: effort,
-		Brief: truncate(args.Brief, maxBrief), Status: DelegationWorking, Scope: args.Scope,
+		Brief: truncate(args.Brief, maxBrief), Context: args.Context, RequestEffort: args.Effort,
+		Status: DelegationWorking, Scope: args.Scope, Mutating: roleCanWrite(role),
 	}
 
 	seed := domain.Block{Kind: domain.BlockText, Text: r.briefWithPlan(ctx, task, args)}
@@ -128,7 +130,9 @@ func (r *Runner) runDelegation(
 		return outcome{}, false
 	}
 
-	_ = r.deps.Delegations.SetDelegationStatus(ctx, task.ID, d.ID, DelegationWorking)
+	if err := r.deps.Delegations.SetDelegationStatus(ctx, task.ID, d.ID, DelegationWorking); err != nil {
+		return failed("This teammate's job is no longer open.", "Check the task status before retrying."), true
+	}
 
 	teammate := task
 	teammate.ProviderID, teammate.Model, teammate.Effort = d.ProviderID, d.Model, d.Effort

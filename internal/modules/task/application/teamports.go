@@ -121,10 +121,13 @@ type Delegation struct {
 	ProviderID string
 	Model      string
 	Effort     domain.Effort
-	Brief      string
-	Status     string
-	Report     string
-	Scope      []string
+	Brief         string
+	Context       string
+	RequestEffort string
+	Status        string
+	Report        string
+	Scope         []string
+	Mutating      bool
 	// StartSeq is the last thread event before the teammate began, so their steps can be found again.
 	StartSeq int64
 }
