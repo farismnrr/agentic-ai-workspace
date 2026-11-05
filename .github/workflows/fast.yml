@@ -139,3 +139,15 @@ jobs:
             exit 1
           fi
           echo 'PASS native Git parity black-box'
+      - name: Verify named frontend build staging on fresh disposable runner
+        env:
+          APP_BIN: ${{ github.workspace }}/bin/agentic-ai-workspace
+          SANDBOX_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
+          SANDBOX_TEST_IMAGE: ghcr.io/${{ github.repository }}-sandbox:sha-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if ! ./test/run.sh blackbox 14-named-build-staging 2>&1 | tee "$RUNNER_TEMP/named-build-staging.log"; then
+            python3 -c 'import os,pathlib; t=pathlib.Path(os.environ["RUNNER_TEMP"]+"/named-build-staging.log").read_text(errors="replace")[-3500:]; print("::error title=Named build staging failure::"+t.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            exit 1
+          fi
+          echo 'PASS named frontend build staging black-box'

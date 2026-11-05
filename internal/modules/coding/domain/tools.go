@@ -110,7 +110,7 @@ var (
 	}
 	ToolRunBuild = ToolInfo{
 		Name: "run_build", Title: "Run a build", Scope: ScopeExec, Group: GroupExec,
-		Description: "Run a named build (kind build), with read-only source and writable BUILD_OUT=/output. Artifacts persist in the project's .build-output-* folder.",
+		Description: "Run an owner-configured kind=build task in a disposable writable copy of eligible source; /workspace stays read-only. Write final files to BUILD_OUT=/output; artifacts persist in .build-output-*/ and are not published to Sites.",
 	}
 	ToolRunArtifact = ToolInfo{
 		Name: "run_artifact", Title: "Generate a document or media asset", Scope: ScopeExec, Group: GroupExec,
@@ -137,8 +137,9 @@ func workTool(name, title, description string) ToolInfo {
 var ToolRunCommand = ToolInfo{
 	Name: "run_command", Title: "Run a command", Scope: ScopeExec, Group: GroupExec,
 	Description: "Run a shell command in the isolated sandbox (bash; Python, Node, Go, Rust and Java are installed; " +
-		"only package registries can be reached) and return its exit code and output. " +
-		"Do not run shell git push/fetch or gh here: use the server-mediated git/gh tools for authorized GitHub access.",
+		"only package registries can be reached) and return its exit code and output. Source stays read-only; " +
+		"DevOps builds must use an enabled owner-configured run_build task. Do not run shell git push/fetch or gh here: " +
+		"use the server-mediated git/gh tools for authorized GitHub access.",
 }
 
 // Tools lists every tool in display order.

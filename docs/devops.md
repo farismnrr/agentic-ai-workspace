@@ -16,6 +16,14 @@ AI Code distributes **two** OCI images via GitHub Container Registry (GHCR):
 
 Review the Actions run result before deploying. Do not assume pushing a Git commit means the corresponding images have already been published.
 
+## Project builds
+
+- DevOps runs only owner-configured `kind=build` tasks through the enabled `run_build` tool.
+- A build works in a disposable copy. The project source stays read-only, and credentials are excluded.
+- Copy final files explicitly to `$BUILD_OUT`, for example `cp -R dist/. "$BUILD_OUT/"`.
+- Output stays under `.build-output-*/`; it is not automatically published to Sites.
+- General shell commands stay read-only. Use `run_build` for project builds.
+
 ## Deployment hosts only pull
 
 For the `dev` channel, run from the repository checkout:

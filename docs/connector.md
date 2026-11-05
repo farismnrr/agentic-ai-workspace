@@ -74,11 +74,13 @@ Each connected-app conversation shows as a task beside the work done in the app.
   QA checks use `"kind":"check"` (or omit kind). `run_task` refuses build
   entries, while `run_build` refuses check entries. Turn on the separate **Run a build**
   tool in Settings; it no longer follows the general shell-command switch. A build
-  writes artifacts only to `BUILD_OUT=/output` (the source is read-only), and its
-  output is saved under the project's `.build-output-*/` folder. Developer
-  document/media generators use separate owner-configured `"kind":"artifact"`
-  tasks and the `run_artifact` tool; output is in `ARTIFACT_OUT=/output` and
-  persisted as `.artifact-output-*/`. QA cannot run builds or artifact tasks.
+  runs from a disposable copy of eligible source files; original `/workspace`
+  stays read-only. Copy final files explicitly to `$BUILD_OUT` (for example,
+  `cp -R dist/. "$BUILD_OUT/"`). Output is saved under `.build-output-*/` and
+  is not published to Sites. Document and media generators use separate
+  owner-configured `"kind":"artifact"` tasks with `run_artifact`; their
+  output is saved under `.artifact-output-*/`. QA cannot run builds or artifact
+  tasks.
   These are generated outputs, not permission to run tests or arbitrary shell.
 - Role restrictions are checked on the server. Switch through `set_role` within the
   same work ID. Named checks are user-configured programs, not a guaranteed

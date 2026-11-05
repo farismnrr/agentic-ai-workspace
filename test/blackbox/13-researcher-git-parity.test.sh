@@ -49,9 +49,8 @@ git remote add local-fixture remote.git
 git init --bare -q "$project_dir/remote.git"
 git push -q local-fixture HEAD:refs/heads/main
 printf 'Researcher commit probe\n' >> README.md
-# A minimal source check and a build writing only into the isolated /output
-# mount. Both must survive an oversized pre-existing (ignored) project file.
-mkdir -p .workspace
+# A minimal source check must still work when ignored data makes the project
+# larger than the normal command quota.
 cat > go.mod <<'GOMOD'
 module example.test/oversized
 
@@ -62,9 +61,6 @@ package oversized
 import "testing"
 func TestSmoke(t *testing.T) {}
 GOTEST
-cat > .workspace/tasks.json <<'TASKS'
-{"tasks":{"smoke-build":{"description":"Bounded isolated build probe","kind":"build","command":["sh","-c","printf safe-output > $BUILD_OUT/probe.txt"]}}}
-TASKS
 cd "$REPO_ROOT"
 
 git_tool() {
@@ -116,15 +112,6 @@ mcp_call_tool "$WORK_TOKEN" verify "$(jq -cn --arg project "$project_id" --arg w
 assert_status "$HTTP_STATUS" 200 'run QA verification on oversized source'
 assert_json '.result.structuredContent | .exit_code == 0 and (.output | contains("workspace is over its size limit") | not)' \
   'QA Go test succeeds despite old oversized read-only source'
-
-# DevOps named build writes only into a fresh /output mount. Existing ignored
-# project data must not consume this new output's own size cap.
-mcp_call_tool "$WORK_TOKEN" set_role "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" --arg role devops '{project:$project,work_id:$work_id,role:$role}')"
-assert_status "$HTTP_STATUS" 200 'switch to DevOps for isolated output build'
-mcp_call_tool "$WORK_TOKEN" run_build "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" '{project:$project,work_id:$work_id,name:"smoke-build"}')"
-assert_status "$HTTP_STATUS" 200 'run DevOps build on oversized source'
-assert_json '.result.structuredContent | .exit_code == 0 and (.output | contains("Generated outputs:"))' \
-  'isolated build succeeds with output cap independent of old project size'
 
 mcp_call_tool "$WORK_TOKEN" set_role "$(jq -cn --arg project "$project_id" --arg work_id "$WORK_ID" --arg role researcher '{project:$project,work_id:$work_id,role:$role}')"
 assert_status "$HTTP_STATUS" 200 'return to Researcher for quota mutation denial'

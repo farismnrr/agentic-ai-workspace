@@ -151,13 +151,38 @@ func (d *Docker) createOptions(spec Spec, mounts []mount.Mount) client.Container
 	}
 }
 
-// command runs through the image's start script when the proxy socket is mounted, so tools find it on a local port.
+const buildStageCommand = `set -euo pipefail
+stage=/output/.build-stage
+trap 'find "$stage" -mindepth 1 -delete 2>/dev/null || true' EXIT HUP INT TERM
+cd /workspace || { echo 'Build staging failed: source workspace is unavailable.' >&2; exit 125; }
+if ! find -P . -xdev \
+  \( -path './.git' -o -name '.workspace' \
+     -o -path './.build-output-*' -o -path './.artifact-output-*' \
+     -o -name '.env' -o -name '.env.*' -o -name '.npmrc' -o -name '.pypirc' \
+     -o -name '.netrc' -o -name '.ssh' -o -name '.docker' \
+     -o -iname '*credentials*' -o -iname '*secret*' -o -name 'id_rsa*' -o -name 'id_ed25519*' \
+     -o -name '*.token' \
+     -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' \
+     -o -name '*.jks' \) -prune -o \( -type d -o -type f \) -print0 |
+  tar --null --files-from=- --no-recursion -cf - |
+  tar --no-same-owner --no-same-permissions -C "$stage" -xf -; then
+  echo 'Build staging failed: could not copy eligible project files.' >&2
+  exit 125
+fi
+cd "$stage" || { echo 'Build staging failed: scratch directory is unavailable.' >&2; exit 125; }
+"$@"`
+
+// command preserves the image proxy wrapper and stages only explicitly named builds.
 func command(spec Spec) []string {
+	argv := spec.Argv
+	if spec.BuildStage {
+		argv = append([]string{"bash", "-c", buildStageCommand, "build-stage"}, argv...)
+	}
 	if spec.Egress == "" && spec.Site == "" && spec.View == "" && len(spec.Tunnels) == 0 {
-		return spec.Argv
+		return argv
 	}
 
-	return append([]string{Entry}, spec.Argv...)
+	return append([]string{Entry}, argv...)
 }
 
 func (d *Docker) containerName(spec Spec) string {

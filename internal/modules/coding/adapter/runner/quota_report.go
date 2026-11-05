@@ -24,6 +24,46 @@ func formatBytes(bytes int64) string {
 	return fmt.Sprintf("%.2f %s", float64(bytes)/float64(div), units[exp])
 }
 
+// cleanupAbandonedBuildStages removes only nested stage directories from retained
+// build outputs. The caller holds buildOutputMu so active runs cannot be removed.
+func cleanupAbandonedBuildStages(dir string) {
+	rootInfo, err := os.Lstat(dir)
+	if err != nil || !rootInfo.IsDir() || rootInfo.Mode()&os.ModeSymlink != 0 {
+		return
+	}
+	root, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), ".build-output-") {
+			continue
+		}
+		output := filepath.Join(root, entry.Name())
+		outputReal, err := filepath.EvalSymlinks(output)
+		if err != nil || filepath.Dir(outputReal) != root {
+			continue
+		}
+		if _, active := activeBuildOutputs[outputReal]; active {
+			continue
+		}
+		stage := filepath.Join(outputReal, ".build-stage")
+		stageInfo, err := os.Lstat(stage)
+		if err != nil || !stageInfo.IsDir() || stageInfo.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
+		stageReal, err := filepath.EvalSymlinks(stage)
+		if err != nil || filepath.Dir(stageReal) != outputReal {
+			continue
+		}
+		_ = os.RemoveAll(stageReal)
+	}
+}
+
 // pruneOldArtifactOutputs retains only the most recent keepCount output folders.
 func pruneOldArtifactOutputs(dir string, keepCount int) {
 	if keepCount < 0 {
@@ -44,7 +84,10 @@ func pruneOldArtifactOutputs(dir string, keepCount int) {
 		}
 		name := entry.Name()
 		if strings.HasPrefix(name, ".build-output-") || strings.HasPrefix(name, ".artifact-output-") {
-			full := filepath.Join(dir, name)
+			full := filepath.Clean(filepath.Join(dir, name))
+			if _, active := activeBuildOutputs[buildOutputKey(full)]; active {
+				continue
+			}
 			if info, infoErr := entry.Info(); infoErr == nil {
 				artifacts = append(artifacts, folderInfo{path: full, modTime: info.ModTime().UnixNano()})
 			}

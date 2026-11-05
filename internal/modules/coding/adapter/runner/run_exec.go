@@ -5,12 +5,32 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/application"
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 	"github.com/farismnrr/agentic-ai-workspace/internal/platform/sandbox"
 )
+
+var (
+	buildOutputMu     sync.Mutex
+	activeBuildOutputs = make(map[string]struct{})
+)
+
+func buildOutputKey(path string) string {
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
+		return resolved
+	}
+	return filepath.Clean(path)
+}
+
+func releaseBuildOutput(path string) {
+	buildOutputMu.Lock()
+	delete(activeBuildOutputs, path)
+	buildOutputMu.Unlock()
+}
 
 func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.CancelFunc) application.RunResult {
 	out := &tail{limit: domain.MaxOutputBytes}
@@ -20,6 +40,12 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	spec := sandbox.Spec{Workspace: r.dir, Argv: task.Command,
 		WorkspaceReadOnly: (domain.ReadOnlyWorkspace(ctx) || quotaExempt) && !gitWorkspaceWrite}
 	if task.Kind == "build" || task.Kind == "artifact" {
+		// Serialize output retention and recovery so one run cannot remove
+		// another run's active scratch or persisted output.
+		buildOutputMu.Lock()
+		if task.Kind == "build" {
+			cleanupAbandonedBuildStages(r.dir)
+		}
 		pruneOldArtifactOutputs(r.dir, 3)
 		// The source stays read-only; each build or document/media run gets
 		// a fresh isolated output folder for review and download.
@@ -28,10 +54,24 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 			prefix = ".artifact-output-"
 		}
 		path, err := os.MkdirTemp(r.dir, prefix)
+		if err == nil {
+			activeBuildOutputs[buildOutputKey(path)] = struct{}{}
+		}
+		buildOutputMu.Unlock()
 		if err != nil {
 			return application.RunResult{ExitCode: -1, Output: "could not create build output: " + err.Error()}
 		}
+		defer releaseBuildOutput(buildOutputKey(path))
 		spec.Artifacts = path
+		if task.Kind == "build" {
+			spec.BuildStage = true
+			stage := filepath.Join(path, ".build-stage")
+			if err := os.Mkdir(stage, 0o700); err != nil {
+				_ = os.RemoveAll(path)
+				return application.RunResult{ExitCode: -1, Output: "could not create build staging directory"}
+			}
+			defer os.RemoveAll(stage)
+		}
 	}
 	// A one-shot MoLab container receives ONLY its explicit credential, never
 	// project-wide variables or Git credentials from unrelated task commands.
@@ -83,7 +123,17 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	// No project database/gateway privileges in isolated check/build containers.
 	_ = r.engine.prepare(ctx, r.dir, &spec, docker, hosts...) // without a socket the command just has no network
 	projectValues, granting := granted.Apply(&spec, projectValues)
-	baseEnv := append(environment(spec), granting...)
+	baseEnv := environment(spec)
+	if spec.BuildStage {
+		cache := sandbox.BuildOutput + "/.build-stage/.cache"
+		baseEnv = Environment(spec,
+			"GOMODCACHE="+cache+"/go/mod", "GOCACHE="+cache+"/go/build", "GOPATH="+cache+"/go",
+			"CARGO_HOME="+cache+"/cargo", "npm_config_cache="+cache+"/npm",
+			"BUN_INSTALL_CACHE_DIR="+cache+"/bun", "UV_CACHE_DIR="+cache+"/uv",
+			"PIP_CACHE_DIR="+cache+"/pip", "MAVEN_OPTS=-Dmaven.repo.local="+cache+"/m2",
+		)
+	}
+	baseEnv = append(baseEnv, granting...)
 	if spec.Artifacts != "" {
 		baseEnv = append(baseEnv, "BUILD_OUT="+sandbox.BuildOutput, "ARTIFACT_OUT="+sandbox.BuildOutput)
 	}
@@ -114,6 +164,10 @@ func (r *Runner) execute(ctx context.Context, task domain.Task, cancel context.C
 	started := time.Now()
 	res, err := docker.Run(ctx, spec, out)
 	result := finish(ctx, err, res, out, time.Since(started))
+	if task.Name == "command" && domain.ReadOnlyWorkspace(ctx) &&
+		strings.Contains(strings.ToLower(result.Output), "read-only file system") {
+		result.Output += "\nProject source is read-only. DevOps builds must use an enabled, owner-configured run_build task."
+	}
 	if spec.Artifacts != "" {
 		result.Output += fmt.Sprintf("\nGenerated outputs: %s/ (BUILD_OUT/ARTIFACT_OUT=/output)", filepath.Base(spec.Artifacts))
 	}

@@ -63,6 +63,8 @@ type Spec struct {
 	// Artifacts is a dedicated writable output folder for builds with
 	// read-only project source. It is mounted at /output.
 	Artifacts string
+	// BuildStage runs only named build argv in a disposable copy under /output.
+	BuildStage bool
 	// Tunnels are optional "host:port" targets, such as a project's database and model gateway, that the proxy
 	// socket may reach. The start script opens each port on loopback and each host name resolves to it. It
 	// needs Egress to be set.
