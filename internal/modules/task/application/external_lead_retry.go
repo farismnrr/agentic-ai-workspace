@@ -32,12 +32,21 @@ func (s *Service) retryExternal(
 	ctx context.Context, userID string, task domain.Task, r *Runner, in ExternalAgentInput,
 	jobID string, d Delegation,
 ) (ExternalAgentJob, error) {
+	if d.Status == DelegationDone || d.Status == DelegationFailed || d.Status == DelegationCancelled {
+		in, valid := canonicalExternalInput(in)
+		if !valid || d.RoleKey != in.AgentKey || d.Brief != in.Brief || d.Context != in.Context ||
+			d.RequestEffort != in.Effort || (d.ParametersVerified && !slices.Equal(d.Scope, in.Scope)) {
+			return ExternalAgentJob{}, domain.ErrBadRequest
+		}
+		return externalJob(jobID, d), nil
+	}
+	if !d.ParametersVerified {
+		return ExternalAgentJob{}, refusal("LEGACY_PARAMETERS_UNKNOWN",
+			"This older worker job did not save its original file scope. Cancel this job, then retry on the same task with a new idempotency key and the intended file scope.")
+	}
 	in, valid := canonicalExternalInput(in)
 	if !valid || !sameExternalInput(d, in) {
 		return ExternalAgentJob{}, domain.ErrBadRequest
-	}
-	if d.Status == DelegationDone || d.Status == DelegationFailed || d.Status == DelegationCancelled {
-		return externalJob(jobID, d), nil
 	}
 	if !task.Status.Running() {
 		return ExternalAgentJob{}, refusal("TASK_NOT_ACTIVE", "This task is stopped or finished. Start an active task before retrying work.")

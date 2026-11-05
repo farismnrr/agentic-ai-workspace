@@ -35,6 +35,10 @@ by itself.
 
 Workers may run in parallel when their roles allow it, but file-changing workers are serialized to prevent conflicting edits.
 
+If an unfinished worker job was created before this update, retrying it is refused. Cancel
+that job, then ask the external lead to retry on the same task with a new idempotency
+key and the intended file scope.
+
 ## Files
 
 For text or code, the AI can call `save_file` with the project, primary task ID, relative path, and content. File writes cannot bypass pending plan approval or overwrite an existing file without the expected hash.

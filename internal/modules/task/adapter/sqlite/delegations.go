@@ -47,15 +47,16 @@ func (s *Store) StartDelegation(ctx context.Context, taskID string, d applicatio
 	defer func() { _ = tx.Rollback() }()
 	result, err := tx.ExecContext(ctx,
 		`INSERT INTO task_delegations (task_id, id, role_key, role_name, provider_id, model, effort, brief, status,
-		   start_seq, started_at, execution_context, request_effort, execution_scope, mutating)
-		 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		   start_seq, started_at, execution_context, request_effort, execution_scope, mutating,
+		   parameters_verified)
+		 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		 WHERE EXISTS (SELECT 1 FROM tasks WHERE id = ? AND status IN ('queued', 'planning', 'working'))
 		   AND (SELECT COUNT(*) FROM task_delegations
 		     WHERE task_id = ? AND status IN ('working', 'waiting')) < 4
 		   AND (? = 0 OR NOT EXISTS (SELECT 1 FROM task_delegations
 		     WHERE task_id = ? AND mutating = 1 AND status IN ('working', 'waiting')))`,
 		taskID, d.ID, d.RoleKey, d.RoleName, d.ProviderID, d.Model, string(d.Effort), d.Brief, d.Status,
-		d.StartSeq, at.Unix(), d.Context, d.RequestEffort, string(scope), mutating, taskID,
+		d.StartSeq, at.Unix(), d.Context, d.RequestEffort, string(scope), mutating, 1, taskID,
 		taskID, mutating, taskID)
 	if err != nil {
 		return mapBusy(fmt.Errorf("insert delegation: %w", err))
@@ -83,10 +84,10 @@ func (s *Store) FindDelegation(ctx context.Context, taskID, id string) (applicat
 
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, role_key, role_name, provider_id, model, effort, brief, status, report, start_seq,
-		        execution_context, request_effort, execution_scope, mutating
+		        execution_context, request_effort, execution_scope, mutating, parameters_verified
 		 FROM task_delegations WHERE task_id = ? AND id = ?`, taskID, id).
 		Scan(&d.ID, &d.RoleKey, &d.RoleName, &d.ProviderID, &d.Model, &effort, &d.Brief, &d.Status, &d.Report,
-			&d.StartSeq, &d.Context, &d.RequestEffort, &scope, &d.Mutating)
+			&d.StartSeq, &d.Context, &d.RequestEffort, &scope, &d.Mutating, &d.ParametersVerified)
 	if errors.Is(err, sql.ErrNoRows) {
 		return application.Delegation{}, false, nil
 	}
@@ -132,14 +133,42 @@ func (s *Store) SetDelegationStatus(ctx context.Context, taskID, id, status stri
 	return nil
 }
 
-// EndDelegation closes a delegation with its final status and report.
-func (s *Store) EndDelegation(ctx context.Context, taskID, id, status, report string, at time.Time) error {
-	if _, err := s.db.ExecContext(ctx,
+// EndDelegation closes a delegation and returns the persisted winner.
+func (s *Store) EndDelegation(
+	ctx context.Context, taskID, id, status, report string, at time.Time,
+) (string, string, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", "", fmt.Errorf("begin delegation end: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	result, err := tx.ExecContext(ctx,
 		`UPDATE task_delegations SET status = ?, report = ?, ended_at = ? WHERE task_id = ? AND id = ?
-		 AND status IN ('working', 'waiting')`,
-		status, report, at.Unix(), taskID, id); err != nil {
-		return fmt.Errorf("end delegation: %w", err)
+		 AND status IN ('working', 'waiting')`, status, report, at.Unix(), taskID, id)
+	if err != nil {
+		return "", "", fmt.Errorf("end delegation: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return "", "", fmt.Errorf("count ended delegations: %w", err)
 	}
 
-	return nil
+	if changed == 1 {
+		if err := tx.Commit(); err != nil {
+			return "", "", fmt.Errorf("commit delegation end: %w", err)
+		}
+		return status, report, nil
+	}
+
+	var currentStatus, currentReport string
+	if err := tx.QueryRowContext(ctx,
+		`SELECT status, report FROM task_delegations WHERE task_id = ? AND id = ?`, taskID, id).
+		Scan(&currentStatus, &currentReport); err != nil {
+			return "", "", fmt.Errorf("read ended delegation: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return "", "", fmt.Errorf("commit delegation read: %w", err)
+	}
+	return currentStatus, currentReport, nil
 }

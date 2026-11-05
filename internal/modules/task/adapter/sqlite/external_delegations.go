@@ -12,7 +12,7 @@ import (
 // ListDelegations reads the durable same-task agent job records.
 func (s *Store) ListDelegations(ctx context.Context, taskID string) ([]application.Delegation, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, role_key, role_name, provider_id,
-		model, effort, brief, status, report, start_seq, execution_context, request_effort, execution_scope, mutating
+		model, effort, brief, status, report, start_seq, execution_context, request_effort, execution_scope, mutating, parameters_verified
 		FROM task_delegations WHERE task_id = ? ORDER BY started_at, id`, taskID)
 	if err != nil {
 		return nil, fmt.Errorf("list delegations: %w", err)
@@ -25,6 +25,7 @@ func (s *Store) ListDelegations(ctx context.Context, taskID string) ([]applicati
 		if err := rows.Scan(
 			&d.ID, &d.RoleKey, &d.RoleName, &d.ProviderID, &d.Model, &effort, &d.Brief,
 			&d.Status, &d.Report, &d.StartSeq, &d.Context, &d.RequestEffort, &scope, &d.Mutating,
+			&d.ParametersVerified,
 		); err != nil {
 			return nil, fmt.Errorf("read delegation: %w", err)
 		}

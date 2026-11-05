@@ -174,13 +174,14 @@ func TestOrchestratorDirectInternalResearcher(t *testing.T) {
 	token := orchestratorToken(t, env.App, cookie, client)
 	orchestratorOn(t, env.App, cookie, "create_task")
 	orchestratorOn(t, env.App, cookie, "delegate_agent")
+	orchestratorOn(t, env.App, cookie, "cancel_delegation")
 	orchestratorOn(t, env.App, cookie, "update_task_plan")
 	args := `{"project":"` + project + `","summary":"Research the project","idempotency_key":"direct-research-12345"}`
 	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task", args))["ID"].(string)
 	plan := `{"task_id":"` + task + `","steps":[{"id":"research","title":"Gather evidence","state":"active"}]}`
 	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan", plan))
 	brief := `{"task_id":"` + task + `","agent_key":"researcher","brief":"Inspect the project and report the findings",` +
-		`"idempotency_key":"research-job-12345"}`
+		`"file_scope":["docs"],"idempotency_key":"research-job-12345"}`
 	job := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent", brief))
 	id, _ := job["job_id"].(string)
 	if id == "" {
@@ -201,6 +202,30 @@ func TestOrchestratorDirectInternalResearcher(t *testing.T) {
 	}
 	if !done {
 		t.Fatal("internal worker never reported")
+	}
+	verifiedRetry := orchestratorData(t, orchestratorCall(t, env.App, token, "delegate_agent", brief))
+	if verifiedRetry["status"] != "done" {
+		t.Fatalf("terminal retry did not preserve its result: %+v", verifiedRetry)
+	}
+	var parametersVerified int
+	if err := env.DB.QueryRow(
+		`SELECT parameters_verified FROM task_delegations WHERE task_id = ? AND id = ?`, task, id,
+	).Scan(&parametersVerified); err != nil || parametersVerified != 1 {
+		t.Fatalf("new delegation lacks verified parameter provenance: %d %v", parametersVerified, err)
+	}
+	if _, err := env.DB.Exec(
+		`UPDATE task_delegations SET status = 'waiting', execution_scope = '[]', parameters_verified = 0
+		 WHERE task_id = ? AND id = ?`, task, id,
+	); err != nil {
+		t.Fatal(err)
+	}
+	legacyRetry := orchestratorCall(t, env.App, token, "delegate_agent", brief)
+	apptest.MustContain(t, legacyRetry.Body, `"isError":true`, "LEGACY_PARAMETERS_UNKNOWN",
+		"Cancel this job", "same task", "new idempotency key")
+	cancel := orchestratorCall(t, env.App, token, "cancel_delegation",
+		`{"task_id":"`+task+`","job_id":"`+id+`"}`)
+	if state := orchestratorData(t, cancel); state["status"] != "cancelled" {
+		t.Fatalf("legacy worker was not cancellable: %+v", state)
 	}
 	activity := orchestratorCall(t, env.App, token, "get_task_activity", `{"task_id":"`+task+`"}`)
 	apptest.MustContain(t, activity.Body, "Researcher", "handoff")
@@ -408,6 +433,8 @@ func TestOrchestratorCancelledWorkerStaysCancelled(t *testing.T) {
 	if state["status"] != "cancelled" || state["report"] != nil {
 		t.Fatalf("late worker result overwrote cancellation: %+v", state)
 	}
+	activity := orchestratorCall(t, env.App, token, "get_task_activity", `{"task_id":"`+task+`"}`)
+	apptest.MustNotContain(t, activity.Body, "The Researcher reported back")
 }
 
 func TestExternalLeadPASSRequiresServerRecordedVerification(t *testing.T) {

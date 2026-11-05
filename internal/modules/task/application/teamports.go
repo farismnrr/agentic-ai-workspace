@@ -121,13 +121,14 @@ type Delegation struct {
 	ProviderID string
 	Model      string
 	Effort     domain.Effort
-	Brief         string
-	Context       string
-	RequestEffort string
-	Status        string
-	Report        string
-	Scope         []string
-	Mutating      bool
+	Brief              string
+	Context            string
+	RequestEffort      string
+	Status             string
+	Report             string
+	Scope              []string
+	Mutating           bool
+	ParametersVerified bool
 	// StartSeq is the last thread event before the teammate began, so their steps can be found again.
 	StartSeq int64
 }
@@ -137,5 +138,5 @@ type DelegationStore interface {
 	StartDelegation(ctx context.Context, taskID string, d Delegation, at time.Time) error
 	FindDelegation(ctx context.Context, taskID, id string) (Delegation, bool, error)
 	SetDelegationStatus(ctx context.Context, taskID, id, status string) error
-	EndDelegation(ctx context.Context, taskID, id, status, report string, at time.Time) error
+	EndDelegation(ctx context.Context, taskID, id, status, report string, at time.Time) (string, string, error)
 }

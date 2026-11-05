@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
@@ -11,7 +12,26 @@ import (
 func (r *Runner) endDelegation(
 	ctx context.Context, task domain.Task, state *runState, call Call, d Delegation, status, report string,
 ) {
-	_ = r.deps.Delegations.EndDelegation(ctx, task.ID, d.ID, status, report, r.deps.Now())
+	actualStatus, actualReport, err := r.deps.Delegations.EndDelegation(
+		ctx, task.ID, d.ID, status, report, r.deps.Now(),
+	)
+	if err != nil {
+		if ctx.Err() != nil {
+			r.settledAfterCancellation(ctx, task, call, d)
+			return
+		}
+		r.result(ctx, task, call.ID, "I could not safely save this teammate's result. Check the task before retrying.", true)
+		return
+	}
+	if actualStatus != status {
+		if actualStatus == DelegationCancelled {
+			r.result(ctx, task, call.ID, "This teammate's job was cancelled before its report was saved.", true)
+		} else {
+			r.result(ctx, task, call.ID, actualReport, actualStatus != DelegationDone)
+		}
+		return
+	}
+	report = actualReport
 
 	action, text := handoffReported, "The "+d.RoleName+" reported back"
 	if status == DelegationFailed {
@@ -25,6 +45,25 @@ func (r *Runner) endDelegation(
 
 	r.handoff(ctx, task, d, action, text, report)
 	r.result(ctx, task, call.ID, report, status == DelegationFailed)
+}
+
+func (r *Runner) settledAfterCancellation(ctx context.Context, task domain.Task, call Call, d Delegation) {
+	readCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	current, found, err := r.deps.Delegations.FindDelegation(readCtx, task.ID, d.ID)
+	if err != nil || !found {
+		r.result(ctx, task, call.ID, "I could not safely confirm this teammate's final status.", true)
+		return
+	}
+	if current.Status == DelegationCancelled {
+		r.result(ctx, task, call.ID, "This teammate's job was cancelled before its report was saved.", true)
+		return
+	}
+	if current.Status == DelegationDone || current.Status == DelegationFailed {
+		r.result(ctx, task, call.ID, current.Report, current.Status != DelegationDone)
+		return
+	}
+	r.result(ctx, task, call.ID, "I could not safely confirm this teammate's final status.", true)
 }
 
 func (r *Runner) handoff(ctx context.Context, task domain.Task, d Delegation, action, text, detail string) {
