@@ -489,4 +489,116 @@ func TestExternalLeadPASSRequiresServerRecordedVerification(t *testing.T) {
 	}
 }
 
+func TestOrchestratorUpdateTaskPlanSchemaValidationAndRetry(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	token := orchestratorToken(t, env.App, cookie, client)
+	project := apptest.Do(t, env.App, "POST", "/api/projects",
+		"{\"name\":\"Plan validation\"}", apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	for _, name := range []string{"create_task", "update_task_plan"} {
+		orchestratorOn(t, env.App, cookie, name)
+	}
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		"{\"project\":\""+project+"\",\"summary\":\"Validate plan inputs\",\"idempotency_key\":\"plan-validation-12345\"}"))["ID"].(string)
+
+	tools := apptest.Do(t, env.App, "POST", "/api/orchestrator",
+		apptest.RPC("tools/list", "{}"), apptest.MCPHeaders(token))
+	var listed struct {
+		Result struct {
+			Tools []struct {
+				Name        string         `json:"name"`
+				InputSchema map[string]any `json:"inputSchema"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(tools.Body, &listed); err != nil {
+		t.Fatalf("decode tools/list: %v", err)
+	}
+	var schema map[string]any
+	for _, listedTool := range listed.Result.Tools {
+		if listedTool.Name == "update_task_plan" {
+			schema = listedTool.InputSchema
+		}
+	}
+	if schema == nil {
+		t.Fatal("update_task_plan is missing from tools/list")
+	}
+	properties := schema["properties"].(map[string]any)
+	stepsSchema := properties["steps"].(map[string]any)
+	itemSchema := stepsSchema["items"].(map[string]any)
+	itemProperties := itemSchema["properties"].(map[string]any)
+	assertStringSlice := func(value any, expected ...string) {
+		t.Helper()
+		actualRaw, ok := value.([]any)
+		if !ok || len(actualRaw) != len(expected) {
+			t.Fatalf("unexpected schema list: %#v", value)
+		}
+		for index, item := range expected {
+			if actualRaw[index] != item {
+				t.Fatalf("schema list = %#v, want %v", actualRaw, expected)
+			}
+		}
+	}
+	assertStringSlice(schema["required"], "task_id", "steps")
+	assertStringSlice(itemSchema["required"], "id", "title", "state")
+	if stepsSchema["minItems"] != float64(1) || stepsSchema["maxItems"] != float64(40) {
+		t.Fatalf("steps schema bounds = %#v", stepsSchema)
+	}
+	assertStringSlice(itemProperties["state"].(map[string]any)["enum"],
+		"pending", "active", "done", "failed")
+	if itemProperties["id"].(map[string]any)["minLength"] != float64(1) ||
+		itemProperties["title"].(map[string]any)["minLength"] != float64(1) {
+		t.Fatal("id and title schema must reject empty strings")
+	}
+
+	invalid := []struct {
+		name, arguments, message string
+	}{
+		{"missing steps", "{\"task_id\":\"" + task + "\"}", "steps"},
+		{"null steps", "{\"task_id\":\"" + task + "\",\"steps\":null}", "steps"},
+		{"empty steps", "{\"task_id\":\"" + task + "\",\"steps\":[]}", "steps"},
+		{"too many steps", "{\"task_id\":\"" + task + "\",\"steps\":[" + repeatedPlanSteps(41) + "]}", "steps"},
+		{"missing id", "{\"task_id\":\"" + task + "\",\"steps\":[{\"title\":\"One\",\"state\":\"pending\"}]}", "id"},
+		{"missing title", "{\"task_id\":\"" + task + "\",\"steps\":[{\"id\":\"one\",\"state\":\"pending\"}]}", "title"},
+		{"missing state", "{\"task_id\":\"" + task + "\",\"steps\":[{\"id\":\"one\",\"title\":\"One\"}]}", "state"},
+		{"invalid state", "{\"task_id\":\"" + task + "\",\"steps\":[{\"id\":\"one\",\"title\":\"One\",\"state\":\"blocked\"}]}", "state"},
+		{"blank id", "{\"task_id\":\"" + task + "\",\"steps\":[{\"id\":\" \",\"title\":\"One\",\"state\":\"pending\"}]}", "steps[0].id"},
+		{"duplicate id", "{\"task_id\":\"" + task + "\",\"steps\":[{\"id\":\"same\",\"title\":\"One\",\"state\":\"pending\"},{\"id\":\"same\",\"title\":\"Two\",\"state\":\"pending\"}]}", "steps[1].id"},
+		{"blank title", "{\"task_id\":\"" + task + "\",\"steps\":[{\"id\":\"one\",\"title\":\"  \",\"state\":\"pending\"}]}", "steps[0].title"},
+	}
+	for _, test := range invalid {
+		t.Run(test.name, func(t *testing.T) {
+			response := orchestratorCall(t, env.App, token, "update_task_plan", test.arguments)
+			apptest.MustContain(t, response.Body, "\"isError\":true", test.message)
+			apptest.MustNotContain(t, response.Body, "write what you need")
+		})
+	}
+
+	var planEvents int
+	if err := env.DB.QueryRow(
+		"SELECT count(*) FROM task_events WHERE task_id = ? AND kind = 'plan'", task,
+	).Scan(&planEvents); err != nil || planEvents != 0 {
+		t.Fatalf("rejected plans changed plan history: events=%d err=%v", planEvents, err)
+	}
+	saved := orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		"{\"task_id\":\""+task+"\",\"steps\":[{\"id\":\"valid\",\"title\":\"Valid retry\",\"state\":\"active\"}]}"))
+	if saved["status"] != "saved" {
+		t.Fatalf("valid retry was not saved: %+v", saved)
+	}
+	if err := env.DB.QueryRow(
+		"SELECT count(*) FROM task_events WHERE task_id = ? AND kind = 'plan'", task,
+	).Scan(&planEvents); err != nil || planEvents != 1 {
+		t.Fatalf("valid retry did not append one plan event: events=%d err=%v", planEvents, err)
+	}
+}
+
+func repeatedPlanSteps(count int) string {
+	step := "{\"id\":\"step\",\"title\":\"Step\",\"state\":\"pending\"}"
+	steps := make([]string, count)
+	for index := range steps {
+		steps[index] = step
+	}
+	return strings.Join(steps, ",")
+}
+
 func jsonNumber(n int) string { return fmt.Sprint(n) }

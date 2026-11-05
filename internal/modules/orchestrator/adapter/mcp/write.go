@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"time"
 
@@ -103,7 +104,33 @@ func (s Services) addWrite(server *sdk.Server) {
 			err := s.Tasks.CompleteExternalLeadTask(ctx, user, in.TaskID, in.Summary, in.Outcome)
 			return doneOutput{Status: "done"}, err
 		}))
-	sdk.AddTool(server, tool("update_task_plan"), secured(s, "update_task_plan", domain.ScopeTasks,
+	planTool := tool("update_task_plan")
+	planTool.InputSchema = json.RawMessage(`{
+		"type": "object",
+		"required": ["task_id", "steps"],
+		"properties": {
+			"task_id": {"type": "string"},
+			"steps": {
+				"type": "array",
+				"description": "Provide 1 to 40 plan steps.",
+				"minItems": 1,
+				"maxItems": 40,
+				"items": {
+					"type": "object",
+					"required": ["id", "title", "state"],
+					"properties": {
+						"id": {"type": "string", "minLength": 1},
+						"title": {"type": "string", "minLength": 1},
+						"state": {
+							"type": "string",
+						"enum": ["pending", "active", "done", "failed"]
+						}
+					}
+				}
+			}
+		}
+	}`)
+	sdk.AddTool(server, planTool, secured(s, "update_task_plan", domain.ScopeTasks,
 		func(ctx context.Context, user, _ string, in planInput) (doneOutput, error) {
 			err := s.Tasks.UpdateExternalPlan(ctx, user, in.TaskID, in.Steps)
 			return doneOutput{Status: "saved"}, err

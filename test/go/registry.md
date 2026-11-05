@@ -3,8 +3,8 @@
 Every retained Go test under `test/go/` has one row. Support files are listed
 after the table; they contain fixtures used by registered tests.
 
-After this slice, 115 Go test files contain 255 top-level test functions:
-104 registered test files contain 255 functions and 11 support files contain no test functions.
+After this slice, 115 Go test files contain 256 top-level test functions:
+104 registered test files contain 256 functions and 11 support files contain no test functions.
 
 | Test path::Name | Category | Why black-box is insufficient | Bash counterpart |
 | --- | --- | --- | --- |
@@ -17,6 +17,7 @@ After this slice, 115 Go test files contain 255 top-level test functions:
 | `test/go/app/connectors/orchestrator_delegate_refusals_test.go::TestOrchestratorDelegationRefusalsExplainNextStep` | app-level integration | Real HTTP MCP verifies actionable missing-plan, pending-approval, wrong-state and disallowed-role refusals. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorSpaceSeparateResourceAndOneTask` | auth/authz | Real HTTP MCP verifies distinct token resource, tool switches and durable one-task idempotency. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorFileToolsRespectProjectAndTask` | cross-user/project isolation | Real MCP requests verify task-scoped writes and SHA-256-validated binary upload into the right project. | none |
+| `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorUpdateTaskPlanSchemaValidationAndRetry` | app-level integration | Real HTTP MCP checks the published schema, actionable invalid-input errors, unchanged plan history on rejection, and a valid retry on the same task. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorDirectInternalResearcher` | critical migration compatibility | Real MCP checks new scope provenance, terminal replay, legacy retry refusal with cancel guidance, and same-task job identity. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestExternalLeadPASSRequiresServerRecordedVerification` | critical completion proof | Real Orchestrator MCP confirms a completed QA report cannot establish PASS and partial completion remains available. | none |
 | `test/go/app/connectors/orchestrator_space_test.go::TestOrchestratorCancelledWorkerStaysCancelled` | critical lifecycle race | Real MCP cancellation is idempotent; a held worker's late result cannot replace cancellation or emit a reported handoff. | none |

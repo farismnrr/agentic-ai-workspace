@@ -9,6 +9,14 @@ import (
 	"github.com/farismnrr/agentic-ai-workspace/internal/modules/task/domain"
 )
 
+type externalPlanValidationError struct {
+	detail string
+}
+
+func (e externalPlanValidationError) Error() string { return e.detail }
+
+func (e externalPlanValidationError) Unwrap() error { return domain.ErrBadRequest }
+
 type ExternalLeadPlanApprovalStore interface {
 	SubmitExternalLeadApproval(ctx context.Context, userID, taskID, source string, event domain.Event, at time.Time) (domain.Event, error)
 }
@@ -26,17 +34,25 @@ func (s *Service) UpdateExternalPlan(ctx context.Context, userID, taskID string,
 		return err
 	}
 	if len(steps) == 0 || len(steps) > 40 {
-		return domain.ErrBadRequest
+		return externalPlanValidationError{detail: "steps must contain between 1 and 40 items"}
 	}
 	ids := make(map[string]bool, len(steps))
 	var lines []string
-	for _, step := range steps {
-		if step.ID == "" || strings.TrimSpace(step.Title) == "" || ids[step.ID] {
-			return domain.ErrBadRequest
+	for index, step := range steps {
+		field := fmt.Sprintf("steps[%d]", index)
+		if strings.TrimSpace(step.ID) == "" {
+			return externalPlanValidationError{detail: fmt.Sprintf("%s.id must be non-empty", field)}
+		}
+		if ids[step.ID] {
+			return externalPlanValidationError{detail: fmt.Sprintf("%s.id must be unique", field)}
+		}
+		if strings.TrimSpace(step.Title) == "" {
+			return externalPlanValidationError{detail: fmt.Sprintf("%s.title must not be blank", field)}
 		}
 		if step.State != domain.PlanPending && step.State != domain.PlanActive &&
 			step.State != domain.PlanDone && step.State != domain.PlanFailed {
-			return domain.ErrBadRequest
+			return externalPlanValidationError{detail: fmt.Sprintf(
+				"%s.state must be pending, active, done, or failed", field)}
 		}
 		ids[step.ID] = true
 		lines = append(lines, fmt.Sprintf("[%s] %s", step.State, step.Title))
