@@ -18,7 +18,7 @@ func (e externalPlanValidationError) Error() string { return e.detail }
 func (e externalPlanValidationError) Unwrap() error { return domain.ErrBadRequest }
 
 type ExternalLeadPlanApprovalStore interface {
-	SubmitExternalLeadApproval(ctx context.Context, userID, taskID, source string, event domain.Event, at time.Time) (domain.Event, error)
+	SubmitExternalLeadApproval(ctx context.Context, userID, taskID, source string, expectedRevision int64, event domain.Event, at time.Time) (domain.Event, error)
 }
 
 type ExternalPlanApproval struct {
@@ -80,8 +80,10 @@ func (s *Service) UpdateExternalPlan(ctx context.Context, userID, taskID string,
 	return err
 }
 
-func (s *Service) SubmitExternalPlan(ctx context.Context, userID, taskID string) (ExternalPlanApproval, error) {
-	task, err := s.externalOwned(ctx, userID, taskID)
+func (s *Service) SubmitExternalPlan(
+	ctx context.Context, userID, clientID, taskID string,
+) (ExternalPlanApproval, error) {
+	task, err := s.externalOwnedByClient(ctx, userID, clientID, taskID)
 	if err != nil {
 		return ExternalPlanApproval{}, err
 	}
@@ -111,7 +113,7 @@ func (s *Service) SubmitExternalPlan(ctx context.Context, userID, taskID string)
 		return ExternalPlanApproval{}, domain.ErrWrongState
 	}
 	at := s.now()
-	event, err := store.SubmitExternalLeadApproval(ctx, userID, task.ID, task.Source, domain.Event{
+	event, err := store.SubmitExternalLeadApproval(ctx, userID, task.ID, task.Source, prd, domain.Event{
 		Kind: domain.EventQuestion, Agent: task.Source, Time: at,
 		Text: "The external orchestrator submitted the PRD. Start building?",
 		Questions: []domain.Question{{

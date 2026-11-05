@@ -68,7 +68,7 @@ func (s *Service) recoverExternalLeadTask(ctx context.Context, task domain.Task)
 	if err != nil {
 		return fmt.Errorf("check external plan approval: %w", err)
 	}
-	if unresolvedQuestion(events) || (approval.Status != "approved" && approval.Status != "not-required-yet") {
+	if unresolvedQuestion(events) || approval.Status == "pending" {
 		return s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusNeedsInput, s.now())
 	}
 	return s.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusWorking, s.now())

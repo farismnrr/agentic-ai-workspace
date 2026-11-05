@@ -12,8 +12,8 @@ import (
 // ExternalAgentInput is a call from a separately authorized external lead.
 // An idempotency key identifies one worker job inside an existing primary task.
 type ExternalAgentInput struct {
-	TaskID, AgentKey, Brief, Context, Effort, RequestKey string
-	Scope                                                []string
+	TaskID, ClientID, AgentKey, Brief, Context, Effort, RequestKey string
+	Scope                                                          []string
 }
 
 // ExternalAgentJob is safe to send to a connected lead.
@@ -82,7 +82,7 @@ func (s *Service) DelegateExternal(ctx context.Context, userID string, in Extern
 	jobID := "external-" + hex.EncodeToString(sum[:16])
 	s.externalMu.Lock()
 	defer s.externalMu.Unlock()
-	task, err := s.externalOwned(ctx, userID, in.TaskID)
+	task, err := s.externalOwnedByClient(ctx, userID, in.ClientID, in.TaskID)
 	if err != nil {
 		return ExternalAgentJob{}, err
 	}

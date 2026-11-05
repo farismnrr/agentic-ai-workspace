@@ -15,13 +15,13 @@ type observedEvents struct {
 }
 
 func (o observedEvents) SubmitExternalLeadApproval(
-	ctx context.Context, userID, taskID, source string, event domain.Event, at time.Time,
+	ctx context.Context, userID, taskID, source string, expectedRevision int64, event domain.Event, at time.Time,
 ) (domain.Event, error) {
 	submitter, ok := o.EventStore.(ExternalLeadPlanApprovalStore)
 	if !ok {
 		return domain.Event{}, domain.ErrWrongState
 	}
-	stored, err := submitter.SubmitExternalLeadApproval(ctx, userID, taskID, source, event, at)
+	stored, err := submitter.SubmitExternalLeadApproval(ctx, userID, taskID, source, expectedRevision, event, at)
 	if err == nil {
 		o.notify.Changed(userID, taskID)
 	}

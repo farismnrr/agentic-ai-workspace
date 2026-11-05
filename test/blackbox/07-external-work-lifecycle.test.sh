@@ -182,6 +182,15 @@ assert_status "$HTTP_STATUS" 200 'issue external Orchestrator token'
 external_token=$(jq -r '.access_token' "$HTTP_BODY_FILE")
 
 orchestrator_tool "$external_token" create_task "$(jq -cn --arg project "$external_project" \
+  '{project:$project,summary:"Saved unsubmitted restart recovery",idempotency_key:"recovery-unsent-001"}')"
+assert_json '(.result.structuredContent.ID // "") | length > 0' 'create saved unsubmitted recovery task'
+unsent_task=$(jq -r '.result.structuredContent.ID' "$HTTP_BODY_FILE")
+orchestrator_tool "$external_token" save_task_requirements "$(jq -cn --arg id "$unsent_task" \
+  '{task_id:$id,markdown:"# PRD\\nSaved before restart, not submitted."}')"
+orchestrator_tool "$external_token" update_task_plan "$(jq -cn --arg id "$unsent_task" \
+  '{task_id:$id,steps:[{id:"step-1",title:"Continue after restart",state:"pending"}]}')"
+
+orchestrator_tool "$external_token" create_task "$(jq -cn --arg project "$external_project" \
   '{project:$project,summary:"Approved restart recovery",idempotency_key:"recovery-approved-001"}')"
 assert_json '(.result.structuredContent.ID // "") | length > 0' 'create approved recovery task'
 approved_task=$(jq -r '.result.structuredContent.ID' "$HTTP_BODY_FILE")
@@ -205,6 +214,11 @@ orchestrator_tool "$external_token" update_task_plan "$(jq -cn --arg id "$pendin
   '{task_id:$id,steps:[{id:"step-1",title:"Wait for approval",state:"pending"}]}')"
 orchestrator_tool "$external_token" submit_plan "$(jq -cn --arg id "$pending_task" '{task_id:$id}')"
 app_restart
+http_request GET "$jar" "/api/tasks/$unsent_task"
+assert_json '.status == "working"' 'saved but unsubmitted external task resumes after restart'
+http_request GET "$jar" "/api/tasks/$unsent_task/events"
+assert_not_contains "$HTTP_BODY_FILE" 'The external orchestrator submitted the PRD' \
+  'restart does not create an approval question'
 http_request GET "$jar" "/api/tasks/$approved_task"
 assert_json '.status == "working"' 'approved external task resumes for its lead after restart'
 http_request GET "$jar" "/api/tasks/$pending_task"

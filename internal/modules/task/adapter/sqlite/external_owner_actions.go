@@ -12,20 +12,37 @@ import (
 )
 
 func (s *Store) SubmitExternalLeadApproval(
-	ctx context.Context, userID, taskID, source string, event domain.Event, at time.Time,
+	ctx context.Context, userID, taskID, source string, expectedRevision int64, event domain.Event, at time.Time,
 ) (domain.Event, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return domain.Event{}, mapBusy(fmt.Errorf("begin external approval submission: %w", err))
 	}
 	defer func() { _ = tx.Rollback() }()
+	// Claim only the exact PRD/plan revision inspected by the caller.
 	result, err := tx.ExecContext(ctx, `UPDATE tasks SET status = 'needs-input', updated_at = ?
 		WHERE id = ? AND user_id = ? AND source = ? AND archived_at IS NULL
-		  AND status IN ('queued', 'planning', 'working')`, at.Unix(), taskID, userID, source)
+		  AND COALESCE(prd, '') <> '' AND COALESCE(json_array_length(plan), 0) > 0
+		  AND ? = (SELECT COALESCE(MAX(seq), 0) FROM task_events
+		      WHERE task_id = tasks.id AND
+		        (kind = 'prd' OR (kind = 'plan' AND
+		          COALESCE(json_extract(body, '$.text'), '') !=
+		            'External orchestrator updated step progress')))
+		  AND NOT EXISTS (
+		       SELECT 1 FROM task_events
+			       WHERE task_id = tasks.id AND kind = 'question'
+				         AND COALESCE(json_extract(body, '$.agent'), '') = ?
+				         AND COALESCE(json_extract(body, '$.answered'), '') = ''
+				         AND seq > ?
+		  ) AND status IN ('queued', 'planning', 'working', 'needs-input')`, at.Unix(), taskID, userID, source, expectedRevision, source, expectedRevision)
 	if err != nil {
 		return domain.Event{}, mapBusy(fmt.Errorf("set external approval state: %w", err))
 	}
-	if changed, err := result.RowsAffected(); err != nil || changed != 1 {
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return domain.Event{}, mapBusy(fmt.Errorf("count external approval state changes: %w", err))
+	}
+	if changed != 1 {
 		return domain.Event{}, domain.ErrWrongState
 	}
 	event.Time = at

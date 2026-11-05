@@ -602,3 +602,118 @@ func repeatedPlanSteps(count int) string {
 }
 
 func jsonNumber(n int) string { return fmt.Sprint(n) }
+
+func TestOrchestratorSubmitPlanRecoversOnlyOrphanedCurrentRevision(t *testing.T) {
+	env := apptest.NewEnv(t)
+	cookie, client := apptest.SignedInClient(t, env.App)
+	token := orchestratorToken(t, env.App, cookie, client)
+	foreignClientResponse := apptest.Do(t, env.App, "POST", "/oauth/register",
+		`{"client_name":"Second ChatGPT client","redirect_uris":["`+apptest.Redirect+`"],"token_endpoint_auth_method":"none"}`,
+		apptest.JSONCookie(cookie))
+	if foreignClientResponse.Status != 201 {
+		t.Fatalf("second client registration failed: %d %s", foreignClientResponse.Status, foreignClientResponse.Body)
+	}
+	foreignClient, _ := foreignClientResponse.JSON(t)["client_id"].(string)
+	if foreignClient == "" {
+		t.Fatal("second client registration omitted client_id")
+	}
+	foreignClientToken := orchestratorToken(t, env.App, cookie, foreignClient)
+	otherCookie := apptest.Register(t, env.App, "Other owner", "other-orchestrator@example.com", apptest.TestPassword)
+	otherClientResponse := apptest.Do(t, env.App, "POST", "/oauth/register",
+		`{"client_name":"Other ChatGPT","redirect_uris":["`+apptest.Redirect+`"],"token_endpoint_auth_method":"none"}`,
+		apptest.JSONHeaders())
+	if otherClientResponse.Status != 201 {
+		t.Fatalf("other client registration failed: %d %s", otherClientResponse.Status, otherClientResponse.Body)
+	}
+	otherClient, _ := otherClientResponse.JSON(t)["client_id"].(string)
+	if otherClient == "" {
+		t.Fatal("other client registration omitted client_id")
+	}
+	otherToken := orchestratorToken(t, env.App, otherCookie, otherClient)
+	project := apptest.Do(t, env.App, "POST", "/api/projects",
+		`{"name":"External approval recovery"}`, apptest.JSONCookie(cookie)).JSON(t)["id"].(string)
+	for _, name := range []string{
+		"create_task", "save_task_requirements", "update_task_plan", "submit_plan", "delegate_agent",
+	} {
+		orchestratorOn(t, env.App, cookie, name)
+	}
+	task := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		`{"project":"`+project+`","summary":"Recover a saved plan","idempotency_key":"orphan-plan-123456"}`))["ID"].(string)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "save_task_requirements",
+		`{"task_id":"`+task+`","markdown":"# PRD\nRecover without bypassing approval."}`))
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		`{"task_id":"`+task+`","steps":[{"id":"one","title":"Implement safely","state":"pending"}]}`))
+
+	// Model the legacy needs-input row; all following interactions use public MCP/HTTP.
+	if _, err := env.DB.Exec("UPDATE tasks SET status = 'needs-input' WHERE id = ?", task); err != nil {
+		t.Fatal(err)
+	}
+	first := orchestratorData(t, orchestratorCall(t, env.App, token, "submit_plan",
+		`{"task_id":"`+task+`"}`))
+	eventID := first["event_id"].(string)
+	if first["status"] != "pending" || eventID == "" {
+		t.Fatalf("orphan recovery did not request owner approval: %+v", first)
+	}
+	retry := orchestratorData(t, orchestratorCall(t, env.App, token, "submit_plan",
+		`{"task_id":"`+task+`"}`))
+	if retry["status"] != "pending" || retry["event_id"] != eventID {
+		t.Fatalf("retry did not return the same pending question: first=%+v retry=%+v", first, retry)
+	}
+	var questions int
+	if err := env.DB.QueryRow(
+		"SELECT count(*) FROM task_events WHERE task_id = ? AND kind = 'question' AND COALESCE(json_extract(body, '$.answered'), '') = ''",
+		task,
+	).Scan(&questions); err != nil || questions != 1 {
+		t.Fatalf("submission retry created duplicate pending questions: count=%d err=%v", questions, err)
+	}
+	foreignClientSubmit := orchestratorCall(t, env.App, foreignClientToken, "submit_plan",
+		`{"task_id":"`+task+`"}`)
+	apptest.MustContain(t, foreignClientSubmit.Body, `"isError":true`)
+	otherOwner := orchestratorCall(t, env.App, otherToken, "submit_plan", `{"task_id":"`+task+`"}`)
+	apptest.MustContain(t, otherOwner.Body, `"isError":true`)
+	foreignClientDelegate := orchestratorCall(t, env.App, foreignClientToken, "delegate_agent",
+		`{"task_id":"`+task+`","agent_key":"researcher","brief":"Use another client's task","file_scope":["docs"],"idempotency_key":"foreign-research-12345"}`)
+	apptest.MustContain(t, foreignClientDelegate.Body, `"isError":true`)
+	buildingDelegate := orchestratorCall(t, env.App, token, "delegate_agent",
+		`{"task_id":"`+task+`","agent_key":"developer","brief":"Build before approval","file_scope":["docs"],"idempotency_key":"orphan-build-123456"}`)
+	apptest.MustContain(t, buildingDelegate.Body, `"isError":true`)
+
+	answer := apptest.Do(t, env.App, "POST", "/api/tasks/"+task+"/events/"+eventID+"/answer",
+		`{"choice":"Change something"}`, apptest.JSONCookie(cookie))
+	if answer.Status != 204 {
+		t.Fatalf("requesting revision failed: %d %s", answer.Status, answer.Body)
+	}
+	revisionDelegate := orchestratorCall(t, env.App, token, "delegate_agent",
+		`{"task_id":"`+task+`","agent_key":"developer","brief":"Do not bypass requested changes","file_scope":["docs"],"idempotency_key":"revision-developer-12345"}`)
+	apptest.MustContain(t, revisionDelegate.Body, `"isError":true`)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		`{"task_id":"`+task+`","steps":[{"id":"one","title":"Implement the revised plan","state":"pending"}]}`))
+	revised := orchestratorData(t, orchestratorCall(t, env.App, token, "submit_plan",
+		`{"task_id":"`+task+`"}`))
+	revisedEvent := revised["event_id"].(string)
+	if revised["status"] != "pending" || revisedEvent == eventID {
+		t.Fatalf("revision was not resubmitted for owner decision: %+v", revised)
+	}
+	answer = apptest.Do(t, env.App, "POST", "/api/tasks/"+task+"/events/"+revisedEvent+"/answer",
+		`{"choice":"Start building"}`, apptest.JSONCookie(cookie))
+	if answer.Status != 204 {
+		t.Fatalf("approving revised plan failed: %d %s", answer.Status, answer.Body)
+	}
+	state := apptest.Do(t, env.App, "GET", "/api/tasks/"+task, "", apptest.JSONCookie(cookie))
+	if state.JSON(t)["status"] != "working" {
+		t.Fatalf("valid owner approval did not resume the same task: %s", state.Body)
+	}
+
+	archived := orchestratorData(t, orchestratorCall(t, env.App, token, "create_task",
+		`{"project":"`+project+`","summary":"Archived approval check","idempotency_key":"archived-plan-12345"}`))["ID"].(string)
+	orchestratorData(t, orchestratorCall(t, env.App, token, "save_task_requirements",
+		`{"task_id":"`+archived+`","markdown":"# Archived PRD"}`))
+	orchestratorData(t, orchestratorCall(t, env.App, token, "update_task_plan",
+		`{"task_id":"`+archived+`","steps":[{"id":"one","title":"Archived step","state":"pending"}]}`))
+	if _, err := env.DB.Exec("UPDATE tasks SET archived_at = 1 WHERE id = ?", archived); err != nil {
+		t.Fatal(err)
+	}
+	archivedSubmit := orchestratorCall(t, env.App, token, "submit_plan",
+		`{"task_id":"`+archived+`"}`)
+	apptest.MustContain(t, archivedSubmit.Body, `"isError":true`)
+}

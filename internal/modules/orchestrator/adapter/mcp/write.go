@@ -71,9 +71,9 @@ func (s Services) addWrite(server *sdk.Server) {
 			return s.Tasks.CreateExternalLeadTask(ctx, user, client, in.Project, in.Summary, in.IdempotencyKey)
 		}))
 	sdk.AddTool(server, tool("delegate_agent"), secured(s, "delegate_agent", domain.ScopeDelegate,
-		func(ctx context.Context, user, _ string, in delegateInput) (taskapp.ExternalAgentJob, error) {
+		func(ctx context.Context, user, client string, in delegateInput) (taskapp.ExternalAgentJob, error) {
 			return s.Tasks.DelegateExternal(ctx, user, taskapp.ExternalAgentInput{
-				TaskID: in.TaskID, AgentKey: in.AgentKey, Brief: in.Brief, Context: in.Context,
+				TaskID: in.TaskID, ClientID: client, AgentKey: in.AgentKey, Brief: in.Brief, Context: in.Context,
 				Scope: in.FileScope, Effort: in.Effort, RequestKey: in.IdempotencyKey,
 			})
 		}))
@@ -146,8 +146,8 @@ func (s Services) addWrite(server *sdk.Server) {
 			return doneOutput{Status: "saved"}, err
 		}))
 	sdk.AddTool(server, tool("submit_plan"), secured(s, "submit_plan", domain.ScopeTasks,
-		func(ctx context.Context, user, _ string, in stopInput) (taskapp.ExternalPlanApproval, error) {
-			return s.Tasks.SubmitExternalPlan(ctx, user, in.TaskID)
+		func(ctx context.Context, user, client string, in stopInput) (taskapp.ExternalPlanApproval, error) {
+			return s.Tasks.SubmitExternalPlan(ctx, user, client, in.TaskID)
 		}))
 	sdk.AddTool(server, tool("approve_plan"), secured(s, "approve_plan", domain.ScopeApprove,
 		func(ctx context.Context, user, client string, in approveInput) (taskapp.ExternalPlanApproval, error) {

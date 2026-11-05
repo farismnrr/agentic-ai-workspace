@@ -19,6 +19,22 @@ func (s *Service) externalOwned(ctx context.Context, userID, taskID string) (dom
 	return task, nil
 }
 
+func (s *Service) externalOwnedByClient(
+	ctx context.Context, userID, clientID, taskID string,
+) (domain.Task, error) {
+	if strings.TrimSpace(clientID) == "" {
+		return domain.Task{}, domain.ErrWrongState
+	}
+	task, err := s.externalOwned(ctx, userID, taskID)
+	if err != nil {
+		return task, err
+	}
+	if task.Source != externalLeadSource+clientID {
+		return domain.Task{}, domain.ErrWrongState
+	}
+	return task, nil
+}
+
 func (s *Service) externalPlanRefusal(
 	ctx context.Context, userID string, task domain.Task, r *Runner, roster *Roster, agentKey string,
 ) error {
