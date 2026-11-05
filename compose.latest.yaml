@@ -50,6 +50,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
       - "${DOCKER_GID:?set DOCKER_GID=$(stat -c %g /var/run/docker.sock)}"
+    # SQLite may need temporary files; keep temp storage writable and bounded while the root stays read-only.
+    tmpfs:
+      - "/tmp:rw,nosuid,nodev,noexec,size=64m,mode=1777"
     read_only: true
     cap_drop: [ALL]
     security_opt:
