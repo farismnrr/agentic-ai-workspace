@@ -164,7 +164,7 @@ if ! find -P . -xdev \
      -o -name '*.token' \
      -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' \
      -o -name '*.jks' \) -prune -o \( -type d -o -type f \) -print0 |
-  tar --null --files-from=- --no-recursion -cf - |
+  tar --no-recursion --null --files-from=- -cf - |
   tar --no-same-owner --no-same-permissions -C "$stage" -xf -; then
   echo 'Build staging failed: could not copy eligible project files.' >&2
   exit 125
