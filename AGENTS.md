@@ -90,16 +90,17 @@ Process-wide technical details live in `internal/platform/`, dependency wiring l
 7. Prefer explicit constructor/function injection over package globals.
 8. External tasks (`Source != ""` or `WorkID != ""`) never enqueue the internal lead.
    Role authorization is server-owned: role policy AND owner tool switch AND OAuth scope must allow each action.
+   All roles have access to git all tools (`git` and `gh`) and all read tools; write access is strictly role-gated.
    Seven built-in roles have one authoritative ownership contract:
-   - Orchestrator: plan and delegate, never edit files, execute tools or create tasks per handoff.
-   - Planner: requirements, early architecture and ONE PRD; never implement or run checks.
-   - Researcher: source/web research and permitted native Git, no project-file edit or general shell.
-   - Developer: code, UI, assets, documents, MoLab and permitted Git. No QA, generic shell, build or Site start.
+   - Orchestrator: plan and delegate, read-only inspections via git/gh; never edit files, execute mutating tools or create tasks per handoff.
+   - Planner: requirements, early architecture, ONE PRD and git/gh read-only inspections; never implement, mutate code or run checks.
+   - Researcher: source/web research and native Git/gh inspections; no project-file edit or general shell.
+   - Developer: code, UI, assets, documents, MoLab, permitted Git mutations and gh PR/issue operations. No QA, generic shell, build or Site start.
      An enabled kind=artifact task may generate documents/media via `run_artifact`, never shell.
-   - QA & Review: independent review, targeted read-only named checks and QA-only browser interaction.
+   - QA & Review: independent review, Git inspections, gh PR review, targeted read-only named checks and QA-only browser interaction.
    - Security: combined security/architecture review ONLY when owner enables `@deep-review`.
-     Verification uses owner-configured named read-only checks only; no generic shell, Site start, build or source edits.
-   - DevOps: authorized named builds, CI, Site start/stop, release and native Git; no feature coding or QA ownership.
+     Verification uses owner-configured named read-only checks and git/gh read inspections only; no generic shell, Site start, build or source edits.
+   - DevOps: authorized named builds, CI, Site start/stop, release, native Git mutations and gh release/CI runs; no feature coding or QA ownership.
      Owner-enabled bounded `run_command` is for diagnostics, not shell Git or launching Site outside `start_site`.
    Retired Business Analyst, Designer/Media/Documents and Reviewer responsibilities merge into these roles.
    Skills and stored legacy prompts must not override server role policy or disabled tools.

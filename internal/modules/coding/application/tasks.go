@@ -132,10 +132,9 @@ func (t *Tasks) RunGitHub(ctx context.Context, role string, args []string) (RunR
 	if err != nil {
 		return RunResult{}, err
 	}
-	// QA and DevOps may inspect/review CI or manage authorized remote
-	// operations, but must not modify source locally through gh download,
-	// gh pr checkout or another Git subprocess.
-	if role == "qa" || role == "devops" {
+	// Only developer may modify the workspace through gh commands (e.g. pr checkout).
+	// All other roles must have read-only workspace isolation.
+	if role != "developer" {
 		ctx = domain.WithReadOnlyWorkspace(ctx)
 	}
 	result, err := t.runner.Run(domain.WithGitOnly(ctx), task)

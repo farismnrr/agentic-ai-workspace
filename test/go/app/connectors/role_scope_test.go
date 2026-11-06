@@ -73,7 +73,14 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	}
 	denied("write_file", writeArgs)
 	denied("run_command", `{"work_id":"`+workID+`","command":"echo no"}`)
-	denied("gh", `{"work_id":"`+workID+`","args":["issue","view","1"]}`)
+	plannerGh := call("gh", `{"work_id":"`+workID+`","args":["issue","view","1"]}`)
+	if strings.Contains(plannerGh, "active role cannot use gh") {
+		t.Fatalf("Planner should receive read-only GitHub CLI: %s", plannerGh)
+	}
+	plannerGhDenied := call("gh", `{"work_id":"`+workID+`","args":["workflow","run","deploy.yml"]}`)
+	if !strings.Contains(plannerGhDenied, "Git or GitHub CLI arguments") {
+		t.Fatalf("Planner must not mutate workflows: %s", plannerGhDenied)
+	}
 
 	setRole("developer")
 	write := call("write_file", writeArgs)
@@ -105,7 +112,10 @@ func TestExternalRolesEnforceToolsAndWorkflowOnServer(t *testing.T) {
 	}
 
 	setRole("qa")
-	denied("git", `{"work_id":"`+workID+`","args":["status"]}`)
+	qaGit := call("git", `{"work_id":"`+workID+`","args":["status"]}`)
+	if strings.Contains(qaGit, "active role cannot use git") {
+		t.Fatalf("QA should receive Git read access: %s", qaGit)
+	}
 	denied("run_artifact", `{"work_id":"`+workID+`","name":"artifact"}`)
 	denied("write_file", writeArgs)
 	denied("run_command", `{"work_id":"`+workID+`","command":"printf malicious > altered.txt"}`)

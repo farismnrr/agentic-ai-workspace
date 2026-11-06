@@ -59,13 +59,14 @@ func agentRole(role teamdomain.Role) taskapp.AgentRole {
 // web app count as running commands.
 func toolsFor(role teamdomain.Role) []string {
 	if role.Lead {
-		// The lead has read access only. Delegation, planning and asking are
+		// The lead has read access and Git tools. Delegation, planning and asking are
 		// separate loop tools, never inherited coding/exec capabilities.
 		return []string{
 			codingdomain.ToolListFiles.Name, codingdomain.ToolFindFiles.Name,
 			codingdomain.ToolReadFile.Name, codingdomain.ToolSearchCode.Name,
 			codingdomain.ToolListTasks.Name, codingdomain.ToolWhoami.Name,
 			codingdomain.ToolListProjects.Name, toolScreenshot, toolViewImage,
+			codingdomain.ToolGit.Name, codingdomain.ToolGh.Name,
 		}
 	}
 
@@ -73,11 +74,9 @@ func toolsFor(role teamdomain.Role) []string {
 
 	for _, tool := range codingdomain.Tools() {
 		if (role.Can(string(tool.Group)) ||
+			tool.Name == codingdomain.ToolGit.Name || tool.Name == codingdomain.ToolGh.Name ||
 			(role.Key == "developer" && (tool.Name == codingdomain.ToolMarimoExecute.Name ||
-				tool.Name == codingdomain.ToolRunArtifact.Name ||
-				tool.Name == codingdomain.ToolGit.Name ||
-				tool.Name == codingdomain.ToolGh.Name)) ||
-			(role.Key == "researcher" && tool.Name == codingdomain.ToolGit.Name)) &&
+				tool.Name == codingdomain.ToolRunArtifact.Name))) &&
 			roleMayUseTool(role, tool.Name) {
 			names = append(names, tool.Name)
 		}
@@ -145,10 +144,6 @@ func roleMayUseTool(role teamdomain.Role, tool string) bool {
 		return role.Key == "devops"
 	case codingdomain.ToolRunArtifact.Name:
 		return role.Key == "developer"
-	case codingdomain.ToolGit.Name:
-		return role.Key == "developer" || role.Key == "devops" || role.Key == "researcher"
-	case codingdomain.ToolGh.Name:
-		return role.Key == "developer" || role.Key == "qa" || role.Key == "devops"
 	case codingdomain.ToolRunTask.Name:
 		return role.Key == "qa" || role.Key == "security"
 	case codingdomain.ToolVerify.Name:

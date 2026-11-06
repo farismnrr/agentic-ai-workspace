@@ -118,12 +118,14 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 	roleKey := ""
 	if r.role != nil {
 		roleKey = r.role.Key
-		if roleKey == "qa" || roleKey == "security" || roleKey == "devops" {
+		if roleKey != "developer" {
 			executeCtx = codingdomain.WithReadOnlyWorkspace(ctx)
 		}
 		if roleKey == "devops" && call.Name == "git" && isMutatingGitCall(call.Input) {
 			executeCtx = codingdomain.WithWritableGitWorkspace(executeCtx)
 		}
+	} else if r.leads {
+		executeCtx = codingdomain.WithReadOnlyWorkspace(ctx)
 	}
 	result := r.deps.Tools.Execute(executeCtx, ToolScope{
 		UserID: task.UserID, ProjectID: task.ProjectID, TaskID: task.ID, RoleKey: roleKey,
@@ -163,35 +165,6 @@ func (r *Runner) checkTool(
 	}
 
 	return false, outcome{}, false
-}
-
-// needsApproval is the approval policy: looking around (read tools) runs on its own,
-// anything that changes files or runs a command asks the person first, unless they skip approvals.
-func needsApproval(risk domain.Risk) bool {
-	return risk != domain.RiskNone
-}
-
-// approval looks up (or creates) the approval event for a tool call. wait is
-// true while the person has not answered.
-func (r *Runner) approval(
-	ctx context.Context, task domain.Task, call Call, risk domain.Risk, described Described,
-) (decision string, wait bool) {
-	event, found, err := r.deps.Events.EventByToolUse(ctx, task.ID, call.ID)
-	if err != nil {
-		return "", true
-	}
-
-	if !found {
-		_, _ = r.deps.Events.AppendEvent(ctx, task.ID, domain.Event{
-			Kind: domain.EventApproval, Text: described.Ask, Action: described.Technical, Risk: risk,
-			ToolUseID: call.ID, Time: r.deps.Now(),
-		})
-		_ = r.deps.Tasks.SetStatus(ctx, task.ID, domain.StatusNeedsInput, r.deps.Now())
-
-		return "", true
-	}
-
-	return event.Resolved, event.Resolved == ""
 }
 
 func lowerFirst(text string) string {

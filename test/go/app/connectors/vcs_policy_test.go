@@ -130,6 +130,9 @@ func TestGitHubCLIPermissionsByOperation(t *testing.T) {
 		{"devops", []string{"run", "rerun", "1234", "--failed"}},
 		{"devops", []string{"workflow", "run", "ci.yml"}},
 		{"devops", []string{"release", "create", "v2", "release.tar.gz"}},
+		{"researcher", []string{"issue", "view", "12"}},
+		{"planner", []string{"pr", "view", "42"}},
+		{"security", []string{"run", "view", "1234"}},
 	}
 	for _, test := range allowed {
 		task, err := domain.GitHubTask(test.role, test.args)
@@ -141,7 +144,9 @@ func TestGitHubCLIPermissionsByOperation(t *testing.T) {
 		role string
 		args []string
 	}{
-		{"researcher", []string{"issue", "view", "12"}},
+		{"researcher", []string{"issue", "close", "12"}},
+		{"planner", []string{"pr", "create", "--fill"}},
+		{"security", []string{"workflow", "run", "ci.yml"}},
 		{"developer", []string{"run", "rerun", "1234"}},
 		{"developer", []string{"workflow", "run", "deploy.yml"}},
 		{"developer", []string{"release", "create", "v2"}},

@@ -11,7 +11,7 @@ type preset struct {
 
 var presets = []preset{
 	{
-		key: "orchestrator", name: "Orchestrator", lead: true, access: []string{AccessRead, AccessWrite, AccessExec},
+		key: "orchestrator", name: "Orchestrator", lead: true, access: []string{AccessRead},
 		purpose: "Talks to the person, plans the work and hands each part to the right teammate.",
 		prompt: "You lead the team. Understand what the person needs, split the work into focused briefs, and give " +
 			"each brief to the teammate best suited to it. Read what they report back, decide the next step, and " +

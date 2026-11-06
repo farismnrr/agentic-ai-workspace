@@ -18,7 +18,7 @@ Applies to Masih Awam internal teammate tasks, plan-backed Claude/ChatGPT worker
 
 ## Git, GitHub and release
 
-- Researcher/Developer/DevOps use the Masih Awam **git** server tool when granted; Developer/QA/DevOps use **gh** where granted. Pass args as a list, e.g. `git(["status", "--short", "--branch"])`, `git(["ls-remote", "origin", "HEAD"])`, `git(["push", "origin", "dev"])`. The role/tool policy is the authority.
+- All roles have access to the Masih Awam **git** and **gh** server tools when enabled by owner switches. Mutating operations remain strictly role-authorized (Developer for code commits and PR/issue creation; DevOps for release git mutations and CI runs; QA for PR reviews; other roles read-only). Pass args as a list, e.g. `git(["status", "--short", "--branch"])`, `git(["ls-remote", "origin", "HEAD"])`, `git(["push", "origin", "dev"])`. The role/tool policy is the authority.
 - A limited Claude/Codex worker has **no GitHub token or github.com egress in its shell**. Its authorized GitHub path is the team MCP bridge. Never use shell `git push`, shell `gh`, unset proxies or use direct DNS.
 - Before pushing: inspect Git state, branch, HEAD, expected origin and divergence; preserve dirty/untracked files; require an expected fast-forward; never force-push or overwrite remote history.
 - If `CONNECT_GITHUB_REQUIRED`, instruct the owner to connect GitHub in Settings. If a tool is absent or disabled, report it; a proxy 403 from the restricted shell is a policy denial, not a reason to bypass.

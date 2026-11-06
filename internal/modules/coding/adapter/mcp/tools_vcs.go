@@ -3,6 +3,8 @@ package mcp
 import (
 	"context"
 	"fmt"
+
+	"github.com/farismnrr/agentic-ai-workspace/internal/modules/coding/domain"
 )
 
 type gitInput struct {
@@ -29,7 +31,22 @@ func (t *tools) runGit(ctx context.Context, in gitInput) (runOutput, report, err
 	if err = t.recheckWork(ctx, svc.ProjectID); err != nil {
 		return runOutput{}, report{}, err
 	}
-	result, err := svc.Tasks.RunGit(ctx, in.Args)
+	gitCtx := ctx
+	if t.works != nil {
+		who, _ := ctx.Value(identityKey{}).(identity)
+		if who.WorkID != "" {
+			state, stateErr := t.works.State(ctx, who.User, who.Client, svc.ProjectID, who.WorkID)
+			if stateErr == nil {
+				if state.Role != "developer" {
+					gitCtx = domain.WithReadOnlyWorkspace(gitCtx)
+				}
+				if state.Role == "devops" && !domain.VCSReadOnly("git", in.Args) {
+					gitCtx = domain.WithWritableGitWorkspace(gitCtx)
+				}
+			}
+		}
+	}
+	result, err := svc.Tasks.RunGit(gitCtx, in.Args)
 	if err != nil {
 		return runOutput{}, report{}, fmt.Errorf("run git: %w", err)
 	}

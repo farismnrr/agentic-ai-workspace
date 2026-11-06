@@ -15,28 +15,28 @@ func TestBuiltInRoleToolOwnershipMatrix(t *testing.T) {
 		denied  []string
 	}{
 		"orchestrator": {
-			allowed: []string{"read_file", "search_code"},
-			denied:  []string{"edit_file", "run_command", "git", "start_site", "browser_test"},
+			allowed: []string{"read_file", "search_code", "git", "gh"},
+			denied:  []string{"edit_file", "run_command", "start_site", "browser_test"},
 		},
 		"planner": {
-			allowed: []string{"read_file", "ask_user"},
+			allowed: []string{"read_file", "ask_user", "git", "gh"},
 			denied:  []string{"edit_file", "run_command", "run_build", "start_site"},
 		},
 		"researcher": {
-			allowed: []string{"read_file", "git", "web_search"},
-			denied:  []string{"edit_file", "run_command", "start_site", "browser_test", "gh"},
+			allowed: []string{"read_file", "git", "gh", "web_search"},
+			denied:  []string{"edit_file", "run_command", "start_site", "browser_test"},
 		},
 		"developer": {
 			allowed: []string{"write_file", "edit_file", "git", "gh", "run_artifact", "marimo_execute"},
 			denied:  []string{"run_command", "run_build", "start_site", "verify", "browser_test"},
 		},
 		"qa": {
-			allowed: []string{"verify", "browser_test", "read_browser_screenshot", "run_task", "gh"},
-			denied:  []string{"run_command", "write_file", "run_build", "start_site", "git"},
+			allowed: []string{"verify", "browser_test", "read_browser_screenshot", "run_task", "gh", "git"},
+			denied:  []string{"run_command", "write_file", "run_build", "start_site"},
 		},
 		"security": {
-			allowed: []string{"read_file", "run_task"},
-			denied:  []string{"run_command", "write_file", "run_build", "start_site", "git", "browser_test"},
+			allowed: []string{"read_file", "run_task", "git", "gh"},
+			denied:  []string{"run_command", "write_file", "run_build", "start_site", "browser_test"},
 		},
 		"devops": {
 			allowed: []string{"run_build", "start_site", "stop_site", "ci_logs", "git", "gh", "run_command"},

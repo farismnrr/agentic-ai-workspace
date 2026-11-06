@@ -387,13 +387,13 @@ When unsure, the lead picks the smaller size. There is no cap on how many jobs a
 
 | Role | What it does |
 | --- | --- |
-| Orchestrator (lead) | Coordinates and delegates, without changing files in team mode |
-| Researcher | Researches with sources; assigned Git work uses the bounded `git` tool only |
-| Planner | Requirements, PRD and architecture approach before implementation; cannot code or test |
-| Developer | Codes, UI, media, docs, MoLab; regular Git operations and GitHub Issues/PRs via `git`/`gh`, reads CI; cannot run QA tests or deploy |
-| QA & Review | Runs tests, lint, typechecks and reviews through `verify` in a read-only sandbox; named checks are optional |
-| Security | Only with owner-enabled `@deep-review`: reviews security + architecture together; source code is read-only |
-| DevOps | Runs named builds, Apps, releases and authorized GitHub Actions via `gh`; cannot edit source, commit/push code or use general shell |
+| Orchestrator (lead) | Coordinates and delegates; read inspections via git/gh without changing files |
+| Researcher | Researches with sources; read inspections via git/gh, no file edits |
+| Planner | Requirements, PRD, architecture approach and git/gh read inspections; cannot code |
+| Developer | Codes, UI, media, docs; git/gh commits, PRs and issues; cannot run QA tests or deploy |
+| QA & Review | Runs tests and reviews through `verify`, git inspections and `gh pr review`; source is read-only |
+| Security | Only with owner-enabled `@deep-review`: security and architecture review; source is read-only |
+| DevOps | Runs named builds, Apps, releases and release Git/gh actions; cannot edit source |
 
 Under Settings, Agent team you can change each role:
 

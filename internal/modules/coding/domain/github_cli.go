@@ -13,8 +13,7 @@ func GitHubTask(role string, args []string) (Task, error) {
 		return Task{}, err
 	}
 	family := args[0]
-	if len(args) == 1 && family == "status" &&
-		(role == "developer" || role == "qa" || role == "devops") {
+	if len(args) == 1 && family == "status" {
 		return Task{Name: "gh", Description: "GitHub status", Command: []string{"gh", "status"},
 			TimeoutSeconds: 180}, nil
 	}
@@ -93,8 +92,6 @@ func GitHubTask(role string, args []string) (Task, error) {
 		default:
 			return Task{}, ErrBadGitArgs
 		}
-	} else if role != "developer" && role != "qa" && role != "devops" {
-		return Task{}, ErrBadGitArgs
 	}
 	return Task{Name: "gh", Description: "GitHub CLI " + family + " " + action,
 		Command: append([]string{"gh"}, args...), TimeoutSeconds: 180}, nil
