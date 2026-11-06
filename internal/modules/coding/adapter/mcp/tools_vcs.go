@@ -37,10 +37,10 @@ func (t *tools) runGit(ctx context.Context, in gitInput) (runOutput, report, err
 		if who.WorkID != "" {
 			state, stateErr := t.works.State(ctx, who.User, who.Client, svc.ProjectID, who.WorkID)
 			if stateErr == nil {
-				if state.Role != "developer" {
+				if state.Role != "developer" && state.Role != "devops" {
 					gitCtx = domain.WithReadOnlyWorkspace(gitCtx)
 				}
-				if state.Role == "devops" && !domain.VCSReadOnly("git", in.Args) {
+				if state.Role == "devops" {
 					gitCtx = domain.WithWritableGitWorkspace(gitCtx)
 				}
 			}

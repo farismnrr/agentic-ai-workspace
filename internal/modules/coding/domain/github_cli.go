@@ -9,12 +9,22 @@ import (
 // a shell, extension/alias dispatch or unrestricted API mutation.
 // role is assigned by the server, never by the tool caller.
 func GitHubTask(role string, args []string) (Task, error) {
+	if len(args) > 0 && args[0] == "gh" {
+		args = args[1:]
+	}
+	cleaned := make([]string, 0, len(args))
+	for _, arg := range args {
+		if arg != "" {
+			cleaned = append(cleaned, arg)
+		}
+	}
+	args = cleaned
 	if err := vcsArgs(args); err != nil {
 		return Task{}, err
 	}
 	family := args[0]
 	if len(args) == 1 && family == "status" {
-		return Task{Name: "gh", Description: "GitHub status", Command: []string{"gh", "status"},
+		return Task{Name: "gh", Kind: "git", Description: "GitHub status", Command: []string{"gh", "status"},
 			TimeoutSeconds: 180}, nil
 	}
 	if len(args) < 2 {
@@ -93,7 +103,7 @@ func GitHubTask(role string, args []string) (Task, error) {
 			return Task{}, ErrBadGitArgs
 		}
 	}
-	return Task{Name: "gh", Description: "GitHub CLI " + family + " " + action,
+	return Task{Name: "gh", Kind: "git", Description: "GitHub CLI " + family + " " + action,
 		Command: append([]string{"gh"}, args...), TimeoutSeconds: 180}, nil
 }
 

@@ -59,6 +59,8 @@ func TestDeveloperGitSupportsDailyWorkflowWithoutShell(t *testing.T) {
 		{"rebase", "--continue"}, {"rebase", "--abort"},
 		{"merge", "feature/new-ui"}, {"stash", "push", "-m", "checkpoint"},
 		{"stash", "pop"}, {"commit", "-m", "Improve the editor"},
+		{"commit", "-m", "Subject\n\nBody paragraph"}, {"git", "status"},
+		{"commit", "-m", "Preserve six local UI changes\n\nKeep the verified driver and admin UI edits intact before syncing dev."},
 		{"push", "origin", "HEAD:dev"}, {"worktree", "list"},
 		{"sparse-checkout", "list"}, {"log", "--oneline"},
 		{"show-ref"}, {"rev-parse", "HEAD"}, {"update-ref", "refs/heads/dev", "abc123"},

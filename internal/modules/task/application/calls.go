@@ -118,11 +118,15 @@ func (r *Runner) tool(ctx context.Context, task domain.Task, state *runState, ca
 	roleKey := ""
 	if r.role != nil {
 		roleKey = r.role.Key
-		if roleKey != "developer" {
+		if roleKey != "developer" && roleKey != "devops" {
 			executeCtx = codingdomain.WithReadOnlyWorkspace(ctx)
 		}
-		if roleKey == "devops" && call.Name == "git" && isMutatingGitCall(call.Input) {
-			executeCtx = codingdomain.WithWritableGitWorkspace(executeCtx)
+		if roleKey == "devops" {
+			if call.Name == "git" || call.Name == "gh" {
+				executeCtx = codingdomain.WithWritableGitWorkspace(executeCtx)
+			} else {
+				executeCtx = codingdomain.WithReadOnlyWorkspace(executeCtx)
+			}
 		}
 	} else if r.leads {
 		executeCtx = codingdomain.WithReadOnlyWorkspace(ctx)

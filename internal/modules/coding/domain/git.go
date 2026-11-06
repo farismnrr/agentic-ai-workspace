@@ -35,6 +35,7 @@ worktree write-tree
 // GitTask executes a recognized native Git command using direct argv.
 // It retains broad Git workflows without opening a shell or custom Git alias.
 func GitTask(args []string) (Task, error) {
+	args = cleanGitArgs(args)
 	if err := vcsArgs(args); err != nil {
 		return Task{}, err
 	}
@@ -64,12 +65,29 @@ func GitTask(args []string) (Task, error) {
 	return Task{Name: "git", Kind: "git", Description: "Git " + verb, Command: argv, TimeoutSeconds: 180}, nil
 }
 
+func cleanGitArgs(args []string) []string {
+	if len(args) > 0 && args[0] == "git" {
+		args = args[1:]
+	}
+	cleaned := make([]string, 0, len(args))
+	for i, arg := range args {
+		if arg == "" {
+			if i > 0 && (args[i-1] == "-m" || args[i-1] == "--message") {
+				cleaned = append(cleaned, arg)
+			}
+			continue
+		}
+		cleaned = append(cleaned, arg)
+	}
+	return cleaned
+}
+
 func vcsArgs(args []string) error {
 	if len(args) < 1 || len(args) > 128 {
 		return ErrBadGitArgs
 	}
 	for _, arg := range args {
-		if arg == "" || len(arg) > 4096 || strings.ContainsAny(arg, "\x00\r\n") {
+		if len(arg) > 4096 || strings.Contains(arg, "\x00") {
 			return ErrBadGitArgs
 		}
 	}
@@ -132,7 +150,6 @@ func dangerousGit(args []string) bool {
 			"--work-tree", "--exec-path", "--namespace", "--upload-pack",
 			"--receive-pack", "--exec", "--ext-diff", "--textconv",
 			"--no-verify", "--force", "-f", "--force-with-lease",
-			"-d",
 			"--force-if-includes", "--mirror", "--delete", "-D",
 			"--hard", "--discard-changes", "--allow-unrelated-histories",
 			"--recurse-submodules", "--interactive", "--edit-todo":

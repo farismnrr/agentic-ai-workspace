@@ -132,8 +132,6 @@ func (t *Tasks) RunGitHub(ctx context.Context, role string, args []string) (RunR
 	if err != nil {
 		return RunResult{}, err
 	}
-	// Only developer may modify the workspace through gh commands (e.g. pr checkout).
-	// All other roles must have read-only workspace isolation.
 	if role != "developer" {
 		ctx = domain.WithReadOnlyWorkspace(ctx)
 	}
